@@ -1,0 +1,12 @@
+# 競馬AIラボ - Netlify設定
+[build]
+  command = "echo 'no build needed - static site with functions'"
+  publish = "."
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+[[redirects]]
+  from = "/api/race"
+  to = "/.netlify/functions/race"
+  status = 200
+  force = true
