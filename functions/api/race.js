@@ -1,4 +1,3 @@
-functions/api/race.js
 // Cloudflare Pages Functions: functions/api/race.js
 // 「GitHub リポジトリ → Cloudflare Pages」連携で /api/race として自動デプロイされます
 // 呼び出し例:
