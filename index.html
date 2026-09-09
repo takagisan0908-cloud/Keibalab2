@@ -1091,7 +1091,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
   <div class="small muted" style="margin-bottom:6px">
     過去データ（日付指定・<b>年指定の一括取得</b>・結果メモの📥取込）で<u>1レース取得するたびに</u>、
     そのレースを<b>3つのモデル（印評価）</b>で予想し直して実際の着順・単勝払戻と照合し、<b>開催年月ごとに</b>学習します（「前の月まで」の実績から翌月以降の予想へ反映＝のぞき見なし）。
-    <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 妙味(EV)が高い順に印（印で単勝を賭けた想定の回収率を測定） ／ 🔰 <b>ハイブリッド</b>: 2つをλで混合し<b>回収率100%以上</b>を目指して自動調整。
+    <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 人気を割り引き「オッズほど評価されていない脚質実力馬（妙味）」を優先（印で単勝を賭けた想定の回収率を測定） ／ 🔰 <b>ハイブリッド</b>: 🎯と💰の2つをλで混合し<b>回収率100%以上</b>を目指して自動調整（モデルごとに印が変わり得ます）。
     <br>学習した集計とパラメータは保存領域（IndexedDB対応ブラウザでは<b>DB「keiba_ap_v1」</b>へ自動保存、非対応時は従来キー）に貯まり、血統回収率⑧などにも再利用されます。
   </div>
   <div class="small" style="margin-bottom:4px">📶 AI印へ反映するモデル:
@@ -1132,45 +1132,30 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
 
   <div class="card" style="border-color:#d8d2e8;background:linear-gradient(180deg,#faf8fe,#fff)">
     <div class="cardhead">
-      <h2>📅 日付指定で「その日の1〜12R」を学習DBに一括取込</h2>
+      <h2>🗓 年指定で過去データを自動取込（学習DB用・JRA全レース）</h2>
       <span class="chip">重複なし保存</span>
       <span class="sp"></span>
-      <span class="small muted">パトロールビデオ/レース映像を見た日付の全レース結果を自動検出して保存</span>
+      <span class="small muted">中断・再開OK</span>
     </div>
     <div class="small muted" style="margin-bottom:8px">
-      日付を選ぶと、その日のJRA全レース（場ごとに1〜12R）の
-      <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>を
-      自動で検出し、学習DBに保存します。同じレース・同じ内容（全項目一致）は重複保存しません。
-      保存領域が満杯になった場合は、<b>最も古いレースから順に自動で削除され、新しいデータに置き換わります</b>（古い順に上書き）。
-      保存はブラウザの大容量領域（IndexedDB）へ自動で行われ、通常の保存上限（5〜10MB）を気にせず数百MBまで増やせます。対応ブラウザ（Chrome/Edge/Firefox等）で直接開くと自動で大容量へ切り替わります。
-      <br>データ源は netkeiba（過去開催日も可・全項目あり）。日付がJRA掲載の直近約2ヶ月で netkeibaに無い場合のみJRA公式を補助で使います（上り3Fなど一部項目が空欄になります）。
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input type="date" id="diDate" style="font-family:inherit;font-size:.9rem;padding:3px 6px">
-      <button type="button" class="btn primary" id="diBtn">📥 この日の1〜12Rを取込・保存</button>
-      <span class="small muted">※ 1日分で数十レースになり、1レース1〜2秒かかります</span>
+      年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとの
+      <b>JRA全レース（場ごとに1〜12R）</b>を1レースずつ自動で取得します。各レースから
+      <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>
+      を自動で検出して<b>学習DBへ保存</b>し、自己学習（3モデル・年月ごと）にも反映します（1年＝約100開催日・約3,600レース、1レース1〜2秒かかります）。
+      同じレース・同じ内容（全項目一致）は重複保存しません。<b>途中で中断しても、同じ年を再実行すれば続きから</b>取り込めます。
+      <br>保存領域が満杯になった場合は<b>最も古いレースから順に自動削除</b>され、新しい分に置き換わります（古い順に上書き）。保存はブラウザの大容量領域（IndexedDB）へ自動で行われます。
+      <br>データ源は netkeiba（過去開催日も可・全項目あり）。netkeiba に開催日一覧が無い日のみ JRA公式を補助で使用します（その場合は上り3Fなど一部項目が空欄になります）。
     </div>
     <div id="diStat" class="small" style="margin-top:8px"></div>
     <div id="diMsg" class="small" style="margin-top:4px"></div>
-    <div style="margin-top:14px;border-top:1px dashed #cfd8e0;padding-top:10px">
-      <div class="cardhead">
-        <h3 style="font-size:.95rem;margin:0">🗓 年指定で過去データを一括取得（自動学習DB用）</h3>
-        <span class="chip">中断・再開OK</span>
-      </div>
-      <div class="small muted" style="margin-bottom:6px">
-        年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとに
-        上の「📥 この日の1〜12Rを取込」と同じ処理を自動で実行します（1年で約3,600レース＝約100開催日分）。
-        既に保存済みのレースは同一内容判定で自動スキップされるため、<b>途中で中断しても後から同じ年を再実行すれば続きから</b>取り込めます。
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
-        <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得</button>
-        <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
-        <span class="small muted">※ 1日分=数十レース、1レース1〜2秒。長時間かかるため中断して分けて実行できます。</span>
-      </div>
-      <div id="diYearMsg" class="small" style="margin-top:6px"></div>
-      <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:#e4ebe1;border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
+      <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得・学習DBへ保存</button>
+      <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
+      <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
     </div>
+    <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+    <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:#e4ebe1;border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
   </div>
 </section>
 
@@ -3166,6 +3151,7 @@ function simApplyCourseGeom(){
    走行距離ベース(弧長)で計算する。
    ========================================================= */
 var SIM_G = { cx:560, cy:306, a:430, b:206, th0: Math.PI/2 + 0.45 };  // cx,cy=中心(a,b=楕円半軸)
+var SIM_RO = 220;   // ゴール板通過後も「流し」で走る最大距離(m)。crsAt の直線延長と各馬の減速に使用
 var SIM_CRS = null;          // { pts:[{x,y}], cum:[], total, A, B, name, straightCourse }
 
 function simEllipsePerim(){
@@ -3217,7 +3203,8 @@ function crsAt(m, D){
   if (!SIM_CRS){ try { simApplyCourseGeom(); } catch(e){} }
   if (!SIM_CRS || !SIM_CRS.cum.length){ return { x: SIM_G.cx, y: SIM_G.cy, nx:0, ny:1, th:0 }; }
   D = Math.max(1, D || 2000);
-  var frac = clamp(m / D, 0, 1);
+  var m0 = Math.max(0, m || 0);
+  var frac = clamp(m0 / D, 0, 1);
   var arc = frac * SIM_CRS.total;
   var pts = SIM_CRS.pts, cum = SIM_CRS.cum;
   var lo=0, hi=pts.length-1;
@@ -3234,6 +3221,11 @@ function crsAt(m, D){
   var nx=-ty, ny=tx;
   var ddx=x-SIM_G.cx, ddy=y-SIM_G.cy;
   if (ddx*nx + ddy*ny < 0){ nx=-nx; ny=-ny; }
+  // ゴール板通過後は「ゴール地点の進行方向」へ最大 SIM_RO m だけ直線的に走り続ける表現
+  if (m0 > D){
+    var ro = Math.min(m0 - D, SIM_RO);
+    return { x: x + tx * ro, y: y + ty * ro, nx: nx, ny: ny, th: th, arc: arc + ro };
+  }
   return { x: x, y: y, nx: nx, ny: ny, th: th, arc: arc };
 }
 function simPos(m, D){ var c = crsAt(m, D); return { x: c.x, y: c.y, th: c.th }; }
@@ -3906,7 +3898,7 @@ function simDrawStraightBand(ctx0, parts, dists, D, rem){
   // ---- 幾何: 横=ゴールまでの距離(前後差) / 縦=馬ごとの固定レーン ----
   var sRem = simFinalStartRem(D);
   var d0 = Math.max(0, D - sRem - 90);   // 帯の左端 = 想定隊列よりやや後方
-  var d1 = D;                            // 右端 = ゴール
+  var d1 = D + 95;                       // 右端 = ゴールより約95m先(ゴール板通過後の「流し」も描く)
   var W = Math.max(1, d1 - d0);
   var xL = Math.round(cssW * 0.08);
   var xR = Math.round(cssW - cssW * 0.05);
@@ -3943,17 +3935,20 @@ function simDrawStraightBand(ctx0, parts, dists, D, rem){
     ctx.fillText(String(RR) + 'm', pX, yB + 9);
   });
 
-  // ---- ゴール(縦ストライプ) ----
-  ctx.save();
-  ctx.beginPath(); ctx.rect(xR - 4, yA, 8, yB - yA); ctx.clip();
-  var gSeg = Math.max(6, Math.round((yB - yA) / 9)), gS = (yB - yA) / gSeg;
-  for (var gs2 = 0; gs2 < gSeg; gs2++){
-    ctx.fillStyle = (gs2 % 2) ? '#f2f2f2' : '#0b0b0b';
-    ctx.fillRect(xR - 4, yA + gs2 * gS, 8, gS);
+  // ---- ゴール(縦ストライプ: 右端でなく「距離Dの位置」に描き、通過後も右へ流れる) ----
+  var gx = xAt(D);
+  if (gx >= xL && gx <= xR + 60){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(gx - 4, yA, 8, yB - yA); ctx.clip();
+    var gSeg = Math.max(6, Math.round((yB - yA) / 9)), gS = (yB - yA) / gSeg;
+    for (var gs2 = 0; gs2 < gSeg; gs2++){
+      ctx.fillStyle = (gs2 % 2) ? '#f2f2f2' : '#0b0b0b';
+      ctx.fillRect(gx - 4, yA + gs2 * gS, 8, gS);
+    }
+    ctx.restore();
+    ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('GOAL', gx + 8, yA - 9);
   }
-  ctx.restore();
-  ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('GOAL', xR + 8, yA - 9);
 
   // ---- 馬(後方→先頭の順に描画、各馬固定レーン) ----
   var leadI = -1, leadD2 = -1;
@@ -3987,7 +3982,7 @@ function simDrawStraightBand(ctx0, parts, dists, D, rem){
   // ---- 上部バー ----
   ctx.fillStyle = 'rgba(8,24,14,.82)'; ctx.fillRect(0, 0, cssW, 26);
   ctx.fillStyle = '#dff0d8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏁 最終直線リプレイ（4コーナー想定隊列 → ゴール）　残り ' + Math.round(Math.max(0, rem)) + 'm', 10, 13);
+  ctx.fillText('🏁 最終直線リプレイ（4コーナー想定隊列 → ゴール）　' + (rem > 0 ? ('残り ' + Math.round(Math.max(0, rem)) + 'm') : 'ゴール板を通過・流しています'), 10, 13);
   // 先頭3着
   var top3 = ord2.slice().reverse().slice(0, 3);
   ctx.textBaseline = 'middle'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
@@ -4017,7 +4012,8 @@ function simDrawStraightBand(ctx0, parts, dists, D, rem){
 function simSideHud(ctx, cssW, cssH, rem, leadP, kind){
   ctx.fillStyle = 'rgba(8,24,14,.82)'; ctx.fillRect(0, 0, cssW, 26);
   ctx.fillStyle = '#dff0d8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('🎮 横スクロール2D（最終直線・側面視）　残り ' + Math.round(rem) + 'm', 10, 13);
+  var lbl0 = '🎮 横スクロール2D（最終直線・側面視）　' + (rem > 0 ? ('残り ' + Math.round(rem) + 'm') : 'ゴール板を通過・流しています');
+  ctx.fillText(lbl0, 10, 13);
   ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
   ctx.fillText('▶ 右のGOALへ進む（200mポールが流れる）', cssW - 10, 13);
   ctx.textBaseline = 'alphabetic';
@@ -4082,9 +4078,10 @@ function simDrawSideScroll(ctx0, parts, dists, D, rem, info){
   }
   var spread = Math.max(1, leadD - minD);
   var V = clamp(spread * 2.1 + 160, 230, 660);
-  var wR = Math.min(D + 15, Math.max(leadD + 120, V * 0.95));
+  // ゴール(距離D)の先も映す「流し」: 先頭がDを過ぎてもカメラは先頭を追い、GOALが左へ流れて行く
+  var wR = Math.max(leadD + 130, V * 0.95, D + 40);
   var wL = wR - V;
-  if (wL < -8){ wL = -8; wR = wL + V; wR = Math.min(D + 15, Math.max(wR, V)); }
+  if (wL < -8){ wL = -8; wR = Math.max(wL + V, D + 40, leadD + 40); }
   var span = Math.max(1, wR - wL);
   var xL = Math.round(cssW * 0.06), xR = Math.round(cssW * 0.985);
   if (xR - xL < 130){ xL = 24; xR = cssW - 24; }
@@ -4275,7 +4272,7 @@ function simDrawFrame(ctx0, parts, dists, D, cam, info){
   // ================= テレビ中継風(3D透視・追走) =================
   var tI = leadI;
   if (info && info.followI != null && info.followI >= 0 && info.followI < n && dists[info.followI] != null) tI = info.followI;
-  var sF = Math.min(tI >= 0 ? (dists[tI] || 0) : leadD, D);
+  var sF = (tI >= 0 ? (dists[tI] || 0) : leadD);        // ゴール通過後の馬も追う(Dより先も可)
   if (lastOnly){
     // 先頭のやや後方(集団の中)にカメラを置き、先頭〜後方の隊列が画面に収まるようにする
     var back = rem > 300 ? 120 : (rem > 150 ? 70 : 38);
@@ -4284,9 +4281,9 @@ function simDrawFrame(ctx0, parts, dists, D, cam, info){
   if (n === 0) sF = 0;
   var kind = (info && info.kind) || 'std';
   var cam3 = simCamBuild(sF, D, cssW, cssH, kind, false);
-  // 映す範囲: カメラ前方の走路 s0〜s1
+  // 映す範囲: カメラ前方の走路 s0〜s1（ゴール通過後の「流し」領域まで描く）
   var sL = Math.max(0, sF - 170);
-  var s1m = Math.min(D + 200, sF + (cam3.ahead || 1100));
+  var s1m = Math.min(D + SIM_RO + 60, sF + (cam3.ahead || 1100));
   simDrawCourse3D(ctx, cam3, cssW, cssH, D, { s0: sL, s1: s1m, ahead: s1m - sL });
   if (n === 0) return;
 
@@ -4299,15 +4296,15 @@ function simDrawFrame(ctx0, parts, dists, D, cam, info){
   });
   for (var oi = 0; oi < orderP.length; oi++){
     var i = orderP[oi];
-    var d = dists[i] || 0;
+    var d = Math.min(D + SIM_RO, dists[i] || 0);   // ゴール通過後の流し(最大SIM_ROm)まで描画
     var lane = simLane(i);
-    var p = simProj(cam3, simP3(Math.min(d, D), D, lane));
+    var p = simProj(cam3, simP3(d, D, lane));
     if (!p) continue;
     if (p.sc < 0.6 || p.y > cssH + 80 || p.y < -120) continue;   // 遠すぎ/画面外
     var S = p.sc * 1.12;
     if (S > cssH * 0.6) S = cssH * 0.6;
-    var w = simPos(Math.min(d, D), D);
-    var th = simHeading(Math.min(d, D), D);
+    var w = simPos(d, D);
+    var th = simHeading(d, D);
     var ux = Math.cos(th), uy = Math.sin(th);
     var rX = vdot(v3(ux, uy, 0), cam3.R);
     var flip = (rX < 0);
@@ -4512,8 +4509,11 @@ function runVisualRace(){
   if (lastOnly){ clipScale = 0.55 + 0.45 * (sRem / D); }   // 最終直線だけでも見やすい尺に
   var animMs = 15000 * (0.5 + 4.6 / Math.max(4, speed)) * clipScale;
   var msPerSec = animMs / lastT;
+  // ゴール板通過後の「流し」(実際の競馬のように止まらず走り抜けて減速する演出)
+  var runoutAnimMs = (viewMode === 'tv') ? 1800 : 1500;   // 画面での演出尺(ms)
+  var runoutRaceSec = Math.max(5, Math.min(26, runoutAnimMs / Math.max(1e-3, msPerSec)));
   if (sim.raf) cancelAnimationFrame(sim.raf);
-  var startT = null, crossed = [];
+  var startT = null, crossed = [], runoutEndReal = 0;
   sim.running = true;
   $('btnRun').disabled = true; $('btnRerun').disabled = true;
   simSyncOverlay();
@@ -4552,10 +4552,18 @@ function runVisualRace(){
     for (var i = 0; i < n; i++){
       var pl = PLAN[i];
       var u = simPlanU(pl, real);
-      // 位置(スタートからの距離メートル)。最終直線モードは先頭が残りsRemに来た瞬間から再生
-      var d = Math.min(D, Math.max(0, u * D));
-      dists.push(d);
       if (u >= 1){ if (crossed.indexOf(i) < 0) crossed.push(i); pl.clock = real; }
+      var d;
+      if (pl.clock != null){
+        // ゴール通過後: その馬の通過時刻からの時間で、同じ速さで走り抜けてから減速して止まる(流し)
+        var dtc = Math.min(Math.max(0, real - pl.clock), runoutRaceSec);
+        var vf = Math.min(22, Math.max(10, D / Math.max(0.5, pl.F)));   // 通過時の速さ(m/s 相当)
+        d = D + (vf * dtc - 0.5 * (vf / Math.max(1e-3, runoutRaceSec)) * dtc * dtc);
+      } else {
+        // 位置(スタートからの距離メートル)。最終直線モードは先頭が残りsRemに来た瞬間から再生
+        d = Math.min(D, Math.max(0, u * D));
+      }
+      dists.push(d);
       crossedOrder.push(u >= 1);
     }
     var rs = dists.slice();
@@ -4565,6 +4573,16 @@ function runVisualRace(){
     if (crossed.length < n){
       sim.raf = requestAnimationFrame(tick);
     } else {
+      // 全頭ゴール後も「最後にゴールした馬」から runoutRaceSec 分だけ走り続けてから確定表示
+      if (!runoutEndReal){
+        var lastClock = 0;
+        for (var ci = 0; ci < crossed.length; ci++){ var cl = PLAN[crossed[ci]].clock || 0; if (cl > lastClock) lastClock = cl; }
+        runoutEndReal = lastClock + runoutRaceSec;
+      }
+      if (real < runoutEndReal){
+        sim.raf = requestAnimationFrame(tick);
+        return;
+      }
       // 全頭の決着順(ゴール到達順)を crossed から並べ直す
       var fin = parts.map(function(p, i){ return i; }).sort(function(a, b){ return (PLAN[b].clock || 1e9) - (PLAN[a].clock || 1e9); });
       finishVisualRace(parts, fin, crossed);
@@ -10616,7 +10634,7 @@ function initPg(){
 
    ■ 3モデル（印評価の考え方）
      1. 的中率重視 (hit) : 単勝オッズ＋脚質から「当たりそうな馬」順に印
-     2. 回収率重視 (roi) : モデル確率×単勝オッズの「妙味(EV)」が高い順に印
+     2. 回収率重視 (roi) : 脚質実力(colK)がオッズ(市場)ほど低くない馬＝「妙味」が高い順に印
         （印に単勝を賭けたと仮定した回収率を測る）
      3. ハイブリッド (hyb) : 上記2つをλで混ぜ、回収率100%以上を目指す
         （達成できなければ的中寄りへ、達成なら妙味寄りへ自動調整）
@@ -10981,24 +10999,33 @@ function apSoft(points, tau){
   if (!se || !isFinite(se)) return points.map(function(){ return 1 / points.length; });
   return ex.map(function(e){ return e / se; });
 }
+/* 妙味評価値: 市場(単勝オッズ, colO)と比べて「脚質実力評価(colK)」がどれだけ上回っているか。
+   上回っている馬ほどオッズ(配当)に見合う実力＝妙味が高いとみなす。オッズ不明馬は0。 */
 function apEV(feats){
-  var wO = 7, wK = 7;
-  var Uh = feats.map(function(f){ return wO * f.colO + wK * f.colK; });
-  var q = apSoft(Uh, 0.22);
-  return feats.map(function(f, i){ return (f.m && q[i]) ? Math.max(-0.6, Math.min(0.9, q[i] * f.odds - 1)) : 0; });
+  return feats.map(function(f){ return f.m ? clamp((f.colK - f.colO) * 1.6, -1, 1) : 0; });
 }
-/* S → 各馬のモデルU。mode: 'hit'|'roi'|'hyb' */
+/* S → 各馬のモデルU。mode: 'hit'|'roi'|'hyb'
+   3モデルの「考え方」は意図的に異なるスコア式にする:
+   - hit(的中率重視): オッズ(市場確率)を主軸に脚質を少し加味 → 「当たりそうな馬」順
+   - roi(回収率重視) : 人気(colO)を割り引き、脚質実力(colK)＋妙味(colK-colO)を重視
+                       → 「オッズほど評価されていない実力馬(単勝想定の回収を狙う馬)」順
+   - hyb(ハイブリッド): hit と roi を λ で混合(回収率100%以上を目指してλを自動調整)
+   ※ 同じ馬でもモデルによって印(◎〜△)が変わり得る(特に中〜上位人気の取捨)。 */
 function apUScores(feats, S, mode){
-  S = S || { hitTm: 1, roiRho: 1, hybLam: 0.55 };
-  var wO = 7, wK = 7;
+  S = S || {};
   var hitTm = (S.hitTm == null) ? 1 : S.hitTm;
-  var Uh = feats.map(function(f){ return wO * f.colO + wK * hitTm * f.colK; });
+  hitTm = clamp(hitTm, 0.4, 1.0);
+  var Uh = feats.map(function(f){ return 7 * f.colO + 7 * hitTm * f.colK; });
   if (mode === 'hit') return Uh;
-  var ev = apEV(feats);
   var rho = (S.roiRho == null) ? 1 : S.roiRho;
-  var Ur = feats.map(function(f, i){ return wO * f.colO + wK * f.colK + (f.m ? rho * 4.5 * ev[i] : 0); });
+  rho = clamp(rho, 0.2, 1.8);                       // 大きいほど穴・回収寄り
+  var ev = apEV(feats);
+  var Ur = feats.map(function(f, i){
+    return 3 * f.colO + 6 * f.colK + rho * 3.5 * ev[i];
+  });
   if (mode === 'roi') return Ur;
-  var lam = (S.hybLam == null) ? 0.55 : Math.max(0, Math.min(1, S.hybLam));
+  var lam = (S.hybLam == null) ? 0.55 : S.hybLam;
+  lam = Math.max(0, Math.min(1, lam));
   return Uh.map(function(u, i){ return (1 - lam) * u + lam * Ur[i]; });
 }
 /* 順位付けして上位5頭に印を割当て。oddsRankMap/orderMap があれば併記 */
@@ -11333,7 +11360,7 @@ function apActiveNote(S, model, ym){
   var lam = S.hybLam == null ? 0.55 : clamp(S.hybLam, 0, 1);
   var rho = S.roiRho == null ? 1 : S.roiRho;
   var extra = '（展開/脚質の信頼度 ' + Math.round(hitS * 100) + '% ・ 妙味係数 ' + rho.toFixed(2) + ' ・ 混合比λ ' + lam.toFixed(2) + '）';
-  if (model === 'roi') extra = '（妙味(EV)の上乗せ係数 ' + rho.toFixed(2) + '）';
+  if (model === 'roi') extra = '（妙味係数(穴寄り度) ' + rho.toFixed(2) + '）';
   if (model === 'hit') extra = '（展開/脚質の信頼度 ' + Math.round(hitS * 100) + '%）';
   return '🔁 自己学習(' + mn + 'モデル): 前月以前の自動検証 ' + S.totalR + ' レース' + (srcLabel ? '（直近は' + srcLabel + '）' : '') + 'から補正を学習' + extra + '。AI予想へ自動反映しています。';
 }
@@ -12772,13 +12799,24 @@ function diHash(pr){
   return 'h' + h.toString(36);
 }
 
-/* 開催日の一覧(netkeiba) → [{rid, rnum, name}] */
+/* JRA(中央)開催場と、学習DBから除外する地方競馬の開催場 */
+var DI_CENTRAL = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
+var DI_LOCAL_V = ['ホッカイドウ','ばんえい','帯広','門別','盛岡','水沢','船橋','川崎','浦和','大井','金沢','笠松','名古屋','園田','姫路','高知','佐賀','荒尾','福山','益田','その他'];
+/* 本文に「地方場名だけ」が出ているとき=地方競馬のレースとみなし除外 */
+function diIsLocalRace(txt){
+  var cen = 0, loc = 0;
+  for (var i = 0; i < DI_CENTRAL.length; i++){ if (txt.indexOf(DI_CENTRAL[i]) >= 0){ cen++; break; } }
+  for (var j = 0; j < DI_LOCAL_V.length; j++){ if (txt.indexOf(DI_LOCAL_V[j]) >= 0){ loc++; break; } }
+  return !cen && loc > 0;
+}
+/* 開催日の一覧(netkeiba) → [{rid, rnum, name}] （JRA=中央開催のみ・地方は除外） */
 function diParseDateList(html){
   var out = [], seen = {};
   // 各レースは <li class="RaceList_DataItem…"> … <span class="ItemTitle">レース名</span> … </li>
   var re = /<li[^>]*class="[^"]*RaceList_DataItem[^"]*"[^>]*>([\s\S]*?)<\/li>/gi, lm;
   while ((lm = re.exec(html || '')) !== null){
     var body = lm[1];
+    if (diIsLocalRace(bfStrip(body))) continue;   // 地方競馬のレースは学習DBへ入れない
     var idM = body.match(/race_id=(\d{12})/);
     if (!idM) continue;
     var rid = idM[1];
@@ -13077,7 +13115,7 @@ function diYearBuild(){
   if (stp) stp.addEventListener('click', function(){
     if (DI_YEAR_BUSY){ DI_YEAR_CANCEL = true; diYearMsgSet('⏹ 中断しています…（現在の1日分の取込が終わり次第停止します）', false); stp.disabled = true; }
   });
-  diYearMsgSet('「📥 この年の全レースを一括取得」で過去データをまとめて学習DBへ保存できます。', false);
+  diYearMsgSet('年を選んで「📥 この年の全レースを一括取得・学習DBへ保存」を押すと、その年のJRA開催日・JRA全レース（場ごと1〜12R）を自動検出して学習DBへ保存します。', false);
 }
 /* 指定年の開催日一覧を netkeibaカレンダー(年×月)から収集 */
 function diYearDates(year){
@@ -13211,25 +13249,8 @@ function diRenderStat(){
   }
 }
 function initDi(){
-  var b = $('diBtn');
-  if (b) b.addEventListener('click', function(){
-    var inp = $('diDate');
-    var d8 = (inp && inp.value ? String(inp.value).replace(/-/g, '') : '');
-    if (!/^\d{8}$/.test(d8)){ diStatus('日付を選択してください（例: 2026-09-06）', true); return; }
-    b.disabled = true;
-    if (typeof apSessReset === 'function'){ try { apSessReset(); } catch(e){} }   // 一括取込セッションの集計開始
-    diStatus('この日のレースを検索しています…');
-    diImportDate(d8, function(msg, isErr){ diStatus(msg, !!isErr); })
-      .then(function(){ diRenderStat(); })
-      .catch(function(e){ diStatus((e && e.message) || String(e), true); })
-      .finally(function(){ b.disabled = false; });
-  });
-  var def = $('diDate');
-  if (def && !def.value){
-    var d = new Date();
-    d.setDate(d.getDate() - 1);   // 前日（土日開催を指定しやすい）
-    def.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-  }
+  /* 過去レースの学習DB取込は「年指定の一括取得」へ一本化（旧: 日付指定の1日分ボタンは廃止）。
+     diImportDate は年指定バルク(diImportYear)から1日単位で引き続き利用される。 */
   diRenderStat();
   diYearBuild();
   diBoot();   // IndexedDB 大容量保存を開く（localStorage の旧データは自動移行）
