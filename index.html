@@ -854,7 +854,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
         <tbody id="horseBody"></tbody>
       </table>
     </div>
-    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」。逃げ・先行型ほど、この数値が高いとAI評価が下がります。netkeibaの馬ページ取得（「全馬に自動反映」や🐎馬情報）時に過去レースの位置取りから自動計算されます（表記「(出遅れ)」は明示・無い場合は1角最後方→回復したレースを推定。手入力で上書きも可・⚡自動は編集すると手動になります）。</div>
+    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」。逃げ・先行型ほど、この数値が高いとAI評価が下がります。netkeibaの馬ページ取得（「全馬に自動反映」や🐎馬情報）時に過去レースの位置取りから自動計算されます（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定（終盤だけ伸びた後方は除外）。手入力で上書きも可・⚡自動は編集すると手動になります）。</div>
     <button class="btn dashed" id="btnAddHorse" style="margin-top:8px">＋ 馬を1頭追加（上限18頭）</button>
   </div>
 
@@ -4449,25 +4449,29 @@ function simFlowStyle(str){
 }
 function simFlowSpeed(st, u, paceAdj){
   // u = 走行割合(0..1)。基準速度に対する倍率。
-  // 実際の競走馬の速度差は数%程度なので、控えめな値で「集団のまま進み、
-  // 最終直線で逃げ・先行が失速し差し・追込が伸びて順位が動く」現実的な見た目にする。
-  var late = clamp((u - 0.72) / 0.28, 0, 1);   // 残り~28%以降の「直線」
+  // 実際の競走馬の速度差は数%程度。S字カーブ(滑らか)で緩やかに順位が動くようにし、
+  // 「ゴール直前だけ急加速/急失速」しない現実的な速度変化にする。
+  // 逃げ・先行の先行利はレース前半で緩やかに減衰し、差し・追込の伸びは
+  // 残り半分あたりからなだらかに現れてゴールへ向かう。
+  u = clamp(u, 0, 1);
+  function ss(a, b, x){ x = clamp((x - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); }
   var s = 1;
+  // 加速・減速は「ゴール手前で完結」させる(ssの終端を1.0より手前=0.9前後に置く)。
+  // そうすることで「ゴール直前にまだ急加速/急失速している」見た目が消え、
+  // 逃げ・先行は最後に失速しきった速さで流し込み、差し・追込は加速しきってゴールへ持続する。
   if (st === '逃げ'){
-    // 序盤にハナを主張(+4%)→中盤フラット→直線で失速(ペースが速いほど大きく沈む)
-    s = 1 + 0.040 * Math.max(0, 1 - u / 0.45) - late * (0.055 + 0.030 * paceAdj);
+    s = 1 + 0.045 * (1 - ss(0.0, 0.60, u)) - (0.050 + 0.020 * paceAdj) * ss(0.50, 0.94, u);
   } else if (st === '先行'){
-    s = 1 + 0.028 * Math.max(0, 1 - u / 0.40) - late * (0.040 + 0.015 * paceAdj);
+    s = 1 + 0.032 * (1 - ss(0.0, 0.55, u)) - (0.033 + 0.012 * paceAdj) * ss(0.50, 0.94, u);
   } else if (st === '差し'){
-    // 中団待機→直線で伸びる(ハイペースほど有利)
-    s = 1 - 0.026 * Math.max(0, 1 - u / 0.30) + late * (0.045 + 0.020 * paceAdj);
+    s = 1 - 0.030 * ss(0.0, 0.45, u) + (0.035 + 0.015 * paceAdj) * ss(0.38, 0.90, u);
   } else if (st === '追込'){
-    s = 1 - 0.042 * Math.max(0, 1 - u / 0.22) + late * (0.060 + 0.032 * paceAdj);
+    s = 1 - 0.048 * ss(0.0, 0.38, u) + (0.048 + 0.020 * paceAdj) * ss(0.30, 0.88, u);
   } else {
     s = 1;
   }
-  // 加速(ゲート直後は全馬やや遅い。速度差はわずか)
-  var accel = (u < 0.05) ? (0.93 + 0.07 * (u / 0.05)) : 1;
+  // ゲート直後はどの馬もわずかに遅い(共通なので隊列への影響は小さい)
+  var accel = (u < 0.06) ? (0.95 + 0.05 * (u / 0.06)) : 1;
   return accel * s;
 }
 /* 脚質st・決着タイムF(秒)・ハイペース度paceAdj(0..1)から、0..1の位置テーブルを生成 */
@@ -4619,8 +4623,9 @@ function runVisualRace(){
   var animMs = 15000 * (0.5 + 4.6 / Math.max(4, speed)) * clipScale;
   var msPerSec = animMs / lastT;
   // ゴール板通過後の「流し」(実際の競馬のように止まらず走り抜けて減速する演出)
-  var runoutAnimMs = (viewMode === 'tv') ? 1800 : 1500;   // 画面での演出尺(ms)
-  var runoutRaceSec = Math.max(5, Math.min(26, runoutAnimMs / Math.max(1e-3, msPerSec)));
+  // ゴール板を通過してから「徐々に減速して止まる流し」を、ゴール直後〜全頭が走り抜けるまで映す
+  var runoutAnimMs = (viewMode === 'tv' || viewMode === 'full') ? 2600 : 2200;   // 画面での演出尺(ms)
+  var runoutRaceSec = Math.max(6, Math.min(12, runoutAnimMs / Math.max(1e-3, msPerSec))); // 実時間換算の流し尺(最後にゴールした馬から約6〜12秒・最速馬でも約170mでほぼ停止)
   if (sim.raf) cancelAnimationFrame(sim.raf);
   var startT = null, crossed = [], runoutEndReal = 0;
   sim.running = true;
@@ -4661,13 +4666,22 @@ function runVisualRace(){
     for (var i = 0; i < n; i++){
       var pl = PLAN[i];
       var u = simPlanU(pl, real);
-      if (u >= 1){ if (crossed.indexOf(i) < 0) crossed.push(i); pl.clock = real; }
+      if (u >= 1){
+        // ゴール通過を「最初の1回だけ」記録する(毎フレーム上書きすると流し距離が0になり
+        // ゴール地点で全馬が固まる不具合になるため、初回のみ pl.clock に通過時刻を残す)
+        if (pl.clock == null) pl.clock = real;
+        if (crossed.indexOf(i) < 0) crossed.push(i);
+      }
       var d;
       if (pl.clock != null){
-        // ゴール通過後: その馬の通過時刻からの時間で、同じ速さで走り抜けてから減速して止まる(流し)
-        var dtc = Math.min(Math.max(0, real - pl.clock), runoutRaceSec);
+        // ゴール通過後: 全速のまま駆け抜けてから「徐々にスピードを落として止まる」流し。
+        // 速度を v = vf*(1 - tt*tt) とし(tt=0の直後はほぼ全速で、次第にゆるやかに減速、tt=1で停止)、
+        // その積分値で距離を出すことで、ゴール直後にガクッと止まる不自然さを無くす。
+        var Td = Math.max(1e-3, runoutRaceSec);
+        var dtc = Math.min(Math.max(0, real - pl.clock), Td);
         var vf = Math.min(22, Math.max(10, D / Math.max(0.5, pl.F)));   // 通過時の速さ(m/s 相当)
-        d = D + (vf * dtc - 0.5 * (vf / Math.max(1e-3, runoutRaceSec)) * dtc * dtc);
+        var tt = dtc / Td;                       // 0..1(1で停まる)
+        d = D + vf * Td * (tt - tt * tt * tt / 3);
       } else {
         // 位置(スタートからの距離メートル)。最終直線モードは先頭が残りsRemに来た瞬間から再生
         d = Math.min(D, Math.max(0, u * D));
@@ -13348,6 +13362,11 @@ function diRenderStat(){
       (n ? '<button type="button" class="btn ghost" id="diExp" style="font-size:.72rem;padding:1px 8px">💾 バックアップ保存(JSON)</button>' : '') +
       '<button type="button" class="btn ghost" id="diImp" style="font-size:.72rem;padding:1px 8px">📥 バックアップから復元</button>' +
       '<input type="file" id="diFile" accept=".json" style="display:none">' +
+    '</div>' +
+    '<div style="margin-top:4px;font-size:10px;color:#888;line-height:1.55">' +
+      '☛ 日別の学習データは index.html の中ではなく <b>この端末のブラウザ保存領域</b> に蓄積されます。index.html を新しいファイルに差し替えても消えません。' +
+      '消えるのは「ファイルを開く場所(URL)が変わったとき」「iOS Safari が長期間使われない保存データを自動整理したとき」「保存領域が一杯で古い順に自動整理されたとき」です。' +
+      '<br>※ 自動整理は日付の古い順(今季より昨季、昨季より一昨季が先)。確実に年単位で残したいレースは、この下の“💾 バックアップ保存(JSON)”を定期的に押してJSONファイルで持っておいてください。' +
     '</div>';
   var cb = $('diClr');
   if (cb) cb.addEventListener('click', function(){
@@ -13719,8 +13738,8 @@ function hdParseRecords(html){
    - m (明示): 位置取りに「(出遅れ)」「出遅れ」等の表記があるレース
                (netkeiba のスマホ用馬モーダル等の表記。例: 17-16-7-14(出遅れ))
    - i (推定): 表記が無い場合でも、1コーナー通過が最後方付近なのに
-               以降のコーナーで順位を戻しているレースを「出遅れの可能性」として数える
-   ※ 淡々と最後方で控えている馬(追込・控え)は「ずっと順位が上がらない」ため数えない */
+               直後のコーナー(2〜3角)で大きく順位を挽回したレースを「出遅れの可能性」として数える
+   ※ 後方待機のまま終盤だけ伸びた差し・追込(本来の脚質)や、ずっと後方の馬は数えない */
 function hdCornerNums(pass){
   if (!pass) return [];
   // 通過順位の数字列(例: 17-16-7-14 / 6-6-4-6 / (出遅れ)等の注記を含む場合も数字のみ抽出)
@@ -13740,7 +13759,11 @@ function hdSlowJudgeable(r){
   if (nums[0] < 1 || nums[0] > head) return false;                                  // 1コーナー順位が判読できること
   return true;
 }
-/* 1レースの判定。判定対象外は null / 明示出遅れなら 'm' / 推定なら 'i' を返す */
+/* 1レースの判定。判定対象外は null / 明示出遅れなら 'm' / 推定なら 'i' を返す。
+   推定は「netkeiba式」に近づけた判定を使う:
+   - 1コーナーを最下位〜ブービー(出遅れの典型)で通過
+   - しかも「直後(2〜3コーナー)に大きく順位を回復している」＝ゲートで置いて行かれて
+     後から取り戻した走り。後方待機のまま終盤だけ伸びた差し・追込(本来の脚質)は数えない。 */
 function hdRaceSlowKey(r){
   if (!hdSlowJudgeable(r)) return null;
   var pass = String(r.pass || '');
@@ -13749,15 +13772,15 @@ function hdRaceSlowKey(r){
   var head = parseInt(String(r.head == null ? '' : r.head).replace(/[^0-9]/g, ''), 10) || 0;
   var nums = hdCornerNums(pass);
   var pos1 = nums[0], pos2 = nums[1];
-  // 推定: 1コーナーを「最後方〜ブービー」(出遅れの典型)で通過したのに、
-  //        その後3頭以上前に戻っているレース。ずっと後方のまま(控え・追込)は数えない。
-  var rearmost = (pos1 >= head - 1);
-  if (!rearmost) return null;
-  var laterMin = 1e9;
-  for (var q = 1; q < nums.length; q++){ if (nums[q] < laterMin) laterMin = nums[q]; }
-  var gained = pos1 - laterMin;   // その後、順位を戻した数
-  if (gained < 3) return null;    // ほぼ最後方のまま → 控え・追込とみなし対象外
-  if (pos1 === head || pos2 >= head - 2) return 'i';
+  if (!(pos1 >= head - 1)) return null;          // 1コーナー最後方付近でなければ対象外
+  if (pos1 === head && pos2 <= pos1 - 3) return 'i';   // 最下位→2角で3頭以上挽回
+  if (pos1 >= head - 1 && pos2 <= pos1 - 3 && pos2 <= head - 4) return 'i'; // ブービー→2角で挽回
+  // 2角で挽回が無くても、3角で大きく挽回している(タテ長コース/1角を使わない形)場合も推定
+  if (nums.length >= 3){
+    var pos3 = nums[2];
+    if (pos1 === head && pos3 <= pos1 - 4) return 'i';
+    if (pos3 <= pos1 - 4 && pos3 <= head - 5) return 'i';
+  }
   return null;
 }
 /* 全戦績から出遅れを集計
@@ -16337,7 +16360,7 @@ function nkLast3Cell(r){
 /* 馬柱モーダル内の「通過(位置取り)」セル。
    出遅れだったレースは、通過順の右に「出遅れ」表記を付ける
    (位置取りそのものに「(出遅れ)」等の明示がある=m、表記が無いが
-   1コーナー最後方付近→回復したレースは推定=i。hdRaceSlowKey参照) */
+   1コーナー最後方付近を通過し、直後のコーナーで大きく順位を挽回したレースを推定=i。hdRaceSlowKey参照) */
 function nkPassCell(r){
   var v = String(r.pass == null ? '' : r.pass).trim();
   var key = null;
@@ -16351,7 +16374,7 @@ function nkPassCell(r){
       ' <span class="chip" style="background:#fdecec;border:1px solid #e6b2b2;color:#a3311f;padding:0 4px;font-size:9px;line-height:15px;font-weight:700" title="位置取りの表記に「出遅れ」あり（スタートで出遅れたレース）">🐢出遅れ</span></td>';
   }
   return '<td style="text-align:left;white-space:nowrap">' + txt +
-    ' <span class="chip" style="background:#fdf3e0;border:1px solid #e6cf9a;color:#8a5a1a;padding:0 4px;font-size:9px;line-height:15px;font-weight:700" title="通過から推定: 1コーナー最後方付近→その後順位を回復（出遅れの可能性が高いレース）">🐢出遅れ?</span></td>';
+    ' <span class="chip" style="background:#fdf3e0;border:1px solid #e6cf9a;color:#8a5a1a;padding:0 4px;font-size:9px;line-height:15px;font-weight:700" title="通過から推定: 1コーナー最後方付近なのに直後に順位を挽回（ゲートで出遅れた可能性が高いレース）">🐢出遅れ?</span></td>';
 }
 /* 出馬表グリッドの「上3F」主表示(前走分・順位色付き) */
 function nkGridLast3HTML(h){
@@ -16466,7 +16489,7 @@ function nkRenderHorseModal(id, prof, runs, name, slowStat){
   // 出遅れ(自動集計)の要約
   if (typeof hdSlowText === 'function' && slowStat && slowStat.total){
     h.push('<div class="small" style="border:1px solid #e3c9a8;background:#fbf3e2;padding:6px 10px;border-radius:10px;margin-bottom:8px">🐢 ' + esc(hdSlowText(slowStat)) +
-      '<span class="muted">　※ 過去レースの位置取りから自動検出。「推定」は1コーナー最後方付近→回復したレース。数字が大きい馬は逃げ・先行型ほどAI評価が下がります。</span></div>');
+      '<span class="muted">　※ 過去レースの位置取りから自動検出。「推定」は1コーナー最後方付近なのに直後に順位を挽回したレース＝ゲートで出遅れて立て直した走り。後方待機のまま終盤伸びた差し・追込は数えません。数字が大きい馬は逃げ・先行型ほどAI評価が下がります。</span></div>');
   }
   if (!runs.length){
     h.push('<div class="small muted" style="border:1px dashed #d8c98f;border-radius:10px;padding:8px 11px;background:#fdf9ea">今回より前の戦績がまだありません（新馬・未出走の可能性）。</div>');
