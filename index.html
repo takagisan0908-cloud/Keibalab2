@@ -2306,10 +2306,12 @@ function analyzeRace(){
     var c = styleClass(h.style);
     var m = c ? (styleM[c] || 1) : 1;
     var out = v * m;
+    // 出遅れ率は「脚質によらず共通の勝率ペナルティ」。先行型だけ過大に効かせると
+    // 実データ(差し・追込にも出遅れはある)とずれるため、率を線形ではなく逓減させて掛ける
     var slow = clamp((num(h.slow) || 0) / 100, 0, 0.95);
-    if (slow > 0.004){
-      var sk = (c === 'E') ? 0.34 : (c === 'S') ? 0.26 : (c === 'K') ? 0.16 : (c === 'C') ? 0.13 : 0.10;
-      out *= (1 - slow * sk);
+    if (slow > 0.02){
+      var mul2 = Math.max(0.55, 1 - Math.pow(slow * 100 - 2, 0.75) / 60);
+      out *= mul2;
       if (slow >= 0.10) slowN++;
     }
     return out;
@@ -2349,18 +2351,44 @@ function analyzeRace(){
   }
   var babaOn = !!colB;
   var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0)) || 1;
+  var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   var U = hs.map(function(h, i){
-    var num = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
-    if (babaOn) num += (w.baba||0) * colB[i];
-    var u = num / sumW;
+    var score = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
+    if (babaOn) score += (w.baba||0) * colB[i];
+    var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑧でON)の僅かな加点（オカルト反映）
+    // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
+    var slw = clamp((_num(h.slow) || 0) / 100, 0, 0.95);
+    if (slw > 0.02) u *= Math.max(0.6, 1 - Math.pow(slw * 100 - 2, 0.8) / 55);
     return u;
   });
-  // softmax
-  var tau = 0.22;
+  // ソフトマックス(総合評価U)と市場確率(1/オッズ)のブレンド。
+  // 単純なソフトマックスだけだと調教1項目などで人気と大きく乖離した印になり、
+  // 「過去検証は高いのに当日印が外れる」原因になる。オッズ列の重みに応じて
+  // 市場(実際の支持)へ引き寄せ、評価の上振れ馬だけを上に出す。
+  var tau = 0.30;
   var ex = U.map(function(u){ return Math.exp(u/tau); });
   var se = ex.reduce(function(a,b){ return a+b; },0);
-  var prob = ex.map(function(e){ return e/se; });
+  var pModel = ex.map(function(e){ return se ? e/se : 1/hs.length; });
+  var pMkt = hs.map(function(h){ var o = num(h.odds); return (o && o > 1) ? (1/o) : null; });
+  var pMktSum = 0, pMktN = 0;
+  pMkt.forEach(function(v){ if (v != null){ pMktSum += v; pMktN++; } });
+  // 市場(実オッズ)は最も信頼できる単一指標なので基本は市場を軸にする。
+  // 「オッズ列の重み」が小さい(＝他の材料を重視したい)ほどモデル評価を効かせる:
+  //   odds重み0 → モデル最大50% / 既定(7)以上 → モデル25%・市場75% に落ち着く
+  var blend = (w && w.odds != null) ? clamp(0.50 - (w.odds || 0) * 0.035, 0.25, 0.6) : 0.35;
+  var prob = hs.map(function(h, i){
+    var pm = pModel[i];
+    if (pMkt[i] != null && pMktSum > 0){
+      var pn = pMkt[i] / pMktSum;            // 市場確率の正規化(オッズ未入力馬は除いた母数)
+      // モデルが市場より明確に上位評価する馬(人気薄の実力馬)だけはモデルをやや強めに効かせる
+      var b2 = pm > pn * 1.7 ? Math.min(blend + 0.12, 0.55) : blend;
+      return (1 - b2) * pn + b2 * pm;
+    }
+    return pm;
+  });
+  var psum2 = 0; prob.forEach(function(v){ psum2 += v; });
+  if (psum2 > 0) prob = prob.map(function(v){ return v / psum2; });
 
   var order = hs.map(function(h,i){ return i; }).sort(function(a,b){ return prob[b]-prob[a]; });
 
@@ -3217,7 +3245,7 @@ function simApplyCourseGeom(){
    走行距離ベース(弧長)で計算する。
    ========================================================= */
 var SIM_G = { cx:560, cy:306, a:430, b:206, th0: Math.PI/2 + 0.45 };  // cx,cy=中心(a,b=楕円半軸)
-var SIM_RO = 220;   // ゴール板通過後も「流し」で走る最大距離(m)。crsAt の直線延長と各馬の減速に使用
+var SIM_RO = 260;   // ゴール板通過後も「流し」で走る最大距離(m)。crsAt の直線延長と各馬の減速に使用
 var SIM_CRS = null;          // { pts:[{x,y}], cum:[], total, A, B, name, straightCourse }
 
 function simEllipsePerim(){
@@ -3972,7 +4000,7 @@ function simDrawStraightBand(ctx0, parts, dists, D, rem){
   // ---- 幾何: 横=ゴールまでの距離(前後差) / 縦=馬ごとの固定レーン ----
   var sRem = simFinalStartRem(D);
   var d0 = Math.max(0, D - sRem - 90);   // 帯の左端 = 想定隊列よりやや後方
-  var d1 = D + 95;                       // 右端 = ゴールより約95m先(ゴール板通過後の「流し」も描く)
+  var d1 = D + SIM_RO + 20;              // 右端 = ゴールより約240m先(ゴール板通過後の「駆け抜け→減速」まで描く)
   var W = Math.max(1, d1 - d0);
   var xL = Math.round(cssW * 0.08);
   var xR = Math.round(cssW - cssW * 0.05);
@@ -4210,7 +4238,10 @@ function simDrawSideScroll(ctx0, parts, dists, D, rem, info){
   var pMap = {};
   place.forEach(function(i, rk){ pMap[i] = rk + 1; });
   for (var ii = n - 1; ii >= 0; ii--){
-    var dd = Math.min(dists[ii] || 0, D);
+    // ゴール(D)の先を走る馬も表示窓に収まる限り進める。Dで頭打ちにすると
+    // 「ゴールした瞬間にピタッと止まる」ように見えるため、流し領域(SIM_RO先)まで許可し、
+    // 画面外(xR+60 より先)に入った馬はカリングで「画面の右へ走り去る」表現にする
+    var dd = Math.min(dists[ii] || 0, D + SIM_RO + 60);
     var hx = X(dd);
     if (hx < xL - 30 || hx > xR + 60) continue;   // 画面外は省略（入ってくると出現＝スクロール感）
     var cy = yTop + rowH * (ii + 0.5);
@@ -4624,10 +4655,11 @@ function runVisualRace(){
   var msPerSec = animMs / lastT;
   // ゴール板通過後の「流し」(実際の競馬のように止まらず走り抜けて減速する演出)
   // ゴール板を通過してから「徐々に減速して止まる流し」を、ゴール直後〜全頭が走り抜けるまで映す
-  var runoutAnimMs = (viewMode === 'tv' || viewMode === 'full') ? 2600 : 2200;   // 画面での演出尺(ms)
-  var runoutRaceSec = Math.max(6, Math.min(12, runoutAnimMs / Math.max(1e-3, msPerSec))); // 実時間換算の流し尺(最後にゴールした馬から約6〜12秒・最速馬でも約170mでほぼ停止)
+  var runoutAnimMs = (viewMode === 'tv' || viewMode === 'full') ? 3000 : 2400;   // 画面での演出尺(ms)
+  var runoutRaceSec = Math.max(7, Math.min(15, runoutAnimMs / Math.max(1e-3, msPerSec))); // 実時間換算の流し尺(最後にゴールした馬から約7〜15秒・最速馬でも約190mでほぼ停止)
   if (sim.raf) cancelAnimationFrame(sim.raf);
   var startT = null, crossed = [], runoutEndReal = 0;
+  var runoutStartReal = 0, runoutStartWall = 0, runoutSlo = false;  // 全頭ゴール後の流しはゆっくり(スロー)再生
   sim.running = true;
   $('btnRun').disabled = true; $('btnRerun').disabled = true;
   simSyncOverlay();
@@ -4659,7 +4691,13 @@ function runVisualRace(){
   function tick(now){
     if (!sim.running) return;
     if (!startT) startT = now;
-    var real = tS + (now - startT) / msPerSec;   // レース時刻(秒)
+    var real;
+    if (runoutSlo){
+      // 全頭ゴール後の「流し」は時間の進みを遅くして、減速して止まる様子をじっくり映す
+      real = runoutStartReal + (now - runoutStartWall) / (msPerSec * 1.7);
+    } else {
+      real = tS + (now - startT) / msPerSec;   // レース時刻(秒)
+    }
     var ctx0 = simPrepCss();
     if (!ctx0){ sim.raf = requestAnimationFrame(tick); return; }
     var dists = [], crossedOrder = [];
@@ -4701,11 +4739,13 @@ function runVisualRace(){
     if (crossed.length < n){
       sim.raf = requestAnimationFrame(tick);
     } else {
-      // 全頭ゴール後も「最後にゴールした馬」から runoutRaceSec 分だけ走り続けてから確定表示
+      // 全頭ゴール後も「最後にゴールした馬」から runoutRaceSec 分だけ走り続けてから確定表示。
+      // 全頭がそろったこの瞬間を起点に、レース時間をゆっくり進めて「駆け抜け→減速→停止」を映す
       if (!runoutEndReal){
-        var lastClock = 0;
-        for (var ci = 0; ci < crossed.length; ci++){ var cl = PLAN[crossed[ci]].clock || 0; if (cl > lastClock) lastClock = cl; }
-        runoutEndReal = lastClock + runoutRaceSec;
+        runoutStartReal = real;                 // == 最後にゴールした馬の通過時刻
+        runoutStartWall = now;
+        runoutSlo = true;
+        runoutEndReal = real + runoutRaceSec;
       }
       if (real < runoutEndReal){
         sim.raf = requestAnimationFrame(tick);
@@ -10766,8 +10806,8 @@ function initPg(){
 
    ■ 3モデル（印評価の考え方）
      1. 的中率重視 (hit) : 単勝オッズ＋脚質から「当たりそうな馬」順に印
-     2. 回収率重視 (roi) : 脚質実力(colK)がオッズ(市場)ほど低くない馬＝「妙味」が高い順に印
-        （印に単勝を賭けたと仮定した回収率を測る）
+     2. 回収率重視 (roi) : 人気薄(中穴〜大穴＝およそ5番人気以下)から本命を選び、
+        配当の大きい馬を狙う（印に単勝を賭けたと仮定した回収率を測る）
      3. ハイブリッド (hyb) : 上記2つをλで混ぜ、回収率100%以上を目指す
         （達成できなければ的中寄りへ、達成なら妙味寄りへ自動調整）
 
@@ -10793,7 +10833,7 @@ var AP_MARK_ORDER = ['◎','○','▲','☆','△'];
 var AP_MARK_STR = { '◎':5, '○':4, '▲':3, '☆':2, '△':1 };   // 印の強さ(単勝賭金ユニット)
 var AP_CONCEPTS = [
   { id: 'hit', name: '的中率重視', color: '#1d4ed8', tag: '当たり重視', emoji: '🎯' },
-  { id: 'roi', name: '回収率重視', color: '#b45309', tag: '妙味重視',   emoji: '💰' },
+  { id: 'roi', name: '回収率重視', color: '#b45309', tag: '中穴〜大穴狙い', emoji: '💰' },
   { id: 'hyb', name: 'ハイブリッド(回収率100%目標)', color: '#047857', tag: 'バランス', emoji: '🔰' }
 ];
 /* 学習DBの保存モード('ls'=軽量キー / 'idb'=IndexedDB大容量) */
@@ -11119,7 +11159,8 @@ function apFeats(items){
   return list.map(function(x, i){
     var o = apNum(x.odds);
     return { no: String(x.no), name: x.name || '', odds: o, oddsRaw: x.odds != null ? String(x.odds) : '',
-      m: (o && o > 1) ? 1 / o : null, colO: colO[i], colK: colK[i], styleTag: apStyleOf(x, headN) };
+      m: (o && o > 1) ? 1 / o : null, colO: colO[i], colK: colK[i], styleTag: apStyleOf(x, headN),
+      slowW: apSlowWinMul(x.slow), slow: x.slow };
   });
 }
 /* ソフトマックス(数値安定化) */
@@ -11136,28 +11177,76 @@ function apSoft(points, tau){
 function apEV(feats){
   return feats.map(function(f){ return f.m ? clamp((f.colK - f.colO) * 1.6, -1, 1) : 0; });
 }
+/* 出遅れ率(slow %)を「勝率ペナルティ」へ換算。
+   出遅れはどの脚質でもスタート後の不利で、勝率・複勝率を下げる(先行型だけの話ではない)。
+   - 率3%未満: ほぼ無視(実際のばらつき)
+   - 率3%以上: 1 - (率-3%)^0.7 × 0.85 を勝率倍率に(10%で約0.88、25%で約0.72)
+   - オッズ不明馬・未入力(0%)はそのまま */
+function apSlowWinMul(slowPct){
+  var x = parseFloat(String(slowPct == null ? '' : slowPct).replace(/[^0-9.]/g, '')) || 0;
+  if (x < 3) return 1;
+  return Math.max(0.45, 1 - Math.pow(x - 3, 0.7) * 0.85);
+}
 /* S → 各馬のモデルU。mode: 'hit'|'roi'|'hyb'
    3モデルの「考え方」は意図的に異なるスコア式にする:
    - hit(的中率重視): オッズ(市場確率)を主軸に脚質を少し加味 → 「当たりそうな馬」順
-   - roi(回収率重視) : 人気(colO)を割り引き、脚質実力(colK)＋妙味(colK-colO)を重視
-                       → 「オッズほど評価されていない実力馬(単勝想定の回収を狙う馬)」順
-   - hyb(ハイブリッド): hit と roi を λ で混合(回収率100%以上を目指してλを自動調整)
+   - roi(回収率重視) : 本命(◎)をおよそ5番人気以下の中穴〜大穴から選ぶ。
+                       上位人気(1〜4番)は本命候補から割り引き、中〜大穴の中から
+                       配当の大きさ×AI実力評価×妙味×出遅れで順位をつける
+   - hyb(ハイブリッド): hit と roi を λ で混合(回収率側の演算は roi と同じ中穴〜大穴)
    ※ 同じ馬でもモデルによって印(◎〜△)が変わり得る(特に中〜上位人気の取捨)。 */
 function apUScores(feats, S, mode){
   S = S || {};
-  var hitTm = (S.hitTm == null) ? 1 : S.hitTm;
-  hitTm = clamp(hitTm, 0.4, 1.0);
-  var Uh = feats.map(function(f){ return 7 * f.colO + 7 * hitTm * f.colK; });
+  // 市場確率(m)を「馬同士で比較しやすい信頼度」へ: 1〜3番人気は上に間延びしないよう log で圧縮
+  // 例: 1.5倍→0.67 / 3倍→0.33 / 6倍→0.17 / 12倍→0.08 / 30倍→0.03
+  var marketU = feats.map(function(f){ return f.m ? Math.log(1 + f.m * 4) : 0; });
+  var muMax = 1e-9; marketU.forEach(function(v){ if (v > muMax) muMax = v; });
+  marketU = marketU.map(function(v){ return muMax ? (v / muMax) : 0; });
+  // 勝率・複勝へ効く共通ペナルティ(出遅れ率)は全モデルへ先に適用
+  function effProb(f, base){
+    var p = base;
+    if (f.slowW < 1) p *= f.slowW;
+    return Math.max(0, p);
+  }
+  // hit: 「市場確率(信頼度)が高い」馬を軸に、そこから大きく逸脱しない範囲で脚質を少し加味
+  var Uh = feats.map(function(f, i){
+    var p = marketU[i];
+    var k = (f.colK - 0.5) * 0.5;                 // 脚質は市場を上下に少し動かすだけ
+    return effProb(f, p + k);
+  });
   if (mode === 'hit') return Uh;
-  var rho = (S.roiRho == null) ? 1 : S.roiRho;
-  rho = clamp(rho, 0.2, 1.8);                       // 大きいほど穴・回収寄り
-  var ev = apEV(feats);
+  // roi(回収率重視): 本命(◎)をおよそ5番人気以下(中穴〜大穴)から選ぶスコア式。
+  //   - 配当の魅力 pay: オッズが大きいほど大きい(対数。1〜80倍を 0..1 に)
+  //   - AI実力評価 str: colK(脚質評価)が高いほど信頼
+  //   - 1〜4番人気は「本命にならない」よう強めに割引 → 本命はほぼ5番人気以下になる
+  //   - 妙味(AI評価が人気より上)と出遅れ率で同格の中穴の中から順位をつける
+  var rho = (S.roiRho == null) ? 1.0 : S.roiRho;  // 妙味の効かせ(学習で0.1〜1.6に調整)
+  rho = clamp(rho, 0.1, 1.6);
+  var ordIdx = feats.map(function(_, i){ return i; })
+    .filter(function(i){ return feats[i].odds > 1; })
+    .sort(function(a, b){ return feats[a].odds - feats[b].odds; });
+  var mRank = feats.map(function(){ return 99; });
+  ordIdx.forEach(function(i, r){ mRank[i] = r + 1; });
+  function apPayoutU(o){ return (o && o > 1) ? Math.min(1, Math.log(o) / Math.log(80)) : 0; }
   var Ur = feats.map(function(f, i){
-    return 3 * f.colO + 6 * f.colK + rho * 3.5 * ev[i];
+    var pay = apPayoutU(f.odds);
+    var s = 0.55 * f.colK + 0.45 * pay;         // 実力×配当の魅力(0.3〜1の範囲)
+    var r = mRank[i];
+    if (r <= 4){
+      // 1〜4番人気は本命(◎)候補から外す: 強く割り引く
+      var sup = (r === 1) ? 0.18 : (r === 2) ? 0.30 : (r === 3) ? 0.46 : 0.66;
+      s *= sup;
+    } else if (r >= 14){
+      s *= 0.85;    // 100倍前後の超大穴は質の裏付けが薄いので微減
+    }
+    var ev = clamp((f.colK - f.colO) * 1.1, -0.3, 0.3);   // 妙味: 評価が人気より高い馬に加点
+    s += rho * ev;
+    return effProb(f, s);
   });
   if (mode === 'roi') return Ur;
-  var lam = (S.hybLam == null) ? 0.55 : S.hybLam;
-  lam = Math.max(0, Math.min(1, lam));
+  // hyb: hit と roi を λ で混合
+  var lam = (S.hybLam == null) ? 0.45 : S.hybLam;
+  lam = Math.max(0.1, Math.min(0.9, lam));
   return Uh.map(function(u, i){ return (1 - lam) * u + lam * Ur[i]; });
 }
 /* 順位付けして上位5頭に印を割当て。oddsRankMap/orderMap があれば併記 */
@@ -11316,6 +11405,15 @@ function apEval(p, rid, nosess){
   if (apGet(rid) && apGet(rid).result) return null;
   var rows = ((p && p.rows) || []).filter(function(r){ return r && r.order >= 1 && r.no; });
   if (rows.length < 3) return null;
+  // slow(出遅れ率)は馬番→行で引き当てる(既存の race.marks 由来ではなく p 直下の rows を使う)
+  var slowByNo = {};
+  ((p && p.slowMap) || []).forEach(function(x){ if (x && x.no != null) slowByNo[String(x.no)] = x.slow; });
+  function withSlow(r){
+    var o = Object.assign({}, r);
+    if (o.slow == null && slowByNo[String(o.no)] != null) o.slow = slowByNo[String(o.no)];
+    return o;
+  }
+  rows = rows.map(withSlow);
   var meta = apRaceMeta(p, rid);
   var ym = apYmOf(meta.date8, rid);
   var S = ym ? apParamsFor(ym) : { hitTm: 1, roiRho: 1, hybLam: 0.55 };
@@ -11492,7 +11590,7 @@ function apActiveNote(S, model, ym){
   var lam = S.hybLam == null ? 0.55 : clamp(S.hybLam, 0, 1);
   var rho = S.roiRho == null ? 1 : S.roiRho;
   var extra = '（展開/脚質の信頼度 ' + Math.round(hitS * 100) + '% ・ 妙味係数 ' + rho.toFixed(2) + ' ・ 混合比λ ' + lam.toFixed(2) + '）';
-  if (model === 'roi') extra = '（妙味係数(穴寄り度) ' + rho.toFixed(2) + '）';
+  if (model === 'roi') extra = '（中穴〜大穴の妙味係数 ' + rho.toFixed(2) + '・本命は約5番人気以下から選定）';
   if (model === 'hit') extra = '（展開/脚質の信頼度 ' + Math.round(hitS * 100) + '%）';
   return '🔁 自己学習(' + mn + 'モデル): 前月以前の自動検証 ' + S.totalR + ' レース' + (srcLabel ? '（直近は' + srcLabel + '）' : '') + 'から補正を学習' + extra + '。AI予想へ自動反映しています。';
 }
@@ -11560,11 +11658,12 @@ function apModelMarksHTML(){
         if (!m) return '<td>−</td>';
         return '<td title="' + esc(m.name || '') + ' ' + esc(m.no) + '番"><span class="mm-no" style="color:' + cn.color + '"><b>' + esc(m.no) + '</b></span><span class="mm-name">' + esc(m.name || '') + '</span></td>';
       }).join('');
-      rows.push('<tr><td style="text-align:left;color:' + cn.color + ';white-space:normal"><b>' + cn.emoji + esc(cn.name) + '</b>' +
+      var cnSub = (cn.id === 'roi') ? ' <span style="font-size:.68rem;opacity:.85">（5番人気以下・中穴〜大穴）</span>' : '';
+      rows.push('<tr><td style="text-align:left;color:' + cn.color + ';white-space:normal"><b>' + cn.emoji + esc(cn.name) + '</b>' + cnSub +
         (on ? ' <span style="color:#0e5e39;font-size:.7rem">◀ AI印に反映中</span>' : '') + '</td>' + cell + '</tr>');
     });
     return '<div style="overflow-x:auto"><table class="lr-tbl mmtbl"><thead><tr><th style="text-align:left">モデル</th><th>◎</th><th>○</th><th>▲</th><th>☆</th><th>△</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
-      '<div class="small muted" style="margin-top:2px">印は過去データの自己学習（年月ごと）から得た3モデルの評価です。上の「AI印と総合評価」表は、この中から選択したモデルの補正に加え、調教・持ちタイム・馬場・あなたの印など全要素で算出した本命印です（馬名は長いと省略表示・マウスで全名表示）。</div>';
+      '<div class="small muted" style="margin-top:2px">この表は「AI印と総合評価」表とは別系統の「3モデル」比較です。総合評価表はオッズ(人気)を軸に、調教・持ちタイム・展開適性・バ場・あなたの印・出遅れ率を加えて本命印を算出します（馬名は長いと省略表示・マウスで全名表示）。</div>';
   } catch(e){ return ''; }
 }
 function apConceptPreview(){
@@ -11582,7 +11681,8 @@ function apConceptPreview(){
     var parts = [];
     AP_CONCEPTS.forEach(function(cn){
       var mk = apMarksByU(feats, apUScores(feats, S, cn.id), orderMap, oddsRankMap);
-      parts.push('<span style="color:' + cn.color + '"><b>' + cn.emoji + cn.name + '</b> ' +
+      var psub = (cn.id === 'roi') ? '（中穴〜大穴）' : '';
+      parts.push('<span style="color:' + cn.color + '"><b>' + cn.emoji + cn.name + psub + '</b> ' +
         (mk.length ? mk.map(function(m){ return m.mark + m.no + (m.name ? ' ' + m.name : ''); }).join(' / ') : '（印なし）') + '</span>');
     });
     return parts.join('<br>');
@@ -11599,7 +11699,7 @@ function apMonthTableHTML(ym, label){
     var a = agg[cn.id] || {};
     var par;
     if (cn.id === 'hit') par = '展開信頼 ' + Math.round(clamp(S.hitTm == null ? 1 : S.hitTm, 0.4, 1) * 100) + '%';
-    else if (cn.id === 'roi') par = '妙味係数 ' + (S.roiRho == null ? 1 : S.roiRho).toFixed(2);
+    else if (cn.id === 'roi') par = '中穴〜大穴の妙味係数 ' + (S.roiRho == null ? 1 : S.roiRho).toFixed(2);
     else par = '混合λ ' + (S.hybLam == null ? 0.55 : S.hybLam).toFixed(2) + '（目標回収率100%以上）';
     var roiStr = a.roiPct === '−' ? '−' : '<b>' + a.roiPct + '%</b>' + (cn.id === 'hyb' ? (parseFloat(a.roiPct) >= 100 ? ' ✅' : '') : '');
     h.push('<tr><td style="color:' + cn.color + '"><b>' + cn.emoji + esc(cn.name) + '</b></td><td>' + (a.races || 0) + '</td><td>' + (a.win || 0) + '頭</td><td>' + (a.top3Pct === '−' ? '−' : a.top3Pct + '%') + '</td><td>' + roiStr + '</td><td class="muted">' + par + '</td></tr>');
@@ -11620,7 +11720,7 @@ function apStatsHTML(){
   var curYm = '';
   try { curYm = apCurYm(); } catch(e){}
   var S = apParamsFor(curYm || '999912');
-  h.push('<div class="small muted" style="margin-bottom:4px">過去のレースを「単勝オッズ・人気・脚質(4角通過)」から3モデルで予想し直し、実際の着順・単勝払戻と照合した結果です。<b>開催年月ごと</b>に集計し、「前の月まで」の実績から翌月以降へ使う補正（展開/脚質の信頼度・妙味係数・混合比）を学習します。</div>');
+  h.push('<div class="small muted" style="margin-bottom:4px">過去のレースを「単勝オッズ・人気・脚質(4角通過)」から3モデルで予想し直し、実際の着順・単勝払戻と照合した結果です。🎯的中率重視=人気軸 / 💰回収率重視=中穴〜大穴(約5番人気以下)から本命を選ぶ / 🔰ハイブリッド=両者を混合。開催年月ごとに集計し、「前の月まで」の実績から翌月以降へ使う補正を学習します。</div>');
   var sessHtml = apSessHTML();
   if (sessHtml) h.push(sessHtml);
   // 直近の学習状況
@@ -13079,7 +13179,18 @@ function diImportDate(date8, progress){
           if (diSet(it.rid, rec)){ result.ok++; }
           else { result.limit++; }   // この1件だけ保存不可（既存データは無傷）
           // 自動: AI印を合成して払戻結果と比較・実績DBへ（重複は内部でスキップ）
-          if (typeof apEval === 'function'){ try { apEval(pr, it.rid); } catch(e){} }
+          // 出遅れ率(手動入力/自動検出の両方)も馬番対応で渡し、予想の学習に使う
+          if (typeof apEval === 'function'){
+            try {
+              var slowMap2 = (it.slowMap || null);
+              if (!slowMap2 && typeof state !== 'undefined' && state && Array.isArray(state.horses)){
+                slowMap2 = [];
+                state.horses.forEach(function(hx){ if (hx && hx.no != null) slowMap2.push({ no: hx.no, slow: hx.slow }); });
+              }
+              if (slowMap2) pr = Object.assign({}, pr, { slowMap: slowMap2 });
+              apEval(pr, it.rid);
+            } catch(e){}
+          }
         }).catch(function(){ result.errors++; });
       });
     });
@@ -13282,11 +13393,29 @@ function diImportYear(year, msg){
       msg(year + '年の開催日が見つかりませんでした（netkeibaカレンダーに未掲載の年です）', true);
       return totals;
     }
-    msg(year + '年のJRA開催日を ' + dates.length + ' 日 検出しました。1日ずつ取り込みます…');
+    msg(year + '年のJRA開催日を ' + dates.length + ' 日 検出しました。すでに保存済みの日は飛ばして、まだ取得していない日だけを取り込みます…');
+    // 「取得データから以前保存した内容は無視」ではなく「以前保存した日(レース)は読み飛ばして、
+    // まだ保存のない日付だけを新規取得」する。保存済みの日を数えて途中経過に表示する。
+    // 保存済みの開催日(1レースでも保存済み=その日は取込済み)を一度だけ集計して、
+    // 日付ごとに「まだ取得していない日」だけを取り込む(既取込の日への再取得をやめる)
+    var savedDates = {};
+    var _db = diLs();
+    var _ks = Object.keys(_db.races || {});
+    for (var _q = 0; _q < _ks.length; _q++){ savedDates[String(_db.races[_ks[_q]].date8 || '')] = 1; }
+    var pending = dates.filter(function(d8){ return !savedDates[d8]; });
+    var skippedDays = dates.length - pending.length;
     if (typeof apSessReset === 'function'){ try { apSessReset(); } catch(e){} }   // 今回の一括取込セッションとして集計開始
     diYearBar(0, true);
+    if (!pending.length){
+      diYearBar(0, false);
+      if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }
+      msg('✅ ' + year + '年のレースはすべて保存済みです（' + skippedDays + '開催日・重複なし）。取得・再保存は行いません。新たに取り込みたい年を選んでください。' +
+        (totals.dup ? '' : '') + apYearInfo(year));
+      return totals;
+    }
+    msg(year + '年のうち、まだ取得していない ' + pending.length + ' 開催日（全 ' + dates.length + ' 日のうち保存済み ' + skippedDays + ' 日はスキップ）を1日ずつ取り込みます…');
     var seq = Promise.resolve();
-    dates.forEach(function(d8, idx){
+    pending.forEach(function(d8, idx){
       seq = seq.then(function(){
         if (DI_YEAR_CANCEL) return;
         return diImportDate(d8, function(/* dayMsg */){ /* 日ごとの詳細は累計表示に集約 */ })
@@ -13296,7 +13425,7 @@ function diImportYear(year, msg){
             var dstr = d8.slice(0, 4) + '/' + (+d8.slice(4, 6)) + '/' + (+d8.slice(6, 8));
             var pct = ((idx + 1) / dates.length) * 100;
             diYearBar(pct, true);
-            msg('（' + (idx + 1) + '/' + dates.length + '日目）' + dstr + ' … 追加 ' + r.ok + ' / 既存スキップ ' + r.dup + ' / 失敗 ' + r.errors + ' ／ 累計保存 ' + totals.ok +
+            msg('（' + (idx + 1) + '/' + pending.length + '日目・未取得分）' + dstr + ' … 追加 ' + r.ok + ' / 同レース既存スキップ ' + r.dup + ' / 失敗 ' + r.errors + ' ／ 累計保存 ' + totals.ok +
               (r.evicted ? '　⚠ この日は満杯のため古いデータを ' + r.evicted + ' 件削除して保存（古い順に上書き）' : ''));
             return r;
           })
@@ -13326,6 +13455,20 @@ function diImportYear(year, msg){
     });
   });
 }
+
+/* 年の取り込み後に自己学習の集計状況を表示するヘルパー */
+function apYearInfo(year){
+  var s2 = '';
+  try {
+    if (typeof apYms === 'function'){
+      var mcs = apYms().filter(function(y){ return String(y).indexOf(String(year)) === 0; }).length;
+      if (mcs) s2 += '　🔁 自己学習を' + year + '年分の月ごとに集計済み（' + mcs + 'か月分・DB保存）。';
+      if (typeof apSessText === 'function'){ var sTy = apSessText(); if (sTy) s2 += '　📊 今回一括取得したデータでの実測: ' + sTy; }
+    }
+  } catch(e){}
+  return s2;
+}
+
 function diStatus(msg, isErr){
   var el = $('diMsg'); if (!el) return;
   el.innerHTML = (isErr ? '⚠ ' : '') + esc(msg);
