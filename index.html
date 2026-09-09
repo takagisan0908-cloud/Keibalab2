@@ -1093,11 +1093,14 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <input type="checkbox" id="apUseChk" checked> 反映する
     </label>
     <button type="button" class="btn ghost" id="apReset" style="font-size:.72rem;padding:2px 8px">学習をリセット</button>
+    <button type="button" class="btn ghost" id="apRelearn" style="font-size:.72rem;padding:2px 8px;border-color:#1c6e42;color:#1c6e42" title="予想モデル(判定式)を変えたり、過去レースを年指定一括取込・結果メモ📥・横(サイド)取得で追加したあとに押すと、保存済みの過去レースを現在のモデルで評価し直して年月別の学習集計を再構築します。記録を全消去せずに済みます。">🔄 再学習する</button>
   </div>
   <div class="small muted" style="margin-bottom:6px">
     過去データ（日付指定・<b>年指定の一括取得</b>・結果メモの📥取込）で<u>1レース取得するたびに</u>、
     そのレースを<b>3つのモデル（印評価）</b>で予想し直して実際の着順・単勝払戻と照合し、<b>開催年月ごとに</b>学習します（「前の月まで」の実績から翌月以降の予想へ反映＝のぞき見なし）。
-    <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 人気を割り引き「オッズほど評価されていない脚質実力馬（妙味）」を優先（印で単勝を賭けた想定の回収率を測定） ／ 🔰 <b>ハイブリッド</b>: 🎯と💰の2つをλで混合し<b>回収率100%以上</b>を目指して自動調整（モデルごとに印が変わり得ます）。
+    <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 本命を<b>約5番人気以下（中穴〜大穴）</b>から選んで配当を狙う ／ 🔰 <b>ハイブリッド</b>: 🎯と💰をλで混合し<b>回収率100%以上</b>を目指して自動調整（モデルごとに印が変わり得ます）。
+    <br>　💰 <b>回収率の計算</b>: 各レース<b>1万円</b>を想定資金とし、そのモデルが印を打った5頭(◎○▲☆△)の単勝へ<b>AIの信頼度で配分購入</b>した場合の総払戻 ÷ 1万円 を回収率とします（過去保存データには単勝以外の払戻が無いため、単勝でシミュレーション）。
+    <br>　🔄 <b>再学習する</b>: 予想モデル・判定式を変更した後や、<b>過去レースの横(サイド)取得</b>・年指定一括取込・結果メモ📥でレースを追加した後に押すと、<b>保存済みの過去レースを「今のモデル」で評価し直して</b>年月別の集計・学習パラメータを再構築します（従来はモデル変更後に再集計できず、消して取り込み直す必要がありました）。
     <br>学習した集計とパラメータは保存領域（IndexedDB対応ブラウザでは<b>DB「keiba_ap_v1」</b>へ自動保存、非対応時は従来キー）に貯まり、血統回収率⑧などにも再利用されます。
   </div>
   <div class="small" style="margin-bottom:4px">📶 AI印へ反映するモデル:
@@ -1107,6 +1110,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <label style="display:inline-flex;gap:3px;align-items:center;font-size:.82rem;background:#e7f6ef;padding:1px 6px;border-radius:10px"><input type="radio" name="apModel" value="hyb" checked>🔰 ハイブリッド</label>
     </span>
   </div>
+  <div id="apRelearnMsg" class="small" style="margin:4px 0"></div>
   <div id="apOut" class="small" style="margin-top:6px"></div>
 </div>
 <div class="card" id="rnCard">
@@ -7835,33 +7839,41 @@ function rnParseResult(html, rid){
   out.rows = out.rows.filter(function(r){ return r.name; });
   out.n = out.rows.filter(function(r){ return r.order >= 1; }).length;
   var w = out.rows[0]; if (w) out.winTime = w.time;
-  // 払い戻し（単勝・複勝 → 回収率の計算に使用）
+  // 払い戻し（全券種: 単勝・複勝・枠連・ワイド・馬連・馬単・3連複・3連単）
+  // race.netkeiba と db.netkeiba の両形式を共通パーサで処理し、
+  // out.payouts(生リスト)と out.payout({win,place,..} の {nos,pays} 正規化)を保存する
   try {
-    var payBox = html.match(/<table[^>]*summary="[^"]*払戻[^"]*"[^>]*>([\s\S]*?)<\/table>/);
-    if (payBox){
-      var pb = payBox[1];
-      function rowPay(cls){
-        var tr = pb.match(new RegExp('<tr[^>]*class="' + cls + '"[^>]*>([\\s\\S]*?)<\\/tr>', 'i'));
-        if (!tr) return null;
-        var seg3 = tr[1];
-        var nos = [];
-        var resM = seg3.match(/<td class="Result">([\s\S]*?)<\/td>/i);
-        if (resM){
-          var sps = resM[1].match(/<span[^>]*>([^<]*)<\/span>/g) || [];
-          for (var i=0;i<sps.length;i++){
-            var t = sps[i].replace(/<[^>]*>/g,'').trim();
-            if (t) nos.push(t);
+    if (typeof bfParsePayback === 'function'){
+      out.payouts = bfParsePayback(html);
+      out.payout = (typeof bfPayoutMap === 'function') ? bfPayoutMap(out.payouts) : null;
+    } else {
+      // 共通パーサ未読込時の縮退: 従来どおり単勝・複勝のみ
+      var payBox = html.match(/<table[^>]*summary="[^"]*払戻[^"]*"[^>]*>([\s\S]*?)<\/table>/);
+      if (payBox){
+        var pb = payBox[1];
+        function rowPay(cls){
+          var tr = pb.match(new RegExp('<tr[^>]*class="' + cls + '"[^>]*>([\\s\\S]*?)<\\/tr>', 'i'));
+          if (!tr) return null;
+          var seg3 = tr[1];
+          var nos = [];
+          var resM = seg3.match(/<td class="Result">([\s\S]*?)<\/td>/i);
+          if (resM){
+            var sps = resM[1].match(/<span[^>]*>([^<]*)<\/span>/g) || [];
+            for (var i=0;i<sps.length;i++){
+              var t = sps[i].replace(/<[^>]*>/g,'').trim();
+              if (t) nos.push(t);
+            }
           }
+          var pays = [];
+          var payM = seg3.match(/<td class="Payout">([\s\S]*?)<\/td>/i);
+          if (payM){
+            var ps = payM[1].match(/(\d[\d,]*)円/g) || [];
+            for (var j=0;j<ps.length;j++) pays.push(ps[j].replace(/[^0-9.]/g,''));
+          }
+          return { nos: nos, pays: pays };
         }
-        var pays = [];
-        var payM = seg3.match(/<td class="Payout">([\s\S]*?)<\/td>/i);
-        if (payM){
-          var ps = payM[1].match(/(\d[\d,]*)円/g) || [];
-          for (var j=0;j<ps.length;j++) pays.push(ps[j].replace(/[^0-9.]/g,''));
-        }
-        return { nos: nos, pays: pays };
+        out.payout = { win: rowPay('Tansho'), place: rowPay('Fukusho') };
       }
-      out.payout = { win: rowPay('Tansho'), place: rowPay('Fukusho') };
     }
   } catch(e){ /* 払戻解析は失敗しても無視 */ }
   return out;
@@ -11018,6 +11030,23 @@ function apPut(rec){
   }
   return apLsSetRec(rec.rid, rec);
 }
+/* 旧バージョンで保存した自己検証レコードへ、全券種の払戻(payout=正規化 / payouts=生リスト)を
+   あとから反映する。日付・年指定の一括取込が旧保存レコードを「全券種払戻つき」へ更新したときに呼ばれる。
+   年月バケット等の集計には触れないため、再学習や二重計上は不要。 */
+function apPatchPayout(rid, payout, payouts){
+  try {
+    var rec = apGet(rid);
+    if (!rec || !rec.result) return false;
+    var cur = rec.result.payout || null;
+    var curFull = !!(cur && typeof cur === 'object' && ('santan' in cur) && cur.win && cur.place);
+    var newFull = !!(payout && typeof payout === 'object' && ('santan' in payout) && payout.win && payout.place);
+    var changed = false;
+    if (newFull && !curFull){ rec.result.payout = payout; changed = true; }
+    if (payouts && !rec.result.payouts){ rec.result.payouts = payouts; changed = true; }
+    if (changed) apPut(rec);
+    return changed;
+  } catch(e){ return false; }
+}
 function apScan(){
   if (apMode === 'idb' && apRecMem) return apRecMem;
   return apLsAllRec();
@@ -11256,13 +11285,22 @@ function apMarksByU(feats, U, orderMap, oddsRankMap){
     if (U[b] !== U[a]) return U[b] - U[a];
     return (feats[a].odds || 999) - (feats[b].odds || 999) || (String(feats[a].no) < String(feats[b].no) ? -1 : 1);
   });
+  var k = Math.min(5, idx.length);
+  // 印にした5頭の「モデル信頼度シェア」(ソフトマックス)。回収率シミュレーションで
+  // 1万円を各馬の単勝へ AI判断で配分するときの割合に使う
+  var mxU = -1e9, i2 = 0;
+  for (i2 = 0; i2 < k; i2++){ if (U[idx[i2]] > mxU) mxU = U[idx[i2]]; }
+  var exA = [], exSum = 0;
+  for (i2 = 0; i2 < k; i2++){ var e = Math.exp((U[idx[i2]] - mxU) / 0.9); exA.push(e); exSum += e; }
+  var share = {};
+  for (i2 = 0; i2 < k; i2++){ share[idx[i2]] = exSum > 0 ? exA[i2] / exSum : 1 / k; }
   var out = [];
-  for (var r = 0; r < Math.min(5, idx.length); r++){
+  for (var r = 0; r < k; r++){
     var i = idx[r];
     var f = feats[i];
     out.push({
       no: f.no, name: f.name, mark: AP_MARK_ORDER[r], style: f.styleTag,
-      odds: f.odds, oddsRaw: f.oddsRaw, aiRank: r + 1,
+      odds: f.odds, oddsRaw: f.oddsRaw, aiRank: r + 1, u: U[i], pu: share[i] || (1 / Math.max(1, k)),
       order: orderMap ? (orderMap[f.no] || 0) : 0,
       oddsRank: oddsRankMap ? (oddsRankMap[f.no] || 99) : 99
     });
@@ -11287,6 +11325,33 @@ function apBuildPred(p){
   });
 }
 
+/* 回収率のシミュレーション: 各レースで想定1万円を資金とし、
+   そのモデルが印を打った馬(◎○▲☆△)の単勝へ「AIの信頼度(印シェア)」で配分購入する。
+   ・オッズが分からない馬(過去データ欠落)には賭けない(その分は他へ配分し直し)
+   ・1万円ちょうどになるよう100円単位に丸め、端数は◎へ
+   返り値: stakeOf(no)=賭金 / 資金が無いとき(賭けられる印が無い)は null */
+function apBetPlan(ms){
+  var pool = (ms || []).filter(function(m){ return m && m.order >= 1 && m.odds > 1; });
+  if (!pool.length) return null;
+  var denom = 0;
+  pool.forEach(function(m){ denom += (m.pu > 0) ? m.pu : (1 / Math.max(1, pool.length)); });
+  var st = {}, tot = 0;
+  pool.forEach(function(m){
+    var frac = (m.pu > 0) ? m.pu : (1 / Math.max(1, pool.length));
+    var raw = 10000 * (frac / denom);
+    var amt = Math.floor(raw / 100) * 100;
+    if (amt < 100) amt = 100;
+    st[m.no] = amt; tot += amt;
+  });
+  if (tot !== 10000 && pool.length){
+    var top = pool[0];
+    st[top.no] = Math.max(0, (st[top.no] || 0) + (10000 - tot));
+  }
+  return {
+    pool: pool,
+    stakeOf: function(no){ return st[no] || 0; }
+  };
+}
 /* ---------- 年月ごとの学習集計(バケット) ---------- */
 function apCBInit(){ return { n: 0, horseN: 0, horseWin: 0, horseTop3: 0, winR: 0, top3R: 0,
   costU: 0, grossU: 0, boostN: 0, boostTop3: 0, dropN: 0, dropTop3: 0, byMark: {} }; }
@@ -11400,9 +11465,10 @@ function apModelScale(S, model){
 function apCurModel(){ return (state && state.apModel) || 'hyb'; }
 
 /* ---------- 1レースの自己検証と累積学習 ---------- */
-function apEval(p, rid, nosess){
+function apEval(p, rid, nosess, force){
   if (!p || !rid) return null;
-  if (apGet(rid) && apGet(rid).result) return null;
+  // force=true(再学習)のときは既存の評価済み記録があっても現在のモデルで評価し直す
+  if (!force && apGet(rid) && apGet(rid).result) return null;
   var rows = ((p && p.rows) || []).filter(function(r){ return r && r.order >= 1 && r.no; });
   if (rows.length < 3) return null;
   // slow(出遅れ率)は馬番→行で引き当てる(既存の race.marks 由来ではなく p 直下の rows を使う)
@@ -11441,7 +11507,9 @@ function apEval(p, rid, nosess){
   rec.result = {
     settledAt: apNow(),
     rows: rows.map(function(r){ return { no: r.no, name: r.name || '', order: parseInt(r.order, 10) || 0, odds: r.odds || '', pop: r.pop || '', passing: r.passing || '' }; }),
-    payout: p.payout || null
+    // 払戻(全券種): payout=券種別{nos,pays} / payouts=的中1件ごとの生リスト(無い取込元ではnull)
+    payout: p.payout || null,
+    payouts: (p && p.payouts) || null
   };
   rec.marks = cMarks.hit.slice();   // 旧互換: marks=的中率重視(従来のAI印)
   rec.cMarks = cMarks;
@@ -11465,8 +11533,6 @@ function apAggAdd(ym, cMarks, nosess){
       var o = m.order;
       if (o === 1){ cb.horseWin++; winFlag = true; }
       if (o <= 3){ cb.horseTop3++; top3Flag = true; }
-      var str = AP_MARK_STR[m.mark] || 1;
-      if (m.odds > 0 && m.oddsRank <= 99){ cb.costU += str; if (o === 1) cb.grossU += str * m.odds; }
       var g = cb.byMark[m.mark] = cb.byMark[m.mark] || { n: 0, win: 0, top3: 0 };
       g.n++; if (o === 1) g.win++; if (o <= 3) g.top3++;
       if (m.aiRank && m.oddsRank && m.aiRank < m.oddsRank){ cb.boostN++; if (o <= 3) cb.boostTop3++; }
@@ -11474,6 +11540,14 @@ function apAggAdd(ym, cMarks, nosess){
     });
     if (winFlag) cb.winR++;
     if (top3Flag) cb.top3R++;
+    // 回収率: 1万円をAI信頼度で印の馬の単勝に配分して買った想定(総払戻 ÷ 1万円)
+    var pl = apBetPlan(ms);
+    if (pl){
+      cb.costU += 10000;
+      for (var wi = 0; wi < ms.length; wi++){
+        if (ms[wi].order === 1) cb.grossU += pl.stakeOf(ms[wi].no) * ((ms[wi].odds > 1) ? ms[wi].odds : 0);
+      }
+    }
     if (cn.id === 'hit') apMirrorAdd(ms);
   });
   apMBSave(b);
@@ -11530,11 +11604,16 @@ function apSessAdd(cMarks){
       var o = m.order;
       if (o === 1){ cb.horseWin++; winFlag = true; }
       if (o <= 3){ cb.horseTop3++; top3Flag = true; }
-      var str = AP_MARK_STR[m.mark] || 1;
-      if (m.odds > 0 && m.oddsRank <= 99){ cb.costU += str; if (o === 1) cb.grossU += str * m.odds; }
     });
     if (winFlag) cb.winR++;
     if (top3Flag) cb.top3R++;
+    var pl = apBetPlan(ms);
+    if (pl){
+      cb.costU += 10000;
+      for (var wi = 0; wi < ms.length; wi++){
+        if (ms[wi].order === 1) cb.grossU += pl.stakeOf(ms[wi].no) * ((ms[wi].odds > 1) ? ms[wi].odds : 0);
+      }
+    }
   });
 }
 function apSessText(){
@@ -11554,7 +11633,7 @@ function apSessHTML(){
   if (!AP_SESS || !AP_SESS.nRaces) return '';
   var h = ['<div style="margin-top:6px;border:1px solid #bcd7ec;border-radius:8px;padding:5px 8px;background:#f2f8fd">'];
   h.push('<div class="small" style="font-weight:bold;color:#1c4d78">📥 一括取込セッションの実測（今回取得したデータ ' + AP_SESS.nRaces + ' レース: 3モデルの予想 × 実際の結果）</div>');
-  h.push('<table class="lr-tbl mmtbl"><thead><tr><th style="text-align:left">モデル</th><th>検証レース</th><th>印内1着</th><th>的中率(印内1着)</th><th>3着内率(印内)</th><th>回収率(印に単勝想定)</th></tr></thead><tbody>');
+  h.push('<table class="lr-tbl mmtbl"><thead><tr><th style="text-align:left">モデル</th><th>検証レース</th><th>印内1着</th><th>的中率(印内1着)</th><th>3着内率(印内)</th><th>回収率(1万円AI買い目)</th></tr></thead><tbody>');
   AP_CONCEPTS.forEach(function(cn){
     var cb = AP_SESS.c[cn.id] || apCBInit();
     var hitR = cb.n ? apPct1(cb.winR / cb.n * 100, 100) : '−';
@@ -11564,7 +11643,7 @@ function apSessHTML(){
     h.push('<tr><td style="text-align:left;color:' + cn.color + '"><b>' + cn.emoji + esc(cn.name) + '</b></td><td>' + cb.n + '</td><td>' + cb.winR + '</td><td>' + hitR + '%</td><td>' + top3R + '%</td><td><b' + roiCls + '>' + roi + '%</b></td></tr>');
   });
   h.push('</tbody></table>');
-  h.push('<div class="small muted">的中率＝印(◎〜△の5頭)内に<b>1着馬</b>が含まれたレースの割合 / 3着内率＝印内の馬が3着以内に入った割合 / 回収率＝印の強さ(◎5・○4・▲3・☆2・△1)を100円分ずつ単勝で賭けた想定の総配当÷総賭金。オッズ不明馬が多いレースは回収率の分母から外れます。</div>');
+  h.push('<div class="small muted">的中率＝印(◎〜△の5頭)内に<b>1着馬</b>が含まれたレースの割合 / 3着内率＝印内の馬が3着以内に入った割合 / 回収率＝各レース<b>1万円</b>を資金に、そのモデルの印5頭(◎○▲☆△)の単勝へ<b>AIの信頼度で配分購入</b>した想定の総払戻÷1万円です(印内に1着が居ない・オッズ不明の馬には賭けない)。取込時には単勝に加えて<b>複勝・枠連・ワイド・馬連・馬単・3連複・3連単の払戻金</b>も各レースの保存データへ保存します（検証スコア自体は印5頭の単勝への配分買い目で算出）。</div>');
   h.push('</div>');
   return h.join('');
 }
@@ -11693,7 +11772,7 @@ function apMonthTableHTML(ym, label){
   if (ym) agg = apConceptsAgg(apMB(ym));
   else agg = { hit: { races: 0 }, roi: { races: 0 }, hyb: { races: 0 } };
   var h = ['<div class="small" style="font-weight:bold;margin-top:8px">' + label + ' モデル別の成績（3モデルで同じレースを予想し直して照合）</div>'];
-  h.push('<table class="lr-tbl"><thead><tr><th>モデル</th><th>レース</th><th>印内1着</th><th>3着内率</th><th>単勝回収率(印で賭けた想定)</th><th>学習パラメータ</th></tr></thead><tbody>');
+  h.push('<table class="lr-tbl"><thead><tr><th>モデル</th><th>レース</th><th>印内1着</th><th>3着内率</th><th>回収率(1万円AI買い目)</th><th>学習パラメータ</th></tr></thead><tbody>');
   var S = ym ? apParamsFor(ym) : { hitTm: 1, roiRho: 1, hybLam: 0.55 };
   AP_CONCEPTS.forEach(function(cn){
     var a = agg[cn.id] || {};
@@ -11714,13 +11793,13 @@ function apStatsHTML(){
   var mir = apMirrorRaw();
   var n = (mir && mir.races) || totalR || 0;
   if (!n && !totalR){
-    return '<div class="small muted">まだ自己検証の記録がありません。過去データ（日付指定・「年指定の一括取得」で年月ごとに取込）でレースを取込むと、そのレースを<b>3つのモデル（🎯的中率重視 / 💰回収率重視 / 🔰ハイブリッド）</b>それぞれで予想し直し、実際の着順・単勝払戻と照合して<b>開催年月ごとに</b>学習します（結果メモの📥取込でも同様）。学習は保存領域（IndexedDB大容量モードではDB内）に蓄積され、翌月以降の予想へ自動反映されます。</div>';
+    return '<div class="small muted">まだ自己検証の記録がありません。過去データ（日付指定・「年指定の一括取得」で年月ごとに取込）でレースを取込むと、そのレースを<b>3つのモデル（🎯的中率重視 / 💰回収率重視 / 🔰ハイブリッド）</b>それぞれで予想し直し、実際の着順・払戻（単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単を保存）と照合して<b>開催年月ごとに</b>学習します（結果メモの📥取込でも同様）。学習は保存領域（IndexedDB大容量モードではDB内）に蓄積され、翌月以降の予想へ自動反映されます。</div>';
   }
   var h = [];
   var curYm = '';
   try { curYm = apCurYm(); } catch(e){}
   var S = apParamsFor(curYm || '999912');
-  h.push('<div class="small muted" style="margin-bottom:4px">過去のレースを「単勝オッズ・人気・脚質(4角通過)」から3モデルで予想し直し、実際の着順・単勝払戻と照合した結果です。🎯的中率重視=人気軸 / 💰回収率重視=中穴〜大穴(約5番人気以下)から本命を選ぶ / 🔰ハイブリッド=両者を混合。開催年月ごとに集計し、「前の月まで」の実績から翌月以降へ使う補正を学習します。</div>');
+  h.push('<div class="small muted" style="margin-bottom:4px">過去のレースを「単勝オッズ・人気・脚質(4角通過)」から3モデルで予想し直し、実際の着順・払戻（単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単）と照合した結果です。🎯的中率重視=人気軸 / 💰回収率重視=中穴〜大穴(約5番人気以下)から本命を選ぶ / 🔰ハイブリッド=両者を混合。開催年月ごとに集計し、「前の月まで」の実績から翌月以降へ使う補正を学習します。</div>');
   var sessHtml = apSessHTML();
   if (sessHtml) h.push(sessHtml);
   // 直近の学習状況
@@ -11764,6 +11843,12 @@ function apStatsHTML(){
   var act = apActive();
   if (act.apply && act.note) h.push('<div class="small" style="margin-top:6px;color:#14532d">' + act.note + '</div>');
   else h.push('<div class="small muted" style="margin-top:6px">' + apLearnMsg(act) + '</div>');
+  if (AP_RELEARN_LAST){
+    var rr2 = AP_RELEARN_LAST;
+    var rd = String(rr2.at || '').replace('T', ' ').slice(0, 16);
+    h.push('<div class="small muted" style="margin-top:3px">🔄 直近の再学習: ' + esc(rd) + ' ／ ' + rr2.ok + ' レースを再評価' +
+      (rr2.err ? '（失敗 ' + rr2.err + '）' : '') + '（現在のモデルで再構築済み）</div>');
+  }
   h.push('<div class="small muted" style="margin-top:4px">保存先: ' + (apMode === 'idb' ? '📀 IndexedDB(大容量) ' + AP_DB : '🗂 従来の保存領域') + ' ／ 検証レース ' + n + ' 件・集計 ' + totalR + ' レース分' + (yms.length ? '・' + yms.length + 'か月分' : '') + '</div>');
   return h.join('');
 }
@@ -11795,6 +11880,109 @@ function apRender(){
     cnt.textContent = totalR ? ('学習 ' + totalR + ' レース') : '未学習';
   }
 }
+/* ================= 再学習(保存済み過去レースを現在のモデルで再評価) =================
+   使いどころ: ① 予想モデル(判定式・スコア)を変更した ② 年指定一括取込や結果メモ📥・
+   サイド(横)取得などで過去レースを追加した ときに押すと、
+   「学習DB(日別取込)に保存済みの全レース＋自己検証済みレコード」を
+   いまの3モデルで評価し直して、年月別の集計・パラメータを再構築する。 */
+var AP_RELEARN_LAST = null;   // { at, n, ok, err } 直近の再学習結果(セッション内表示)
+var AP_RELEARN_BUSY = false;
+/* 学習集計(年月バケット)と旧ミラーだけを消す(1レースごとの記録recは保持) */
+function apClearLearnOnly(){
+  try {
+    var yms = apYms();
+    if (apMode === 'idb' && apLrnMem){
+      yms.forEach(function(y){
+        delete apLrnMem[y];
+        try { apIdbDelS(AP_LRN_STORE, y); } catch(e){}
+      });
+    } else {
+      yms.forEach(function(y){ try { localStorage.removeItem(AP_YM_PREFIX + y); } catch(e){} });
+    }
+  } catch(e){}
+  try { localStorage.removeItem(AP_LEARN_LS); } catch(e){}
+}
+/* 再評価の対象レース一覧: 学習DB(優先・通過順位などが豊富)＋自己検証済みレコード(サイド取得分)
+   を rid で重複排除して日付順(rid昇順)に返す */
+function apStoredRaceList(){
+  var byRid = {}, out = [];
+  function pushRid(rid, p){
+    if (!rid || !p || byRid[rid]) return;
+    byRid[rid] = 1;
+    out.push({ rid: rid, p: p });
+  }
+  try {
+    if (typeof diLs === 'function'){
+      var db = diLs();
+      var ks = Object.keys(db.races || {});
+      for (var qi = 0; qi < ks.length; qi++){
+        var r = db.races[ks[qi]];
+        if (!r) continue;
+        var rows = ((r && r.rows) || []).filter(function(x){ return x && x.order >= 1 && x.no; });
+        if (rows.length >= 3) pushRid(ks[qi], { rows: rows, payout: (r && r.payout) || null, payouts: (r && r.payouts) || null });
+      }
+    }
+  } catch(e){}
+  try {
+    var done = apCompleted() || [];
+    for (var di = 0; di < done.length; di++){
+      var rec = done[di];
+      if (!rec || byRid[rec.rid]) continue;
+      var rows2 = (((rec.result && rec.result.rows) || [])).filter(function(x){ return x && x.order >= 1 && x.no; });
+      if (rows2.length >= 3) pushRid(rec.rid, { rows: rows2, payout: rec.result ? rec.result.payout : null, payouts: rec.result ? rec.result.payouts : null });
+    }
+  } catch(e){}
+  out.sort(function(a, b){ return (a.rid < b.rid ? -1 : a.rid > b.rid ? 1 : 0); });
+  return out;
+}
+/* 再学習ボタンの処理(チャンク実行で画面を固めない) */
+function apRelearnAll(){
+  if (AP_RELEARN_BUSY) return;
+  var btn = null, msgEl = null;
+  try { btn = $('apRelearn'); msgEl = $('apRelearnMsg'); } catch(e){}
+  function say(t, err){
+    if (msgEl) msgEl.innerHTML = '<span style="color:' + (err ? '#a3442f' : '#1c5c34') + '">' + esc(t) + '</span>';
+  }
+  if (btn) btn.disabled = true;
+  var list = apStoredRaceList();
+  if (!list.length){
+    say('保存済みの過去レースが見つかりません。先に「学習データ」タブの年指定・日付指定の取込か、結果メモ📥の取込で過去レースを保存してください。', true);
+    if (btn) btn.disabled = false;
+    return;
+  }
+  AP_RELEARN_BUSY = true;
+  say('再学習を開始… 保存済み ' + list.length + ' レースを「今の3モデル(判定式・中穴〜大穴・1万円AI買い目)」で評価し直します（年月別集計を一旦クリアして再構築）');
+  try { apClearLearnOnly(); } catch(e){}
+  var i = 0, ok = 0, err = 0;
+  function finish(){
+    AP_RELEARN_BUSY = false;
+    AP_RELEARN_LAST = { at: apNow(), n: list.length, ok: ok, err: err };
+    try { if (typeof apRender === 'function') apRender(); } catch(e){}
+    if (btn) btn.disabled = false;
+    say('✅ 再学習が完了しました: ' + ok + ' レースを再評価' + (err ? '（失敗 ' + err + '）' : '') + '。年月別の成績・学習パラメータを現在のモデルで再構築しました（上記の直近実測欄に反映済み）。');
+  }
+  function runChunk(){
+    var until = Math.min(list.length, i + 60);
+    for (; i < until; i++){
+      try {
+        var it = list[i];
+        var rec = apEval(it.p, it.rid, true, true);   // nosess=true(チャンク中はセッション集計しない)
+        if (rec) ok++; else err++;
+      } catch(e){ err++; }
+    }
+    if (i < list.length){
+      say('再学習 ' + i + ' / ' + list.length + ' レース…');
+      // 画面を固めないため setTimeout で継続(非ネイティブのテスト環境では同期フォールバック)
+      try {
+        if (typeof setTimeout === 'function' && /\[native code\]/.test(Function.prototype.toString.call(setTimeout))){ setTimeout(runChunk, 0); return; }
+      } catch(e){}
+      runChunk();
+      return;
+    }
+    finish();
+  }
+  runChunk();
+}
 function apResetAll(){
   apClear();
   apRender();
@@ -11815,6 +12003,8 @@ function initAp(){
       apResetAll();
     }
   });
+  var rl = $('apRelearn');
+  if (rl) rl.addEventListener('click', function(){ apRelearnAll(); });
   var uc = $('apUseChk');
   if (uc) uc.addEventListener('change', function(){
     try { state.apLearnUse = !uc.checked; saveNow(); } catch(e){}
@@ -11982,7 +12172,118 @@ function bfParseDbResult(html){
   rows.sort(function(a, b){ return a.order - b.order; });
   out.rows = rows;
   out.n = rows.length;
+  // 払戻金(単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単)。結果確定後のページにのみ載る
+  //   out.payouts = 的中1件ごとの生リスト / out.payout = 券種ごとの {nos,pays} 正規化マップ
+  try { out.payouts = bfParsePayback(html); } catch(e){ out.payouts = null; }
+  out.payout = bfPayoutMap(out.payouts);
   return out;
+}
+
+/* =========================================================
+   結果ページの「払戻金」を全券種(単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単)で抽出。
+   race.netkeiba.com/race/result.html と db.netkeiba.com/race/{rid}/ の両形式に対応:
+     - race.netkeiba形式: <tr class="Tansho">…<td class="Result">..</td><td class="Payout">..</td></tr>
+     - db形式:            <tbody class="Tansho"><tr>…<td class="Result">..</td><td class="Payout">..</td></tr></tbody>
+   戻り値: 配列(1要素=1つの「的中した組み合わせ」)
+     { t:'tan'|'fuku'|'wakuren'|'umaren'|'wide'|'umatan'|'sanfuku'|'santan',
+       nos:[馬番…], yen:払戻額(円・100円単位) }
+   払戻セクションが無い/解析不能なら null を返す。
+   ========================================================= */
+var BF_PAY_CLS = { Tansho:'tan', Fukusho:'fuku', Wakuren:'wakuren', Umaren:'umaren',
+                   Wide:'wide', Umatan:'umatan', Fuku3:'sanfuku', Tan3:'santan' };
+function bfPayYens(cell){
+  var ys = [], re = /(\d[\d,]*)\s*円/g, mm;
+  while ((mm = re.exec(cell || '')) !== null) ys.push(parseInt(mm[1].replace(/,/g, ''), 10));
+  return ys;
+}
+/* Resultセル内の「1つの的中組み合わせ」を、並んでいる数だけグループ化して返す。
+   ・<li>付きの<ul>が複数 = 複数の的中組み合わせ(ワイド等) → ul 単位
+   ・非空の<span>が並ぶ = 複数の単番(複勝等) → span 単位
+   ・それ以外(テキストのみ "2-4" / "4→2" 等) → 全数字を1グループに */
+function bfPayGroups(cell){
+  cell = String(cell || '');
+  var uls = cell.match(/<ul[^>]*>[\s\S]*?<\/ul>/g);
+  if (uls && uls.length){
+    return uls.map(function(u){
+      var d = [], r = /(\d{1,2})/g, m;
+      while ((m = r.exec(u)) !== null) d.push(parseInt(m[1], 10));
+      return d;
+    });
+  }
+  var sps = cell.match(/<span[^>]*>([\s\S]*?)<\/span>/g);
+  var groups = [];
+  if (sps && sps.length){
+    sps.forEach(function(sp){
+      var t = sp.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      if (/\d/.test(t)){
+        var d = [], r = /(\d{1,2})/g, m;
+        while ((m = r.exec(t)) !== null) d.push(parseInt(m[1], 10));
+        groups.push(d);
+      }
+    });
+    if (groups.length) return groups;
+  }
+  var ns = [], r2 = /(\d{1,2})/g, m2, txt = cell.replace(/<[^>]*>/g, '');
+  while ((m2 = r2.exec(txt)) !== null) ns.push(parseInt(m2[1], 10));
+  return ns.length ? [ns] : [];
+}
+function bfParsePayback(html){
+  html = String(html || '');
+  if (html.indexOf('払戻') < 0) return null;
+  var seg = html;
+  var secM = html.match(/<section class="Race_Payback">[\s\S]*?<\/section>/);
+  if (!secM) secM = html.match(/<div class="Result_Pay_Back[^>]*">[\s\S]*?(?:<\/div>\s*<\/div>|<\/table>|<\/section>|<!-- \/\.Result_Pay_Back -->)/);
+  if (secM) seg = secM[0];
+  var out = [];
+  // 開始タグ(tbody|tr)と対応する終了タグを後方参照 \1 で揃える
+  var contRe = /<((?:tbody|tr))\s+class="(Tansho|Fukusho|Wakuren|Umaren|Wide|Umatan|Fuku3|Tan3)"[^>]*>([\s\S]*?)<\/\1>/g;
+  var cm;
+  function pushOne(trHTML, kind){
+    var resM = /<td[^>]*class="Result"[^>]*>([\s\S]*?)<\/td>/i.exec(trHTML);
+    var payM = /<td[^>]*class="Payout"[^>]*>([\s\S]*?)<\/td>/i.exec(trHTML);
+    if (!resM || !payM) return;
+    var groups = bfPayGroups(resM[1]);
+    var yens = bfPayYens(payM[1]);
+    if (groups.length && groups.length === yens.length){
+      for (var q = 0; q < groups.length; q++) out.push({ t: kind, nos: groups[q], yen: yens[q] });
+    } else if (groups.length === 1 && yens.length === 1){
+      out.push({ t: kind, nos: groups[0], yen: yens[0] });
+    }
+  }
+  while ((cm = contRe.exec(seg)) !== null){
+    var tag = cm[1], kind = BF_PAY_CLS[cm[2]];
+    if (!kind) continue;
+    var inner = cm[3];
+    if (tag === 'tbody'){
+      // tbody内の各行(tr) = 1つの的中組み合わせ
+      var trs = inner.match(/<tr[^>]*>[\s\S]*?<\/tr>/g);
+      if (trs && trs.length) trs.forEach(function(tr){ pushOne(tr, kind); });
+    } else {
+      // <tr class="..">形式: その tr 内に1券種分の的中(複数の場合は ul/span で並ぶ)
+      pushOne(inner, kind);
+    }
+  }
+  return out.length ? out : null;
+}
+/* bfParsePayback の生リスト → 券種キー別の { nos:[組み合わせ文字列], pays:[払戻円] } へ正規化。
+   win=Tansho(単勝) place=Fukusho(複勝) wakuren/umaren/wide/umatan/sanfuku/santan に対応。
+   既存の rec.result.payout.win / .place({nos,pays}) 形式と互換のまま、単勝以外も同形式で保持する。 */
+var BF_PAY_KEY = { tan:'win', fuku:'place', wakuren:'wakuren', umaren:'umaren', wide:'wide', umatan:'umatan', sanfuku:'sanfuku', santan:'santan' };
+function bfPayoutMap(payouts){
+  var m = { win:null, place:null, wakuren:null, umaren:null, wide:null, umatan:null, sanfuku:null, santan:null };
+  if (!payouts || !payouts.length) return m;
+  var acc = {};
+  payouts.forEach(function(it){
+    if (!it || !it.t) return;
+    var k = BF_PAY_KEY[it.t];
+    if (!k) return;
+    var grp = acc[k] = acc[k] || { nos: [], pays: [] };
+    var sep = (it.t === 'umatan' || it.t === 'santan') ? '→' : '-';
+    grp.nos.push(String((it.nos || []).join(sep)));
+    grp.pays.push(it.yen || 0);
+  });
+  for (var key in m){ if (acc[key]) m[key] = acc[key]; }
+  return m;
 }
 
 /* ---------- 共通: 5代血統表 → 祖先名セット ---------- */
@@ -13025,7 +13326,7 @@ function diHash(pr){
   var s = JSON.stringify((pr.rows || []).map(function(r){
     return [r.order, r.no, r.name, r.id || '', r.sexAge, r.weight, r.jockey, r.time,
             r.passing, r.last3, r.odds, r.pop, r.weightChg, r.trainer, r.margin];
-  }));
+  })) + '|pay=' + JSON.stringify(pr.payout || null);
   var h = 5381;
   for (var i = 0; i < s.length; i++){ h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; }
   return 'h' + h.toString(36);
@@ -13152,7 +13453,7 @@ function diParseJraResult(html, venue, rnum, date8){
 function diImportDate(date8, progress){
   progress = progress || function(){};
   diEvictedRun = 0;
-  var result = { ok: 0, dup: 0, skip: 0, errors: 0, source: '', limit: 0, evicted: 0 };
+  var result = { ok: 0, dup: 0, upg: 0, skip: 0, errors: 0, source: '', limit: 0, evicted: 0 };
   if (!diStorageOK()){
     progress('⚠ この環境では保存領域(localStorage)が使えないため保存できません。このプレビュー画面ではなく、ダウンロードした index.html をブラウザで直接開いて実行してください。', true);
   }
@@ -13168,15 +13469,24 @@ function diImportDate(date8, progress){
           if (!pr.rows.length || !pr.n){ result.errors++; return; }
           var h = diHash(pr);
           var old = diGet(it.rid);
-          // すでに保存済みで内容も同一なら何もしない（上書きもせず既存を保持）
-          if (old && old.h === h){ result.dup++; return; }
+          // すでに「払戻対応版(payv=1)」で内容も同一なら何もしない。ただし旧版(payv無し・払戻未保存)は
+          // 内容が同一でも再取得して全券種の払戻つきデータへ更新する。
+          if (old && old.payv === 1 && old.h === h){ result.dup++; return; }
           var rec = {
             rid: it.rid, date8: date8, at: new Date().toISOString(), h: h,
             meta: { name: pr.meta.name, date8: pr.meta.date8 || date8, date: pr.meta.date,
                     place: pr.meta.place, rnum: pr.meta.rnum, grade: pr.meta.grade },
-            n: pr.n, source: 'netkeiba', rows: pr.rows
+            n: pr.n, source: 'netkeiba', rows: pr.rows,
+            // 払戻(全券種): payout=券種別{nos,pays} 正規化 / payouts=的中1件ごとの生リスト
+            payout: pr.payout || null, payouts: pr.payouts || null,
+            payv: 1   // 全券種払戻対応版で保存したバージョン印(1=対応済み)
           };
-          if (diSet(it.rid, rec)){ result.ok++; }
+          if (diSet(it.rid, rec)){
+            if (old){ result.upg++; }   // 旧保存レコードを払戻つきへ更新
+            else { result.ok++; }
+            // 既存の自己検証レコードにも全券種払戻を反映(あれば)
+            if (typeof apPatchPayout === 'function'){ try { apPatchPayout(it.rid, rec.payout, rec.payouts); } catch(e){} }
+          }
           else { result.limit++; }   // この1件だけ保存不可（既存データは無傷）
           // 自動: AI印を合成して払戻結果と比較・実績DBへ（重複は内部でスキップ）
           // 出遅れ率(手動入力/自動検出の両方)も馬番対応で渡し、予想の学習に使う
@@ -13200,7 +13510,12 @@ function diImportDate(date8, progress){
         ? '　⚠ 保存領域が満杯になったため、最も古いレースから ' + result.evicted + ' 件を自動で削除して新しい分を保存しました（古い順に上書き）。' : '';
       if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }   // 自己学習(3モデル・年月集計)の表示更新
       var sessTx1 = (typeof apSessText === 'function') ? apSessText() : '';
-      progress('完了: 追加保存 ' + result.ok + ' / 既存と同一でスキップ ' + result.dup + ' / 取得失敗 ' + result.errors + ' レース' +
+      progress('完了: 保存 ' + (result.ok + result.upg) + ' レース（新規 ' + result.ok +
+        (result.upg ? ' / 旧保存データを全券種払戻つきへ更新 ' + result.upg : '') +
+        (result.dup ? ' / 同一のためスキップ ' + result.dup : '') +
+        ' / 取得失敗 ' + result.errors +
+        '）※各レースに単勝・複勝・枠連・ワイド・馬連・馬単・3連複・3連単の払戻金も保存しました' +
+        (result.upg ? '。自己検証レコードへも反映済みです。すでに保存済みの過去分をまとめて全券種払戻つきへ補完するには、同じ年を「年指定一括取込」で再実行してください' : '') +
         (sessTx1 ? '　🔁 今回の3モデル実測: ' + sessTx1 + '（的中率・回収率の詳細は自己学習欄）' : '') +
         evMsg +
         (result.limit ? '　⚠ 消去できる古いデータが残っておらず ' + result.limit + ' 件は保存できませんでした。' : ''));
@@ -13222,13 +13537,18 @@ function diImportDate(date8, progress){
             var h = diHash(pr);
             var rid = 'JRA' + date8 + r.code + ('0' + (r.r || 0)).slice(-2);
             var old = diGet(rid);
-            if (old && old.h === h){ result.dup++; return; }
+            if (old && old.payv === 1 && old.h === h){ result.dup++; return; }
             var rec = {
               rid: rid, date8: date8, at: new Date().toISOString(), h: h,
               meta: { name: r.name || '', date8: date8, place: '', rnum: String(r.r || ''), grade: '' },
-              n: pr.n, source: 'jra', rows: pr.rows
+              n: pr.n, source: 'jra', rows: pr.rows,
+              payout: pr.payout || null, payouts: pr.payouts || null,
+              payv: 1
             };
-            if (diSet(rid, rec)){ result.ok++; }
+            if (diSet(rid, rec)){
+              if (old){ result.upg++; } else { result.ok++; }
+              if (typeof apPatchPayout === 'function'){ try { apPatchPayout(rid, rec.payout, rec.payouts); } catch(e){} }
+            }
             else { result.limit++; }
           }).catch(function(){ result.errors++; });
         });
@@ -13351,7 +13671,7 @@ function diYearBuild(){
       diYearUiBusy(false);
       DI_YEAR_BUSY = false;
       diRenderStat();
-      if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
+      if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / 旧データを全券種払戻つきへ更新 ' + tot.upg + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
     });
   });
   var stp = $('diYearStop');
@@ -13387,45 +13707,55 @@ function diYearDates(year){
 /* 年指定バルク本体: 開催日→diImportDateを1日ずつ直列実行（重複は内部で自動スキップ） */
 function diImportYear(year, msg){
   msg = msg || function(){};
-  var totals = { ok: 0, dup: 0, fail: 0, noRace: 0, limit: 0, evicted: 0 };
+  var totals = { ok: 0, dup: 0, upg: 0, fail: 0, noRace: 0, limit: 0, evicted: 0 };
   return diYearDates(year).then(function(dates){
     if (!dates.length){
       msg(year + '年の開催日が見つかりませんでした（netkeibaカレンダーに未掲載の年です）', true);
       return totals;
     }
-    msg(year + '年のJRA開催日を ' + dates.length + ' 日 検出しました。すでに保存済みの日は飛ばして、まだ取得していない日だけを取り込みます…');
-    // 「取得データから以前保存した内容は無視」ではなく「以前保存した日(レース)は読み飛ばして、
-    // まだ保存のない日付だけを新規取得」する。保存済みの日を数えて途中経過に表示する。
-    // 保存済みの開催日(1レースでも保存済み=その日は取込済み)を一度だけ集計して、
-    // 日付ごとに「まだ取得していない日」だけを取り込む(既取込の日への再取得をやめる)
+    msg(year + '年のJRA開催日を ' + dates.length + ' 日 検出しました。すでに全券種払戻つきで保存済みの日は飛ばして、未取得の日と旧形式（払戻未保存）で保存されている日だけを取り込みます…');
+    // スキップ判定: 日付ごとに「全券種払戻つきで保存済み(payv=1)」のレコードだけが揃っている日は
+    // 読み飛ばし、①まだ1件も保存のない日、②旧バージョンで保存した払戻なしレコード(payv無し)を
+    // 含む日 を取り込む。②は全券種の払戻を補完するための再取得(内部で同一レコードはスキップ/更新)。
     var savedDates = {};
+    var needDate = {};
     var _db = diLs();
     var _ks = Object.keys(_db.races || {});
-    for (var _q = 0; _q < _ks.length; _q++){ savedDates[String(_db.races[_ks[_q]].date8 || '')] = 1; }
-    var pending = dates.filter(function(d8){ return !savedDates[d8]; });
+    for (var _q = 0; _q < _ks.length; _q++){
+      var _r = _db.races[_ks[_q]];
+      if (!_r) continue;
+      var _d8 = String(_r.date8 || '');
+      savedDates[_d8] = 1;
+      if (_r.payv !== 1) needDate[_d8] = (needDate[_d8] || 0) + 1;   // 旧形式レコードあり
+    }
+    var pending = dates.filter(function(d8){
+      if (!savedDates[d8]) return true;         // 未取得の日
+      if (needDate[d8]) return true;            // 払戻未保存レコードを含む日 → 補完のため再取込
+      return false;
+    });
     var skippedDays = dates.length - pending.length;
     if (typeof apSessReset === 'function'){ try { apSessReset(); } catch(e){} }   // 今回の一括取込セッションとして集計開始
     diYearBar(0, true);
     if (!pending.length){
       diYearBar(0, false);
       if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }
-      msg('✅ ' + year + '年のレースはすべて保存済みです（' + skippedDays + '開催日・重複なし）。取得・再保存は行いません。新たに取り込みたい年を選んでください。' +
-        (totals.dup ? '' : '') + apYearInfo(year));
+      msg('✅ ' + year + '年のレースはすべて全券種払戻つきで保存済みです（' + skippedDays + '開催日・重複なし）。取得・再保存は行いません。新たに取り込みたい年を選んでください。' +
+        apYearInfo(year));
       return totals;
     }
-    msg(year + '年のうち、まだ取得していない ' + pending.length + ' 開催日（全 ' + dates.length + ' 日のうち保存済み ' + skippedDays + ' 日はスキップ）を1日ずつ取り込みます…');
+    msg(year + '年のうち、未取得または旧形式(払戻未保存)の ' + pending.length + ' 開催日（全 ' + dates.length + ' 日のうち全券種払戻つき保存済み ' + skippedDays + ' 日はスキップ）を1日ずつ取り込みます…');
     var seq = Promise.resolve();
     pending.forEach(function(d8, idx){
       seq = seq.then(function(){
         if (DI_YEAR_CANCEL) return;
         return diImportDate(d8, function(/* dayMsg */){ /* 日ごとの詳細は累計表示に集約 */ })
           .then(function(r){
-            totals.ok += r.ok; totals.dup += r.dup; totals.fail += r.errors;
+            totals.ok += r.ok; totals.upg += r.upg || 0; totals.dup += r.dup; totals.fail += r.errors;
             totals.limit += r.limit || 0; totals.evicted += r.evicted || 0;
             var dstr = d8.slice(0, 4) + '/' + (+d8.slice(4, 6)) + '/' + (+d8.slice(6, 8));
             var pct = ((idx + 1) / dates.length) * 100;
             diYearBar(pct, true);
-            msg('（' + (idx + 1) + '/' + pending.length + '日目・未取得分）' + dstr + ' … 追加 ' + r.ok + ' / 同レース既存スキップ ' + r.dup + ' / 失敗 ' + r.errors + ' ／ 累計保存 ' + totals.ok +
+            msg('（' + (idx + 1) + '/' + pending.length + '日目）' + dstr + ' … 追加 ' + r.ok + (r.upg ? ' / 旧データを払戻つきへ更新 ' + r.upg : '') + ' / 同一スキップ ' + r.dup + ' / 失敗 ' + r.errors + ' ／ 累計保存 ' + totals.ok +
               (r.evicted ? '　⚠ この日は満杯のため古いデータを ' + r.evicted + ' 件削除して保存（古い順に上書き）' : ''));
             return r;
           })
@@ -13447,8 +13777,8 @@ function diImportYear(year, msg){
           if (typeof apSessText === 'function'){ var sTy = apSessText(); if (sTy) apInfo += '　📊 今回一括取得したデータでの実測: ' + sTy + '（詳細は「AI予想の自己学習」欄）'; }
         }
       } catch(e){}
-      var tail = DI_YEAR_CANCEL ? '（⏹ 中断しました。再実行すると未取込の日から続行できます）' : '';
-      msg('✅ ' + year + '年の取込を終了: 追加 ' + totals.ok + ' / 既存スキップ ' + totals.dup + ' / 失敗 ' + totals.fail + ' レース' + tail +
+      var tail = DI_YEAR_CANCEL ? '（⏹ 中断しました。再実行すると未取込・未更新の日から続行できます）' : '';
+      msg('✅ ' + year + '年の取込を終了: 追加 ' + totals.ok + ' / 旧保存データを全券種払戻つきへ更新 ' + totals.upg + ' / 既存スキップ ' + totals.dup + ' / 失敗 ' + totals.fail + ' レース' + tail +
         (totals.evicted ? '　⚠ 途中で保存領域が満杯になったため、最も古いレースから計 ' + totals.evicted + ' 件を自動削除して新しい分を保存しました（古い順に上書き）。' : '') +
         (totals.limit ? '　⚠ 消去できる古いデータが残っておらず ' + totals.limit + ' 件は保存できませんでした。' : '') + apInfo);
       return totals;
