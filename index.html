@@ -129,13 +129,6 @@ details ol,.note{padding-left:1.2em;font-size:.82rem;color:var(--mut);margin:6px
 .fcell{display:flex;flex-direction:column;gap:3px}
 .fcell input,.fcell select{padding:6px 8px}
 .fcell.full{grid-column:1/-1}
-.otypeGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:6px}
-.otype{
-  border:1.5px solid #bcd8c6;background:#fff;border-radius:12px;padding:11px;cursor:pointer;
-  font-weight:700;color:#0b7a40;font-size:.9rem;transition:.15s;
-}
-.otype:hover{border-color:var(--green2);background:#eef7ef}
-.otype .t{font-size:.74rem;font-weight:500;color:var(--mut);display:block}
 /* progress */
 .prog{margin-top:10px}
 .progbar{height:9px;border-radius:6px;background:#dde8db;overflow:hidden}
@@ -291,8 +284,6 @@ table{max-width:100%}
   .card h2{font-size:.95rem;gap:6px}
   .cardhead{gap:6px}
   .otypeGrid{grid-template-columns:1fr 1fr;gap:7px}
-  .otype{padding:9px 8px;font-size:.84rem}
-  .otype .t{font-size:.68rem}
   .fgrid{grid-template-columns:repeat(auto-fill,minmax(138px,1fr))}
   .fgrid[style]{grid-template-columns:1fr !important}
   .fgrid[style] .fcell.full{grid-column:auto !important}
@@ -487,6 +478,15 @@ table.gc-tbl td.gc-cell.off{background:#f5f0e6;border-style:dashed}
 </style>
 
 <style>
+/* ---- 結果・払戻: コースレコード更新表示 ---- */
+.lvrecd{margin:6px 0 8px;border:1.6px solid #d9a441;background:linear-gradient(180deg,#fff9e0,#fff3c4);border-radius:10px;padding:7px 11px;font-size:.86rem;color:#5a4200;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.lvrecd-tie{border-color:#9db8e0;background:linear-gradient(180deg,#f0f6ff,#e3edff);color:#1f3f75}
+.lvrecd .lvreci{font-size:1.05rem}
+.lvrecd .lvrecwin{font-weight:900;color:#b3541e;font-size:.98rem}
+.lvwinrec{display:inline-block;font-weight:900;color:#0d5f38}
+.lvbadge{display:inline-block;margin-left:5px;padding:0 6px;border-radius:6px;background:#c23b2e;color:#fff;font-size:.66rem;font-weight:900;line-height:1.7;vertical-align:1px;animation:lvbli 1.6s ease-in-out infinite}
+.lvbadge-tie{background:#2060c0;animation:none}
+@keyframes lvbli{0%,100%{opacity:1}50%{opacity:.35}}
 /* ---- netkeiba 上り3F 順位色分け(1位=黄 / 2位=青 / 3位=ピンク) ---- */
 .nkr{display:inline-block;border-radius:5px;padding:0 6px;font-weight:800;font-size:.74rem;color:#1a1a1a;line-height:1.6;white-space:nowrap}
 .nkr.r1{background:#ffe13b;border:1px solid #f2c200}
@@ -658,7 +658,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <h2>🔗 netkeiba URLから直接取込</h2>
       <span class="chip">出馬表 ・ 単勝オッズ</span>
       <span class="sp"></span>
-      <span class="small muted">スクショが苦手な場合はこちらが便利です</span>
+      <span class="small muted">手入力が多くなる場合はこちらが便利です（最速の入力方法）</span>
     </div>
     <div class="fgrid" style="grid-template-columns:1fr auto auto">
       <div class="fcell full" style="grid-column:1/-1">
@@ -703,23 +703,6 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
     </details>
   </div>
 
-  <div class="card" style="border-color:#efe6c9;background:linear-gradient(180deg,#fdfaf2,#fff)">
-    <div class="cardhead">
-      <h2>🔖 追い切り・厩舎コメント（keibanomiryoku バックアップ）</h2>
-      <span class="chip">記事がある重賞・注目レース</span>
-      <span class="sp"></span>
-      <span class="small muted">うましる(OCR)で取れない時の調教タイムの補助にも</span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button type="button" class="btn primary" id="woBtn">🔖 追い切り記事を検索して取込</button>
-      <span id="woMsg" class="small muted"></span>
-    </div>
-    <div class="small muted" style="margin-top:6px">
-      netkeibaから出馬表を読み込むと自動でこのレースの記事を探します。見つかった馬には行末に <b>📌</b> が付き、
-      押すと「1週前追い切り」「最終追い切り」の調教タイムと調教師・騎手コメントを付箋表示。調教欄が空の馬には最終追い切りを自動反映します。
-    </div>
-  </div>
-
   <div class="row2">
     <div class="card">
       <h2>レース情報</h2>
@@ -753,29 +736,8 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
     </div>
 
     <div class="card">
-      <h2>スクリーンショット取込</h2>
-      <p class="small muted">netkeiba などの画面をスクショして読込むだけで自動入力。OCRはブラウザ内で完結します（初回のみ学習データ取得のため通信あり・以降はキャッシュ利用）。<b>読み間違いは必ず下の出馬表で確認・修正</b>してください。</p>
-      <div class="otypeGrid">
-        <button class="otype" data-ot="card">📋 出馬表<span class="t">netkeiba 出馬表ページ</span></button>
-        <button class="otype" data-ot="odds">💹 単勝オッズ<span class="t">netkeiba オッズページ</span></button>
-        <button class="otype" data-ot="yobi">🏇 調教タイム<span class="t">調教・追い切りメモ画面</span></button>
-        <button class="otype" data-ot="time">⏱ 持ちタイム<span class="t">持ちタイム表のスクショ</span></button>
-      </div>
-      <input type="file" id="fileOcr" accept="image/*" hidden>
-      <div class="prog hid" id="ocrProg"><div class="progbar"><i id="ocrBar"></i></div><span id="ocrMsg"></span></div>
-      <div id="ocrOut"></div>
-      <details>
-        <summary>スクショのコツ（フォーマット例）</summary>
-        <ol>
-          <li><b>出馬表</b>：netkeibaの出馬表（枠・馬番・馬名・性齢・斤量・騎手・調教師が縦に並ぶ表）。馬名と騎手の列が写る範囲で全頭を。</li>
-          <li><b>単勝オッズ</b>：オッズページ。馬番と単勝が隣の表。1頭でも数頭だけのスクショでも可（該当馬のみ反映）。</li>
-          <li><b>調教タイム</b>：「最終追い切り」等の行で「6F 83.5-5F 69.0-4F 54.1-3F 38.9」のような区間表記。馬名が横または列にあるもの。</li>
-          <li><b>持ちタイム</b>：該当距離のベストタイム（例「2:00.5」「1:59.9」）が馬名と一緒に並ぶ表。</li>
-          <li>複数レース分が写らない範囲で、なるべく文字を拡大・鮮明に。縦長は複数枚に分けてもOK（同じ種類で連続読込できます）。</li>
-        </ol>
-      </details>
-      <hr class="hr">
-      <h3>テキスト貼り付けでも取込可能</h3>
+      <h2>📋 テキスト貼り付けで取込</h2>
+      <p class="small muted">サイトからコピーしたテキスト表を貼り付けて取込ます（出馬表は「🔗 netkeiba URLから直接取込」が最速です）。<b>読み間違いは必ず下の出馬表で確認・修正</b>してください。</p>
       <div class="fgrid" style="grid-template-columns:auto 1fr">
         <div class="fcell"><label>種類</label>
           <select id="pasteType">
@@ -789,6 +751,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
           <textarea id="pasteTxt" rows="3" class="textareafull" placeholder="netkeibaの出馬表テキスト等をここに貼り付けて「取り込む」を押してください"></textarea>
         </div>
       </div>
+      <div class="small muted" style="margin-top:4px">書き方の例: 出馬表は「枠 馬番 馬名 性齢 斤量 騎手」の1行=1頭 ／ 調教は「馬名 6F 83.5-5F 69.1-3F 38.9」 ／ 持ちタイムは「馬名 1:59.9」。</div>
       <div style="margin-top:8px;text-align:right"><button class="btn primary" id="btnPaste">取り込む</button></div>
       <div id="pasteLog" class="small muted"></div>
     </div>
@@ -809,7 +772,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <h2>🌐 うましるの調教評価から調教タイムを取込（重賞のみ）</h2>
       <span class="chip">G1〜G3</span>
     </div>
-    <p class="small muted">調教評価サイト「うましる」の<b>追い切り評価・全頭診断</b>記事（<a href="https://umasiru.com/archives/tag/oikiri" target="_blank" rel="noreferrer">https://umasiru.com/archives/tag/oikiri</a>）から、現在のレースに該当する記事を探して最終追い切りの時計（例 4F54.2-3F37.9-1F11.5）を読み取り、馬名を割り当てて反映します。スクショOCRより安定しやすい取込方法です。</p>
+    <p class="small muted">調教評価サイト「うましる」の<b>追い切り評価・全頭診断</b>記事（<a href="https://umasiru.com/archives/tag/oikiri" target="_blank" rel="noreferrer">https://umasiru.com/archives/tag/oikiri</a>）から、現在のレースに該当する記事を探して最終追い切りの時計（例 4F54.2-3F37.9-1F11.5）を読み取り、馬名を割り当てて反映します。netkeiba取込より自動で記事も拾える取込方法です。</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn primary" id="btnUmaAuto">🔍 このレースの記事を自動検索して取込</button>
       <details style="flex:1;min-width:260px;margin-top:0">
@@ -909,7 +872,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <button type="button" class="btn primary" id="btnNkGo" title="出馬表の全馬について netkeiba(db.netkeiba.com)の馬ページから直近戦績を取得し、前走の上り3Fと、今回と同距離±200m以内の前走タイムを馬表へ自動反映します">🐎 全馬に前走の上3F・タイムを自動反映</button>
       <button type="button" class="btn ghost" id="btnNkReload" title="netkeiba馬データのキャッシュを消去して取り直します">🗑 キャッシュを消去</button>
     </div>
-    <p class="small muted">「持ちタイム」のスクショが不要になる方法です。①で <b>netkeiba URL取込</b> をしたレースの全出走馬（netkeiba競走馬ID付き）について、
+    <p class="small muted">「持ちタイム」を手入力せずに済む方法です。①で <b>netkeiba URL取込</b> をしたレースの全出走馬（netkeiba競走馬ID付き）について、
       netkeiba の<b>馬プロフィールページ</b>と<b>戦績ページ（db.netkeiba.com/horse）</b>から「前走（今回より前の直近レース）」の
       <b>上り3F</b>を取得し、馬表の「上3F / 持ちタイム」欄へ自動反映します。今回と<b>同距離±200m以内</b>の前走タイムも、手入力済みでなければ併せて反映します（AI予想の材料）。</p>
     <div class="small" style="background:#fff;border:1px solid #d9e3d6;border-radius:9px;padding:6px 10px;margin:4px 0">
@@ -959,7 +922,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
 <section class="page" id="t-kentai">
   <div class="card empty" id="kentaiEmpty">
     <div class="big">まだ出馬表がありません</div>
-    <p>まず「① データ入力」でレース情報と出馬表（馬名・オッズ・脚質など）を入力してください。<br>スクショOCR・テキスト貼り付け・サンプル入力のどれでもOKです。</p>
+    <p>まず「① データ入力」でレース情報と出馬表（馬名・オッズ・脚質など）を入力してください。<br>netkeiba URL取込・テキスト貼り付け・サンプル入力のどれでもOKです。</p>
     <button class="btn primary" data-goto="t-input">入力タブへ移動</button>
   </div>
 
@@ -1009,6 +972,13 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
           <span class="small muted">0にするとその材料を無視します</span>
         </div>
         <div id="wNote"></div>
+        <div id="babaBar" style="margin-top:10px;padding-top:8px;border-top:1px dashed #cfd8e0">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn ghost" id="btnBbData" style="font-size:.8rem;padding:2px 10px" title="出走馬それぞれの馬柱戦績(db.netkeiba.com/horse/result/)を取得し、このレースと同じ開催場×同じ馬場(良/稍重/重/不良)の3着内好走率をAI印に反映します">📊 バ場好走率データを取得</button>
+            <span class="small muted">同じ開催場・同じ馬場状態で出走した過去レースの3着内率を集計します。集計ができると、上の「🏟 バ場好走率」スライダーで重視度を調整できます。</span>
+          </div>
+          <div id="bbDataMsg" class="small" style="margin-top:4px"></div>
+        </div>
       </div>
     </div>
 
@@ -1019,7 +989,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
         <table>
           <thead><tr>
             <th>印</th><th>着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
-            <th>調教</th><th>持ちタイム</th><th>展開適性</th><th>総合</th><th>妙味</th>
+            <th>調教</th><th>持ちタイム</th><th>展開適性</th><th>バ場好走</th><th>総合</th><th>妙味</th>
           </tr></thead>
           <tbody id="aiTbl"></tbody>
         </table>
@@ -1130,6 +1100,25 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
     </div>
     <div id="diStat" class="small" style="margin-top:8px"></div>
     <div id="diMsg" class="small" style="margin-top:4px"></div>
+    <div style="margin-top:14px;border-top:1px dashed #cfd8e0;padding-top:10px">
+      <div class="cardhead">
+        <h3 style="font-size:.95rem;margin:0">🗓 年指定で過去データを一括取得（自動学習DB用）</h3>
+        <span class="chip">中断・再開OK</span>
+      </div>
+      <div class="small muted" style="margin-bottom:6px">
+        年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとに
+        上の「📥 この日の1〜12Rを取込」と同じ処理を自動で実行します（1年で約3,600レース＝約100開催日分）。
+        既に保存済みのレースは同一内容判定で自動スキップされるため、<b>途中で中断しても後から同じ年を再実行すれば続きから</b>取り込めます。
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
+        <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得</button>
+        <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
+        <span class="small muted">※ 1日分=数十レース、1レース1〜2秒。長時間かかるため中断して分けて実行できます。</span>
+      </div>
+      <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+      <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:#e4ebe1;border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
+    </div>
   </div>
 </section>
 
@@ -1251,7 +1240,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <button class="btn primary" id="btnHistGo">過去10年を取得・表示</button>
     </div>
     <div style="margin-top:10px;padding:10px;border:1px dashed #c9c2ad;border-radius:10px">
-      <div class="small muted">まだレースURLを設定していない場合（スクショOCRのみで入力した場合など）:</div>
+      <div class="small muted">まだレースURLを設定していない場合（テキスト貼り付けのみで入力した場合など）:</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <input id="histUrlInp" placeholder="https://race.netkeiba.com/race/shutuba.html?race_id=＿＿＿＿ または race_id=123456789012" style="flex:1;min-width:280px">
         <button class="btn" id="btnHistUrlSet">このレースとして設定＆取得</button>
@@ -1589,7 +1578,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
 
 <footer>
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
-  ※スクショOCRの学習データ取得のみCDN通信（Tesseract.js）を行います。それ以外の入力・予想・シミュレーションはすべてお使いのブラウザ内だけで動作し、データが外部へ送信されることはありません。<br>
+  ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照
 </footer>
 
@@ -1648,7 +1637,7 @@ function frameColor(f){
 
 /* ---------- state ---------- */
 var LS_KEY = 'keiba-lab-v1';
-function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:3 }; }
+function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:3, baba:4 }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'' };
 }
@@ -2264,9 +2253,20 @@ function analyzeRace(){
   try {
     if (typeof bfActiveVector === 'function'){ bfA = bfActiveVector(hs); if (bfA && bfA.length !== hs.length) bfA = null; }
   } catch(e){ bfA = null; }
-  var sumW = (w.odds + w.yobi + w.time + w.tenkai + (w.mark||0)) || 1;
+  // 🏟 バ場好走率(同開催場×同馬場)ファクター: p43(馬柱戦績)から取得
+  var babaInfo = null, colB = null;
+  if ((w.baba||0) > 0 && typeof bbComputeFor === 'function'){
+    try { babaInfo = bbComputeFor(hs); } catch(e){ babaInfo = null; }
+    if (babaInfo && babaInfo.usable){
+      colB = normCol(babaInfo.items.map(function(v){ return v.rate; }), false, 0.5);
+    }
+  }
+  var babaOn = !!colB;
+  var sumW = (w.odds + w.yobi + w.time + w.tenkai + (w.mark||0) + (babaOn ? (w.baba||0) : 0)) || 1;
   var U = hs.map(function(h, i){
-    var u = (w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + w.tenkai*colK[i] + (w.mark||0)*colM[i]) / sumW;
+    var num = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + w.tenkai*colK[i] + (w.mark||0)*colM[i];
+    if (babaOn) num += (w.baba||0) * colB[i];
+    var u = num / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑧でON)の僅かな加点（オカルト反映）
     return u;
   });
@@ -2289,7 +2289,9 @@ function analyzeRace(){
     return {
       idx: idx, h: h, rank: rank+1, prob: p,
       mark: mk.s, markCls: mk.cls,
-      fO: colO[idx], fY: colY[idx], fT: colT[idx], fK: colK[idx], U: U[idx],
+      fO: colO[idx], fY: colY[idx], fT: colT[idx], fK: colK[idx], fB: colB ? colB[idx] : null,
+      babaHit: (babaInfo && babaInfo.items) ? babaInfo.items[idx] : null,
+      U: U[idx],
       ev: infos[idx].ev, timeSec: infos[idx].timeSec,
       mine: mineR, mineFlag: (mineR!=null && mineR > 1.15)
     };
@@ -2327,7 +2329,18 @@ function analyzeRace(){
   if (!hs.some(function(h){ return num(h.odds) != null; })) res.note = '単勝オッズが未入力のため、人気要素は使われていません。';
   if (!hs.some(function(h){ return h.style; })) res.note += ' 脚質が未入力のため展開適性は全馬均等扱いです。';
   if (!timeUsable && hs.some(function(h){ return h.time; })) res.note += ' 距離が未入力のため持ちタイム比較をスキップしました。';
-  res.colsAvail = { odds: colO.some(function(v){return v!==0.25 && v!==0.5;}), yobi: colY.some(function(v){return v!==0.25&&v!==0.5;}), time: timeUsable };
+  res.colsAvail = { odds: colO.some(function(v){return v!==0.25 && v!==0.5;}), yobi: colY.some(function(v){return v!==0.25&&v!==0.5;}), time: timeUsable, baba: babaOn };
+  res.babaOn = babaOn;
+  if ((w.baba||0) > 0){
+    if (babaOn && babaInfo){
+      var hitN = babaInfo.items.filter(function(v){ return v.n > 0; }).length;
+      var hitS = babaInfo.items.filter(function(v){ return v.n > 0; }).map(function(v){ return v.no + '番' + v.pct + '%'; }).join(' / ');
+      res.babaAppliedNote = '🏟 バ場好走率を反映: 対象' + babaInfo.usedN + '走（' + babaInfo.usedR + '頭中' + hitN + '頭にデータ）。' + babaInfo.babaLabel + 'の3着内率を重み' + w.baba + 'で加味' + (hitS ? '（' + hitS + '）' : '') + '。';
+    } else {
+      var bwhy = (babaInfo && babaInfo.why) ? babaInfo.why : '馬柱データがまだ取得されていません';
+      res.babaAppliedNote = '🏟 バ場好走率: 未使用（' + bwhy + '）。重み設定下の「📊 バ場好走率データを取得」ボタンで馬柱を取込むと反映されます。';
+    }
+  }
   res.bias = biasV || null;
   res.slowN = slowN;
   res.paceManual = pmode != null;
@@ -2422,18 +2435,14 @@ function buildHorseRowHTML(h, i){
     '</td>' +
     '<td><span style="display:inline-flex;gap:4px;align-items:center;white-space:nowrap">' +
       (typeof nkHorseModal === 'function' ? '<button type="button" class="pedbtn" title="netkeibaから馬プロフィールと直近5走の馬柱を表示（上り3Fはレース内順位で色分け: 1位黄/2位青/3位ピンク）">🐎馬情報</button>' : '') +
-      (typeof woMarkHTML === 'function' ? woMarkHTML(h) : '') +
       '<button class="rowdel" title="この馬を削除">✕</button>' +
       '</span></td></tr>' +
     buildSubRowHTML(h);
 }
 function buildSubRowHTML(h){
   // 馬柱はポップアップ表示(nkHorseModal: netkeiba馬データ)へ変更したため、行内の開閉サブ行には残さない。
-  // （追い切りメモ(woNote)などサブ表示が必要なものだけ行内に置く）
-  var sub = '';
-  if (typeof woNoteHTML === 'function' && h.wc) sub += woNoteHTML(h);
-  if (!sub) return '';
-  return '<tr class="pedrow" data-peduid="' + h.uid + '" style="display:none"><td colspan="14" class="pedcell">' + sub + '</td></tr>';
+  // （追加のサブ表示が必要になった場合はここへ）
+  return '';
 }
 
 function countAndSave(){
@@ -2605,143 +2614,19 @@ function initInputTab(){
 }
 
 /* =========================================================
-   データ取込：OCR(ブラウザ内Tesseract) / テキスト貼り付け
+   データ取込：テキスト貼り付け のみ（スクリーンショットOCRは廃止）
    ========================================================= */
-var OCR_LANGS   = 'jpn+eng';   // 日本語+数字・英語(馬名・数字を読む)
-var OCR_CDNS    = [
-  'https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/tesseract.min.js',
-  'https://unpkg.com/tesseract.js@4.1.4/dist/tesseract.min.js'
-];
-var OCR_WORKER  = 'https://cdn.jsdelivr.net/npm/tesseract.js@4.1.4/dist/worker.min.js';
-var OCR_CORE    = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@4.0.4/tesseract-core.wasm.js';
-var OCR_LANG    = 'https://tessdata.projectnaptha.com/4.0.0';
-var _ocrPromise = null;
-
-function ensureTesseract(){
-  if (window.Tesseract) return Promise.resolve();
-  if (!_ocrPromise){
-    _ocrPromise = new Promise(function(res, rej){
-      var k = 0;
-      (function loadNext(){
-        if (k >= OCR_CDNS.length){ _ocrPromise = null; rej(new Error('OCRエンジンの読込に失敗しました。ネット接続かCDNの状態を確認してください（広告ブロッカーで遮断されているとOCRエラーになります）。一度成功すれば以後はキャッシュ利用です。')); return; }
-        var s = document.createElement('script');
-        s.src = OCR_CDNS[k++];
-        s.onload = function(){ if (window.Tesseract) res(); else loadNext(); };
-        s.onerror = function(){ s.remove(); loadNext(); };
-        document.head.appendChild(s);
-      })();
-    });
-  }
-  return _ocrPromise;
-}
-
-function ocrProgress(pct, msg){
-  var wrap = $('ocrProg'), bar = $('ocrBar'), txt = $('ocrMsg');
-  if (!wrap) return;
-  if (pct == null){
-    if (bar) bar.style.width = '0%';
-    if (txt) txt.textContent = msg || '';
-    if (msg === 'done' || msg == null) wrap.classList.add('hid'); else wrap.classList.remove('hid');
-    return;
-  }
-  wrap.classList.remove('hid');
-  if (bar) bar.style.width = Math.round(pct*100) + '%';
-  if (txt) txt.textContent = (msg || '処理中') + ' ' + Math.round(pct*100) + '%';
-}
-
-/* 大きな画像は縮小してからOCR（メモリ不足・クラッシュ対策） */
-function ocrPrep(file){
-  return new Promise(function(res){
-    if (!file || !file.type || file.type.indexOf('image') < 0) { res(file); return; }
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function(){
-      var MAX = 2600;
-      var scale = Math.min(1, MAX / Math.max(img.width || 1, img.height || 1));
-      if (scale >= 1){ URL.revokeObjectURL(url); res(file); return; }
-      try {
-        var cv = document.createElement('canvas');
-        cv.width = Math.max(1, Math.round(img.width * scale));
-        cv.height = Math.max(1, Math.round(img.height * scale));
-        var ctx = cv.getContext('2d');
-        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(url);
-        res(cv.toDataURL('image/jpeg', 0.92));
-      } catch(e){ URL.revokeObjectURL(url); res(file); }
-    };
-    img.onerror = function(){ URL.revokeObjectURL(url); res(file); };
-    img.src = url;
-  });
-}
-
-/* Tesseract.js v4 の正しい使い方:
-   createWorker(options) → loadLanguage → initialize → recognize */
-function runOcr(file){
-  return ensureTesseract().then(function(){
-    return ocrPrep(file).then(function(src){
-      var worker = null;
-      return window.Tesseract.createWorker({
-        logger: function(m){
-          try {
-            if (m && m.status === 'recognizing text' && typeof m.progress === 'number'){
-              ocrProgress(m.progress, '文字を読み取り中');
-            } else if (m && m.status){
-              ocrProgress(null, 'OCR: ' + String(m.status));
-            }
-          } catch(e){}
-        },
-        workerPath: OCR_WORKER,
-        corePath: OCR_CORE,
-        langPath: OCR_LANG
-      }).then(function(w){
-        worker = w;
-        ocrProgress(null, '日本語+英語の文字モデルを読込中…（初回のみ。少し時間がかかります）');
-        return worker.loadLanguage(OCR_LANGS);
-      }).then(function(){
-        return worker.initialize(OCR_LANGS);
-      }).then(function(){
-        ocrProgress(null, '文字を読み取り中…');
-        return worker.recognize(src);
-      }).then(function(r){
-        var text = (r && r.data && r.data.text) ? r.data.text : '';
-        if (worker) { try { worker.terminate(); } catch(e){} }
-        return text;
-      }).catch(function(err){
-        if (worker) { try { worker.terminate(); } catch(e){} }
-        throw err;
-      });
-    });
-  });
-}
-
-/* OCRエラーの表示 */
-function ocrFail(err){
-  ocrProgress(null, 'done');
-  var el = $('pasteLog');
-  var detail = err && (err.message || err) ? String(err.message || err) : '';
-  if (!detail) detail = 'OCRエンジンが応答しませんでした（理由不明）';
-  var lines = [
-    '⚠ OCRエラー: ' + detail.slice(0, 300),
-    '💡 対処: (1) 画像が大きすぎる場合は、対象の表だけを拡大してスクショし直してください（スマホの画面キャプチャは縦長になりやすいので2枚に分けると安定します）。',
-    '💡 (2) 初回は文字認識モデル(数MB〜数十MB)のダウンロードが必要です。通信が不安定だと失敗します。時間をおいて再試行してください。',
-    '💡 (3) それでも失敗する場合: 下の「テキスト貼り付け」欄に、netkeibaの表を選択コピーして貼り付ける方法が確実です。'
-  ];
-  if (el) showLogLines(el, lines);
-}
-
-
-/* ---------- 種別ごとの適用 ---------- */
+/* ラップ表示（6F 83.5-5F 69.1-3F 38.9）と時計表示のヘルパ */
 function fmtLap(ev){
-  if (!ev || !ev.laps.length) return '';
-  return ev.laps.slice().sort(function(a,b){ return b[0]-a[0]; })
-    .map(function(x){ return x[0] + 'F ' + x[1].toFixed(1); }).join('-');
+  if (!ev || !ev.laps || !ev.laps.length) return '';
+  return ev.laps.map(function(l){ return l[0] + 'F ' + String(l[1]); }).join('-');
 }
 function fmtTime(sec){
-  if (sec == null) return '';
-  var m = Math.floor(sec/60), s = Math.floor(sec%60), c = Math.round((sec - Math.floor(sec))*100);
-  if (c === 100){ c = 0; s++; if (s===60){s=0;m++;} }
-  return m + ':' + (s<10?'0':'') + s + '.' + (c<10?'0':'') + c;
+  if (sec == null || !isFinite(sec)) return '';
+  var m = Math.floor(sec / 60), s2 = sec - m * 60;
+  var sStr = s2.toFixed(1);
+  if (s2 < 10) sStr = '0' + sStr;
+  return m + ':' + sStr;
 }
 
 function countReal(items){ var c=0; items.forEach(function(i){ if (i.apply) c++; }); return c; }
@@ -2800,7 +2685,7 @@ function mapAndApply(items, type, logEl, lines){
       '<select data-mi="' + idx + '">' + opts + '</select></div>';
   });
   var body = '<h2>' + (type==='yobi' ? '調教タイム' : '持ちタイム') + 'の馬名を確認</h2>' +
-    '<p class="small muted">OCR/貼り付けで読んだ馬名と登録中の出馬表を突き合わせます。合っていればそのまま「取り込む」でOK。</p>' +
+    '<p class="small muted">貼り付けで読んだ馬名と登録中の出馬表を突き合わせます。合っていればそのまま「取り込む」でOK。</p>' +
     '<div class="mmaphead maprow"><span>読み取り内容</span><span></span><span>記録</span><span>登録馬</span></div>' + rowsHtml +
     '<div style="text-align:right;margin-top:12px"><button class="btn ghost" data-mcl>キャンセル</button> ' +
     '<button class="btn primary" data-mok>選択を反映して取り込む</button></div>';
@@ -2831,59 +2716,7 @@ function mapAndApply(items, type, logEl, lines){
   });
 }
 
-/* ---------- OCR実行 ---------- */
-var _ocrType = 'card';
-function showOcrFixEditor(text, type){
-  var out = $('ocrOut');
-  if (!out) return;
-  out.innerHTML =
-    '<div style="margin-top:6px;border:1px solid #ead9a0;background:#fdf8e7;border-radius:10px;padding:8px 10px">' +
-    '<div style="font-weight:700;color:#6b5500;font-size:.85rem">📝 認識された文字が少なすぎる/形式が読めないようです。下で数値を直して再解析できます（馬名や時計の誤読を修正）</div>' +
-    '<textarea id="ocrEdit" style="width:100%;min-height:90px;margin-top:6px;font-family:monospace">' + esc(text) + '</textarea>' +
-    '<div style="text-align:right;margin-top:6px"><button class="btn primary" data-oce="1">この文字で解析し直す</button> ' +
-    '<span class="small muted">例: 馬名 6F 83.5-5F 69.1-3F 38.4 ／ 馬名 1:59.9</span></div></div>';
-  var b = out.querySelector('[data-oce]');
-  if (b) b.addEventListener('click', function(){
-    var txt = $('ocrEdit').value;
-    var parsed = applyTextByType(type, txt);
-    var logEl = $('pasteLog');
-    if (logEl) logEl.innerHTML = '';
-    applyParsedByType(type, parsed, logEl, false);
-  });
-}
-function startOcr(file){
-  ocrProgress(null, 'OCRを開始します…');
-  runOcr(file).then(function(text){
-    if (!text || !text.trim()){ ocrFail(new Error('文字を認識できませんでした。画像を拡大・表を水平に撮り直すか、テキスト貼り付けをお試しください')); return; }
-    var type = _ocrType;
-    // 認識全文を表示(折りたたみ)
-    var rawEl = $('ocrOut');
-    if (rawEl) rawEl.innerHTML = '<details><summary>認識されたテキスト全文(' + text.length + '字) クリックで表示</summary><pre style="white-space:pre-wrap;font-size:.75rem;max-height:220px;overflow:auto;background:#f7faf7;padding:8px;border-radius:8px">' + esc(text) + '</pre></details>';
-    var parsed = applyTextByType(type, text);
-    var logEl = $('pasteLog');
-    if (logEl) logEl.innerHTML = '';
-    if (type === 'card') applyParsedByType('card', parsed, logEl);
-    else if (type === 'odds') applyParsedByType('odds', parsed, logEl);
-    else if (type === 'yobi'){
-      var rowsY = parsed.filter(function(i){ return i && i.ok; }).length;
-      if (rowsY === 0){ showLogLines(logEl, ['⚠ 調教タイムの数値を認識できませんでした（' + text.length + '字読取）。']); showOcrFixEditor(text, 'yobi'); }
-      else applyParsedByType('yobi', parsed, logEl, false);
-    }
-    else if (type === 'time'){
-      var rowsT = parsed.filter(function(i){ return i && i.ok; }).length;
-      if (rowsT === 0){ showLogLines(logEl, ['⚠ 持ちタイムの数値を認識できませんでした（' + text.length + '字読取）。']); showOcrFixEditor(text, 'time'); }
-      else applyParsedByType('time', parsed, logEl, false);
-    }
-    ocrProgress(1, '');
-    setTimeout(function(){ ocrProgress(null, 'done'); }, 400);
-  }).catch(function(err){
-    ocrProgress(null, 'done');
-    var rawEl = $('ocrOut'); if (rawEl) rawEl.innerHTML = '';
-    ocrFail(err);
-  });
-}
-
-/* ---------- 貼り付け ---------- */
+/* ---------- テキスト貼り付け実行 ---------- */
 function runPaste(){
   var type = $('pasteType').value;
   var txt = $('pasteTxt').value;
@@ -2894,21 +2727,8 @@ function runPaste(){
   applyParsedByType(type, parsed, logEl, false);
 }
 
-/* ---------- 初期化 ---------- */
+/* ---------- 初期化(テキスト貼り付けのみ) ---------- */
 function initImport(){
-  document.querySelectorAll('.otype').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      _ocrType = btn.dataset.ot;
-      var fp = $('fileOcr');
-      fp.setAttribute('accept', 'image/*');
-      fp.click();
-    });
-  });
-  on('fileOcr', 'change', function(e){
-    var f = e.target.files && e.target.files[0];
-    if (f) startOcr(f);
-    e.target.value = '';
-  });
   on('btnPaste', 'click', runPaste);
 }
 
@@ -2920,6 +2740,7 @@ var WEIGHT_DEFS = [
   { k:'yobi',  label:'🏇 調教タイム',        hint:'最終追い切り等の時計' },
   { k:'time',  label:'⏱ 持ちタイム',        hint:'実力の裏付け(同距離)' },
   { k:'tenkai',label:'🧭 展開・脚質',        hint:'ペース適性・ポジション' },
+  { k:'baba',  label:'🏟 バ場好走率',        hint:'同開催場×同馬場(良/稍重/重/不良)での過去3着内率。馬柱データを取得すると自動で使えます' },
   { k:'mark',  label:'🧠 あなたの印',        hint:'入力表の印列を軽く参考' }
 ];
 
@@ -2997,7 +2818,7 @@ function renderTables(res){
   var note = '入力状況: オッズ ' + nO + '頭 / 調教 ' + nY + '頭 / 持ちタイム ' + nT + '頭 / 脚質 ' + nS + '頭' + (nSl ? ' / 出遅れ率 ' + nSl + '頭' : '');
   var wN = $('wNote');
   if (wN) wN.innerHTML = '<div class="small muted">' + note + '</div>';
-  if (!res.ok){ $('aiTbl').innerHTML = '<tr><td colspan="12">' + esc(res.msg) + '</td></tr>'; return; }
+  if (!res.ok){ $('aiTbl').innerHTML = '<tr><td colspan="13">' + esc(res.msg) + '</td></tr>'; return; }
 
   var an = $('aiNote');
   if (an){
@@ -3007,6 +2828,7 @@ function renderTables(res){
     if (res.slowAppliedNote) parts.push('<div style="background:#fdf1e3;border:1px solid #ecd3b2;border-radius:8px;padding:5px 9px;font-size:.82rem;color:#8a5a1a;font-weight:600">' + esc(res.slowAppliedNote) + '</div>');
     if (res.paceManualNote) parts.push('<div style="background:#eaf1fa;border:1px solid #c4d3ea;border-radius:8px;padding:5px 9px;font-size:.82rem;color:#23518a;font-weight:600">' + esc(res.paceManualNote) + '</div>');
     if (res.bfAppliedNote) parts.push('<div style="background:#f4edfb;border:1px solid #dccbee;border-radius:8px;padding:5px 9px;font-size:.82rem;color:#5b3a8f;font-weight:600">' + res.bfAppliedNote + '</div>');
+    if (res.babaAppliedNote) parts.push('<div style="background:' + (res.babaOn ? '#e2eef7' : '#fdf1e3') + ';border:1px solid ' + (res.babaOn ? '#bcd7ec' : '#ecd3b2') + ';border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.babaOn ? '#1c4d78' : '#8a5a1a') + ';font-weight:600">' + res.babaAppliedNote + '</div>');
     if (res.note) parts.push('<div class="warnbox">' + esc(res.note) + '</div>');
     if (typeof hbKentaiNoteHTML === 'function'){
       var hbk = hbKentaiNoteHTML();
@@ -3032,6 +2854,7 @@ function renderTables(res){
       '<td class="small">' + (r.ev && r.ev.laps.length ? esc(fmtLap(r.ev)) + '<br><span class="muted">' + r.ev.per + '秒/F</span>' : '−') + '</td>' +
       '<td class="small">' + (r.timeSec != null ? esc(fmtTime(r.timeSec)) : '−') + '</td>' +
       '<td><span class="nowrap">' + styleLabel(h.style) + '</span><div class="barbg"><i style="width:' + Math.round(r.fK*100) + '%;background:linear-gradient(90deg,#f2c14e,#c78f1f)"></i></div></td>' +
+      '<td class="small" title="同開催場×同馬場(良/稍重/重/不良)の過去3着内率（馬柱データから）">' + ((r.babaHit && r.babaHit.n > 0) ? '<b style="color:#14608a">' + r.babaHit.pct + '%</b><div class="barbg"><i style="width:' + Math.max(2, Math.min(100, r.babaHit.pct)) + '%;background:linear-gradient(90deg,#8fc2e3,#14608a)"></i></div><span class="muted">' + r.babaHit.n + '走</span>' : '−') + '</td>' +
       '<td class="scorecell">' + (r.U*100).toFixed(0) + '</td>' +
       '<td>' + (r.mineFlag ? '<span class="minetrue">' + r.mineStr + '</span>' : '<span class="muted">' + (r.mineStr==='—'?'—':'<span style="color:#98a29a">'+r.mineStr+'</span>') + '</span>') + '</td>' +
       '</tr>';
@@ -5007,9 +4830,8 @@ function nkImportCard(){
       applyNkRaceMeta(meta);
       log.push('📋 レース情報を自動入力: ' + esc(String(state.race.name || '')));
     }
-    // 予想×結果学習DBの記録 & keibanomiryoku 追い切り記事の自動検出
+    // 予想×結果学習DBの記録
     if (typeof lrEnsure === 'function'){ try { lrEnsure(rid); } catch(e){} }
-    if (typeof woAuto === 'function'){ try { setTimeout(function(){ woAuto(); }, 900); } catch(e){} }
     log.push('👉 次に「単勝オッズを取込」または出馬表の目視確認をどうぞ');
     nkLog(log);
     nkBusy(false);
@@ -7492,9 +7314,12 @@ function rnParseResult(html, rid){
     var name = col(cells, '馬名');
     if (!name && !col(cells, '着順')) return;
     var o = parseInt(col(cells, '着順'), 10);
+    var sea = col(cells, '性齢');
+    var ageM = String(sea || '').match(/(\d{1,2})\s*歳?$/);
     out.rows.push({
       order: isNaN(o) ? 0 : o, no: col(cells, '馬番'), name: name,
       nk: nkM ? nkM[1] : '',
+      sea: sea, age: ageM ? parseInt(ageM[1], 10) : 0,
       time: col(cells, 'タイム'), odds: col(cells, '単勝オッズ') || col(cells, '単勝'), pop: col(cells, '人気'),
       last3: col(cells, '後3F') || col(cells, '上り'), passing: col(cells, 'コーナー通過順') || col(cells, '通過')
     });
@@ -9608,9 +9433,8 @@ function kaiImportByRaceId(rid){
     }
     applyNkRaceMeta(meta);
     state.raceId = rid;
-    // 予想×結果 学習DB に記録し、keibanomiryoku の追い切り記事を自動検出
+    // 予想×結果 学習DB に記録
     if (typeof lrEnsure === 'function'){ try { lrEnsure(rid); } catch(e){} }
-    if (typeof woAuto === 'function'){ try { setTimeout(function(){ woAuto(); }, 900); } catch(e){} }
     // 自動保存（現在レース）
     saveNow();
     // 履歴にもスナップショット保存
@@ -10224,247 +10048,6 @@ function initJv(){
     jvOpenResultToken(b.getAttribute('data-token'), d + ' ' + v + ' ' + r + 'R');
   });
   jvLog([]); jvSt('');
-}
-
-/* =========================================================
-   28 keibanomiryoku（競馬の魅力）追い切り記事の取込
-   ---------------------------------------------------------
-   https://www.keibanomiryoku.com/article/category/work-out の
-   「追い切り・コメント」記事（主に重賞・注目レース）をレース名で検出し、
-   - 各馬の「1週前追い切り」「最終追い切り」の調教タイム
-   - 調教師・騎手の厩舎コメント
-   を h.wc に保存し、出馬表に付箋(📌)表示します。
-   「うましる(OCR)」で検出できない時のバックアップとして、
-   yobi(最終追い切りタイム) が空の馬には記事の最終追い切りを自動反映します。
-   ========================================================= */
-var WO_LS = 'khl_workout_v1';
-var WO_LIST_URL = 'https://www.keibanomiryoku.com/article/category/work-out';
-var WO_LIST_MS = 3 * 60 * 60 * 1000;
-var woLastRid = '';
-function woLoad(){ try { return JSON.parse(localStorage.getItem(WO_LS) || '{}'); } catch(e){ return {}; } }
-function woSave(o){ try { localStorage.setItem(WO_LS, JSON.stringify(o)); } catch(e){} }
-function woFetch(url){
-  var cands = (typeof nkRelayCandidates === 'function') ? nkRelayCandidates() : [];
-  var lastErr = null;
-  return new Promise(function(res, rej){
-    function tryNext(i){
-      if (i >= cands.length){ rej(new Error('取得失敗: ' + (lastErr ? lastErr.message : '中継なし'))); return; }
-      var full = cands[i] + (cands[i].indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
-      (typeof nkFetchTimeout === 'function' ? nkFetchTimeout(full, 18000) : Promise.reject(new Error('no fetch')))
-        .then(function(t){ if (!t || t.length < 300){ lastErr = new Error('応答が短い'); tryNext(i + 1); } else res(t); })
-        .catch(function(e){ lastErr = e; tryNext(i + 1); });
-    }
-    tryNext(0);
-  });
-}
-function woNorm(s){
-  return String(s == null ? '' : s)
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
-    .replace(/[（(]/g, '').replace(/[）)]/g, '')
-    .replace(/[・ー~〜\s　]/g, '')
-    .replace(/Ｓ/g, 'S').replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, function(c){ return '0123456789'['①②③④⑤⑥⑦⑧⑨⑩'.indexOf(c)]; })
-    .toLowerCase();
-}
-function woStrip(s){
-  return String(s || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#\d+;/g, '')
-    .replace(/[ \t\r\n]+/g, ' ').trim();
-}
-/* 記事一覧(カテゴリ)の取得と解析: [{url,title,year,core}] */
-function woParseList(html){
-  var out = [], seen = {};
-  var rx = /<a[^>]+href="(https:\/\/www\.keibanomiryoku\.com\/article\/[a-z0-9\-]+-work-out\.html)"[^>]*>([\s\S]*?)<\/a>/gi, m;
-  while ((m = rx.exec(html || '')) !== null){
-    var url = m[1], text = woStrip(m[2]);
-    if (!/【[^】]+】/.test(text)) continue;
-    if (seen[url]) continue;
-    seen[url] = 1;
-    var bm = text.match(/【([^】]+)】/);
-    var raw = bm ? bm[1] : '';
-    var ym = raw.match(/(\d{4})/);
-    out.push({ url: url, title: text, core: woNorm(raw.replace(/\d{4}/, '')), year: ym ? ym[1] : '' });
-  }
-  return out;
-}
-function woList(){
-  var c = woLoad();
-  if (c.articles && c.at && (Date.now() - c.at) < WO_LIST_MS && c.articles.length){
-    return Promise.resolve(c.articles);
-  }
-  return woFetch(WO_LIST_URL).then(function(html){
-    var arts = woParseList(html);
-    woSave({ articles: arts, at: Date.now() });
-    return arts;
-  });
-}
-/* 記事HTML → 馬ごとのブロック */
-function woArticleHorses(html){
-  var out = { title: '', horses: [] };
-  var tm = html.match(/<title>([\s\S]*?)<\/title>/i);
-  if (tm) out.title = woStrip(tm[1]);
-  // 「〜追い切りをチェック！」のh2以降
-  var h2 = html.match(/<h2[^>]*>([\s\S]*?)追い切りをチェック[\s\S]*?<\/h2>/i);
-  var start = h2 ? h2.index : html.indexOf('<div id="the-content"');
-  if (start < 0) start = 0;
-  var body = html.slice(start);
-  // h2以降を次のh2まで（h3ごとに馬）
-  var m2 = body.match(/<h2[\s\S]*?<\/h2>/);
-  var afterH2 = m2 ? body.slice(m2.index + m2[0].length) : body;
-  // その後のh2（動画等）まで
-  var endM = afterH2.match(/<h2[^>]*>[\s\S]*?<\/h2>/);
-  var seg = endM ? afterH2.slice(0, endM.index) : afterH2;
-  // h3 ごとに分割（各馬）
-  var parts = seg.split(/<h3[^>]*>/i);
-  for (var i = 1; i < parts.length; i++){
-    var p = parts[i];
-    var close = p.indexOf('</h3>');
-    var name = close >= 0 ? woStrip(p.slice(0, close)) : '';
-    if (!name) continue;
-    var cont = close >= 0 ? p.slice(close + 5) : '';
-    // 不要物除去
-    cont = cont.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<ins[\s\S]*?<\/ins>/gi, ' ').replace(/<iframe[\s\S]*?<\/iframe>/gi, ' ');
-    var lines = [];
-    (cont.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || []).forEach(function(pp){
-      var t = woStrip(pp);
-      t = t.replace(/(\s*\n\s*)+/g, ' ');
-      if (t) lines.push(t);
-    });
-    out.horses.push({ name: name, lines: lines });
-  }
-  return out;
-}
-/* 馬ブロック → h.wc 用データ */
-function woHorseData(horse){
-  var d = { texts: horse.lines || [], week: '', final: '', comments: [], hl: '' };
-  var cur = '';
-  (horse.lines || []).forEach(function(ln){
-    if (/追い切り/.test(ln)){ cur = ln; if (/最終/.test(ln)) d.final = ln; else if (/１週前|1週前/.test(ln)) d.week = ln; }
-    else if (cur && ln){ d.texts.push(ln); }
-    var m = ln.match(/[「『]([^」』]+)[」』]/g);
-    if (m) d.comments.push(ln);
-  });
-  var idx = d.comments.length - 1;
-  while (idx >= 0){
-    var c = d.comments[idx];
-    if (/調教師|騎手/.test(c)){ d.hl = c.replace(/[「」『』]/g, '').slice(0, 90); break; }
-    idx--;
-  }
-  if (!d.hl) d.hl = (d.final || d.week || '').slice(0, 90);
-  return d;
-}
-/* レース名 → 記事URLの検出 */
-function woMatchArticle(arts){
-  var nm = (state.race && state.race.name) || '';
-  var ym = nm.match(/(\d{4})年/);
-  var year = ym ? ym[1] : '';
-  var core = woNorm(nm)
-    .replace(/^\d{4}年\d{1,2}月\d{1,2}日/, '')
-    .replace(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)\d{1,2}r/, '')
-    .replace(/[g123lco]/g, '');
-  // ステークス表記ゆれ対応
-  var alts = [core];
-  var c2 = core.replace(/ステークス$/, 'S').replace(/ステークス/g, 'S');
-  if (c2 !== core) alts.push(c2);
-  var best = null;
-  arts.forEach(function(a){
-    if (year && a.year && a.year !== year) return;
-    if (!a.core) return;
-    var ok = false;
-    for (var i = 0; i < alts.length && !ok; i++){
-      var x = alts[i]; if (!x) continue;
-      if (x.length >= 3 && (x.indexOf(a.core) >= 0 || a.core.indexOf(x) >= 0)) ok = true;
-    }
-    if (ok){ if (!best || (a.year || '') > (best.year || '')) best = a; }
-  });
-  return best;
-}
-/* 出馬表への適用 */
-function woApply(article, prog){
-  prog = prog || function(){};
-  var matched = 0;
-  var byName = {};
-  (state.horses || []).forEach(function(h){ if (h.name) byName[woNorm(h.name)] = h; });
-  article.horses.forEach(function(hs){
-    var key = woNorm(hs.name);
-    var h = byName[key];
-    if (!h) return;
-    var d = woHorseData(hs);
-    if (!d.texts.length) return;
-    h.wc = { src: article.src, title: article.title, at: article.at, week: d.week, final: d.final, comments: d.comments, hl: d.hl, texts: d.texts };
-    // バックアップ: yobi(最終追い切りタイム)が空なら、最終追い切りを自動反映
-    if (!h.yobi && d.final){
-      var t = d.final.replace(/^.*追い切り/, '最終追い切り').replace(/\s+/g, ' ').trim();
-      h.yobi = t.slice(0, 60);
-    }
-    matched++;
-  });
-  return matched;
-}
-function woMsg2(msg, isErr){
-  var el = $('woMsg'); if (!el) return;
-  el.innerHTML = (isErr ? '⚠ ' : '') + esc(msg);
-  el.style.color = isErr ? '#b3261e' : '#0e6b3d';
-}
-/* 現在のレースに対して自動実行 */
-function woAuto(){
-  var rid = state.raceId || '';
-  if (!rid) return Promise.resolve(null);
-  if (woLastRid === rid) return Promise.resolve(null);   // 1回だけ
-  var horses = (state.horses || []).filter(function(h){ return h.name; });
-  if (!horses.length) return Promise.resolve(null);
-  var el = $('woMsg'); if (el) el.textContent = '';
-  woLastRid = rid;
-  return woList().then(function(arts){
-    var art = woMatchArticle(arts);
-    if (!art){ if (typeof woMsg2 === 'function') woMsg2('🔖 追い切り記事は見つかりませんでした（記事があるのは主に重賞・注目レースです）。', false); return null; }
-    if (typeof woMsg2 === 'function') woMsg2('🔖 記事を見つけました → ' + art.title + ' …読み込み中');
-    return woFetch(art.url).then(function(html){
-      var parsed = woArticleHorses(html);
-      parsed.src = art.url; parsed.at = new Date().toISOString();
-      var n = woApply(parsed);
-      if (n){
-        if (typeof saveNow === 'function') saveNow();
-        if (typeof rebuildHorseTable === 'function') rebuildHorseTable();
-        if (typeof woMsg2 === 'function') woMsg2('✅ keibanomiryoku の追い切り記事から ' + n + '頭分の調教・厩舎コメントを付箋(📌)として出馬表に載せました。' + (art.year ? '（' + art.year + '年）' : ''));
-      } else {
-        if (typeof woMsg2 === 'function') woMsg2('⚠ 記事は見つかりましたが出走馬名が一致しませんでした（別日の同銘柄レースの可能性）。');
-      }
-      return parsed;
-    });
-  }).catch(function(e){
-    if (typeof woMsg2 === 'function') woMsg2('記事取得に失敗: ' + ((e && e.message) || '通信エラー') + '（中継リレーが必要です）', true);
-    return null;
-  });
-}
-/* 付箋の表示（出馬表の開閉行の中身） */
-function woNoteHTML(h){
-  var w = h.wc;
-  if (!w || !w.texts) return '';
-  var s = '<div class="wcnote" style="margin:4px 0 0">';
-  s += '<div class="small" style="font-weight:bold;color:#7a5d00">📌 厩舎コメント・追い切り（keibanomiryoku）</div>';
-  if (w.week) s += '<div class="small">🗓 ' + esc(w.week) + '</div>';
-  if (w.final) s += '<div class="small">🏇 ' + esc(w.final) + '</div>';
-  if (w.comments && w.comments.length){
-    s += '<div style="margin-top:3px">' + w.comments.slice(0, 6).map(function(c){ return '<div class="small" style="margin:2px 0;padding-left:8px;border-left:3px solid #e4d26e">' + esc(c) + '</div>'; }).join('') + '</div>';
-  }
-  if (w.src) s += '<div class="small muted" style="margin-top:3px">出典: <a href="' + esc(w.src) + '" target="_blank" rel="noopener">keibanomiryoku 記事</a></div>';
-  s += '</div>';
-  return s;
-}
-function woMarkHTML(h){
-  if (!h.wc) return '';
-  var t = (h.wc.hl || '').replace(/[「」『』]/g, '');
-  return '<button type="button" class="pedbtn" title="' + esc('厩舎コメント・追い切り\n' + t) + '">📌</button>';
-}
-function initWo(){
-    var b = $('woBtn');
-    if (b) b.addEventListener('click', function(){
-    woLastRid = '';   // 手動ボタンでは再検索を許可
-    b.disabled = true;
-    var el = $('woMsg'); if (el) el.textContent = '追い切り記事を検索しています…';
-    woAuto().finally(function(){ b.disabled = false; });
-  });
 }
 
 /* =========================================================
@@ -11898,7 +11481,10 @@ function diLs(){
     return o; }
   catch(e){ return { races: {}, at: 0 }; }
 }
-function diSave(o){ try { localStorage.setItem(DI_LS, JSON.stringify(o)); } catch(e){} }
+function diSave(o){
+  try { localStorage.setItem(DI_LS, JSON.stringify(o)); return true; }
+  catch(e){ return false; }   // 容量超過など
+}
 
 function diHash(pr){
   // 全項目(着順関連)が一致するとき=「同一内容」とみなすハッシュ
@@ -12047,8 +11633,10 @@ function diImportDate(date8, progress){
     });
     return seq.then(function(){
       db.at = Date.now();
-      diSave(db);
-      progress('完了: 保存 ' + result.ok + ' / 同一内容でスキップ ' + result.dup + ' / 取得失敗 ' + result.errors + ' レース');
+      var savedOk = diSave(db);
+      if (!savedOk){ result.limit = true; result.saved = false; }
+      progress('完了: 保存 ' + result.ok + ' / 同一内容でスキップ ' + result.dup + ' / 取得失敗 ' + result.errors + ' レース' +
+        (!savedOk ? '　⚠ 保存先の容量が足りず、この日分は端末に保存できませんでした（「🗑 全消去」で古いデータを消すか、取込日を絞ってください）' : ''));
       return result;
     });
   }).catch(function(netErr){
@@ -12079,14 +11667,130 @@ function diImportDate(date8, progress){
       });
       return seq.then(function(){
         db.at = Date.now();
-        diSave(db);
-        progress('完了(JRA): 保存 ' + result.ok + ' / 同一内容でスキップ ' + result.dup + ' / 失敗 ' + result.errors + ' レース（上り3FはJRA表に無いため空欄）');
+        var savedOk = diSave(db);
+        if (!savedOk){ result.limit = true; result.saved = false; }
+        progress('完了(JRA): 保存 ' + result.ok + ' / 同一内容でスキップ ' + result.dup + ' / 失敗 ' + result.errors + ' レース（上り3FはJRA表に無いため空欄）' +
+          (!savedOk ? '　⚠ 保存先の容量が足りず保存できませんでした' : ''));
         return result;
       });
     });
   });
 }
 
+/* ===== 年指定バルク取得（タスク4） ===== */
+var DI_YEAR_BUSY = false, DI_YEAR_CANCEL = false;
+function diYearMsgSet(msg, isErr){
+  var el = $('diYearMsg'); if (!el) return;
+  el.innerHTML = (isErr ? '⚠ ' : '') + esc(msg);
+  el.style.color = isErr ? '#b3261e' : '';
+}
+function diYearBar(pct, show){
+  var w = $('diYearBarWrap'), b = $('diYearBar');
+  if (w) w.classList.toggle('hid', !show);
+  if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function diYearUiBusy(b){
+  var btn = $('diYearBtn'), stp = $('diYearStop');
+  if (btn) btn.disabled = b;
+  if (stp) stp.classList.toggle('hid', !b);
+}
+function diYearBuild(){
+  var sel = $('diYear'); if (!sel) return;
+  var nowY = new Date().getFullYear();
+  var html = '';
+  // netkeibaが日別一覧を返せる範囲(およそ2006年以降)を下限に、今年-1を初期選択
+  for (var y = nowY; y >= 2006; y--){
+    var isDef = (y === nowY - 1) ? ' selected' : '';
+    html += '<option value="' + y + '"' + isDef + '>' + y + '年</option>';
+  }
+  sel.innerHTML = html;
+  var btn = $('diYearBtn');
+  if (btn) btn.addEventListener('click', function(){
+    if (DI_YEAR_BUSY) return;
+    var y = parseInt(sel.value, 10);
+    if (!y){ diYearMsgSet('年を選択してください', true); return; }
+    DI_YEAR_BUSY = true; DI_YEAR_CANCEL = false;
+    diYearUiBusy(true);
+    diYearMsgSet(y + '年の開催日を検出しています（netkeibaカレンダー）…');
+    diImportYear(y, function(m, err){ diYearMsgSet(m, !!err); }).then(function(tot){
+      diYearUiBusy(false);
+      DI_YEAR_BUSY = false;
+      diRenderStat();
+      if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
+    });
+  });
+  var stp = $('diYearStop');
+  if (stp) stp.addEventListener('click', function(){
+    if (DI_YEAR_BUSY){ DI_YEAR_CANCEL = true; diYearMsgSet('⏹ 中断しています…（現在の1日分の取込が終わり次第停止します）', false); stp.disabled = true; }
+  });
+  diYearMsgSet('「📥 この年の全レースを一括取得」で過去データをまとめて学習DBへ保存できます。', false);
+}
+/* 指定年の開催日一覧を netkeibaカレンダー(年×月)から収集 */
+function diYearDates(year){
+  var seq = Promise.resolve(), dates = [], seen = {};
+  function push(d){
+    if (!seen[d] && String(d).indexOf(String(year)) === 0){ seen[d] = 1; dates.push(d); }
+  }
+  for (var m = 1; m <= 12; m++){
+    (function(month){
+      seq = seq.then(function(){
+        return bfGet('https://race.netkeiba.com/top/calendar.html?year=' + year + '&month=' + month).then(function(html){
+          var re = /kaisai_date=(\d{8})/g, mm;
+          while ((mm = re.exec(html || '')) !== null) push(mm[1]);
+        }).catch(function(){});
+      });
+    })(m);
+  }
+  return seq.then(function(){
+    dates.sort();
+    // 未来日・未実施日は除外（当日より前のみ）
+    var d = new Date();
+    var today = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    return dates.filter(function(x){ return parseInt(x, 10) < today; });
+  });
+}
+/* 年指定バルク本体: 開催日→diImportDateを1日ずつ直列実行（重複は内部で自動スキップ） */
+function diImportYear(year, msg){
+  msg = msg || function(){};
+  var totals = { ok: 0, dup: 0, fail: 0, noRace: 0, limit: false };
+  return diYearDates(year).then(function(dates){
+    if (!dates.length){
+      msg(year + '年の開催日が見つかりませんでした（netkeibaカレンダーに未掲載の年です）', true);
+      return totals;
+    }
+    msg(year + '年のJRA開催日を ' + dates.length + ' 日 検出しました。1日ずつ取り込みます…');
+    diYearBar(0, true);
+    var seq = Promise.resolve();
+    dates.forEach(function(d8, idx){
+      seq = seq.then(function(){
+        if (DI_YEAR_CANCEL) return;
+        return diImportDate(d8, function(/* dayMsg */){ /* 日ごとの詳細は累計表示に集約 */ })
+          .then(function(r){
+            totals.ok += r.ok; totals.dup += r.dup; totals.fail += r.errors;
+            if (r.limit) totals.limit = true;
+            var dstr = d8.slice(0, 4) + '/' + (+d8.slice(4, 6)) + '/' + (+d8.slice(6, 8));
+            var pct = ((idx + 1) / dates.length) * 100;
+            diYearBar(pct, true);
+            msg('（' + (idx + 1) + '/' + dates.length + '日目）' + dstr + ' … 追加 ' + r.ok + ' / 既存スキップ ' + r.dup + ' / 失敗 ' + r.errors + ' ／ 累計保存 ' + totals.ok +
+              (totals.limit ? '　⚠ 保存容量が足りないため古い分が保存されていない可能性があります' : ''));
+            return r;
+          })
+          .catch(function(e){
+            totals.noRace++;
+            msg('（' + (idx + 1) + '/' + dates.length + '日目）' + d8 + ' は取り込めませんでした（開催なし・ページ無し等）', false);
+            return null;
+          });
+      });
+    });
+    return seq.then(function(){
+      diYearBar(0, false);
+      var tail = DI_YEAR_CANCEL ? '（⏹ 中断しました。再実行すると未取込の日から続行できます）' : '';
+      msg('✅ ' + year + '年の取込を終了: 追加 ' + totals.ok + ' / 既存スキップ ' + totals.dup + ' / 失敗 ' + totals.fail + ' レース' + tail +
+        (totals.limit ? '　⚠ 容量超過により一部は保存されていません' : ''));
+      return totals;
+    });
+  });
+}
 function diStatus(msg, isErr){
   var el = $('diMsg'); if (!el) return;
   el.innerHTML = (isErr ? '⚠ ' : '') + esc(msg);
@@ -12128,6 +11832,7 @@ function initDi(){
     def.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
   diRenderStat();
+  diYearBuild();
 }
 /* p30(predict-result)や学習で利用できるようDB名だけ公開 */
 function diCount(){ return Object.keys(diLs().races).length; }
@@ -14265,6 +13970,15 @@ function lvResMsg(txt, err){
   var el = $('lvResMsg');
   if (el){ el.innerHTML = '<span class="small" style="color:' + (err ? '#a3442f' : '#33513f') + '">' + esc(txt) + '</span>'; }
 }
+/* 上り3F文字列("35.8" / "1:06.8") → 秒。不可なら NaN */
+function lvLast3Sec(s){
+  var t = String(s == null ? '' : s).replace(/[^0-9.:]/g, '');
+  if (!t) return NaN;
+  var cm = t.match(/(\d{1,2}):(\d{1,2})(?:\.(\d+))?/);
+  if (cm) return parseInt(cm[1],10) * 60 + parseInt(cm[2],10) + (cm[3] ? parseInt(cm[3],10) / Math.pow(10, cm[3].length) : 0);
+  var n = parseFloat(t);
+  return isNaN(n) ? NaN : n;
+}
 function lvRenderResult(p, pay){
   var chip = $('lvResChip');
   var rows = p.rows || [];
@@ -14282,16 +13996,64 @@ function lvRenderResult(p, pay){
     return;
   }
   lvResMsg(msg.join('<br>'), false);
+  /* コースレコード更新 / タイ記録 */
+  var recInfo = null;
+  if (typeof crCheckResult === 'function'){
+    try { recInfo = crCheckResult({ place:p.place, surface:p.surface, dist:p.dist, baba:p.baba, rows:rows }); } catch(e){}
+  }
+  /* 上り3Fの速さ順位（同タイムは同位）→ 1位=黄 / 2位=青 / 3位=ピンク */
+  var l3ranks = {};
+  rows.forEach(function(r){
+    if (!(r.order >= 1)) return;
+    var v = lvLast3Sec(r.last3);
+    if (isNaN(v)) return;
+    var faster = 0;
+    rows.forEach(function(q){
+      if (!(q.order >= 1)) return;
+      var w = lvLast3Sec(q.last3);
+      if (isNaN(w)) return;
+      if (w < v - 0.0001) faster++;
+    });
+    l3ranks[r.no + ':' + r.name + ':' + r.last3] = faster + 1;
+  });
+  var hasL3 = Object.keys(l3ranks).length > 0;
   var h = [];
+  if (recInfo){
+    var rc = recInfo.base;
+    var rcTxt = '従来 ' + esc(rc.t) + '（' + esc(rc.h) + ' ' + esc(rc.d || '記録日不明') + '）';
+    if (recInfo.kind === 'new'){
+      h.push('<div class="lvrecd" role="alert"><span class="lvreci">🏆</span> <b>コースレコード更新！</b> ' +
+        '<span class="lvrecwin">1着 ' + esc(recInfo.win) + '</span>　' + rcTxt + '</div>');
+    } else {
+      h.push('<div class="lvrecd lvrecd-tie" role="alert"><span class="lvreci">🎯</span> <b>コースレコード・タイ記録</b>　' +
+        '<span class="lvrecwin">1着 ' + esc(recInfo.win) + '</span>（' + esc(rc.h) + ' ' + esc(rc.d || '') + 'と同タイム）</div>');
+    }
+  }
+  if (hasL3){
+    h.push('<div class="small muted" style="margin:2px 0 4px">上3Fはレース内の速さ順位で色分け: ' +
+      '<span class="lgb" style="background:#ffe13b;border:1px solid #f2c200">1位(最速)</span> ' +
+      '<span class="lgb" style="background:#7fc4ff;border:1px solid #4a9ff0">2位</span> ' +
+      '<span class="lgb" style="background:#ffaad4;border:1px solid #f47fb4">3位</span>（同タイムは同位）</div>');
+  }
   h.push('<div class="tblwrap"><table class="htbl" style="min-width:560px"><thead><tr>' +
     '<th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th><th>上3F</th><th>人気</th><th>単勝</th></tr></thead><tbody>');
   var scrapped = [];
   rows.forEach(function(r){
     if (r.order >= 1){
       var sp = (r.order === 1) ? 'background:#fff6da' : (r.order <= 3 ? 'background:#f6fbf3' : '');
+      var l3cell = esc(r.last3 || '');
+      var rk = l3ranks[r.no + ':' + r.name + ':' + r.last3];
+      if (rk && (rk === 1 || rk === 2 || rk === 3)){
+        l3cell = '<span class="nkr r' + rk + '" title="このレースの上り3F ' + rk + '位（同タイムは同位）">' + esc(r.last3) + '</span>';
+      }
+      var timeCell = esc(r.time || '');
+      if (r.order === 1 && recInfo){
+        timeCell = '<span class="lvwinrec">' + timeCell +
+          (recInfo.kind === 'new' ? ' <span class="lvbadge">NEW</span>' : ' <span class="lvbadge lvbadge-tie">TIE</span>') + '</span>';
+      }
       h.push('<tr style="' + sp + '"><td><b>' + r.order + '</b></td><td>' + (r.no || '') + '</td>' +
         '<td>' + esc(r.name) + '</td><td class="muted">' + esc(r.jockey || '') + '</td>' +
-        '<td>' + esc(r.time || '') + '</td><td>' + esc(r.last3 || '') + '</td>' +
+        '<td>' + timeCell + '</td><td>' + l3cell + '</td>' +
         '<td>' + (r.pop || '') + (r.pop ? '人気' : '') + '</td><td>' + esc(r.odds || '') + '</td></tr>');
     } else {
       scrapped.push(r);
@@ -14716,36 +14478,50 @@ function gcToday8(){
   var d = new Date();
   return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
 }
+/* キャッシュ内容から月を描画（中央は必ず、Jpnは取得済みなら併記） */
+function gcRenderLoaded(y, m, withJpn){
+  var ls = gcLs();
+  var central = (ls.mon && ls.mon[y + '-' + m]) || [];
+  var jpnRows = (withJpn && ls.jpn && ls.jpn['jpn-' + y]) ? ls.jpn['jpn-' + y].filter(function(r){ return +r.date.slice(4, 6) === m; }) : [];
+  gcRenderMonth(y, m, central, jpnRows);
+  var tot = central.length + jpnRows.length;
+  gcSetMsg('✅ ' + y + '年' + m + '月の重賞 ' + tot + ' 件（中央' + central.length +
+    (jpnRows.length ? '・地方Jpn' + jpnRows.length : '') + '）を表示。レース名をクリックで⑨分析。');
+  gcMonthBar();
+}
 function gcLoadMonth(y, m){
+  // 中央（race.netkeiba）と 地方交流Jpn（db.netkeiba検索）は別々に取得。
+  // Jpn検索は初回に十数秒かかるため、中央の月表示を先に出し、
+  // Jpnは「別途あとから」反映する（失敗しても中央は表示されたまま）。
   var withJpn = !!($('gcJpn') && $('gcJpn').checked);
   gcUI.y = y; gcUI.m = m;
   var ym = $('gcYear'); if (ym) ym.value = String(y);
   gcMonthBar();
   gcSetMsg(m + '月の重賞を読み込んでいます…（開催日数により数秒〜十数秒）');
-  var showMonth = function(){
-    var ls = gcLs();
-    var central = (ls.mon && ls.mon[y + '-' + m]) || [];
-    var jpnRows = (withJpn && ls.jpn && ls.jpn['jpn-' + y]) ? ls.jpn['jpn-' + y].filter(function(r){ return +r.date.slice(4, 6) === m; }) : [];
-    gcRenderMonth(y, m, central, jpnRows);
-    var tot = central.length + jpnRows.length;
-    gcSetMsg('✅ ' + y + '年' + m + '月の重賞 ' + tot + ' 件（中央' + central.length + (withJpn ? '・地方Jpn' + jpnRows.length : '') + '）を表示。レース名をクリックで⑨分析。');
-    gcMonthBar();
-  };
   var ls = gcLs();
-  var central = ls.mon && ls.mon[y + '-' + m];
-  var jpnReady = !withJpn || (ls.jpn && ls.jpn['jpn-' + y]);
-  if (central && jpnReady){ showMonth(); return; }
-  // 必要なものを取得
-  var p = Promise.resolve();
-  if (!central){
-    var seq = 0;
-    p = p.then(function(){ return gcMonth(y, m, function(d8){ gcSetMsg(m + '月を取得中… ' + d8.slice(4, 6) + '/' + d8.slice(6, 8)); }); });
-  }
-  if (withJpn && !(ls.jpn && ls.jpn['jpn-' + y])){
-    gcSetMsg('地方交流JpnレースをDB検索中（初回は十数秒ほど）…');
-    p = p.then(function(){ return gcJpn(y); });
-  }
-  p.then(showMonth).catch(function(e){ gcSetMsg('取得に失敗しました: ' + ((e && e.message) || e), true); });
+  var centralCached = !!(ls.mon && ls.mon[y + '-' + m]);
+  var jpnCached = !withJpn || !!(ls.jpn && ls.jpn['jpn-' + y]);
+  // 1) 中央分を用意（キャッシュ or 取得）
+  var p = centralCached ? Promise.resolve() : gcMonth(y, m, function(d8){
+    gcSetMsg(m + '月の開催日を取得中… ' + d8.slice(4, 6) + '/' + d8.slice(6, 8));
+  });
+  p.then(function(){
+    if (gcUI.y === y && gcUI.m === m) gcRenderLoaded(y, m, withJpn && jpnCached);
+    // 2) Jpnが未取得なら後から反映（失敗しても中央表示は保持）
+    if (withJpn && !jpnCached){
+      gcSetMsg('✅ 中央の重賞を表示しました。地方交流JpnレースをDB検索中（初回は十数秒ほど）…');
+      gcJpn(y).then(function(){
+        if (gcUI.y === y && gcUI.m === m) gcRenderLoaded(y, m, true);
+      }).catch(function(e2){
+        if (!(gcUI.y === y && gcUI.m === m)) return;
+        gcSetMsg('✅ 中央の重賞を表示しました。地方交流Jpnは取得できませんでした（' +
+          ((e2 && e2.message) || e2) + '）。チェックを外すとJpnなしで表示します。', true);
+      });
+    }
+  }).catch(function(e){
+    if (!(gcUI.y === y && gcUI.m === m)) return;
+    gcSetMsg('中央重賞の取得に失敗しました: ' + ((e && e.message) || e) + '。「↻ 再取得」でやり直せます。', true);
+  });
 }
 function gcReloadYear(){
   var y = gcUI.y;
@@ -15193,6 +14969,285 @@ function initNk(){
 }
 
 /* =========================================================
+   41 中央競馬 コースレコード表（内蔵スナップショット 2026-09時点）
+   ---------------------------------------------------------
+   - データ源: record-time.sakura.ne.jp が公開する JRA 各競馬場の
+     レコードタイム表（jra_tokyo.html 等）を収集・編纂したもの。
+     数値は JRA 公式発表に準拠しています（期間: 現行コース）。
+   - 用途: 結果・払戻画面で、勝ちタイムが内蔵レコードより速ければ
+     「コースレコード更新」、同タイムなら「タイ記録」を強調表示。
+   - 収集方針: 距離ごとに最速記録を採用。JRAのレコードは良馬場で
+     認定されるため、判定は馬場が「良」のレースに限定しています。
+     旧コース・改修前の記録とレイアウトが異なる可能性がある距離では
+     誤った「更新」を避けるため従来記録の馬名・日付も併記します。
+   - 構造: CR_DATA[場名]{  'T1600': { '2yo':{t,h,d}, '3yo':{t,h,d} }, ... }
+       場名= 札幌/函館/福島/新潟/東京/中山/中京/京都/阪神/小倉
+       t=勝ちタイム  h=記録馬  d=記録日(yyyy/mm/dd)
+   ========================================================= */
+var CR_VENUE_JP = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
+var CR_DATA={"東京":{"T1400":{"2yo":{"t":"1:20.6","h":"コラソンビート","d":"2023/11/04"},"3yo":{"t":"1:18.3","h":"トウシンマカオ","d":"2025/05/03"}},"T1600":{"2yo":{"t":"1:32.7","h":"サリオス","d":"2019/10/05"},"3yo":{"t":"1:30.5","h":"ノームコア","d":"2019/05/12"}},"T1800":{"2yo":{"t":"1:44.5","h":"コントレイル","d":"2019/11/16"},"3yo":{"t":"1:43.9","h":"セイウンハーデス","d":"2025/05/10"}},"T2000":{"2yo":{"t":"1:58.5","h":"ウィズグレイス","d":"2021/11/28"},"3yo":{"t":"1:55.2","h":"イクイノックス","d":"2023/10/29"}},"T2300":{"3yo":{"t":"2:18.4","h":"アルビージャ","d":"2021/04/24"}},"T2400":{"3yo":{"t":"2:20.3","h":"カランダガン","d":"2025/11/30"}},"T2500":{"3yo":{"t":"2:28.2","h":"ルックトゥワイス","d":"2019/05/26"}},"T3400":{"3yo":{"t":"3:29.1","h":"ミクソロジー","d":"2023/02/18"}},"D1300":{"2yo":{"t":"1:17.4","h":"ミスターメロディ","d":"2017/11/04"},"3yo":{"t":"1:16.1","h":"サトノファンタシー","d":"2016/11/12"}},"D1400":{"2yo":{"t":"1:23.1","h":"ユーワハリケーン","d":"2005/10/08"},"3yo":{"t":"1:21.5","h":"ノンコノユメ","d":"2018/01/28"}},"D1600":{"2yo":{"t":"1:35.8","h":"ルクソールカフェ","d":"2024/11/23"},"3yo":{"t":"1:32.9","h":"ジェイパームス","d":"2025/11/01"}},"D2100":{"3yo":{"t":"2:06.7","h":"ヴァーミリアン","d":"2007/11/24"}},"D2400":{"3yo":{"t":"2:28.6","h":"グルーヴィンハイ","d":"2007/02/18"}}},"中山":{"T1000":{"2yo":{"t":"0:58.4","h":"スターチャイルド","d":"1971/08/28"}},"T1100":{"2yo":{"t":"1:05.0","h":"ダコタ","d":"1970/08/29"}},"T1200":{"2yo":{"t":"1:07.2","h":"エコロジーク","d":"2024/09/21"},"3yo":{"t":"1:06.7","h":"ロードカナロア","d":"2012/09/30"}},"T1400":{"2yo":{"t":"1:23.4","h":"ヒサノマーヤ","d":"1991/11/30"},"3yo":{"t":"1:23.2","h":"リンドユウホウ","d":"1987/04/11"}},"T1600":{"2yo":{"t":"1:32.4","h":"デンクマール","d":"2024/12/14"},"3yo":{"t":"1:30.3","h":"トロワゼトワル","d":"2019/09/08"}},"T1800":{"2yo":{"t":"1:46.4","h":"ミヤジタイガ","d":"2012/09/08"},"3yo":{"t":"1:44.8","h":"シックスペンス","d":"2025/03/02"}},"T2000":{"2yo":{"t":"1:58.2","h":"サノノグレーター","d":"2025/12/06"},"3yo":{"t":"1:56.5","h":"ロブチェン","d":"2026/04/19"}},"T2200":{"3yo":{"t":"2:10.1","h":"コスモバルク","d":"2004/09/19"}},"T2300":{"3yo":{"t":"2:22.2","h":"バルビフォンテン","d":"1971/12/05"}},"T2500":{"3yo":{"t":"2:29.5","h":"ゼンノロブロイ","d":"2004/12/26"}},"T2600":{"3yo":{"t":"2:40.3","h":"キクノフラッシュ","d":"1984/12/02"}},"T3200":{"3yo":{"t":"3:19.3","h":"キリスパート","d":"1993/04/03"}},"T3600":{"3yo":{"t":"3:41.6","h":"エアダブリン","d":"1994/12/10"}},"T4000":{"3yo":{"t":"4:15.6","h":"キクオーカン","d":"1974/03/03"}},"D1000":{"2yo":{"t":"0:59.4","h":"サニーシェーバー","d":"1998/09/26"},"3yo":{"t":"0:58.4","h":"ニシノグリーン","d":"1978/07/01"}},"D1200":{"2yo":{"t":"1:10.2","h":"アイアムルビー","d":"2009/12/06"},"3yo":{"t":"1:08.4","h":"ハコダテブショウ","d":"2022/09/24"}},"D1800":{"2yo":{"t":"1:51.9","h":"トレド","d":"2022/09/24"},"3yo":{"t":"1:48.5","h":"キヨヒダカ","d":"1983/01/06"}},"D1700":{"3yo":{"t":"1:43.1","h":"エルフォルク","d":"1976/06/27"}},"D2400":{"3yo":{"t":"2:28.8","h":"ピーチシャダイ","d":"1983/01/06"}},"D2500":{"3yo":{"t":"2:38.6","h":"サトノトップガン","d":"2009/12/12"}}},"京都":{"T1000":{"2yo":{"t":"0:59.4","h":"ミネハル","d":"1950/10/14"},"3yo":{"t":"1:01.2","h":"ミスハイペリオン","d":""}},"T1100":{"2yo":{"t":"1:05.0","h":"ヤマピツト","d":"1966/09/04"},"3yo":{"t":"1:06.3","h":"ミスブゼン","d":"1955/01/14"}},"T1200":{"2yo":{"t":"1:08.0","h":"エーシンホワイティ","d":"2009/11/07"},"3yo":{"t":"1:06.4","h":"フリッカージャブ","d":"2026/05/16"}},"T1300":{"2yo":{"t":"1:18.5","h":"タニノハローモア","d":"1967/11/18"},"3yo":{"t":"1:19.0","h":"リーガルライト","d":""}},"T1400":{"2yo":{"t":"1:20.2","h":"マーゴットラヴミー","d":"2025/10/11"},"3yo":{"t":"1:18.9","h":"オフトレイル","d":"2025/10/13"}},"T1500":{"2yo":{"t":"1:30.8","h":"クリカシワ","d":"1967/11/19"},"3yo":{"t":"1:30.0","h":"キヨズキ","d":"1966/09/11"}},"T1600":{"2yo":{"t":"1:32.3","h":"ミッキーアイル","d":"2013/11/02"},"3yo":{"t":"1:31.3","h":"サングレーザー","d":"2018/04/22"}},"T1800":{"2yo":{"t":"1:45.9","h":"プラチナヴォイス","d":"2016/10/08"},"3yo":{"t":"1:43.4","h":"ガイアメンテ","d":"2026/05/24"}},"T2000":{"2yo":{"t":"1:59.3","h":"ロードラヴォール","d":"2025/10/11"},"3yo":{"t":"1:56.8","h":"アドマイヤコスモス","d":"2011/10/08"}},"T1700":{"3yo":{"t":"1:43.1","h":"オートキツ","d":"1955/11/12"}},"T1900":{"3yo":{"t":"1:55.2","h":"マチカネタイテイ","d":"1977/10/23"}},"T2200":{"3yo":{"t":"2:09.7","h":"ネプチュナイト","d":"2019/04/21"}},"T2400":{"3yo":{"t":"2:22.2","h":"ベイラム","d":"2026/05/17"}},"T3000":{"3yo":{"t":"3:01.0","h":"トーホウジャッカル","d":"2014/10/26"}},"T3200":{"3yo":{"t":"3:12.5","h":"キタサンブラック","d":"2017/04/30"}},"D1200":{"2yo":{"t":"1:10.7","h":"アメリカンステージ","d":"2024/11/02"},"3yo":{"t":"1:09.0","h":"モンペルデュ","d":"2019/10/19"}},"D1400":{"2yo":{"t":"1:23.3","h":"サヴァ","d":"2020/10/18"},"3yo":{"t":"1:21.7","h":"ベストウォーリア","d":"2014/02/08"}},"D1800":{"2yo":{"t":"1:51.0","h":"ビッグスモーキー","d":"2017/11/18"},"3yo":{"t":"1:47.5","h":"ダブルハートボンド","d":"2025/11/09"}},"D1700":{"3yo":{"t":"1:44.7","h":"サルノカレン","d":"1987/01/24"}},"D1900":{"3yo":{"t":"1:53.7","h":"ワンダーアキュート","d":"2011/05/22"}}},"阪神":{"T1200":{"2yo":{"t":"1:08.2","h":"ミルトクレイモー","d":"2022/12/04"},"3yo":{"t":"1:06.7","h":"タワーオブロンドン","d":"2019/09/08"}},"T1400":{"2yo":{"t":"1:20.1","h":"メイケイエール","d":"2020/11/07"},"3yo":{"t":"1:18.9","h":"ソンシ","d":"2026/02/21"}},"T1600":{"2yo":{"t":"1:32.3","h":"グレナディアガーズ","d":"2020/12/20"},"3yo":{"t":"1:31.1","h":"ソダシ","d":"2021/04/11"}},"T1800":{"2yo":{"t":"1:45.6","h":"オブセッション","d":"2017/12/02"},"3yo":{"t":"1:43.0","h":"マスクトディーヴァ","d":"2023/09/17"}},"T2000":{"2yo":{"t":"1:59.7","h":"サトノヘリオス","d":"2021/12/11"},"3yo":{"t":"1:56.2","h":"ベラジオオペラ","d":"2025/04/06"}},"T2200":{"3yo":{"t":"2:09.7","h":"タイトルホルダー","d":"2022/06/26"}},"T2400":{"3yo":{"t":"2:23.2","h":"ギャンブルルーム","d":"2026/03/29"}},"T2500":{"3yo":{"t":"2:30.4","h":"カミノマジック","d":"1996/06/15"}},"T2600":{"3yo":{"t":"2:35.1","h":"ミスマンマミーア","d":"2021/04/11"}},"T3000":{"3yo":{"t":"3:02.0","h":"アドマイヤテラ","d":"2026/03/22"}},"T3200":{"3yo":{"t":"3:14.7","h":"ワールドプレミア","d":"2021/05/02"}},"D1200":{"2yo":{"t":"1:11.0","h":"マイネラロンハ","d":"2007/12/22"},"3yo":{"t":"1:08.8","h":"スイートジュエリー","d":"2013/09/08"}},"D1400":{"2yo":{"t":"1:23.0","h":"アディラート","d":"2016/12/24"},"3yo":{"t":"1:21.5","h":"インオラリオ","d":"2012/03/31"}},"D1800":{"2yo":{"t":"1:50.9","h":"タガノギャラクシー","d":"2012/12/22"},"3yo":{"t":"1:48.5","h":"サカラート","d":"2004/07/10"}},"D2000":{"3yo":{"t":"2:01.0","h":"ワンダースピード","d":"2007/12/23"}}},"福島":{"T1000":{"2yo":{"t":"0:57.1","h":"コスモユウコリン","d":"2008/06/21"},"3yo":{"t":"0:56.7","h":"ブライティアリーフ","d":"2000/07/15"}},"T1200":{"2yo":{"t":"1:08.4","h":"オオセイケイ","d":"2026/06/28"},"3yo":{"t":"1:07.0","h":"シルキーラグーン","d":"2005/06/19"}},"T1700":{"2yo":{"t":"1:41.5","h":"コンドルクエスト","d":"2003/10/25"},"3yo":{"t":"1:40.4","h":"スパークトウショウ","d":"1998/07/04"}},"T1800":{"2yo":{"t":"1:46.2","h":"マイネルサーパス","d":"2018/11/04"},"3yo":{"t":"1:45.2","h":"サノノグレーター","d":"2026/06/28"}},"T2000":{"2yo":{"t":"1:59.9","h":"タルトオポム","d":"2013/11/16"},"3yo":{"t":"1:56.7","h":"マリアイリダータ","d":"2026/06/27"}},"T2600":{"3yo":{"t":"2:37.3","h":"サクセスパシュート","d":"2012/11/03"}},"D1000":{"2yo":{"t":"0:59.1","h":"ベガスカラノテガミ","d":"1997/10/25"},"3yo":{"t":"0:58.0","h":"オースノムスメ","d":"2007/10/20"}},"D1150":{"2yo":{"t":"1:07.4","h":"ニシノミズカゼ","d":"2020/07/12"},"3yo":{"t":"1:06.0","h":"アメリカンチケット","d":"2026/06/27"}},"D1700":{"2yo":{"t":"1:45.1","h":"コトホドサヨウニ","d":"2023/11/18"},"3yo":{"t":"1:42.6","h":"ワールドタキオン","d":"2023/11/19"}},"D2400":{"3yo":{"t":"2:30.2","h":"サンアスレチック","d":"2008/04/20"}}},"新潟":{"T1000":{"2yo":{"t":"0:55.1","h":"レジーナフォルテ","d":"2016/08/28"},"3yo":{"t":"0:53.5","h":"ピューロマジック","d":"2026/08/02"}},"T1200":{"2yo":{"t":"1:08.7","h":"タガノラフレシア","d":"2002/07/20"},"3yo":{"t":"1:07.5","h":"ガンアンドローズ","d":"2002/07/03"}},"T1400":{"2yo":{"t":"1:20.4","h":"ルークウォーム","d":"2026/08/08"},"3yo":{"t":"1:19.0","h":"マグナーテン","d":"2002/07/14"}},"T1600":{"2yo":{"t":"1:33.3","h":"プルパレイ","d":"2021/07/25"},"3yo":{"t":"1:31.0","h":"カナテープ","d":"2025/07/27"}},"T1800":{"2yo":{"t":"1:45.5","h":"エンブロイダリー","d":"2024/07/27"},"3yo":{"t":"1:44.0","h":"クルゼイロドスル","d":"2024/07/27"}},"T2000":{"2yo":{"t":"2:00.0","h":"ラガリーガ","d":"2026/08/09"},"3yo":{"t":"1:58.6","h":"マイネルリーヒム","d":"2026/08/08"}},"T2200":{"3yo":{"t":"2:09.3","h":"ロードフィレール","d":"2026/08/15"}},"T2400":{"3yo":{"t":"2:24.4","h":"レイオブウォーター","d":"2021/07/24"}},"D1200":{"2yo":{"t":"1:10.8","h":"サトノボヤージュ","d":"2025/08/09"},"3yo":{"t":"1:09.1","h":"マラードザレコード","d":"2019/10/19"}},"D1800":{"2yo":{"t":"1:53.0","h":"ショウナンマリオ","d":"2019/10/05"},"3yo":{"t":"1:49.2","h":"ケンシンコウ","d":"2020/08/09"}},"D1700":{"3yo":{"t":"1:46.6","h":"マカリオス","d":"2011/06/11"}},"D2500":{"3yo":{"t":"2:38.8","h":"メメランタン","d":"2019/10/06"}}},"札幌":{"T1000":{"2yo":{"t":"0:56.9","h":"カイカノキセキ","d":"2021/06/12"},"3yo":{"t":"0:56.5","h":"オギティファニー","d":"1996/06/23"}},"T1200":{"2yo":{"t":"1:07.9","h":"ポメランチェ","d":"2021/06/19"},"3yo":{"t":"1:07.4","h":"シュバルツカイザー","d":"2023/07/23"}},"T1500":{"2yo":{"t":"1:28.6","h":"ニタモノドウシ","d":"2024/08/18"},"3yo":{"t":"1:27.3","h":"ヴァトレニ","d":"2021/06/27"}},"T1800":{"2yo":{"t":"1:47.2","h":"クレパスキュラー","d":"2025/08/03"},"3yo":{"t":"1:45.7","h":"キャトルフィーユ","d":"2014/08/03"}},"T2000":{"2yo":{"t":"2:02.1","h":"ミヤマザクラ","d":"2019/08/31"},"3yo":{"t":"1:58.2","h":"シェイクユアハート","d":"2026/08/16"}},"T2600":{"3yo":{"t":"2:37.6","h":"ポンデザール","d":"2020/08/08"}},"D1000":{"2yo":{"t":"0:58.5","h":"グランドサン","d":"2001/09/15"},"3yo":{"t":"0:57.5","h":"ミリオンセンプー","d":"1990/06/24"}},"D1700":{"2yo":{"t":"1:44.9","h":"サージュミノル","d":"2017/08/12"},"3yo":{"t":"1:40.9","h":"ロンドンタウン","d":"2017/08/13"}},"D2400":{"3yo":{"t":"2:32.1","h":"エンダウメント","d":"2019/08/24"}}},"函館":{"T1000":{"2yo":{"t":"0:56.4","h":"カイショー","d":"2025/06/14"},"3yo":{"t":"0:57.0","h":"ソロシンガー","d":"1997/06/22"}},"T1200":{"2yo":{"t":"1:08.2","h":"ブラックチャリス","d":"2025/06/21"},"3yo":{"t":"1:06.6","h":"カピリナ","d":"2025/06/14"}},"T1700":{"2yo":{"t":"1:43.8","h":"ウインストーン","d":"1986/08/30"},"3yo":{"t":"1:41.0","h":"ケイシュウリイダー","d":"1983/08/14"}},"T1800":{"2yo":{"t":"1:47.6","h":"ショウナンガレオン","d":"2026/07/05"},"3yo":{"t":"1:44.8","h":"ケイアイセナ","d":"2025/07/13"}},"T2000":{"3yo":{"t":"1:57.6","h":"ヴェローチェエラ","d":"2025/06/29"}},"T2400":{"3yo":{"t":"2:27.1","h":"ペキンリュウエン","d":"1982/08/08"}},"T2500":{"3yo":{"t":"2:32.5","h":"メジロドーム","d":"1988/08/07"}},"T2600":{"3yo":{"t":"2:37.3","h":"メイショウガーデン","d":"2017/06/17"}},"D1000":{"2yo":{"t":"0:57.9","h":"エムフォー","d":"2025/07/05"},"3yo":{"t":"0:57.4","h":"マメタンク","d":"2026/06/27"}},"D1700":{"2yo":{"t":"1:47.3","h":"カズラポニアン","d":"2021/07/24"},"3yo":{"t":"1:41.7","h":"モンドクラッセ","d":"2016/06/25"}},"D2400":{"3yo":{"t":"2:30.1","h":"シャローファースト","d":"2026/07/12"}},"D1200":{"3yo":{"t":"1:11.3","h":"トキノテンユウ","d":"1993/08/21"}},"D1800":{"3yo":{"t":"1:49.9","h":"シゲルホームラン","d":"1993/08/07"}},"D2000":{"3yo":{"t":"2:00.5","h":"アキヒロホマレ","d":"1988/08/20"}}},"中京":{"T1200":{"2yo":{"t":"1:07.9","h":"ビッグアーサー","d":"2022/09/18"},"3yo":{"t":"1:06.2","h":"メイケイエール","d":"2022/09/11"}},"T1400":{"2yo":{"t":"1:19.4","h":"キャンディード","d":"2025/08/31"},"3yo":{"t":"1:18.7","h":"アクートゥス","d":"2025/08/02"}},"T1600":{"2yo":{"t":"1:32.6","h":"クールタロウ","d":"2026/08/22"},"3yo":{"t":"1:31.1","h":"ラヴァンダ","d":"2026/08/16"}},"T2000":{"2yo":{"t":"1:59.6","h":"マンナット","d":"2026/08/29"},"3yo":{"t":"1:56.5","h":"リフレーミング","d":"2024/08/11"}},"T2200":{"3yo":{"t":"2:09.0","h":"プリマヴィスタ","d":"2022/05/08"}},"T3000":{"3yo":{"t":"3:03.4","h":"ミクソロジー","d":"2023/01/05"}},"D1200":{"2yo":{"t":"1:10.7","h":"オトメナシャチョウ","d":"2024/09/15"},"3yo":{"t":"1:09.1","h":"ラインガルーダ","d":"2022/09/10"}},"D1400":{"2yo":{"t":"1:23.6","h":"デュアリスト","d":"2020/09/26"},"3yo":{"t":"1:20.3","h":"マテラスカイ","d":"2018/07/08"}},"D1800":{"2yo":{"t":"1:51.2","h":"コパノニコルソン","d":"2021/09/26"},"3yo":{"t":"1:47.6","h":"スマハマ","d":"2019/07/14"}},"D1900":{"3yo":{"t":"1:54.7","h":"オーヴェルニュ","d":"2021/05/22"}}},"小倉":{"T1000":{"2yo":{"t":"0:56.6","h":"トーホウアモーレ","d":"2005/08/13"},"3yo":{"t":"0:56.6","h":"サンデーミッチー","d":"2000/07/15"}},"T1200":{"2yo":{"t":"1:07.5","h":"フリード","d":"2020/08/16"},"3yo":{"t":"1:05.8","h":"テイエムスパーダ","d":"2022/07/03"}},"T1800":{"2yo":{"t":"1:46.9","h":"ヤマニンマヒア","d":"2018/08/04"},"3yo":{"t":"1:43.8","h":"エスコーラ","d":"2021/07/03"}},"T2000":{"2yo":{"t":"1:59.5","h":"キラーアビリティ","d":"2021/08/28"},"3yo":{"t":"1:56.8","h":"ガイアフォース","d":"2022/07/03"}},"T1700":{"3yo":{"t":"1:39.5","h":"サラキア","d":"2018/08/05"}},"T2600":{"3yo":{"t":"2:36.4","h":"シルキーヴォイス","d":"2022/07/02"}},"D1000":{"2yo":{"t":"0:57.2","h":"アメリカンビキニ","d":"2024/07/13"},"3yo":{"t":"0:56.7","h":"ローズカリス","d":"2026/07/04"}},"D1700":{"2yo":{"t":"1:44.3","h":"ヤマニンウルス","d":"2022/08/20"},"3yo":{"t":"1:40.9","h":"メイショウカズサ","d":"2021/07/11"}},"D2400":{"3yo":{"t":"2:30.1","h":"クラシカルノヴァ","d":"2011/12/03"}}}};
+/* 時計 "m:ss.d" → 秒 */
+function crSec(t){
+  var m = String(t || '').match(/(\d{1,2}):(\d{1,2})\.(\d)/);
+  if (!m) return NaN;
+  return parseInt(m[1],10) * 60 + parseInt(m[2],10) + parseInt(m[3],10) / 10;
+}
+/* 表面の表記ゆれ → T / D */
+function crCourse(surface){
+  var s = String(surface || '').replace(/\s/g, '');
+  if (s.indexOf('芝') >= 0 || s.indexOf('障') >= 0) return 'T';
+  if (s.indexOf('ダ') >= 0 || s.indexOf('ダート') >= 0) return 'D';
+  return '';
+}
+/* 距離（"1600" や 1600 数字のみ）→ 数値 */
+function crDist(d){
+  var n = parseInt(String(d == null ? '' : d).replace(/[^0-9]/g, ''), 10);
+  return isFinite(n) ? n : 0;
+}
+/* 場名+表面+距離 に対応する記録候補を返す {T1600:{2yo:{...},3yo:{...}}} */
+function crLookup(place, surface, dist){
+  var v = CR_DATA[place];
+  if (!v) return null;
+  var course = crCourse(surface);
+  if (!course) return null;
+  var n = crDist(dist);
+  if (!n) return null;
+  return v[course + n] || null;
+}
+/* 2歳戦かどうかから比較対象の記録を選ぶ（2歳用が無い距離は3歳上用） */
+function crForAge(rec, allAge2){
+  if (!rec) return null;
+  if (allAge2 && rec['2yo']) return rec['2yo'];
+  return rec['3yo'] || rec['2yo'] || null;
+}
+
+/* =========================================================
+   結果概要オブジェクトからレコード更新/タイ記録を判定する
+   p = { place, surface, dist, baba, rows:[{order,time,age}] }
+   戻り値: null（該当なし）または
+     { kind:'new', win:winTxt, base:{t,h,d} } 更新
+     { kind:'tie', win:winTxt, base:{t,h,d} } タイ記録
+   ルール: JRAのコースレコードは芝は「良馬場」で認定されるため、
+   芝・稍重以下のレースでは判定しない（ダートは馬場を問わない）。
+   ========================================================= */
+function crCheckResult(p){
+  if (typeof crLookup !== 'function' || typeof crForAge !== 'function') return null;
+  if (!p) return null;
+  var w = null;
+  (p.rows || []).forEach(function(r){ if (r.order === 1 && !w) w = r; });
+  if (!w || !w.time) return null;
+  var surf = String(p.surface || '');
+  var baba = String(p.baba || '');
+  var isDirt = surf.indexOf('ダ') >= 0;
+  if (!isDirt && baba && baba !== '良') return null;   // 芝・稍重以下は対象外
+  var rec = crLookup(p.place, surf, p.dist);
+  if (!rec) return null;
+  var rows = (p.rows || []).filter(function(r){ return r.order >= 1; });
+  var allAge2 = rows.length > 0 && rows.every(function(r){ return (r.age || 0) === 2; });
+  var base = crForAge(rec, allAge2);
+  if (!base) return null;
+  var winSec = crSec(w.time), baseSec = crSec(base.t);
+  if (!isFinite(winSec) || !isFinite(baseSec)) return null;
+  if (winSec < baseSec) return { kind: 'new', win: w.time, base: base };
+  if (Math.abs(winSec - baseSec) < 0.0001) return { kind: 'tie', win: w.time, base: base };
+  return null;
+}
+
+/* =========================================================
+   43 バ場・馬場別の好走率ファクター（同開催場×同馬場の3着内率）
+   ---------------------------------------------------------
+   各馬の馬柱戦績（db.netkeiba.com/horse/result/{馬ID}/ を
+   p34 の hdParseRecords が解析・khl_hd_v1 にキャッシュした行）から、
+   現在のレースと同じ
+     ・開催場（札幌〜小倉） かつ
+     ・馬場状態（良 / 稍重 / 重 / 不良）〔馬場状態が未入力なら全馬場合算〕
+   の直近レース（最大20走）について 3着内率 を集計します。
+   集計結果は p5(analyzeRace) が「バ場好走率」重みとして AI印へ反映。
+   - サンプルが少なすぎる / 馬ID無し / データ未取得 のときは自動OFF
+     （対象外の馬は全馬の平均値へ縮退させ、レース全体の序列は崩さない）
+   - データの取得は「📊 バ場好走率データを取得」ボタンから
+     （p34 と同じ馬柱キャッシュ khl_hd_v1 を使うため重複取得なし）
+   ========================================================= */
+var BB_PRIOR = 2;                 // 縮退の擬似サンプル数
+var BB_MAXRUN = 20;               // 直近対象走数
+var BB_MEMO = { key: '', val: null };
+var BB_LS = 'khl_baba_v1';        // 設定等は無し（統計ログ用に確保）
+
+/* ---------- 現在レースの文脈 ---------- */
+function bbCurCtx(){
+  var place = '', babaCode = '', i;
+  try {
+    var rm = readRaceMeta();
+    place = String(rm.place || '');
+    babaCode = String(rm.baba || '');
+  } catch(e){}
+  try { if (!place) place = String((state.race && state.race.place) || ''); } catch(e){}
+  try { if (!babaCode) babaCode = String((state.race && state.race.baba) || ''); } catch(e){}
+  var venue = '';
+  var vlist = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
+  for (i = 0; i < vlist.length; i++){
+    if (place.indexOf(vlist[i]) >= 0){ venue = vlist[i]; break; }
+  }
+  var map = { fast:'良', good:'稍重', yield:'重', soft:'不良', dirt_fast:'良', dirt_seal:'重' };
+  var baba = map[babaCode] || '';
+  var surf = '';
+  if (/芝/.test(place)) surf = '芝';
+  else if (/ダ/.test(place)) surf = 'ダ';
+  return { venue: venue, baba: baba, surf: surf, placeTxt: place };
+}
+function bbNormBaba(s){
+  s = String(s == null ? '' : s).replace(/[\s\u3000]/g, '');
+  var m = s.match(/^(良|稍重|重|不良)/);
+  return m ? m[1] : '';
+}
+
+/* ---------- 集計（同期・キャッシュのみ。ネットワーク不可） ---------- */
+function bbRates(hs, ctx){
+  var n0 = hs.length;
+  var out = {
+    usable: false, why: '', items: [], usedN: 0, usedR: 0,
+    babaLabel: '', venue: ctx.venue || '', placeTxt: ctx.placeTxt || ''
+  };
+  var ids = hs.filter(function(h){ return h && h.nk; }).length;
+  if (!ids){
+    out.why = '出走馬に netkeiba の馬IDがありません（「netkeiba URLから直接取込」で出馬表を読込むと馬IDが付き、集計できます）';
+    for (var z = 0; z < n0; z++) out.items.push({ n:0, top3:0, pct:0, rate:0.5, no:'', name:'' });
+    return out;
+  }
+  if (!ctx.venue){
+    out.why = '現在の開催場が未設定です（対象レースの開催場を入力してください）';
+    for (var z2 = 0; z2 < n0; z2++) out.items.push({ n:0, top3:0, pct:0, rate:0.5, no:'', name:'' });
+    return out;
+  }
+  out.babaLabel = ctx.baba
+    ? '同開催「' + ctx.venue + '」×馬場「' + ctx.baba + '」' + (ctx.surf ? '（' + ctx.surf + '）' : '')
+    : '同開催「' + ctx.venue + '」の全馬場合算（馬場状態が未入力のため）';
+  var ls = hdLs();
+  var poolN = 0, poolTop3 = 0;
+  var per = [];
+  hs.forEach(function(h, idx){
+    var it = { n:0, top3:0, pct:0, rate:0.5, no: h && h.no || '', name: h && h.name || '' };
+    if (!h || !h.nk){ per.push(it); return; }
+    var rec = ls[String(h.nk).trim()];
+    if (!rec || !Array.isArray(rec.r)){ per.push(it); return; }
+    var rows = rec.r.filter(function(r){
+      if (!r || r.order < 1) return false;
+      if (r.venueName !== ctx.venue) return false;
+      if (ctx.surf && r.surface && r.surface !== ctx.surf) return false;
+      if (ctx.baba){ var rb = bbNormBaba(r.baba); if (rb !== ctx.baba) return false; }
+      return true;
+    });
+    if (!rows.length){ per.push(it); return; }
+    var latest = rows.slice(-BB_MAXRUN);   // hdParseRecords は日付昇順
+    it.n = latest.length;
+    it.top3 = latest.filter(function(r){ return r.order >= 1 && r.order <= 3; }).length;
+    it.pct = Math.round(it.top3 / it.n * 100);
+    per.push(it);
+    poolN += it.n; poolTop3 += it.top3;
+  });
+  var vAvg = poolN > 0 ? poolTop3 / poolN : 0.33;
+  per.forEach(function(it){
+    it.rate = it.n > 0 ? ((it.top3 + BB_PRIOR * vAvg) / (it.n + BB_PRIOR)) : vAvg;
+  });
+  var hasAny = per.filter(function(it){ return it.n > 0; }).length;
+  var rich = per.filter(function(it){ return it.n >= 2; }).length;
+  out.usedN = poolN;
+  out.usedR = hasAny;
+  out.items = per;
+  if (poolN >= 4 && rich >= 1){
+    out.usable = true;
+  } else if (poolN === 0){
+    out.why = (ctx.baba
+      ? '「' + ctx.venue + '」×馬場「' + ctx.baba + '」'
+      : '「' + ctx.venue + '」') + 'での出走馬の成績が見つかりません（「📊 データを取得」で馬柱を取込むと集計できます）';
+  } else {
+    out.why = 'サンプルが少なすぎるため自動OFF（対象 ' + poolN + '走 / ' + hasAny + '頭）';
+  }
+  return out;
+}
+
+/* ---------- エンジン用エントリ（メモ化） ---------- */
+function bbComputeFor(hs){
+  var ctx = bbCurCtx();
+  var nk = '';
+  (hs || []).forEach(function(h){ nk += '|' + (h && h.nk ? h.nk : '-'); });
+  var key = String((state && state.raceId) || '') + '|' + ctx.venue + '|' + ctx.baba + '|' + ctx.surf + '|' + nk;
+  if (BB_MEMO.key === key && BB_MEMO.val) return BB_MEMO.val;
+  var val = bbRates(hs || [], ctx);
+  BB_MEMO = { key: key, val: val };
+  return val;
+}
+function bbInvalidate(){ BB_MEMO = { key: '', val: null }; }
+
+/* ---------- データ取得（ボタン用） ---------- */
+function bbNeedHorses(){
+  var arr = [];
+  (state && state.horses || []).forEach(function(h){
+    if (h && h.nk) arr.push({ nk: String(h.nk).trim(), no: h.no || '', name: h.name || '' });
+  });
+  return arr;
+}
+function bbEnsure(force, onMsg){
+  var horses = bbNeedHorses();
+  if (!horses.length){
+    if (onMsg) onMsg('netkeiba の馬ID付きの馬がいません（スクショOCR・手入力で登録した馬は対象外です）');
+    return Promise.resolve({ ok: 0, err: 0, noId: true });
+  }
+  var ls = hdLs();
+  var freshMs = (typeof HD_FRESH_MS !== 'undefined') ? HD_FRESH_MS : 7200000;
+  var todo = horses.filter(function(x){
+    return force || !ls[x.nk] || !ls[x.nk].r || !ls[x.nk].p ||
+      (Date.now() - (ls[x.nk].at || 0)) >= freshMs;
+  });
+  if (!todo.length){
+    bbInvalidate();
+    if (onMsg) onMsg('全頭の馬柱データは取得済みです（重みスライダーを0より上にするとAI印へ反映されます）');
+    return Promise.resolve({ ok: 0, err: 0, noId: false });
+  }
+  if (onMsg) onMsg('0 / ' + todo.length + ' 頭を取得中…（netkeiba 馬ページ。初回は1頭あたり約1〜2秒）');
+  var done = 0, errs = 0, errNames = [];
+  var seq = Promise.resolve();
+  todo.forEach(function(x){
+    seq = seq.then(function(){
+      return hdLoadHorse(x.nk, force).then(function(){
+        done++;
+        if (onMsg) onMsg(done + ' / ' + todo.length + ' 頭取得（' + (x.name || x.nk) + ' など）…');
+      }).catch(function(){
+        errs++; done++;
+        if (errNames.length < 6) errNames.push(x.name || x.nk);
+      });
+    });
+  });
+  return seq.then(function(){
+    bbInvalidate();
+    var m = '✅ 馬柱データを更新しました（' + (done - errs) + ' / ' + todo.length + '頭）。';
+    if (errNames.length) m += '取得できなかった馬: ' + errNames.join('・');
+    if (onMsg) onMsg(m);
+    try {
+      if (typeof currentAnalysis === 'function' && typeof renderTables === 'function') renderTables(currentAnalysis());
+    } catch(e){}
+    return { ok: done - errs, err: errs, noId: false };
+  });
+}
+
+/* ---------- UI ---------- */
+function bbStatusMsg(m){
+  var el = $('bbDataMsg'); if (!el) return;
+  el.innerHTML = esc(m);
+}
+function initBb(){
+  var btn = $('btnBbData'); if (!btn) return;
+  btn.addEventListener('click', function(){
+    if (btn.disabled) return;
+    btn.disabled = true;
+    bbStatusMsg('馬柱データを確認しています…');
+    bbEnsure(false, function(m){ bbStatusMsg(m); }).then(function(){
+      btn.disabled = false;
+    });
+  });
+}
+
+/* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
 
@@ -15389,13 +15444,13 @@ function boot(){
   if (typeof initHorseBook === 'function') initHorseBook();
   if (typeof initKaisai === 'function') initKaisai();
   if (typeof initJv === 'function') initJv();
-  if (typeof initWo === 'function') initWo();
   if (typeof initLr === 'function') initLr();
   if (typeof initPg === 'function') initPg();
   if (typeof initBf === 'function') initBf();
   if (typeof initDi === 'function') initDi();
   if (typeof initRk === 'function') initRk();
   if (typeof initHd === 'function') initHd();
+  if (typeof initBb === 'function') initBb();
   if (typeof initDr === 'function') initDr();
   if (typeof initBetCalc === 'function') initBetCalc();
   if (typeof initLive === 'function') initLive();
@@ -15416,5 +15471,6 @@ function boot(){
 boot();
 
 </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3820caededdae17',t:'MTc4ODkxMzQ2MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
