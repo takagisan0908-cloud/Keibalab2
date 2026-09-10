@@ -898,6 +898,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
       <button type="button" class="btn primary" id="hdBtn">📥 出馬表の全馬データを取得・表示</button>
+      <button type="button" class="btn ghost" id="hdDiag" title="競走馬DB(db.netkeiba.com)が取得できているかを確認します">🔧 通信を診断</button>
       <button type="button" class="btn ghost" id="hdReload" title="このレースの出走馬のキャッシュを消して取り直します（結果更新・重賞翌日などに）">↻ キャッシュ無視で再取得</button>
       <span class="small muted" id="hdHint"></span>
     </div>
@@ -910,6 +911,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <h2>📡 上3F・前走データを自動取得（netkeiba 馬データ）</h2>
       <span class="chip">前走の上り3F</span>
       <span class="sp"></span>
+      <button type="button" class="btn ghost" id="btnNkDiag" title="競走馬DB(db.netkeiba.com)が取得できているかを確認します">🔧 通信を診断</button>
       <button type="button" class="btn primary" id="btnNkGo" title="出馬表の全馬について netkeiba(db.netkeiba.com)の馬ページから直近戦績を取得し、前走の上り3Fと、今回と同距離±200m以内の前走タイムを馬表へ自動反映します">🐎 全馬に前走の上3F・タイムを自動反映</button>
       <button type="button" class="btn ghost" id="btnNkReload" title="netkeiba馬データのキャッシュを消去して取り直します">🗑 キャッシュを消去</button>
     </div>
@@ -1458,6 +1460,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       </label>
       <span class="sp"></span>
       <button type="button" class="btn ghost" id="gcReload" title="この年度のカレンダー情報を消して取得し直します">↻ 再取得</button>
+      <button type="button" class="btn ghost" id="gcDiag" title="重賞日程ページが取得できているかを確認します">🔧 通信を診断</button>
     </div>
     <div class="gc-monthbar" id="gcMonthBar"></div>
     <div id="gcMsg" class="small" style="color:#33513f;margin:2px 0 4px"></div>
@@ -1501,6 +1504,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
       <button type="button" class="btn primary" id="drBtn">📥 この重賞の過去10年を分析（取得・集計）</button>
       <button type="button" class="btn ghost" id="drClear" title="取得した分析用キャッシュを消去">🗑 キャッシュを消去</button>
+      <button type="button" class="btn ghost" id="drDiag" title="この機能が使うページを実際に取得して、中継(リレー)のどこで失敗しているかを表示します">🔧 通信を診断</button>
       <span class="small muted">対象: 現在のレースと同じ名前・開催の重賞</span>
     </div>
     <div id="drStat" class="small muted" style="margin:2px 0"></div>
@@ -1642,6 +1646,36 @@ function on(el, ev, fn){
   }
   t.addEventListener(ev, fn);
   return t;
+}
+/* ===== 取得テキストの文字コード自動修復（2026-09-10） =====
+   古い中継(リレー)をそのまま使っていると、EUC-JP のページ(db.netkeiba.com)を
+   UTF-8 として返してしまい、日本語が化けて解析が全滅する。症状は
+   「出馬表は取れるのに、馬データ・全馬プロフィール・重賞データ分析・過去データが空」。
+   化けを検出したら EUC-JP / Shift_JIS として読み直して復元する。 */
+function nkJPCount(s){ return (String(s == null ? '' : s).match(/[\u3040-\u30ff\u3400-\u9fff\u3005\u3006]/g) || []).length; }
+function nkLooksGarbled(t){
+  t = String(t == null ? '' : t);
+  if (t.length < 200) return false;
+  var jp = nkJPCount(t);
+  var hi = (t.match(/[\u0080-\u00ff\u0192\u201a\u201c\u201d\u2018\u2019\u20ac\u2122\u2026]/g) || []).length;
+  return hi >= 20 && jp < hi / 4;
+}
+function nkRepairText(t){
+  t = String(t == null ? '' : t);
+  if (!nkLooksGarbled(t)) return t;
+  var bytes = new Uint8Array(t.length), allLow = true;
+  for (var i = 0; i < t.length; i++){ var c = t.charCodeAt(i); if (c > 255){ allLow = false; break; } bytes[i] = c; }
+  if (!allLow) return t;
+  var best = t, bestN = nkJPCount(t);
+  ['euc-jp','shift_jis','utf-8'].forEach(function(enc){
+    try {
+      var c2 = new TextDecoder(enc).decode(bytes);
+      if (/\uFFFD/.test(c2.slice(0, 4000))) return;
+      var n = nkJPCount(c2);
+      if (n > bestN){ best = c2; bestN = n; }
+    } catch(e){}
+  });
+  return best;
 }
 /* 「あれば配線する」版。HTMLに無いUI(旧バージョンのピッカー等)でも例外にしない */
 function bindIf(id, ev, fn){
@@ -4830,7 +4864,7 @@ function nkFetchTimeout(url, ms){
     fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store',
       headers: { 'Accept': 'text/html,application/json,*/*' } })
     .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(function(t){ res(t); })
+    .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
     .catch(function(e){ clearTimeout(timer); rej(e); });
   });
 }
@@ -4860,6 +4894,7 @@ function nkFetchCardText(raceId){
     var doDirect = function(){
       fetch(u, { cache: 'no-store', headers: { 'Accept': 'text/html' } })
         .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+        .then(function(t){ return (typeof nkRepairText === 'function') ? nkRepairText(t) : t; })
         .then(function(t){ res(t); })
         .catch(function(e){ rej(new Error('直接取得も失敗: '+e.message+'。※netkeiba側がCORS未対応のため、公開サイトからは中継設定が必要です。')); });
     };
@@ -5249,62 +5284,143 @@ function nkImportCardThen(afterOk){
   });
 }
 
-function nkDiagRelay(){
-  var log2 = $('urlLog2');
-  var lines = [];
-  if (log2) log2.innerHTML = '診断中…（各経路を数秒ずつ確認します）';
-  var rid0 = '';
+/* ===== 中継(リレー)診断: 機能ごとに実際に使うURLを1つずつ叩いて結果を出す =====
+   旧リレーをそのまま使うと「出馬表は取れるのに db.netkeiba.com のページが化けて返る」ことがあり、
+   馬データ・全馬プロフィール・重賞データ分析だけが空になる。そこで機能ごとに切り分ける。 */
+function nkDiagTargets(){
   var inp = $('urlImport');
-  if (inp) rid0 = nkExtractRaceId(inp.value);
-  var testUrl = rid0
-    ? 'https://race.netkeiba.com/race/shutuba.html?race_id=' + rid0
-    : 'https://race.netkeiba.com/race/shutuba.html?race_id=202609040211';
+  var rid0 = inp ? nkExtractRaceId(inp.value) : '';
+  if (!rid0) rid0 = (state && state.raceId) || '';
+  if (!/^\d{10,12}$/.test(rid0 || '')) rid0 = '202509040211';
+  var now = new Date();
+  var y = now.getFullYear();
+  var d8 = (y * 10000 + (now.getMonth() + 1) * 100 + now.getDate());
+  return [
+    { name: '① 出馬表',            host: 'race.netkeiba.com',
+      url: 'https://race.netkeiba.com/race/shutuba.html?race_id=' + rid0,
+      sig: /Shutuba_Table|RaceName|HorseList|netkeiba/i, enc: /netkeiba/i },
+    { name: '① 日付→1〜12R 一覧',  host: 'race.netkeiba.com',
+      url: 'https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=' + d8,
+      sig: /RaceList_Body|RaceList_Box|RaceList_DataList/i, allowEmpty: true,
+      note: '開催のない日は0件でも正常です' },
+    { name: '⑥ 重賞カレンダー(重賞日程)', host: 'race.netkeiba.com',
+      url: 'https://race.netkeiba.com/top/schedule.html?year=' + y,
+      sig: /schedule_list|重賞|RaceName|netkeiba/i, enc: /netkeiba/i },
+    { name: '② トラックバイアス(結果ページ)', host: 'race.netkeiba.com',
+      url: 'https://race.netkeiba.com/race/result.html?race_id=' + rid0,
+      sig: /All_Result_Table|ResultTable|RaceName|netkeiba/i, enc: /netkeiba/i },
+    { name: '① 馬データ/全馬プロフィール(DB馬ページ)', host: 'db.netkeiba.com',
+      url: 'https://db.netkeiba.com/horse/2019105394/', sig: /db_prof_table|horse_title|競走馬|netkeiba/i },
+    { name: '⑥ 重賞データ分析・過去データ(DBレースページ)', host: 'db.netkeiba.com',
+      url: 'https://db.netkeiba.com/race/202509040211/', sig: /RaceData|race_table_01|netkeiba/i }
+  ];
+}
+function nkDiagToken(base, target){
+  return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(target);
+}
+/* 1つのURLを生テキストで取得（文字化け判定もする） */
+function nkDiagFetchOne(base, t, token){
+  return new Promise(function(res){
+    var url = token ? base : nkDiagToken(base, t.url);   // token: 既に組み立て済み
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 12000);
+    fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store',
+      headers: { 'Accept': 'text/html,application/json,*/*' } })
+    .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(function(raw){
+      var garbled = (typeof nkLooksGarbled === 'function') && nkLooksGarbled(raw);
+      var txt = (typeof nkRepairText === 'function') ? nkRepairText(raw) : raw;
+      var okSig = t.sig.test(txt);
+      var okEnc = t.enc ? t.enc.test(txt) : true;
+      var fffd = (txt.match(/\uFFFD/g) || []).length;   // 文字コードが壊れて復元できないケースの検出
+      res({ ok: !!(txt.length > 300 && okSig && okEnc), len: txt.length, garbled: garbled && okSig,
+            broken: fffd > 20, fffd: fffd,
+            looksPage: /netkeiba|開催|レース/i.test(txt), err: '' });
+    })
+    .catch(function(e){ clearTimeout(timer); res({ ok: false, len: 0, garbled: false, looksPage: false, err: (e && e.message) || String(e) }); });
+  });
+}
+/* 診断結果を指定のメッセージ欄に出す（⑥/①の各カードの「🔧 通信を診断」ボタン用） */
+function nkDiagRunInto(logId){
+  var el = typeof logId === 'string' ? $(logId) : logId;
+  if (el) el.innerHTML = '🔧 中継(リレー)を診断しています…（機能ごとに実際のURLを確認・数秒〜十数秒）';
+  return nkDiagRelay({ silent: true }).then(function(sum){
+    if (el) el.innerHTML = String(sum).split('\n').map(function(l){ return esc(l); }).join('<br>');
+    return sum;
+  });
+}
+/* cfg {silent:true, cb:function(summaryText, lines)} */
+/* cfg {silent:true, cb:function(summaryText, lines)} */
+function nkDiagRelay(cfg){
+  cfg = cfg || {};
+  var log2 = $('urlLog2');
+  if (log2 && !cfg.silent) log2.innerHTML = '診断中…（機能ごとに実際のURLを確認します・数秒〜十数秒）';
+  var targets = nkDiagTargets();
   var cands = [];
   if (state.urlRelay) cands.push(['カスタム中継(' + state.urlRelay + ')', state.urlRelay]);
-  cands.push(['Netlify関数 /.netlify/functions/race', '/.netlify/functions/race']);
+  cands.push(['Netlify /.netlify/functions/race', '/.netlify/functions/race']);
   cands.push(['Pages/Vercel /api/race', '/api/race']);
-  var anyOk = false, anyPost = false;
-  var seq = Promise.resolve();
-  cands.forEach(function(c){
-    seq = seq.then(function(){
-      var full = c[1] + (c[1].indexOf('?')>=0?'&':'?') + 'url=' + encodeURIComponent(testUrl);
-      return nkFetchTimeout(full, 9000)
-        .then(function(t){
-          var ok = t && t.length > 300 && /netkeiba/i.test(t) && /Shutuba_Table|All_Result_Table|race/i.test(t);
-          if (ok){ anyOk = true; lines.push('✅ ' + c[0] + ' → 中継OK（出馬表を取得できます）'); }
-          else { lines.push('⚠ ' + c[0] + ' → 応答あり(中身不一致: ' + (t? t.length:0) + 'byte)'); }
-        })
-        .catch(function(){ lines.push('⚠ ' + c[0] + ' → 接続不可(404/タイムアウト)'); });
-    });
-    // ⑤ JRA映像の自動ナビ用: POST中継にも対応しているか
-    seq = seq.then(function(){
-      var jraUrl = 'https://www.jra.go.jp/JRADB/accessS.html';
-      var jfull = c[1] + (c[1].indexOf('?')>=0?'&':'?') + 'url=' + encodeURIComponent(jraUrl)
-        + '&method=POST&body=' + encodeURIComponent('cname=pw01sli00/AF');
-      return nkFetchTimeout(jfull, 12000)
-        .then(function(t){
-          var ok = t && t.length > 300 && /レース結果|pw01srl/i.test(t);
-          if (ok){ anyPost = true; lines.push('✅ ' + c[0] + ' → POST対応OK（⑤JRA映像ナビが使えます）'); }
-          else { lines.push('⚠ ' + c[0] + ' → POST中継に未対応（古いリレー版。⑤JRA映像を使うには再デプロイしてください）'); }
-        })
-        .catch(function(){ lines.push('⚠ ' + c[0] + ' → POST中継の接続不可（⑤JRA映像ナビを使うには再デプロイしてください）'); });
-    });
-  });
-  seq.then(function(){
-    if (anyOk){
-      lines.push('👉 中継は動作しています。「① 出馬表＋レース情報を取込」を押してください。');
-      if (!anyPost){
-        lines.push('⚠ ただし「⑤ JRA映像」はJRAへのPOST中継が必要です。リレーを最新版（netlify/functions/race.js / functions/api/race.js / worker-relay.js / api/race.js）で再デプロイしてください。');
+  return new Promise(function(done){
+    var lines = [], anyOk = false, anyPost = false, badHost = {}, okHost = {}, usedRelay = '';
+    var ci = 0;
+    function nextCand(){
+      if (ci >= cands.length || anyOk){ finish(); return; }
+      var c = cands[ci++];
+      var cOk = false, ti = 0;
+      function nextTarget(){
+        if (ti >= targets.length){
+          // この中継のPOST対応（⑤JRA映像ナビ）を確認
+          var jraUrl = 'https://www.jra.go.jp/JRADB/accessS.html';
+          nkFetchTimeout(nkDiagToken(c[1], jraUrl) + '&method=POST&body=' + encodeURIComponent('cname=pw01sli00/AF'), 12000)
+            .then(function(t){ if (/レース結果|pw01srl/i.test(t)){ anyPost = true; lines.push('✅ POST中継OK（⑤JRA映像ナビ）'); } })
+            .catch(function(){})
+            .then(function(){ nextCand(); });
+          return;
+        }
+        var t = targets[ti++];
+        nkDiagFetchOne(c[1], t).then(function(r){
+          // 開催のない日は 0件(小さい応答)でも正常
+          var emptyOk = !!t.allowEmpty && !r.err && r.looksPage && r.len < 4000;
+          var ok = r.ok || emptyOk;
+          var mark = r.ok ? (r.broken ? '⚠日本語が壊れて取得（中継の文字コード処理が古い可能性）'
+                              : r.garbled ? '✅取得OK（文字コードを自動修復）' : '✅取得OK')
+                   : (emptyOk ? '✅取得OK（この日は開催なし＝正常）' : '⚠取得できません');
+          if (r.ok && r.broken) badHost[t.host] = true;
+          if (ok){ cOk = true; okHost[t.host] = true; }
+          else { badHost[t.host] = true; }
+          lines.push(mark + '　' + t.name + (r.err ? '（' + r.err + '）' : (r.len ? '（' + r.len + 'byte）' : '')) +
+            (r.ok && r.broken ? '　※同梱の最新リレーで再デプロイしてください（自動修復できませんでした）' : '') +
+            (!ok && t.note ? '　※' + t.note : ''));
+          nextTarget();
+        });
       }
-    } else {
-      lines.push('');
-      lines.push('👉 対処1（推奨）: Netlifyに【ログインした状態】で「keiba-lab フォルダごと全部」をドロップし直してください。');
-      lines.push('   フォルダ内に netlify.toml と netlify/functions/race.js が入っている必要があります（index.html単体のドロップでは中継が入りません）。');
-      lines.push('👉 対処2: それでも応答しない場合は「カスタム中継URL」に Cloudflare Worker（worker-relay.js）を設定してください。');
-      lines.push('   作成した Worker のURL(例 https://xxx.workers.dev)を上のカスタム中継URLに保存 → この診断を再度実行。');
-      lines.push('💡 中継が無くても「単勝オッズ」と OCR・手入力・テキスト貼り付けは動きます。');
+      nextTarget();
+      var check = setInterval(function(){          // 1つの候補が終わったら次の候補へ
+        if (anyOk || cOk){ clearInterval(check); if (cOk){ anyOk = true; usedRelay = c[0]; } }
+      }, 300);
     }
-    if (log2) log2.innerHTML = lines.join('<br>');
+    function finish(){
+      lines.push('');
+      if (!anyOk){
+        lines.push('👉 中継(リレー)が1つも応答していません。');
+        lines.push('　対処1: Netlifyに【ログインした状態】で keiba-lab フォルダごと全部をドロップし直してください（netlify.toml と netlify/functions/race.js が必要）。');
+        lines.push('　対処2: Cloudflare Worker（同梱 worker-relay.js）を作り、そのURLを「カスタム中継URL」に保存してください。');
+        lines.push('💡 中継が無くても「単純オッズ(JSONP)」とOCR・手入力・テキスト貼り付けは動きます。');
+      } else if (badHost['db.netkeiba.com'] && !okHost['db.netkeiba.com']){
+        lines.push('⚠ 中継(' + (usedRelay || '') + ')は動いていますが、競走馬DB（db.netkeiba.com）だけ取得できません。');
+        lines.push('　馬データ(上3F・前走)／全馬のプロフィール・戦績／重賞データ分析・過去データ／馬柱AI評価 はこのページを使うため、これらが空になります。');
+        lines.push('　古い中継だと db.netkeiba.com が化けて返る・弾かれることがあります。同梱の最新版で再デプロイしてください。');
+      } else {
+        lines.push('👉 主要ページはすべて取得できています（使用中継: ' + (usedRelay || '') + '）。');
+        lines.push('　それでも失敗する機能があれば、その画面に出た文言をそのままお知らせください。');
+        if (!anyPost) lines.push('⚠ 「⑤ JRA映像」だけは POST 中継が必要です（リレーを最新版で再デプロイしてください）。');
+      }
+      var sum = lines.join('\n');
+      if (log2 && !cfg.silent) log2.innerHTML = lines.map(function(l){ return esc(l); }).join('<br>');
+      if (typeof cfg.cb === 'function') cfg.cb(sum, lines);
+      done(sum);
+    }
+    nextCand();
   });
 }
 function initUrlImport(){
@@ -5320,7 +5436,11 @@ function initUrlImport(){
     var el = $('urlLog2'); if (el) el.innerHTML = '保存しました。「中継を診断」で確認できます。';
   });
   on('btnRelayTest', 'click', nkTestRelay);
-  on('btnRelayDiag', 'click', nkDiagRelay);
+  on('btnRelayDiag', 'click', function(){ nkDiagRelay(); });
+  bindIf('drDiag', 'click', function(){ nkDiagRunInto('drMsg'); });
+  bindIf('gcDiag', 'click', function(){ nkDiagRunInto('gcMsg'); });
+  bindIf('hdDiag', 'click', function(){ nkDiagRunInto('hdMsg'); });
+  bindIf('btnNkDiag', 'click', function(){ nkDiagRunInto('nkLog'); });
 }
 
 /* =========================================================
@@ -5510,7 +5630,7 @@ function nkBiasFetchText(url){
       fetch(full, { signal: ctrl ? ctrl.signal : undefined, cache:'no-store',
         headers:{'Accept':'text/html,application/json,*/*'} })
       .then(function(r){ clearTimeout(timer); if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      .then(function(t){ res(t); })
+      .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
       .catch(function(e){ clearTimeout(timer); if(k < cands.length) next(); else rej(e); });
     }
     next();
@@ -5565,7 +5685,11 @@ function nkBiasFetchAll(){
   return seq.then(function(){
     var msg = '✅ 既出走 ' + got + 'レース分を取り込みました';
     if (missed.length && missed.length < targetR-1) msg += '（未発走/取得不可: ' + missed.join(',') + '）';
-    if (got === 0 && missed.length) msg = '⚠ 前レースの結果を取得できませんでした。発走前の時間帯か、中継設定をご確認ください。';
+    if (got === 0){
+      msg = missed.length
+        ? '⚠ 前レースの結果を取得できませんでした（未発走の時間帯か、中継(リレー)の設定）。各画面の「🔧 通信を診断」で確認できます。'
+        : '⚠ 取り込めた前レースがありません。対象レースが当日の1R目だと前レースが存在しないため判定できません。2R以降のレースを選ぶか、下の「テキストを記録に追加」で手入力してください（例: 阪神1R 芝1400 良 | 1着:3(2) 2着:7(5) 3着:1(9) | 1:21.3）。';
+    }
     nkLog2([msg]);
     renderBiasCard();
     // 展開学習も「バイアス取得と同じタイミング」で自動更新（取込済みレースを再集計）
@@ -9815,7 +9939,8 @@ function kaiFetchTimeout(url, ms){
     var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, ms);
     fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store' })
       .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(res).catch(function(e){ clearTimeout(timer); rej(e); });
+      .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
+      .catch(function(e){ clearTimeout(timer); rej(e); });
   });
 }
 function kaiFetchAny(url){
@@ -10283,7 +10408,7 @@ function jvFetchTimeout(url, ms){
     fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store',
       headers: { 'Accept': 'text/html,application/json,*/*' } })
       .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(function(t){ res(t); })
+      .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
       .catch(function(e){ clearTimeout(timer); rej(e); });
   });
 }
@@ -17260,16 +17385,34 @@ function nkTodayD8(){
   return r && /^\d{8}/.test(r) ? r.slice(0, 8) : '';
 }
 /* 馬1頭のプロフィール+戦績ページを取得しパース(キャッシュ) */
-function nkFetchHorsePages(id){
+/* opt.only: 'recs'(戦績だけ/軽い) 'prof'(プロフィールだけ) 未指定=両方
+   一括取得では戦績ページだけを取り、プロフィールは「🐎馬情報」を開いた時に取りに行く。
+   → 馬1頭あたりの通信が半分になり、中継(サーバーレス関数)の連続アクセスで
+     弾かれて「1頭目以降が失敗」する事象が起きにくくなる。 */
+function nkFetchHorsePages(id, opt){
+  opt = opt || {};
   var ls = nkLs();
-  if (ls.h && ls.h[id] && ls.h[id].recs) return Promise.resolve(ls.h[id]);
-  var p1 = nkGet2('https://db.netkeiba.com/horse/' + id + '/');
-  var p2 = nkGet2('https://db.netkeiba.com/horse/result/' + id + '/');
-  return Promise.all([p1, p2]).then(function(rs){
-    var prof = (typeof hdParseProfile === 'function') ? hdParseProfile(rs[0]) : {};
-    var recs = (typeof hdParseRecords === 'function') ? hdParseRecords(rs[1]) : [];
-    var slow = (typeof hdSlowStat === 'function') ? hdSlowStat(recs) : null;
-    var data = { id: id, prof: prof, recs: recs, slow: slow, at: Date.now() };
+  var hit = ls.h && ls.h[id];
+  var needRecs = (opt.only !== 'prof') && !(hit && hit.recs && hit.recs.length);
+  var needProf = (opt.only === 'prof') ? true : (opt.only === 'recs' ? false : !(hit && hit.prof && Object.keys(hit.prof).length));
+  if (hit && !needRecs && !needProf && (opt.only !== 'prof')) return Promise.resolve(hit);
+  var jobs = [];
+  if (needProf) jobs.push(nkGet2('https://db.netkeiba.com/horse/' + id + '/'));
+  if (needRecs) jobs.push(nkGet2('https://db.netkeiba.com/horse/result/' + id + '/'));
+  if (!jobs.length) return Promise.resolve(hit);
+  return Promise.all(jobs).then(function(rs){
+    var i = 0;
+    var data = hit || { id: id, prof: {}, recs: [], slow: null };
+    if (needProf){
+      var htmlP = rs[i++];
+      data.prof = (typeof hdParseProfile === 'function') ? hdParseProfile(htmlP) : {};
+    }
+    if (needRecs){
+      var htmlR = rs[i++];
+      data.recs = (typeof hdParseRecords === 'function') ? hdParseRecords(htmlR) : [];
+      data.slow = (typeof hdSlowStat === 'function') ? hdSlowStat(data.recs) : null;
+    }
+    data.id = id; data.at = Date.now();
     ls.h = ls.h || {}; ls.h[id] = data;
     nkSave(ls);
     return data;
@@ -17397,7 +17540,7 @@ function nkHorseById(id, hName){
   showModal(head2, function(root){
     var cl = root.querySelector('[data-mcl2]'); if (cl) cl.addEventListener('click', closeModal);
   });
-  nkFetchHorsePages(id).then(function(data){
+  nkFetchHorsePages(id).then(function(data){        // プロフィール未取得ならここで取りに行く
     var prof = data.prof || {};
     var name = hName || hdP(prof, ['馬名']) || '';
     var runs = nkRunsBefore(data.recs, curD8, 5);
@@ -17603,13 +17746,102 @@ function nkSlowApply(h, data){
   h.slowSrc = 'netkeiba';
   return st;
 }
+/* 取得ログ。以前は毎回上書きしていたため「最後に処理した1頭」しか見えず、
+   途中経過が分からなかった（他の馬の結果が出てこないように見えた）。追記式にする。 */
+var nkLogLines = [];
+function nkLogReset(){
+  nkLogLines = [];
+  nkLogRender();
+}
+function nkLogRender(){
+  var e = $('nkLog'); if (!e) return;
+  var tail = nkLogLines.slice(-80);
+  e.innerHTML = (nkLogLines.length > tail.length ? '<div class="small muted">… 以前の ' + (nkLogLines.length - tail.length) + ' 行は省略 …</div>' : '') +
+    tail.map(function(m){ return esc(m); }).join('<br>');
+}
 function nkLog3(msgs){
-  var e = $('nkLog');
-  if (e) e.innerHTML = (msgs || []).map(function(m){ return esc(m); }).join('<br>');
+  (msgs || []).forEach(function(m){ nkLogLines.push(m); });
+  nkLogRender();
+}
+/* 取得結果の一覧表（全馬ぶんを1枚の表で確認できるように） */
+function nkSummaryTable(rows){
+  var e = $('nkLog'); if (!e) return;
+  var ok = rows.filter(function(r){ return r.applied; }).length;
+  var h = ['<div style="margin-top:8px;font-weight:bold">📋 取得結果（' + rows.length + '頭中 ' + ok + '頭に反映）</div>',
+    '<div style="overflow-x:auto"><table class="lr-tbl" style="font-size:.76rem;white-space:nowrap">',
+    '<thead><tr><th>馬番</th><th style="text-align:left">馬名</th><th>上3F</th><th>前走タイム</th><th>前走距離</th><th>出遅れ率</th><th style="text-align:left">取得内容</th></tr></thead><tbody>'];
+  rows.forEach(function(r){
+    h.push('<tr><td style="text-align:center">' + esc(r.no || '') + '</td><td style="text-align:left">' + esc(r.name || '') + '</td>' +
+      '<td style="text-align:center">' + esc(r.last3f || '') + '</td>' +
+      '<td style="text-align:center">' + esc(r.time || '') + '</td>' +
+      '<td style="text-align:center">' + esc(r.dist || '') + '</td>' +
+      '<td style="text-align:center">' + esc(r.slow || '') + '</td>' +
+      '<td style="text-align:left" class="muted">' + esc(r.note || '') + '</td></tr>');
+  });
+  h.push('</tbody></table></div>');
+  e.innerHTML += h.join('');
 }
 function nkBusy3(b){
   var g = $('btnNkGo'); if (g) g.disabled = b;
   var r = $('btnNkReload'); if (r) r.disabled = b;
+}
+/* 失敗した馬の記録（「失敗した馬だけ再取得」用） */
+var nkFailed = [];
+/* 取得のリトライ: 中継(リレー)が一時的に失敗(タイムアウト/502/混雑)しても取り直す */
+function nkFetchWithRetry(id, tries, opt){
+  tries = tries || 2;
+  var n = 0;
+  function once(){
+    n++;
+    return nkFetchHorsePages(id, opt).then(function(d){ nkThrottleDown(); return d; }).catch(function(e){
+      nkThrottleUp();
+      if (n < tries) return new Promise(function(res){ setTimeout(res, 1200 * n); }).then(once);
+      throw e;
+    });
+  }
+  return once();
+}
+/* 馬1頭ずつの間隔。連続アクセスで中継(サーバーレス関数)やサイト側に
+   弾かれる(429/502)ことがあり、その場合は「1頭目だけ成功して以降すべて失敗」に見える。
+   失敗が続いたら自動で間隔を広げる（適応スロットル）。 */
+var nkGapMs = 350;
+function nkGap(){ return new Promise(function(res){ setTimeout(res, nkGapMs); }); }
+function nkThrottleUp(){ nkGapMs = Math.min(2500, Math.round(nkGapMs * 2)); }
+function nkThrottleDown(){ nkGapMs = Math.max(350, Math.round(nkGapMs * 0.8)); }
+/* 失敗した馬だけを再取得 */
+function nkRetryFailedRun(){
+  if (!nkFailed.length){ return; }
+  var ids = nkFailed.slice(); nkFailed = [];
+  var targets = state.horses.filter(function(h){ return ids.indexOf(h.uid) >= 0; });
+  nkLog3(['', '🔄 失敗した ' + targets.length + ' 頭を再取得します…']);
+  var seq = Promise.resolve(), ok = 0, ng = 0;
+  targets.forEach(function(h){
+    seq = seq.then(function(){
+      return nkGap().then(function(){ return nkFetchWithRetry(h.nk, 3, { only:'recs' }); }).then(function(data){
+        var slowSt = (typeof nkSlowApply === 'function') ? nkSlowApply(h, data) : null;
+        var runs = nkRunsBefore(data.recs, nkTodayD8(), 5);
+        if (!runs.length){ ok++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 戦績なし']); return; }
+        return nkResolveRid(runs[0]).then(function(rid){ if (rid){ runs[0].rid = rid; return nkRankOfLast3(rid, runs[0].last3).then(function(r){ runs[0].rank = r || 0; }); } })
+          .catch(function(){}).then(function(){
+            var res = nkApplyOne(h, runs);
+            if (res.ok || slowSt){ ok++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + (res.msg.join(' / ') || '前走データは条件外')]); }
+            else { ng++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 反映できる前走データなし']); }
+          });
+      }).catch(function(e){
+        ng++; nkFailed.push(h.uid);
+        nkLog3(['　⚠ ' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + ((e && e.message) || e)]);
+      });
+    });
+  });
+  seq.then(function(){
+    if (typeof rebuildHorseTable === 'function') rebuildHorseTable();
+    if (typeof saveNow === 'function') saveNow();
+    nkLog3(['🔄 再取得 完了: 反映 ' + ok + '頭' + (ng ? '／まだ失敗 ' + ng + '頭' : '') + '。']);
+    if (nkFailed.length){
+      var e = $('nkLog');
+      if (e) e.innerHTML += '<div style="margin-top:6px"><button type="button" class="btn ghost" id="nkRetryBtn">🔄 失敗した馬だけ再取得（' + nkFailed.length + '頭）</button></div>';
+    }
+  });
 }
 /* 全馬一括 */
 function nkFetchAll(){
@@ -17623,12 +17855,21 @@ function nkFetchAll(){
     return;
   }
   nkBusy3(true);
+  nkLogReset();
   nkLog3(['netkeiba から ' + target.length + ' 頭の戦績を取得します（1頭あたり1〜3秒・初回のみ）。']);
   var ok = 0, fail = 0;
+  var summary = [];
+  var noNk = state.horses.filter(function(h){ return !h.nk; });
+  nkFailed = [];
+  if (noNk.length){
+    nkLog3(['⚠ netkeiba競走馬IDが無い馬が ' + noNk.length + ' 頭あります（' +
+      noNk.map(function(h){ return (h.no ? h.no + '番' : '') + (h.name || '?'); }).join('、') +
+      '）。この馬は戦績を取得できません。①の「netkeiba URLから直接取込」で出馬表を読み込み直すとIDが付きます。']);
+  }
   var seq = Promise.resolve();
   target.forEach(function(h){
     seq = seq.then(function(){
-      return nkFetchHorsePages(h.nk).then(function(data){
+      return nkGap().then(function(){ return nkFetchWithRetry(h.nk, 2, { only:'recs' }); }).then(function(data){   // 一括は戦績ページのみ（プロフィールは馬情報を開いた時）
         // 出遅れ率(過去レースの位置取りから自動集計)を反映(手入力済みの馬は上書きしない)
         var slowSt = (typeof nkSlowApply === 'function') ? nkSlowApply(h, data) : null;
         var slowTxt = '';
@@ -17637,6 +17878,8 @@ function nkFetchAll(){
         if (!runs.length){
           ok++;
           nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + (slowTxt ? ': 🐢 ' + slowTxt : ': 戦績なし')]);
+          summary.push({ no:h.no, name:h.name, last3f:h.last3f, time:h.time, dist:h.prevD,
+            slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:true, note:'戦績なし（プロフィール/出遅れのみ）' });
           return;
         }
         return nkResolveRid(runs[0]).then(function(rid){
@@ -17648,24 +17891,40 @@ function nkFetchAll(){
           var extra = slowTxt ? ' / 🐢 出遅れ率' + h.slowPct + '%' : '';
           if (res.ok || slowSt){
             ok++;
-            nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' +
-              (res.msg.length ? res.msg.join(' / ') : '前走データは条件外') + extra]);
+            var line = (res.msg.length ? res.msg.join(' / ') : '前走データは条件外');
+            nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + line + extra]);
+            summary.push({ no:h.no, name:h.name, last3f:h.last3f, time:h.time, dist:h.prevD,
+              slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:true, note:line });
           } else {
             fail++;
             nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 反映できる前走データなし（戦績なし/距離条件外 等）']);
+            summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'',
+              slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:false, note:'反映できる前走データなし（距離条件外など）' });
           }
         });
       }).catch(function(e){
         fail++;
-        nkLog3(['　⚠ ' + (h.name || h.nk) + ': ' + ((e && e.message) || e)]);
+        var em = (e && e.message) || String(e);
+        nkLog3(['　⚠ ' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + em +
+          '（アクセス間隔を ' + nkGapMs + 'ms に広げています。失敗した馬は下の「🔄 失敗した馬だけ再取得」でやり直せます）']);
+        summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'', slow:'', applied:false, note:'取得失敗: ' + em });
+        nkFailed.push(h.uid);
       });
     });
   });
   seq.then(function(){
     if (typeof rebuildHorseTable === 'function') rebuildHorseTable();
     if (typeof saveNow === 'function') saveNow();
-    nkLog3(['✅ 完了: ' + ok + '頭に前走データと出遅れ率(自動)を反映' + (fail ? '（対象外/失敗 ' + fail + '）' : '') +
-      '。各行の「🐎 馬情報」で馬柱(上り順位の色分け)と出遅れの内訳(明示/推定)を確認できます。']);
+    nkLog3(['✅ 完了: ' + ok + '頭に前走データと出遅れ率(自動)を反映' + (fail ? '（対象外/失敗 ' + fail + '）' : '') + '。',
+      '　（取得ログは上に追記されています。下の表で全馬ぶんの結果を確認できます）']);
+    // 馬番順に並べて全馬の結果を1枚の表にまとめる
+    summary.sort(function(a, b){ return (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0); });
+    nkSummaryTable(summary);
+    if (nkFailed.length){
+      var e2 = $('nkLog');
+      if (e2) e2.innerHTML += '<div style="margin-top:6px"><button type="button" class="btn ghost" id="nkRetryBtn">🔄 失敗した馬だけ再取得（' + nkFailed.length + '頭）</button>' +
+        '<span class="small muted"> 一度だけ自動でリトライ済みです。それでも失敗する場合は中継(リレー)の診断（🔧）をご確認ください。</span></div>';
+    }
     nkBusy3(false);
   }).catch(function(e){
     nkLog3(['⚠ ' + ((e && e.message) || e)]);
@@ -17679,6 +17938,10 @@ function nkClearCache(){
 function initNk(){
   var go = $('btnNkGo');
   if (go) go.addEventListener('click', nkFetchAll);
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t && t.id === 'nkRetryBtn'){ e.preventDefault(); nkRetryFailedRun(); }
+  });
   var cl = $('btnNkReload');
   if (cl) cl.addEventListener('click', nkClearCache);
 }
