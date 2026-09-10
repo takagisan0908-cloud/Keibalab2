@@ -596,6 +596,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
   <button class="tab" data-t="t-horse">④ 馬ノート(短評DB)</button>
   <button class="tab" data-t="t-jravideo">⑤ JRA映像</button>
   <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
+  <button class="tab" data-t="t-tenki">⑦ 天気予報</button>
 </nav>
 
 <main>
@@ -719,15 +720,15 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       <div class="small">
         <p>「②単勝オッズ」は中継が無くても<b>そのまま動きます</b>（JSONP）。「①出馬表」と「前レース自動取込」は、netkeiba側が別サイトからの直接読込(CORS)を許可していないため、<b>小さい中継(リレー)が1つあれば動きます</b>。</p>
         <p><b>すぐ試すなら</b>: 配布ZIPを解凍したフォルダで <code>node server-local.js</code> を実行 → 表示される <code>http://localhost:8788</code> を開けば、中継込みで全部動きます（スマホでは使えません）。毎週スマホ/どこからでも使うには下の方法1で公開するのがおすすめです。</p>
-        <p><b>公開したのに「出馬表だけ取れない」場合は</b>: 下の「🔧 中継を診断」で原因を確認できます。Netlify Dropは<b>ログインした状態で「フォルダごと全部」</b>をドロップしてください（netlify.toml同梱が必須。index.html単体のドロップでは中継が動きません）。</p>
-        <p><b>方法1（おすすめ・設定不要）</b>：このアプリを <b>Netlify Drop</b> に、フォルダ全体（index.html と netlify/ フォルダ・server設定を含む）をドラッグ＆ドロップする。netlify/functions に入れた中継が自動で動き、アプリから /.netlify/functions/race へ自動接続します。<b>Cloudflare Pages</b> なら functions/api/race.js を同梱し「wrangler pages deploy」で /api/race が有効。Vercel なら api/race.js。→ どのホストでも中継が無い場合は、自動的にオッズ(JSONP)だけ動くモードになります。</p>
+        <p><b>公開したのに「出馬表だけ取れない」場合は</b>: 下の「🔧 中継を診断」で原因を確認できます。<b>index.html 単体</b>の公開では中継(/api/race)が動かないので、<b>Vercel なら keiba-lab-vercel.zip</b>（api/race.js 同梱）、<b>Cloudflare Pages なら keiba-lab-cloudflare-pages.zip</b>（functions/api/race.js 同梱）をフォルダごとデプロイしてください。</p>
+        <p><b>方法1（おすすめ・設定不要）</b>：<b>Vercel</b> に keiba-lab-vercel.zip の中身（index.html ＋ api/race.js ＋ アイコン類）をそのままデプロイする。中継が自動で動き、アプリから /api/race へ自動接続します。<b>Cloudflare Pages</b> なら keiba-lab-cloudflare-pages.zip（functions/api/race.js 同梱）を「wrangler pages deploy」で公開すれば /api/race が有効です。→ どちらでも中継が無い場合は、自動的にオッズ(JSONP)だけ動くモードになります。</p>
         <p><b>方法2</b>：GitHub Pages等の静的ホストに置く場合、無料のCloudflare Worker（後述の worker-relay.js を貼るだけ）を作り、下の「カスタム中継URL」に <code>https://＜あなたの名前＞.workers.dev/fetch</code> を保存。以降は毎週このURLだけで利用できます。</p>
         <label>カスタム中継URL（任意）</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
           <input id="urlRelayInp" placeholder="https://xxxx.workers.dev/fetch" style="flex:1;min-width:260px">
           <button class="btn" id="btnRelaySave">保存</button>
           <button class="btn ghost" id="btnRelayTest">接続テスト</button>
-          <button class="btn primary" id="btnRelayAuto" title="自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）→ 予備の公開プロキシ の順に試し、最初に成功したものを保存します">🔎 使える中継を自動で選ぶ</button>
+          <button class="btn primary" id="btnRelayAuto" title="自前の中継（Vercel/Cloudflare/Deno/GAS）→ 予備の公開プロキシ の順に試し、最初に成功したものを保存します">🔎 使える中継を自動で選ぶ</button>
         </div>
         <div style="margin-top:8px"><button class="btn primary" id="btnRelayDiag">🔧 中継を診断（今デプロイしたURLで確認）</button>
           <span class="small muted"> 自動で各経路を試し「どれが動いているか/どう直せばいいか」を表示します</span>
@@ -1341,7 +1342,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
         「📋 貼り付け」でクリップボードからURLを入れられます（そのままペーストでもOK）。「🗑 入力リンクを消す」で、さっきのレースのURLを消して新しいものに貼り替えられます。<br>
         netkeiba等で配信される「レース後コメント（各馬の短評）」が載っている<b>記事ページのURL</b>を上の欄に貼り付けてください。
         記事内の「1着〜N着・馬名（騎手）＋コメント」を馬ごとに自動で切り出し、下のプレビューで確認してから割当表へ入れます。
-        例: セントウルSレース後コメントの短評URL。netkeiba取得には中継が必要です（公開時は <b>netlify/functions/race.js を同梱</b>すると動作します）。
+        例: セントウルSレース後コメントの短評URL。netkeiba取得には中継が必要です（公開時は <b>Vercel: api/race.js</b>／<b>Cloudflare Pages: functions/api/race.js</b> を同梱すると動作します）。
       </div>
       <div class="hid" id="hbNewsPreview" style="margin-top:8px;border:1px solid #bcd9bd;border-radius:9px;padding:8px 10px;background:#f4fbf3">
         <div id="hbNewsPrevHead" class="small" style="margin-bottom:6px;font-weight:700"></div>
@@ -1623,7 +1624,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
 <!-- ================= ⑦ 天気予報 ================= -->
 <section class="page" id="t-tenki">
   <div class="card" style="border-color:#cfe0ea;background:linear-gradient(180deg,#f7fbfe,#fff)">
-    <h2 style="margin-top:0">☀️ 当日開催場の天気（1時間ごと）</h2>
+    <h2 style="margin-top:0">⑦ ☀️ 天気予報（当日開催場の1時間ごと天気）</h2>
     <p class="small muted" style="margin:4px 0 8px">
       <b>初回の1回だけ</b>、ホームメイト「全国の競馬場一覧」から各競馬場の<b>住所（郵便番号）をコピーして保存</b>します。
       2回目以降（再起動後も）は保存済みを使い、<b>当日開催の競馬場名のボタンを押すだけ</b>で
@@ -1753,7 +1754,7 @@ function nkRelayBuild(base, target, method, body){
   return url;
 }
 /* 予備の中継（公開プロキシ）。アカウント不要で使えるが、遅い/不安定なことがある。
-   自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）が使えないときの緊急用。 */
+   自前の中継（Vercel/Cloudflare/Deno/GAS）が使えないときの緊急用。 */
 function nkRelayPresets(){
   return [
     { name: '予備: cors.eu.org（公開プロキシ）', url: 'https://cors.eu.org/{rawurl}', pub: true },
@@ -5100,7 +5101,7 @@ function initSimTab(){
 /* =========================================================
    netkeiba URL取込（出馬表HTML + 単勝オッズJSONP）
    ※ 出馬表HTMLはCORS制限のため、同サイトの小さな中継関数
-      (/.netlify/functions/race や /api/race) か、設定した
+      (/api/race) か、設定した
       リレーURL経由で取得します。単勝オッズはJSONPで直取得可能。
    ========================================================= */
 
@@ -5134,8 +5135,7 @@ function nkRelayCandidates(){
   var list = [];
   var custom = state.urlRelay || '';
   if (custom) list.push(custom);
-  // 同一配信の関数を優先（Netlify / Cloudflare Pages / Vercel）
-  list.push('/.netlify/functions/race');
+  // 同一配信の関数を優先（Vercel / Cloudflare Pages）
   list.push('/api/race');
   return list;
 }
@@ -5213,7 +5213,7 @@ function nkFetchOddsJsonp(raceId){
 
 /* 単勝オッズの取得: ①同梱中継(odds関数)があればそこから(JSON)
    ②なければJSONPで直接取得（静的サイト・file://でも動く） */
-function nkOddsApiEndpoints(){ return ['/.netlify/functions/odds','/api/odds']; }
+function nkOddsApiEndpoints(){ return ['/api/odds']; }
 function nkFetchOddsAny(raceId){
   var eps = nkOddsApiEndpoints(), k = 0;
   return new Promise(function(res, rej){
@@ -5472,7 +5472,7 @@ function nkImportCard(){
   }).catch(function(e){
     log.push('⚠ ' + esc(e.message));
     log.push('💡 下の「URL取込の通信設定」→「🔧 中継を診断」を押すと、今の公開先で中継が動いているか・直し方が表示されます。');
-    log.push('💡 よくある原因: Netlify Dropを「ログインせず」or「index.html単体」で公開 → 中継が入らない。ログインしてフォルダごと全部を再ドロップ(netlify.toml同梱)で直ります。');
+    log.push('💡 よくある原因: index.html 単体だけを公開している → 中継(/api/race)が入りません。Vercel なら api/race.js、Cloudflare Pages なら functions/api/race.js を含めてフォルダごとデプロイすると直ります。');
     log.push('💡 中継なしでも動くもの: 「単勝オッズを取込」(JSONP)。出馬表はOCR・テキスト貼り付けでも入力できます。');
     nkLog(log);
     nkBusy(false);
@@ -5640,8 +5640,7 @@ function nkDiagRelay(cfg){
   var targets = nkDiagTargets();
   var cands = [];
   if (state.urlRelay) cands.push(['カスタム中継(' + state.urlRelay + ')', state.urlRelay]);
-  cands.push(['Netlify /.netlify/functions/race', '/.netlify/functions/race']);
-  cands.push(['Pages/Vercel /api/race', '/api/race']);
+  cands.push(['Vercel / Cloudflare Pages /api/race', '/api/race']);
   (typeof nkRelayPresets === 'function' ? nkRelayPresets() : []).forEach(function(p){
     if (!cands.some(function(c){ return c[1] === p.url; })) cands.push([p.name, p.url]);
   });
@@ -5688,7 +5687,7 @@ function nkDiagRelay(cfg){
       lines.push('');
       if (!anyOk){
         lines.push('👉 中継(リレー)が1つも応答していません。');
-        lines.push('　対処1: Netlifyに【ログインした状態】で keiba-lab フォルダごと全部をドロップし直してください（netlify.toml と netlify/functions/race.js が必要）。');
+        lines.push('　対処1: Vercel なら keiba-lab-vercel.zip（api/race.js 同梱）を、Cloudflare Pages なら keiba-lab-cloudflare-pages.zip（functions/api/race.js 同梱）をフォルダごとデプロイし直してください。index.html 単体では中継が動きません。');
         lines.push('　対処2: Cloudflare Worker（同梱 worker-relay.js）を作り、そのURLを「カスタム中継URL」に保存してください。');
         lines.push('💡 中継が無くても「単純オッズ(JSONP)」とOCR・手入力・テキスト貼り付けは動きます。');
       } else if (badHost['db.netkeiba.com'] && !okHost['db.netkeiba.com']){
@@ -5708,7 +5707,7 @@ function nkDiagRelay(cfg){
     nextCand();
   });
 }
-/* 中継を自動で選ぶ: 自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）→ 公開プロキシ の順に試し、
+/* 中継を自動で選ぶ: 自前の中継（Vercel/Cloudflare/Deno/GAS）→ 公開プロキシ の順に試し、
    最初に成功したものを保存する。ホストを引っ越した直後にこれ1つ押せば繋がる。 */
 function nkAutoPickRelay(){
   var el = $('urlLog2');
@@ -5716,7 +5715,6 @@ function nkAutoPickRelay(){
   var test = 'https://race.netkeiba.com/race/shutuba.html?race_id=202609040211';
   var cands = [];
   if (state.urlRelay) cands.push({ name:'カスタム中継', url: state.urlRelay });
-  cands.push({ name:'Netlify (.netlify/functions/race)', url:'/.netlify/functions/race' });
   cands.push({ name:'Vercel/Cloudflare Pages (/api/race)', url:'/api/race' });
   cands = cands.concat(typeof nkRelayPresets === 'function' ? nkRelayPresets() : []);
   var lines = [], i = 0;
@@ -5940,7 +5938,6 @@ function nkParSec(surface, dist, baba){
 function nkBiasRelayCandidates(){
   var list = [];
   if (state.urlRelay) list.push(state.urlRelay);
-  list.push('/.netlify/functions/race');
   list.push('/api/race');
   return list;
 }
@@ -7686,7 +7683,7 @@ function initUmasiru(){
    https://www.jra.go.jp/keiba/baba/ から当日の
    「馬場状態(芝/ダート)・天候・芝クッション値・含水率」を取得し、
    ①レース情報の「馬場状態」「クッション値」へ反映します。
-   - 中継(/.netlify/functions/race 等)経由でShift_JIS→UTF-8変換します
+   - 中継(/api/race 等)経由でShift_JIS→UTF-8変換します
    - JRAの開催日/開催場が対象です（JRA開催のない日・場は取得不可）
    ========================================================= */
 var JRA_LS        = 'khl_jra_v1';
@@ -7928,7 +7925,7 @@ function jraStart(){
     } catch(e){}
   }).catch(function(e){
     put('取得に失敗しました：' + (e && e.message ? e.message : e) +
-        '（中継が動く状態＝ローカルサーバー or Netlify等へ再デプロイでご利用ください）', 'warn');
+        '（中継が動く状態＝ローカルサーバー or Vercel/Cloudflare Pages へ再デプロイでご利用ください）', 'warn');
   });
 }
 function initJra(){
@@ -10021,7 +10018,7 @@ function hbOpenNewsArticle(){
     }
   }).catch(function(e){
     hbLog('⚠ 記事取得に失敗: ' + esc(String((e && e.message) || e)) +
-      '<br><span class="small">（ローカルで開いている場合は取得できません。Netlify に netlify/functions/race.js を同梱して公開するか、「URL取込の通信設定」で中継を設定してください）</span>', 'err');
+      '<br><span class="small">（ローカルで開いている場合は取得できません。Vercel なら api/race.js、Cloudflare Pages なら functions/api/race.js を同梱して公開するか、「URL取込の通信設定」で中継を設定してください）</span>', 'err');
   });
 }
 /* 記事HTMLから <title> の記事名部分を取得 */
@@ -15644,6 +15641,40 @@ function drGet(url){
   if (typeof nkFetchTimeout === 'function') return nkFetchTimeout(url, 25000);
   return Promise.reject(new Error('中継(リレー)が未設定です'));
 }
+var DR_RETRY_MS = 800;   // 取得失敗時のリトライ間隔（1回目=800ms, 2回目=1600ms）
+function drWait(ms){ return new Promise(function(r){ setTimeout(r, ms || 0); }); }
+/* 中継が返しがちな「エラーページ/空応答」の判定。
+   0件(該当なし)と通信失敗を区別しないと、通信エラーが「レースが見つかりません」に化ける。 */
+function drBadPage(html){
+  var s = String(html == null ? '' : html);
+  if (!s || s.length < 300) return '応答が空（' + s.length + 'B）';
+  var head = s.slice(0, 4000);
+  var m = head.match(/upstream HTTP \d+|Too Many Requests|403 Forbidden|404 Not Found|Access Denied|Bad Gateway|Service Unavailable|Gateway Time-?out/i);
+  if (m) return 'エラーページ（' + m[0] + '）';
+  if (/^\s*(bad url|fetch error[:\s])/i.test(s)) return '中継エラー（' + s.slice(0, 60).replace(/\s+/g, ' ') + '）';
+  return '';
+}
+/* 取得（失敗時は少し待って再試行）。中継の 429/502 で「0件」に化けさせないための共通経路。 */
+function drGetRetry(url, tries, progress){
+  var n = 0;
+  tries = Math.max(1, tries || 3);
+  function attempt(){
+    n++;
+    return drGet(url).then(function(html){
+      var bad = drBadPage(html);
+      if (bad) throw new Error(bad);
+      return String(html);
+    }).catch(function(e){
+      var msg = (e && e.message) || String(e);
+      if (n < tries){
+        if (progress) progress('⚠ 取得失敗（' + msg + '）→ ' + (n + 1) + '/' + tries + ' 回目を再試行中…');
+        return drWait(DR_RETRY_MS * n).then(attempt);
+      }
+      throw new Error(msg);
+    });
+  }
+  return attempt();
+}
 function drVenueName(v){
   for (var i = 0; i < HD_VENUES.length; i++){ if ((v || '').indexOf(HD_VENUES[i]) >= 0) return HD_VENUES[i]; }
   return '';
@@ -15679,7 +15710,7 @@ function drParseRiderIds(html){
 function drFetchRace(rid, progress){
   var ls = drLs();
   if (ls.races && ls.races[rid] && ls.races[rid].rows) return Promise.resolve(ls.races[rid]);
-  return drGet('https://db.netkeiba.com/race/' + rid + '/').then(function(html){
+  return drGetRetry('https://db.netkeiba.com/race/' + rid + '/', 3, progress).then(function(html){
     var pr = bfParseDbResult(html);
     if (!pr.rows || !pr.rows.length) throw new Error('結果を解析できません: ' + rid);
     var rec = { meta: pr.meta, rows: pr.rows, jids: drParseRiderIds(html), at: Date.now() };
@@ -16051,7 +16082,13 @@ function drSeekSeries(inf, progress){
   }
   if (typeof bfVenueByCode !== 'function') return Promise.resolve([]);
   var req = function(){
-    return drSeekDb(inf, progress).then(function(rows){
+    return drSeekDb(inf, progress).catch(function(e){
+      // 通信エラーを「0件」として扱うと、その後50秒かけてカレンダーを走査して同じ失敗を繰り返す。
+      // 原因がユーザーに伝わるようにそのまま上位へ投げる。
+      var msg = String((e && e.message) || e);
+      if (/検索に失敗|応答が空|エラーページ|中継エラー/.test(msg)) throw e;
+      return [];
+    }).then(function(rows){
       if (rows.length >= 5) return rows;                       // DB検索が成功
       if (typeof bfCal === 'function' && typeof bfDateRaces === 'function'){
         return drSeekYears(inf, progress, true).then(function(a){
@@ -16137,61 +16174,72 @@ function drSearchWords(nm){
 function drSeekDb(inf, progress){
   var words = drSearchWords(inf.name);
   if (!words.length || typeof drGet !== 'function') return Promise.resolve([]);
+  var okPages = 0, errs = [];
   // 候補の語を順に試し、最初に1件以上ヒットした語の結果を採用する
+  // ※ 取得失敗(中継の429/502等)は「0件」とは別に数え、全語が失敗したら通信エラーとして上位へ投げる
   function tryWord(k){
-    if (k >= words.length) return Promise.resolve([]);
+    if (k >= words.length){
+      if (!okPages && errs.length){
+        return Promise.reject(new Error('netkeiba DB の検索に失敗しました（' + errs[0] + '／' + errs.length + '語すべて）。' +
+          '※「レース名が見つからない」のではなく通信エラーです。数秒おいて「📥 この重賞の過去10年を分析」をもう一度押してください。' +
+          '繰り返す場合は「①データ入力」→「URL取込の通信設定」→「🔧 中継を診断」で中継を確認してください。'));
+      }
+      return Promise.resolve([]);
+    }
     var word = words[k];
     progress('「' + word + '」の同名レースをDB検索中…');
     var url = 'https://db.netkeiba.com/race/list.html?word=' + encodeURIComponent(word) + '&input=UTF-8&list=1';
-    return drGet(url).then(function(html){
-    var rows = [];
-    var parts = String(html).split(/<tr/i);
-    for (var i = 0; i < parts.length; i++){
-      var seg = parts[i];
-      var ridM = seg.match(/href="https?:\/\/db\.netkeiba\.com\/race\/(\d{12})\//);
-      if (!ridM) continue;
-      var txt = seg.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-      // 中央＋地方(Jpn)の開催（例: "2026/03/08 2中山4 …" "2025/11/03 8船橋1 …"）
-      if (!DR_VEN_RE.test(txt)) continue;
-      var dm = txt.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
-      if (!dm) continue;
-      // リンクのテキスト＝実際のレース名。名前・開催場・面が一致する行だけ採用する
-      // （DB検索は部分一致なので、名前を確認せずに使うと別レースを混ぜてしまう）
-      var nmM = seg.match(/<a[^>]*race\/\d{12}\/[^>]*>([\s\S]*?)<\/a>/i);
-      var nm = nmM ? drCl(bfStrip(nmM[1])) : drCl(txt);
-      if (!drRaceEq(nm, inf.name)) continue;
-      var vm = txt.match(new RegExp('\\d{1,2}' + DR_VEN_NAMES + '\\d'));
-      var vName = vm ? vm[1] : '';
-      // 条件戦は同名が各場にあるため開催場も一致必須。重賞・特別戦は場替え(京都→中京など)や
-      // 地方Jpnの持ち回り開催でも同一レースなので、場が違っても採用する（場違いはフラグを立てる）
-      var venueDiff = !!(inf.venue && vName && vName !== inf.venue);
-      if (venueDiff && drNameGeneric(inf.name)) continue;
-      var sm = txt.match(/(芝|ダート|ダ|障(?:害)?)\s*(\d{3,4})/);
-      var sSurf = sm ? (/障/.test(sm[1]) ? '障' : (/ダ/.test(sm[1]) ? 'ダ' : '芝')) : '';
-      var sDist = sm ? (parseInt(sm[2], 10) || 0) : 0;
-      if (inf.surf && sSurf && sSurf !== inf.surf) continue;   // 芝⇄ダートの別レースを除外
-      rows.push({ rid: ridM[1], year: parseInt(dm[1], 10), name: nm, venue: vName, surf: sSurf, dist: sDist,
-        venueDiff: venueDiff || undefined,
-        date8: dm[1] + ('0' + dm[2]).slice(-2) + ('0' + dm[3]).slice(-2) });
-    }
-    rows.sort(function(a, b){ return b.date8.localeCompare(a.date8); });
-    // 同じ年は1件（最新）に絞って新しい順の上位から採用
-    var seenY = {}, picked = [];
-    // 同じ年は「開催場が一致する行」を優先して1件に絞る
-    rows.forEach(function(r){
-      var k = String(r.year);
-      if (seenY[k] === 2) return;
-      if (seenY[k] === 1 && r.venueDiff) return;
-      seenY[k] = r.venueDiff ? 1 : 2;
-      if (seenY[k] === 2){
-        for (var q = picked.length - 1; q >= 0; q--){ if (String(picked[q].year) === k){ picked.splice(q, 1); } }
+    return drGetRetry(url, 3, progress).then(function(html){
+      okPages++;
+      var rows = [];
+      var parts = String(html).split(/<tr/i);
+      for (var i = 0; i < parts.length; i++){
+        var seg = parts[i];
+        var ridM = seg.match(/href="https?:\/\/db\.netkeiba\.com\/race\/(\d{12})\//);
+        if (!ridM) continue;
+        var txt = seg.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+        // 中央＋地方(Jpn)の開催（例: "2026/03/08 2中山4 …" "2025/11/03 8船橋1 …"）
+        if (!DR_VEN_RE.test(txt)) continue;
+        var dm = txt.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+        if (!dm) continue;
+        // リンクのテキスト＝実際のレース名。名前・開催場・面が一致する行だけ採用する
+        // （DB検索は部分一致なので、名前を確認せずに使うと別レースを混ぜてしまう）
+        var nmM = seg.match(/<a[^>]*race\/\d{12}\/[^>]*>([\s\S]*?)<\/a>/i);
+        var nm = nmM ? drCl(bfStrip(nmM[1])) : drCl(txt);
+        if (!drRaceEq(nm, inf.name)) continue;
+        var vm = txt.match(new RegExp('\\d{1,2}' + DR_VEN_NAMES + '\\d'));
+        var vName = vm ? vm[1] : '';
+        // 条件戦は同名が各場にあるため開催場も一致必須。重賞・特別戦は場替え(京都→中京など)や
+        // 地方Jpnの持ち回り開催でも同一レースなので、場が違っても採用する（場違いはフラグを立てる）
+        var venueDiff = !!(inf.venue && vName && vName !== inf.venue);
+        if (venueDiff && drNameGeneric(inf.name)) continue;
+        var sm = txt.match(/(芝|ダート|ダ|障(?:害)?)\s*(\d{3,4})/);
+        var sSurf = sm ? (/障/.test(sm[1]) ? '障' : (/ダ/.test(sm[1]) ? 'ダ' : '芝')) : '';
+        var sDist = sm ? (parseInt(sm[2], 10) || 0) : 0;
+        if (inf.surf && sSurf && sSurf !== inf.surf) continue;   // 芝⇄ダートの別レースを除外
+        rows.push({ rid: ridM[1], year: parseInt(dm[1], 10), name: nm, venue: vName, surf: sSurf, dist: sDist,
+          venueDiff: venueDiff || undefined,
+          date8: dm[1] + ('0' + dm[2]).slice(-2) + ('0' + dm[3]).slice(-2) });
       }
-      picked.push({ year: r.year, rid: r.rid, name: r.name, venue: r.venue, dist: r.dist, venueDiff: r.venueDiff });
-    });
+      rows.sort(function(a, b){ return b.date8.localeCompare(a.date8); });
+      // 同じ年は1件（最新）に絞って新しい順の上位から採用
+      var seenY = {}, picked = [];
+      // 同じ年は「開催場が一致する行」を優先して1件に絞る
+      rows.forEach(function(r){
+        var k = String(r.year);
+        if (seenY[k] === 2) return;
+        if (seenY[k] === 1 && r.venueDiff) return;
+        seenY[k] = r.venueDiff ? 1 : 2;
+        if (seenY[k] === 2){
+          for (var q = picked.length - 1; q >= 0; q--){ if (String(picked[q].year) === k){ picked.splice(q, 1); } }
+        }
+        picked.push({ year: r.year, rid: r.rid, name: r.name, venue: r.venue, dist: r.dist, venueDiff: r.venueDiff });
+      });
       return picked.slice(0, 30);
-    }).catch(function(){ return []; }).then(function(out){
+    }).catch(function(e){ errs.push((e && e.message) || String(e)); return null; }).then(function(out){
       if (out && out.length) return out;
-      return tryWord(k + 1);   // ヒット0件なら冠を落とした語で再検索
+      // ヒット0件(または取得失敗)なら冠を落とした語で再検索。連続アクセスを避けるため少し待つ
+      return drWait(out === null ? DR_RETRY_MS : 350).then(function(){ return tryWord(k + 1); });
     });
   }
   return tryWord(0);
@@ -17900,7 +17948,10 @@ function gcDbSearch(word){
   var ck = 'q-' + word;
   if (ls.q && ls.q[ck]) return Promise.resolve(ls.q[ck]);
   if (typeof drGet !== 'function') return Promise.resolve([]);
-  return gcGet('https://db.netkeiba.com/race/list.html?word=' + encodeURIComponent(word) + '&input=UTF-8&list=1').then(function(html){
+  var dbUrl = 'https://db.netkeiba.com/race/list.html?word=' + encodeURIComponent(word) + '&input=UTF-8&list=1';
+  // 中継の一時的な失敗(429/502/空応答)で「地方Jpnレースがカレンダーから消える」のを防ぐためリトライする。
+  // 失敗は握り潰さず上位へ投げ、キャッシュにも残さない（次回やり直せる）。
+  return (typeof drGetRetry === 'function' ? drGetRetry(dbUrl, 3) : gcGet(dbUrl)).then(function(html){
     var out = [];
     var parts = String(html).split(/<tr/i);
     for (var i = 0; i < parts.length; i++){
@@ -17920,7 +17971,7 @@ function gcDbSearch(word){
     ls.q = ls.q || {}; ls.q[ck] = out.slice(0, 60);
     gcSave(ls);
     return out.slice(0, 60);
-  }).catch(function(){ return []; });
+  });
 }
 /* DB検索行テキストからNAR競馬場名を取り出す */
 var GCL_NAR_VENUES = ['大井','川崎','船橋','浦和','盛岡','水沢','門別','帯広','金沢','笠松','名古屋','園田','姫路','佐賀','高知','福山'];
@@ -17935,7 +17986,7 @@ function gcJpn(year){
   var ls = gcLs();
   var key = 'jpn-' + year;
   if (ls.jpn && ls.jpn[key]) return Promise.resolve(ls.jpn[key]);
-  var idx = 0, out = [];
+  var idx = 0, out = [], errs = 0, firstErr = '';
   return new Promise(function(res){
     (function next(){
       if (idx >= GCL_JPN.length){ res(out); return; }
@@ -17960,9 +18011,22 @@ function gcJpn(year){
           });
         }
         next();
-      }, function(){ next(); });
+      }, function(e){
+        // 通信エラーは「そのレースは存在しない」とは違う。カウントだけして次へ進む
+        errs++; if (!firstErr) firstErr = (e && e.message) || String(e);
+        next();
+      });
     })();
   }).then(function(rows){
+    if (errs >= GCL_JPN.length){
+      return Promise.reject(new Error('地方交流JpnレースのDB検索に失敗しました（' + firstErr + '）。' +
+        '※「レースが見つからない」のではなく通信エラーです。数秒おいてカレンダーを開き直してください。'));
+    }
+    if (errs){
+      // 一部だけ失敗した結果をキャッシュすると、その年のJpnレースが欠けたまま固定されるため保存しない
+      return Promise.reject(new Error('地方交流Jpnレースの一部（' + errs + '/' + GCL_JPN.length + '語）を取得できませんでした（' + firstErr + '）。' +
+        '中央の重賞は表示しています。カレンダーを開き直すと未取得ぶんを再取得します。'));
+    }
     ls.jpn = ls.jpn || {}; ls.jpn[key] = rows;
     gcSave(ls);
     return rows;
