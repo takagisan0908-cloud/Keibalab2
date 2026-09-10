@@ -878,7 +878,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
         <tbody id="horseBody"></tbody>
       </table>
     </div>
-    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」。逃げ・先行型ほど、この数値が高いとAI評価が下がります。netkeibaの馬ページ取得（「全馬に自動反映」や🐎馬情報）時に過去レースの位置取りから自動計算されます（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定（終盤だけ伸びた後方は除外）。手入力で上書きも可・⚡自動は編集すると手動になります）。</div>
+    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」。逃げ・先行型ほど、この数値が高いとAI評価が下がります。<b>この欄は手入力です</b>（netkeiba取得時も自動では書き込みません）。🐎馬情報では、過去レースの位置取りから検出した出遅れ（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定。終盤だけ伸びた後方は除外）を<b>参考表示</b>します。</div>
     <button class="btn dashed" id="btnAddHorse" style="margin-top:8px">＋ 馬を1頭追加（上限18頭）</button>
   </div>
 
@@ -1207,13 +1207,17 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
   <div class="hid" id="simBody">
     <div class="card">
       <div class="simrow">
-        <button class="btn primary" id="btnRun">▶ 出走させる</button>
+        <button class="btn primary" id="btnRun">⚡ 結果を出す（映像なし）</button>
         <button class="btn" id="btnRerun">🔄 もう一度</button>
+        <button class="btn" id="btnMulti">⏩ 10回まとめて</button>
         <button class="btn" id="btnBatch">⏩ 100回モンテカルロ集計</button>
         <label style="display:flex;align-items:center;gap:5px">速さ
           <select id="simSpeed">
             <option value="10">遅め</option><option value="18" selected>標準</option><option value="30">速い</option><option value="60">最速</option>
           </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px" title="結果だけをすぐ出します（映像は描画しません）">
+          <input type="checkbox" id="simNoVideo" checked> 映像なし（結果だけ）
         </label>
         <label style="display:flex;align-items:center;gap:5px">映像
           <select id="simView">
@@ -1221,14 +1225,27 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
             <option value="straight">🏁 最終直線リプレイ(縦並び)</option>
           </select>
         </label>
+        <label style="display:flex;align-items:center;gap:5px">まとめて
+          <select id="simRuns">
+            <option value="3">3回</option><option value="5">5回</option><option value="10" selected>10回</option><option value="20">20回</option><option value="50">50回</option>
+          </select>
+        </label>
         <span class="small muted" id="simSpeedNote"></span>
       </div>
       <div id="simHint" class="small muted" style="margin-top:6px"></div>
+      <div id="simRunState" class="small" style="margin-top:6px;color:#3c5344"></div>
     </div>
 
-    <div class="card">
+    <details class="card fold" id="simVideoCard">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">レース映像（アニメーション）</h2>
+        <span class="chip">映像なし設定では使いません</span>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
       <div class="simrow" style="margin-bottom:8px">
-        <h2 style="margin:0">レース映像</h2>
+        <h2 style="margin:0">再生画面</h2>
         <span class="chip">動画プレイヤー</span>
         <span class="sp"></span>
         <span id="liveOrder" class="small" style="color:#33513f"></span>
@@ -1243,7 +1260,8 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       </div>
       <div class="small muted simrot" style="margin-top:4px">💡 スマホでは端末を横に向けるか「⛶ 全画面」にすると大きく見えます。タップで再生 / タップでもう一度。</div>
       <div id="simMsg" class="small" style="margin-top:6px"></div>
-    </div>
+      </div>
+    </details>
 
     <div class="row2" style="grid-template-columns:1.35fr .9fr">
       <div class="card" style="min-width:0">
@@ -1259,7 +1277,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
             </table>
           </div>
         </div>
-        <div id="simResultEmpty" class="small muted" style="margin-top:4px">▶ 出走させる を押すと、この1走行の全頭の着順・タイム・着差と、レース展開が動画の下に表示されます（動画の上には結果を重ねません）。</div>
+        <div id="simResultEmpty" class="small muted" style="margin-top:4px">「⚡ 結果を出す（映像なし）」を押すと、この1走行の全頭の着順・タイム・着差とレース展開がすぐに表示されます（映像は描画しないので一瞬で終わり、何度でも実行できます）。</div>
       </div>
       <div class="card">
         <h2>レース展開</h2>
@@ -1271,8 +1289,14 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
       </div>
     </div>
 
-    <div class="card">
-      <h2>100回モンテカルロ集計</h2>
+    <details class="card fold" open>
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">100回モンテカルロ集計</h2>
+        <span class="chip">映像なし・即時</span>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
       <div id="batchState" class="small muted" style="min-height:1.2em"></div>
       <div id="statsSummary" style="margin-bottom:8px"></div>
       <div class="tblwrap">
@@ -1284,7 +1308,8 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
           <tbody id="statsBody"></tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </details>
   </div>
 </section>
 
@@ -3388,6 +3413,13 @@ function simVenueInfo(){
 }
 /* 映像モード: side=最終直線(横スクロール2D・ゲーム風) / straight=最終直線リプレイ(縦並び)
    ※ スタートから流す「コース全景(通し)」「テレビ中継風(通し)」は廃止。映像は最終直線のみ。 */
+/* 映像なし（結果だけを即時表示）モードか。既定=映像なし */
+function simNoVideo(){
+  var el = $('simNoVideo');
+  if (el) return !!el.checked;
+  try { if (state && state.simNoVideo != null) return !!state.simNoVideo; } catch(e){}
+  return true;
+}
 function simViewMode(){
   var v = 'side';
   try { if (state && state.simView) v = state.simView; } catch(e){}
@@ -4584,7 +4616,8 @@ function runVisualRace(){
         sim._log.push({ g: 0, lab: '4コーナー（想定隊列）', rem: Math.round(sRem), top: top });
       }
       var tr = Math.round(rem / 50) * 50;    // 50m刻みで代表を記録
-      if (tr <= 300 && !logTook['r' + tr]){ logTook['r' + tr] = 1; sim._log.push({ g: 1000 + tr, lab: (tr <= 50 ? 'ゴール前' : ('残り' + tr + 'm')), rem: tr, top: top }); }
+      // ※ g は「後半ほど大きい」値にする（残り距離 tr は時間とともに減るため反転）。並べ替えで逆順になるのを防ぐ
+      if (tr <= 300 && !logTook['r' + tr]){ logTook['r' + tr] = 1; sim._log.push({ g: 1000 + (1000 - tr), lab: (tr <= 50 ? 'ゴール前' : ('残り' + tr + 'm')), rem: tr, top: top }); }
       return;
     }
     // スタートからの通し(全景・中継): 序盤/向正面/3コーナー/4コーナー/直線残り
@@ -4718,7 +4751,9 @@ function simBoardHide(){
 sim._bt = 0;
 
 function simTimeFmt(sec){
-  var mm = Math.floor(sec / 60), ss = sec - mm * 60;
+  // 先に小数1桁へ丸めてから分秒に割る（9.97秒→"010.0"のような桁ズレを防ぐ）
+  var s = Math.round((parseFloat(sec) || 0) * 10) / 10;
+  var mm = Math.floor(s / 60), ss = s - mm * 60;
   return mm + ':' + (ss < 10 ? '0' : '') + ss.toFixed(1);
 }
 /* 着差(m)を競馬表記へ（ハナ/クビ/半馬身/馬身） */
@@ -4768,8 +4803,71 @@ function finishVisualRace(parts, order, crossed){
   $('btnRun').disabled = false; $('btnRerun').disabled = false;
   if (crossed && crossed.length === parts.length) order = crossed.slice();
   var D = parseFloat(readRaceMeta().dist) || 2000;
+  var w = parts[order[0]];
+  simRenderOutcome(parts, order, D);       // ページ内「結果想定」表＋展開（映像なしモードと共通）
+  var sx = $('simMsg');
+  if (sx) sx.textContent = '🏁 決着。1着: ' + w.no + ' ' + w.name + '。詳しい着順・タイム・展開は下の「結果想定・レース展開」をご覧ください。';
+  simBoardHide();            // 動画内の結果オーバーレイは使わない（ページ内表示へ）
+  saveNow();
+  simSyncOverlay();
+}
+
+/* ===== 映像なし「結果だけ」即時シミュレーション ===== */
+/* 1回分のサンプリング（映像用のプラン・ログは必要時のみ作る） */
+function simInstantOnce(withLogs){
+  var parts = getParticipants();
+  if (!parts) return null;
+  var D = parseFloat(readRaceMeta().dist) || 2000;
+  var F = simSampleFinish(parts, D);
+  var n = parts.length;
+  sim._finT = F.finT.slice();
+  sim._mar = F.mar.slice();
+  sim._vw = F.vw;
+  sim._mmax = F.mmax;
+  if (withLogs !== false){
+    var paceAdj = (typeof simPaceAdjOf === 'function') ? simPaceAdjOf() : {};
+    var PLAN = new Array(n);
+    for (var i = 0; i < n; i++){
+      PLAN[i] = simBuildPlan(simFlowStyle(parts[i].style), F.finT[i] || 1, paceAdj);
+      PLAN[i].lag = simSlowLagM(parts[i]);
+    }
+    sim._plan = PLAN;
+    sim._log = simBuildLogs(parts, F, D, PLAN);
+  }
+  return { parts: parts, D: D, F: F, order: F.order.slice() };
+}
+/* 映像を描かずに、道中の隊列ログをプランの位置から合成する */
+function simBuildLogs(parts, F, D, PLAN){
+  var logs = [];
+  var n = parts.length;
+  var leaderF = F.finT[F.order[0]] || 1;
+  var sRem = simFinalStartRem(D);
+  var tS = Math.max(0, (1 - sRem / D)) * leaderF;
+  function distAt(t){
+    return PLAN.map(function(pl){ return Math.min(D, Math.max(0, simPlanU(pl, t) * D)); });
+  }
+  function snap(t, rem, lab){
+    var dists = distAt(t);
+    var top = dists.map(function(v, i){ return i; }).sort(function(a, b){ return dists[b] - dists[a]; });
+    logs.push({ g: (logs.length === 0 ? 0 : (1000 + (1000 - rem))), lab: lab, rem: Math.max(0, Math.round(rem)), top: top });
+  }
+  snap(tS, sRem, '4コーナー（想定隊列）');
+  [300, 200, 100, 50].forEach(function(rem){
+    if (rem >= sRem) return;
+    var lo = tS, hi = leaderF, t = tS;
+    for (var k = 0; k < 14; k++){
+      t = (lo + hi) / 2;
+      var d = distAt(t), dmax = 0;
+      for (var i = 0; i < n; i++) dmax = Math.max(dmax, d[i]);
+      if (D - dmax > rem) lo = t; else hi = t;
+    }
+    snap((lo + hi) / 2, rem, (rem <= 50 ? 'ゴール前' : ('残り' + rem + 'm')));
+  });
+  return logs;
+}
+/* 結果（着順表・展開・印）を画面へ描く。映像なしでもそのまま使う */
+function simRenderOutcome(parts, order, D){
   var meta = readRaceMeta();
-  // ---- ページ内「結果想定」表（動画の上には結果を重ねない） ----
   var fm = $('finMeta');
   if (fm) fm.innerHTML = esc((meta && meta.name) || 'レース') +
     ((meta && meta.place) ? ('　' + esc(String(meta.place).split(/[\s　]/)[0])) : '') +
@@ -4778,10 +4876,10 @@ function finishVisualRace(parts, order, crossed){
     '<span style="margin-left:10px">この1走行の再現（ランダム要素を含む）</span>';
   var vw = sim._vw || 16.5;
   var html = '';
-  var res = currentAnalysis();
-  var mrow = {}; res.rows.forEach(function(r){ mrow[r.idx] = r; });
+  var res = (typeof currentAnalysis === 'function') ? currentAnalysis() : { rows: [] };
+  var mrow = {}; (res.rows || []).forEach(function(r){ mrow[r.idx] = r; });
   order.forEach(function(pi, rank){
-    var p = parts[pi];
+    var p = parts[pi]; if (!p) return;
     var finS = (sim._finT && sim._finT[pi] != null) ? sim._finT[pi] : null;
     var gapM = (rank > 0 && finS != null && sim._finT[order[0]] != null) ? (finS - sim._finT[order[0]]) * vw : 0;
     var tCell = (rank === 0 && finS != null) ? '<b>' + simTimeFmt(finS) + '</b>' : (finS != null ? simTimeFmt(finS) : '');
@@ -4797,12 +4895,62 @@ function finishVisualRace(parts, order, crossed){
   var fb = $('finBody'); if (fb) fb.innerHTML = html;
   var sW = $('simResultWrap'); if (sW) sW.classList.remove('hid');
   var sE = $('simResultEmpty'); if (sE) sE.classList.add('hid');
-  // ---- ページ内「レース展開」 ----
   var sx = $('simExp'); if (sx) sx.innerHTML = simExpHTML(parts, order, D);
-  $('simMsg').textContent = '🏁 決着。1着: ' + parts[order[0]].no + ' ' + parts[order[0]].name + '。詳しい着順・タイム・展開は動画下の「結果想定・レース展開」をご覧ください。';
-  simBoardHide();            // 動画内の結果オーバーレイは使わない（ページ内表示へ）
+}
+/* 映像なしでN回まとめて実行（累計の1着回数などを表示） */
+function simRunInstant(times){
+  var parts = getParticipants();
+  if (!parts){ buildSimPanel(); return; }
+  times = Math.max(1, Math.min(500, parseInt(times, 10) || 1));
+  var D = parseFloat(readRaceMeta().dist) || 2000;
+  var meta = readRaceMeta();
+  var key = [meta.name, meta.dist, parts.length, parts[0] && parts[0].name].join('|');
+  if (sim._rsKey !== key){ sim._rsKey = key; sim._rs = null; }
+  if (!sim._rs){
+    sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} };
+  }
+  var last = null;
+  for (var k = 0; k < times; k++){
+    var one = simInstantOnce(k === times - 1);   // 道中ログは最後の1回だけ作る
+    if (!one) return;
+    last = one;
+    sim._rs.runs++;
+    one.order.forEach(function(pi, rank){
+      sim._rs.sumPos[pi] = (sim._rs.sumPos[pi] || 0) + (rank + 1);
+      if (rank === 0) sim._rs.first[pi] = (sim._rs.first[pi] || 0) + 1;
+      if (rank <= 2) sim._rs.top3[pi] = (sim._rs.top3[pi] || 0) + 1;
+    });
+  }
+  sim._log = sim._log || [];
+  simRenderOutcome(last.parts, last.order, last.D);
+  simRenderRunState(last.parts);
+  var sx = $('simMsg');
+  if (sx) sx.textContent = '⚡ ' + times + '回の結果を出しました（映像なし）。最後の1走を着順表・展開に表示しています。1着: ' +
+    last.parts[last.order[0]].no + ' ' + last.parts[last.order[0]].name;
   saveNow();
-  simSyncOverlay();
+}
+/* 連続実行の累計を表示 */
+function simRenderRunState(parts){
+  var el = $('simRunState'); if (!el || !sim._rs) return;
+  parts = parts || getParticipants() || [];
+  var rs = sim._rs;
+  var best = -1, bestN = -1;
+  parts.forEach(function(p, i){
+    var c = rs.first[i] || 0;
+    if (c > bestN){ bestN = c; best = i; }
+  });
+  var lines = [];
+  lines.push('<b>このレースの実行累計: ' + rs.runs + '回</b>（映像なし・即時）');
+  if (best >= 0 && bestN > 0){
+    lines.push('最多1着: <b>' + esc(parts[best].no) + ' ' + esc(parts[best].name) + '</b>（' + bestN + '回 / ' + pct(bestN / rs.runs) + '%）');
+  }
+  lines.push(['<button type="button" class="btn ghost" id="simResetRuns" style="font-size:.74rem;padding:2px 9px">累計をリセット</button>'].join(''));
+  el.innerHTML = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' + lines.join('<span class="muted">｜</span>') + '</div>';
+}
+function simRunsCount(){
+  var el = $('simRuns');
+  var v = el ? parseInt(el.value, 10) : 10;
+  return (v >= 1 && v <= 500) ? v : 10;
 }
 
 /* ===== モンテカルロ集計 ===== */
@@ -4851,10 +4999,54 @@ function barRate(v){
   return '<div class="barbg"><i style="width:' + w + '%;background:linear-gradient(90deg,#e05656,#b92b1e)"></i></div>';
 }
 
+/* 「⚡ 結果を出す」: 映像なし=その場で結果、映像あり=アニメーション再生 */
+function simRunPrimary(){
+  if (simNoVideo()) simRunInstant(1);
+  else runVisualRace();
+}
+/* 映像なし設定の見た目（映像カードと結果欄の出し分け／ボタン表記） */
+function simSyncNoVideo(){
+  var nov = simNoVideo();
+  var card = $('simVideoCard');
+  if (card){
+    try { card.open = !nov; } catch(e){}                       // 映像なし=折りたたむ
+    try { if (card.classList && card.classList.toggle) card.classList.toggle('simnovideo', nov); } catch(e){}
+  }
+  var b = $('btnRun');
+  if (b) b.textContent = nov ? '⚡ 結果を出す（映像なし）' : '▶ 出走させる（映像つき）';
+  var hint = $('simHint');
+  if (hint){
+    if (nov) hint.innerHTML = '💡 映像を描画せずに着順・タイム・展開をすぐ表示します。1回が一瞬で終わるので「⏩ まとめて」で何度でも走らせて傾向を見られます。';
+    else simSetHint();
+  }
+}
 function initSimTab(){
-  on('btnRun', 'click', function(){ runVisualRace(); });
-  on('btnRerun', 'click', function(){ runVisualRace(); });
+  // 「⚡ 結果を出す（映像なし）」: 映像なし設定なら即時、映像ありなら従来のアニメーション
+  var primary = function(){ simRunPrimary(); };
+  on('btnRun', 'click', primary);
+  on('btnRerun', 'click', primary);
   on('btnSimPlay', 'click', function(){ runVisualRace(); });
+  on('btnMulti', 'click', function(){ simRunInstant(simRunsCount()); });
+  on('btnBatch', 'click', function(){ montecarlo(); });
+  // 累計リセット（動的に差し替わるので委譲で拾う）
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'simResetRuns'){
+      e.preventDefault();
+      sim._rs = null; sim._rsKey = null;
+      simRenderRunState();
+    }
+  });
+  var nv = $('simNoVideo');
+  if (nv){
+    try { nv.checked = (state.simNoVideo != null) ? !!state.simNoVideo : true; } catch(e){}
+    nv.addEventListener('change', function(){
+      try { state.simNoVideo = !!nv.checked; } catch(e){}
+      simSyncNoVideo();
+      saveNow();
+    });
+  }
+  var sv2 = $('simView'); if (sv2) sv2.addEventListener('change', function(){ simSyncNoVideo(); });
+  simSyncNoVideo();
   on('simSpeed', 'change', function(){ state.simSpeed = this.value; saveNow(); });
   on('simView', 'change', function(){
     state.simView = (this.value === 'straight') ? 'straight' : 'side';
@@ -14905,13 +15097,17 @@ function hdRender(){
     var winsTxt = hdP(prof, ['主な勝鞍']);
     var groups = hdAn(races);
     var hh = [];
-    hh.push('<div class="card" style="margin:0 0 10px;border-color:#d5dcef;padding:10px 12px">');
-    hh.push('<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+    // 縦に伸びないよう、馬ごとに折り込みカード（details）で表示する（#2026-09-10）
+    hh.push('<details class="card fold hdhorse" style="margin:0 0 8px">');
+    hh.push('<summary class="foldhead">' +
+      '<span class="fmark"></span>' +
       '<b style="font-size:1rem">' + esc(String(h.no)) + '番 ' + esc(h.name) + '</b>' +
-      (h.sexAge ? '<span class="small">' + esc(h.sexAge) + '</span>' : '') +
+      (h.sexAge ? '<span class="small" style="font-weight:400">' + esc(h.sexAge) + '</span>' : '') +
       (recordTxt ? '<span class="chip" style="background:#eef3fb;color:#2859a0">' + esc(recordTxt) + '</span>' : '') +
-      (trainer ? '<span class="small muted">調教師 ' + esc(trainer) + '</span>' : '') +
-      '</div>');
+      (trainer ? '<span class="small muted" style="font-weight:400">' + esc(trainer) + '</span>' : '') +
+      '<span class="foldhint"></span>' +
+      '</summary>');
+    hh.push('<div class="foldbody">');
     var profParts = [];
     if (birth) profParts.push('生年月日 ' + esc(birth));
     if (owner) profParts.push('馬主 ' + esc(owner));
@@ -14966,9 +15162,17 @@ function hdRender(){
     }
     hh.push(tbl.join(''));
     hh.push(det.join(''));
-    hh.push('</div>');
+    hh.push('</div>');   // .foldbody
+    hh.push('</details>');
     html.push(hh.join(''));
   });
+  if (got >= 2){
+    html.unshift('<div class="small muted" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">' +
+      '<span>' + got + '頭ぶんを折りたたんで表示しています（馬名をクリックで開きます）。</span>' +
+      '<button type="button" class="btn ghost" id="hdOpenAll" style="font-size:.78rem;padding:3px 10px">全馬を開く</button>' +
+      '<button type="button" class="btn ghost" id="hdCloseAll" style="font-size:.78rem;padding:3px 10px">全馬を折りたたむ</button>' +
+      '</div>');
+  }
   var noHorses = horses.filter(function(h){ return !h.nk; });
   var withNk = horses.filter(function(h){ return h.nk; }).length;
   if (withNk && got < withNk){
@@ -14995,6 +15199,19 @@ function hdRefreshHint(){
 }
 function initHd(){
   on('hdBtn', 'click', function(){ hdLoadAll(false); });
+  // 折り込みの一括操作（馬ごとのカードを all open / all close）
+  document.addEventListener('click', function(e){
+    var id = e.target && e.target.id;
+    if (id !== 'hdOpenAll' && id !== 'hdCloseAll') return;
+    e.preventDefault();
+    var box = $('hdOut'); if (!box) return;
+    var open = (id === 'hdOpenAll');
+    var list = box.querySelectorAll ? box.querySelectorAll('details.hdhorse') : [];
+    for (var i = 0; i < list.length; i++){
+      if (open) list[i].open = true;
+      else list[i].open = false;
+    }
+  });
   on('hdReload', 'click', function(){
     var horses = hdRaceHorses().filter(function(h){ return h.nk; });
     var ls = hdLs();
@@ -15245,6 +15462,14 @@ function drPrevRid(prev){
     return hit || '';
   }).catch(function(){ return ''; });
 }
+/* 馬名の照合キー: 空白（全角含む）・中点・括弧などを除去して比較する */
+function drNameKey(s){
+  return String(s == null ? '' : s)
+    .replace(/[\s\u3000]+/g, '')
+    .replace(/[・･\-\u2010-\u2015―ー]/g, '')
+    .replace(/[()（）\[\]［］]/g, '')
+    .toUpperCase();
+}
 /* 前走レースの「上がり順位」→ 各馬ランク表 */
 function drPrevRankCalc(rid){
   var ls = drLs();
@@ -15258,7 +15483,7 @@ function drPrevRankCalc(rid){
     var rank = 0, prevV = -1;
     vals.forEach(function(x){
       if (x.l3 !== prevV){ rank++; prevV = x.l3; }
-      by[x.name] = rank;
+      by[drNameKey(x.name)] = rank;          // 馬名の正規化キーで持つ
     });
     ls.prevRank = ls.prevRank || {};
     ls.prevRank[rid] = { by: by, n: vals.length };
@@ -15346,6 +15571,13 @@ function drStyle(pass, raceN){
   if (pos <= Math.max(2, Math.round(raceN * 0.18))) return '先行';
   if (pos >= Math.round(raceN * 0.55)) return '追込';
   return '差し';
+}
+/* 前走レース名から「年・回・クラス表記」を除いた素のレース名（年まとめ用） */
+function drPrevRaceBase(nm){
+  var s = String(nm || '');
+  s = s.replace(/^第\s*\d+\s*回/, '');
+  s = s.replace(/\((G|Jpn|OP|L|Listed|GI{1,3}|[123])\s*\)/gi, '');   // 格付け括弧を外す
+  return s.replace(/[\s\u3000]+/g, '').trim();
 }
 /* 前走クラス(レース名から簡易判定) */
 function drPrevClass(nm){
@@ -15722,24 +15954,38 @@ function drAnalyzeFromInf(inf, opt, progress, out){
           s.pRank = 0; s.pRankRid = '';
           if (prev && prev.vname && prev.r) needPrev.push(s);
         });
-        var uniq = {};
-        needPrev.forEach(function(s){ uniq[s.prevRidKey] = s; });
+        // 前走レース(=同じ日付×場×R)ごとにまとめ、レースごとの「上がり3F順位表」を作ってから
+        // そのレースを前走に持つ【全サンプル】へ配る。
+        // ※以前は (1)順位表を馬名で引くべきところをレース名で引いていた (2)1レースにつき1頭にしか
+        //   配っていなかった ため、上がり3F順位別成績がほぼ検出できなかった（#2026-09-10修正）。
+        var uniq = {};   // key -> その前走レースを走ったサンプル全員
+        needPrev.forEach(function(s){ (uniq[s.prevRidKey] = uniq[s.prevRidKey] || []).push(s); });
         var keys = Object.keys(uniq);
         progress('前走レースの上がり順位を計算中（前走 ' + keys.length + ' レース）…');
         var pidx = 0;
         return drPool(keys, function(k){
-          var s = uniq[k];
-          var prev = s.prev;
+          var group = uniq[k];
+          var prev = group[0].prev;
           return drPrevRid(prev).then(function(rid){
-            s.pRankRid = rid;
+            group.forEach(function(s2){ s2.pRankRid = rid || ''; });
             if (!rid) return;
             return drPrevRankCalc(rid).then(function(rk){
-              var nm = prev.nm;
-              var rank = rk && rk.by && rk.by[nm];
-              s.pRank = rank || 0;
+              var by = (rk && rk.by) || {};
+              group.forEach(function(s2){
+                var nm = drNameKey(s2.name);                 // ★馬名で引く（以前はレース名で引いていた）
+                var rank = by[nm];
+                if (rank == null && s2.name){
+                  // 表記ゆれ(全角スペース・・・記号など)に備えて総当たりで照合
+                  var alts = Object.keys(by);
+                  for (var ai = 0; ai < alts.length; ai++){
+                    if (drNameKey(alts[ai]) === nm){ rank = by[alts[ai]]; break; }
+                  }
+                }
+                s2.pRank = rank || 0;
+              });
               pidx++; progress('前走集計 ' + pidx + '/' + keys.length);
             });
-          }).catch(function(){ s.pRankRid = ''; });
+          }).catch(function(){ group.forEach(function(s2){ s2.pRankRid = ''; }); });
         }, 4).then(function(){
           // 騎手の所属(美浦/栗東)を補完（結果ページの騎手ID → プロフィールの所属）
           return drEnrichRiderAff(samples, riderIdsByRid, progress).then(function(){
@@ -15869,8 +16115,9 @@ function drComputeTables(samples){
   }));
   tb('前走の上がり3F順位別成績', drBuild(samples, function(s){
     if (!s.pRankRid || !s.pRank) return null;
-    return [{ k: s.pRank === 1 ? 'a1' : 'a2', label: s.pRank === 1 ? '前走で上がり1位' : '上がり2位以下' }];
-  }), { kind: 'prevr' });
+    var lb = s.pRank === 1 ? '前走で上がり1位' : (s.pRank <= 3 ? '前走で上がり2〜3位' : '前走で上がり4位以下');
+    return [{ k: (s.pRank === 1 ? 'a1' : (s.pRank <= 3 ? 'a23' : 'a4')), label: lb }];
+  }), { kind: 'prevr', note: '前走レース内での上がり3Fの速さ順位（同タイムは同順位）。順位を特定できた馬だけを集計しています。' });
   // --- 馬体重 ---
   tb('当日の馬体重帯別成績', drBuild(samples, function(s){
     if (s.w == null) return null;
@@ -15931,12 +16178,21 @@ function drComputeTables(samples){
   tb('前走クラス別成績', drBuild(samples, function(s){
     var nm = s.prev ? s.prev.nm : ''; return nm ? [{ k: drPrevClass(nm), label: drPrevClass(nm) }] : null;
   }));
-  tb('主な前走レース別成績（2頭以上）', drBuild(samples, function(s){
+  // 前走レース別: キーは「日付＋R＋レース名」。表記が同じでも年が違えば別レースなので、
+  // ラベルに年を必ず出して「同じレースが複数行ある」ように見える誤解をなくす（#2026-09-10修正）
+  tb('主な前走レース別成績（2頭以上・年ごと）', drBuild(samples, function(s){
     var pr = s.prev; if (!pr || !pr.nm) return null;
-    var lab = pr.nm;
+    var yr = String(pr.d || '').slice(0, 4);
+    var lab = (yr ? yr + '年 ' : '') + pr.nm;
     if (pr.vname) lab += '（' + pr.vname + (pr.r ? pr.r + 'R' : '') + (pr.dist ? ' ' + pr.dist : '') + '）';
     return [{ k: pr.d + pr.r + pr.nm, label: lab }];
-  }), { kind: 'prevrace' });
+  }), { kind: 'prevrace', note: '前走のレースごと（同じ名前でも年が違えば別の行になります）。' });
+  // 年をまたいだ合算（同じレース名を前走に使った馬の傾向）
+  tb('主な前走レース別成績（年まとめ・2頭以上）', drBuild(samples, function(s){
+    var pr = s.prev; if (!pr || !pr.nm) return null;
+    var lab = drPrevRaceBase(pr.nm) + (pr.vname ? '（' + pr.vname + (pr.dist ? ' ' + pr.dist : '') + '）' : '');
+    return [{ k: 'rn' + drPrevRaceBase(pr.nm) + '|' + (pr.vname || '') + '|' + (pr.dist || ''), label: lab }];
+  }), { kind: 'prevrace', subcol: '前走レース(年まとめ)', note: '同じレース名を年ごとに合算したもの（前走でそのレースを使われた馬の傾向）。' });
   tb('前走の人気帯別成績', drBuild(samples, function(s){
     var p = s.prev ? s.prev.pop : 0; if (!(p >= 1)) return null;
     var lb;
@@ -17456,8 +17712,9 @@ function initGc(){
    4) 「全馬に前走の上3F・タイムを自動反映」ボタン(nkFetchAll): 各馬の「今回より前の
       直近レース」(前走)の上り3F と、今回と同距離±200m以内の前走タイムを
       出馬表へ自動反映し、AI予想(調教/持ちタイム比較)にそのまま使える。
-   5) 出馬表のデータ取得と同時に、各馬の過去レース(戦績全件)の「位置取り(通過)」から
-      「出遅れ」を検出してカウントし、出遅れ率(%)を自動計算して出馬表へ反映する。
+   5) 各馬の過去レース(戦績全件)の「位置取り(通過)」から「出遅れ」を検出・集計するが、
+      出馬表の「出遅れ率%」列は【手入力運用】のため自動では書き込まない(参考表示のみ)。
+      ※ 2026-09-10 変更: 以前は nkSlowApply() で h.slow へ自動セットしていた。
       - 表記「(出遅れ)」等があるレースは明示カウント
       - 表記が無い場合は、1コーナー最後方付近なのに後で順位を戻したレースを
         「推定」としてカウント(hdSlowStat / hdRaceSlowKey 参照)
@@ -17829,24 +18086,15 @@ function nkApplyOne(h, runs){
   }
   return { ok: changed, msg: msg };
 }
-/* 出遅れ率の自動計算を出馬表の馬へ反映(出馬表データ取得時=馬ページ取得ごとに呼ぶ)。
-   戻り値: 判定できた集計結果(st) or null。
-   - 手入力済み(h.slowTouched)の馬は上書きしない
-   - 手入力でなければ h.slow(％)= 自動計算値 をセットし、AI(展開エンジン)が使えるようにする */
+/* 出遅れ率は「手入力」で運用するため、netkeibaからは自動計算・自動反映しない（#2026-09-10）。
+   ここでは取得した戦績から数値を計算して返すだけ（表示用の参考値）。
+   出馬表の「出遅れ率」欄には書き込みません（手入力値をそのまま尊重）。 */
 function nkSlowApply(h, data){
-  if (!h || !data) return null;
+  if (!data) return null;
   var st = data.slow || null;
-  if (!st || typeof hdSlowStat !== 'function'){
-    st = (typeof hdSlowStat === 'function') ? hdSlowStat(data.recs || []) : null;
-  }
+  if (!st && typeof hdSlowStat === 'function') st = hdSlowStat(data.recs || []) || null;
   if (!st || !st.total) return null;
-  if (!h.slowTouched){
-    h.slow = String(Math.max(0, Math.min(95, st.all)));
-    h.slowAuto = true;
-  }
-  h.slowN = st.m; h.slowI = st.i; h.slowAll = st.total; h.slowPct = st.all;
-  h.slowSrc = 'netkeiba';
-  return st;
+  return st;   // ※ h.slow 等への書き込みは行わない
 }
 /* 取得ログ。以前は毎回上書きしていたため「最後に処理した1頭」しか見えず、
    途中経過が分からなかった（他の馬の結果が出てこないように見えた）。追記式にする。 */
@@ -17871,13 +18119,12 @@ function nkSummaryTable(rows){
   var ok = rows.filter(function(r){ return r.applied; }).length;
   var h = ['<div style="margin-top:8px;font-weight:bold">📋 取得結果（' + rows.length + '頭中 ' + ok + '頭に反映）</div>',
     '<div style="overflow-x:auto"><table class="lr-tbl" style="font-size:.76rem;white-space:nowrap">',
-    '<thead><tr><th>馬番</th><th style="text-align:left">馬名</th><th>上3F</th><th>前走タイム</th><th>前走距離</th><th>出遅れ率</th><th style="text-align:left">取得内容</th></tr></thead><tbody>'];
+    '<thead><tr><th>馬番</th><th style="text-align:left">馬名</th><th>上3F</th><th>前走タイム</th><th>前走距離</th><th style="text-align:left">取得内容</th></tr></thead><tbody>'];
   rows.forEach(function(r){
     h.push('<tr><td style="text-align:center">' + esc(r.no || '') + '</td><td style="text-align:left">' + esc(r.name || '') + '</td>' +
       '<td style="text-align:center">' + esc(r.last3f || '') + '</td>' +
       '<td style="text-align:center">' + esc(r.time || '') + '</td>' +
       '<td style="text-align:center">' + esc(r.dist || '') + '</td>' +
-      '<td style="text-align:center">' + esc(r.slow || '') + '</td>' +
       '<td style="text-align:left" class="muted">' + esc(r.note || '') + '</td></tr>');
   });
   h.push('</tbody></table></div>');
@@ -17920,13 +18167,12 @@ function nkRetryFailedRun(){
   targets.forEach(function(h){
     seq = seq.then(function(){
       return nkGap().then(function(){ return nkFetchWithRetry(h.nk, 3, { only:'recs' }); }).then(function(data){
-        var slowSt = (typeof nkSlowApply === 'function') ? nkSlowApply(h, data) : null;
         var runs = nkRunsBefore(data.recs, nkTodayD8(), 5);
         if (!runs.length){ ok++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 戦績なし']); return; }
         return nkResolveRid(runs[0]).then(function(rid){ if (rid){ runs[0].rid = rid; return nkRankOfLast3(rid, runs[0].last3).then(function(r){ runs[0].rank = r || 0; }); } })
           .catch(function(){}).then(function(){
             var res = nkApplyOne(h, runs);
-            if (res.ok || slowSt){ ok++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + (res.msg.join(' / ') || '前走データは条件外')]); }
+            if (res.ok){ ok++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + (res.msg.join(' / ') || '前走データは条件外')]); }
             else { ng++; nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 反映できる前走データなし']); }
           });
       }).catch(function(e){
@@ -17972,16 +18218,13 @@ function nkFetchAll(){
   target.forEach(function(h){
     seq = seq.then(function(){
       return nkGap().then(function(){ return nkFetchWithRetry(h.nk, 2, { only:'recs' }); }).then(function(data){   // 一括は戦績ページのみ（プロフィールは馬情報を開いた時）
-        // 出遅れ率(過去レースの位置取りから自動集計)を反映(手入力済みの馬は上書きしない)
-        var slowSt = (typeof nkSlowApply === 'function') ? nkSlowApply(h, data) : null;
-        var slowTxt = '';
-        if (slowSt && typeof hdSlowText === 'function') slowTxt = hdSlowText(slowSt);
+        // ※出遅れ率は手入力のため、ここでは計算・表示しない
         var runs = nkRunsBefore(data.recs, nkTodayD8(), 5);
         if (!runs.length){
           ok++;
-          nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + (slowTxt ? ': 🐢 ' + slowTxt : ': 戦績なし')]);
+          nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 戦績なし']);
           summary.push({ no:h.no, name:h.name, last3f:h.last3f, time:h.time, dist:h.prevD,
-            slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:true, note:'戦績なし（プロフィール/出遅れのみ）' });
+            applied:true, note:'戦績なし（反映できる前走データなし）' });
           return;
         }
         return nkResolveRid(runs[0]).then(function(rid){
@@ -17990,18 +18233,15 @@ function nkFetchAll(){
           return nkRankOfLast3(rid, runs[0].last3).then(function(r){ runs[0].rank = r || 0; });
         }).catch(function(){}).then(function(){
           var res = nkApplyOne(h, runs);
-          var extra = slowTxt ? ' / 🐢 出遅れ率' + h.slowPct + '%' : '';
-          if (res.ok || slowSt){
+          if (res.ok){
             ok++;
             var line = (res.msg.length ? res.msg.join(' / ') : '前走データは条件外');
-            nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + line + extra]);
-            summary.push({ no:h.no, name:h.name, last3f:h.last3f, time:h.time, dist:h.prevD,
-              slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:true, note:line });
+            nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + line]);
+            summary.push({ no:h.no, name:h.name, last3f:h.last3f, time:h.time, dist:h.prevD, applied:true, note:line });
           } else {
             fail++;
             nkLog3(['　' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': 反映できる前走データなし（戦績なし/距離条件外 等）']);
-            summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'',
-              slow:(h.slowPct != null ? h.slowPct + '%' : ''), applied:false, note:'反映できる前走データなし（距離条件外など）' });
+            summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'', applied:false, note:'反映できる前走データなし（距離条件外など）' });
           }
         });
       }).catch(function(e){
@@ -18009,7 +18249,7 @@ function nkFetchAll(){
         var em = (e && e.message) || String(e);
         nkLog3(['　⚠ ' + (h.no ? h.no + '番 ' : '') + (h.name || h.nk) + ': ' + em +
           '（アクセス間隔を ' + nkGapMs + 'ms に広げています。失敗した馬は下の「🔄 失敗した馬だけ再取得」でやり直せます）']);
-        summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'', slow:'', applied:false, note:'取得失敗: ' + em });
+        summary.push({ no:h.no, name:h.name, last3f:'', time:'', dist:'', applied:false, note:'取得失敗: ' + em });
         nkFailed.push(h.uid);
       });
     });
@@ -18017,7 +18257,7 @@ function nkFetchAll(){
   seq.then(function(){
     if (typeof rebuildHorseTable === 'function') rebuildHorseTable();
     if (typeof saveNow === 'function') saveNow();
-    nkLog3(['✅ 完了: ' + ok + '頭に前走データと出遅れ率(自動)を反映' + (fail ? '（対象外/失敗 ' + fail + '）' : '') + '。',
+    nkLog3(['✅ 完了: ' + ok + '頭に前走データを反映' + (fail ? '（対象外/失敗 ' + fail + '）' : '') + '。',
       '　（取得ログは上に追記されています。下の表で全馬ぶんの結果を確認できます）']);
     // 馬番順に並べて全馬の結果を1枚の表にまとめる
     summary.sort(function(a, b){ return (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0); });
@@ -19029,6 +19269,7 @@ function doExport(){
     raceId: state.raceId || '', biasRaces: state.biasRaces || [],
     simSpeed: String(state.simSpeed == null ? '18' : state.simSpeed),
     simView: (state.simView === 'straight') ? 'straight' : 'side',
+    simNoVideo: (state.simNoVideo != null) ? !!state.simNoVideo : true,
     learn: state.learn || null, paceOverride: (state.paceOverride == null ? null : state.paceOverride),
     biasOverride: state.biasOverride || '',
     horses: state.horses.map(function(h){
@@ -19054,6 +19295,8 @@ function doImport(file){
       state.weights = Object.assign(defaultWeights(), o.weights || {});
       state.simSpeed = (o.simSpeed) ? String(o.simSpeed) : '18';
       state.simView = (o.simView === 'straight') ? 'straight' : 'side';
+      state.simNoVideo = (o.simNoVideo != null) ? !!o.simNoVideo : true;
+      var nvI = $('simNoVideo'); if (nvI) nvI.checked = state.simNoVideo;
       state.urlRelay = o.urlRelay || '';
       state.raceId = o.raceId || '';
       state.biasRaces = Array.isArray(o.biasRaces) ? o.biasRaces : [];
@@ -19157,6 +19400,7 @@ function boot(){
   syncRaceDomFromState(); refreshRaceLine(); rebuildHorseTable();
   var ss0 = $('simSpeed'); if (ss0) ss0.value = state.simSpeed;
   var sv0 = $('simView'); if (sv0) sv0.value = state.simView;
+  var nv0 = $('simNoVideo'); if (nv0) nv0.checked = (state.simNoVideo != null) ? !!state.simNoVideo : true;
   var rl0 = $('urlRelayInp'); if (rl0) rl0.value = state.urlRelay || '';
   goTab('t-top');
   if (!loaded){
