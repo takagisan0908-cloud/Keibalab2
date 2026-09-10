@@ -1631,7 +1631,46 @@ var COURSE_IMAGES = {
 
 /* ---------- utils ---------- */
 function $(id){ return document.getElementById(id); }
-function on(el, ev, fn){ (typeof el === 'string' ? $(el) : el).addEventListener(ev, fn); }
+/* 要素が無い場合は何もしない（存在しないIDで ここが例外を投げると
+   boot() の途中で残りの初期化が全部止まってしまうため。#2026-09-10修正） */
+var INIT_ERRORS = [];
+function on(el, ev, fn){
+  var t = (typeof el === 'string') ? $(el) : el;
+  if (!t || typeof t.addEventListener !== 'function'){
+    if (typeof el === 'string') INIT_ERRORS.push('要素なし: ' + el);
+    return null;
+  }
+  t.addEventListener(ev, fn);
+  return t;
+}
+/* 「あれば配線する」版。HTMLに無いUI(旧バージョンのピッカー等)でも例外にしない */
+function bindIf(id, ev, fn){
+  var t = $(id);
+  if (!t || typeof t.addEventListener !== 'function') return null;
+  t.addEventListener(ev, fn);
+  return t;
+}
+/* 初期化の失敗をまとめて報告（1つ失敗してもアプリ全体は動く） */
+function reportInitErrors(){
+  if (!INIT_ERRORS || !INIT_ERRORS.length) return;
+  var uniq = [];
+  INIT_ERRORS.forEach(function(x){ if (uniq.indexOf(x) < 0) uniq.push(x); });
+  try { console.warn('[keiba-lab] 初期化の警告 ' + uniq.length + '件: ' + uniq.join(' / ')); } catch(e){}
+  var st = (typeof $ === 'function') ? $('saveState') : null;
+  if (st && st.textContent != null){
+    st.textContent = String(st.textContent || '') +
+      ' ⚠ 一部の初期化で警告がありました（' + uniq.length + '件・コンソール参照）: ' + uniq.slice(0,3).join(' / ');
+  }
+}
+/* 初期化1つが失敗しても他を止めない */
+function safeInit(name, fn){
+  try { fn(); return true; }
+  catch(e){
+    INIT_ERRORS.push(name + ': ' + ((e && e.message) || e));
+    try { console.warn('[keiba-lab] 初期化に失敗: ' + name, e); } catch(e2){}
+    return false;
+  }
+}
 function esc(s){ return String(s == null ? '' : s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -10155,21 +10194,24 @@ function kaiRefresh(){
   kaiRenderDetail();
 }
 function initKaisai(){
+  // ※このビルドの①のピッカーUIは p33(rK*) 側。kai* のUIがHTMLに無い場合でも
+  //   例外を投げないこと（存在しないIDで on() が例外を投げると boot() の後半の
+  //   初期化が全部止まり、⑥のカレンダー/分析ボタン・①のピッカーが無反応になる。#2026-09-10修正）
   var dateEl = $('kaiDate');
   if (dateEl && !dateEl.value){
     var d = kai.cache && kai.cache.date ? kai.cache.date : kaiToday8();
     dateEl.value = d.slice(0,4) + '-' + d.slice(4,6) + '-' + d.slice(6,8);
   }
-  on('kaiFetch', 'click', kaiFetchList);
-  on('kaiPrev', 'click', function(){
+  bindIf('kaiFetch', 'click', kaiFetchList);
+  bindIf('kaiPrev', 'click', function(){
     var el = $('kaiDate'); if (!el) return;
     el.value = kaiShift(el.value, -1).slice(0,4) + '-' + kaiShift(el.value, -1).slice(4,6) + '-' + kaiShift(el.value, -1).slice(6,8);
   });
-  on('kaiNext', 'click', function(){
+  bindIf('kaiNext', 'click', function(){
     var el = $('kaiDate'); if (!el) return;
     el.value = kaiShift(el.value, 1).slice(0,4) + '-' + kaiShift(el.value, 1).slice(4,6) + '-' + kaiShift(el.value, 1).slice(6,8);
   });
-  on('kaiToday', 'click', function(){
+  bindIf('kaiToday', 'click', function(){
     var el = $('kaiDate'); if (!el) return;
     var d = kaiToday8();
     el.value = d.slice(0,4) + '-' + d.slice(4,6) + '-' + d.slice(6,8);
@@ -15294,9 +15336,12 @@ function drRunAll(progress, opt){
   opt = opt || {};
   progress = progress || function(){};
   var out = { samples: [], tables: [], errors: [], base: 0 };
+  // #2026-09-10修正: 重賞以外でも「同じ名前の過去レース」が取れれば集計できるようにした
+  // （以前は grade が無いと即エラーで、ボタンを押しても何も起きないように見えていた）
   var g = drGrade();
-  if (!g) return Promise.reject(new Error('重賞(G1〜G3)のレースではありません。①のnetkeiba URL取込（レース選択）でG1〜G3を読み込んでから実行してください。'));
-  progress('レース情報を確認: ' + ((state.race && state.race.name) || '') + '（' + g + '）');
+  var nmNow = (state && state.race && state.race.name) || '';
+  if (!g) progress('※重賞(G1〜G3)の指定がありません。同名レースの過去回を探して集計します（見つかった回のみ）。');
+  else progress('レース情報を確認: ' + nmNow + '（' + g + '）');
   return (typeof bfCurrentInfo === 'function' ? bfCurrentInfo() : Promise.reject(new Error('初期化が不完全です'))).then(function(inf){
     out.name = inf.name;
     return drAnalyzeFromInf(inf, opt, progress, out);
@@ -15352,6 +15397,7 @@ function drInfForRid(rid){
       if (pr.meta && pr.meta.name){ name = pr.meta.name.replace(/^第\s*\d+\s*回/, ''); if (!venue && pr.meta.place) venue = pr.meta.place; }
     }
     if (!name) return null;
+    name = String(name).replace(/^第\s*\d+\s*回/, '');
     var y = 0, mo = 0;
     var dm = whole.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
     if (dm){ y = parseInt(dm[1], 10); mo = parseInt(dm[2], 10); }
@@ -15360,7 +15406,7 @@ function drInfForRid(rid){
     // 別レース(別条件)を混ぜないための照合キーに使う。
     var surf = '', dist = 0;
     // 面・距離は RaceData01（「芝1200m」等）から。ページ後方にある場合も拾えるよう全体から探す
-    var sd = whole.match(/(芝|ダート|ダ|障(?:害)?)\s*(\d{3,4})\s*m/);
+    var sd = whole.match(/(芝|ダート|ダ|障(?:害)?)\s*(?:右|左|直|内|外)?\s*(\d{3,4})\s*m/);
     if (sd){
       surf = /障/.test(sd[1]) ? '障' : (/ダ/.test(sd[1]) ? 'ダ' : '芝');
       dist = parseInt(sd[2], 10) || 0;
@@ -16002,6 +16048,13 @@ function drRenderAll(res, boxEl){
   box.innerHTML = html.join('');
 }
 function drRun(force){
+  // 対象レースが無いときは、何をすればよいか具体的に案内する（無反応に見えるのを防ぐ）
+  var hasRace = !!((state && state.race && state.race.name) || (state && state.raceId));
+  if (!hasRace){
+    drMsgSet('分析するレースがまだありません。①「データ入力」でレースURLを取り込むか、上の📅重賞カレンダーのレース名をクリックすると、そのレースで自動的に分析します。', true);
+    var cv = $('gcAnaCard'); if (cv) cv.classList.remove('hid');
+    return;
+  }
   var b = $('drBtn'); if (b) b.disabled = true;
   drMsgSet('分析を開始します…（初回は1〜3分。進行状況が下に出ます）');
   drStat('読み込み中…');
@@ -18700,38 +18753,39 @@ function boot(){
   on('modalRoot', 'click', function(e){ if (e.target.id === 'modalRoot') closeModal(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 
-  initInputTab();
-  initImport();
-  initUrlImport();
-  if (typeof initRs === 'function') initRs();
-  if (typeof initMemo === 'function') initMemo();
+  safeInit('入力タブ', initInputTab);
+  safeInit('取込', initImport);
+  safeInit('initUrlImport', initUrlImport);
+  if (typeof initRs === 'function') safeInit('initRs', initRs);
+  if (typeof initMemo === 'function') safeInit('initMemo', initMemo);
   if (typeof initNk === 'function') initNk();   // netkeiba馬データ(旧jiro8廃止後)
-  if (typeof initRn === 'function') initRn();
-  if (typeof initBias === 'function') initBias();
-  initAnalysisTab();
-  initSimTab();
-  initSimCanvas();
-  if (typeof initHist === 'function') initHist();
-  if (typeof initStyleAI === 'function') initStyleAI();
-  if (typeof initUmasiru === 'function') initUmasiru();
-  if (typeof initJra === 'function') initJra();
-  if (typeof initHorseBook === 'function') initHorseBook();
-  if (typeof initKaisai === 'function') initKaisai();
-  if (typeof initJv === 'function') initJv();
-  if (typeof initAp === 'function') initAp();
-  if (typeof initPg === 'function') initPg();
-  if (typeof initBf === 'function') initBf();
-  if (typeof initDi === 'function') initDi();
-  if (typeof initRk === 'function') initRk();
-  if (typeof initHd === 'function') initHd();
-  if (typeof initBb === 'function') initBb();
-  if (typeof initYo === 'function') initYo();
-  if (typeof initAih === 'function') initAih();
-  if (typeof initDr === 'function') initDr();
-  if (typeof initBetCalc === 'function') initBetCalc();
-  if (typeof initLive === 'function') initLive();
-  if (typeof initGc === 'function') initGc();
-  if (typeof initNav === 'function') initNav();
+  if (typeof initRn === 'function') safeInit('initRn', initRn);
+  if (typeof initBias === 'function') safeInit('initBias', initBias);
+  safeInit('initAnalysisTab', initAnalysisTab);
+  safeInit('initSimTab', initSimTab);
+  safeInit('initSimCanvas', initSimCanvas);
+  if (typeof initHist === 'function') safeInit('initHist', initHist);
+  if (typeof initStyleAI === 'function') safeInit('initStyleAI', initStyleAI);
+  if (typeof initUmasiru === 'function') safeInit('initUmasiru', initUmasiru);
+  if (typeof initJra === 'function') safeInit('initJra', initJra);
+  if (typeof initHorseBook === 'function') safeInit('initHorseBook', initHorseBook);
+  if (typeof initKaisai === 'function') safeInit('initKaisai', initKaisai);
+  if (typeof initJv === 'function') safeInit('initJv', initJv);
+  if (typeof initAp === 'function') safeInit('initAp', initAp);
+  if (typeof initPg === 'function') safeInit('initPg', initPg);
+  if (typeof initBf === 'function') safeInit('initBf', initBf);
+  if (typeof initDi === 'function') safeInit('initDi', initDi);
+  if (typeof initRk === 'function') safeInit('initRk', initRk);
+  if (typeof initHd === 'function') safeInit('initHd', initHd);
+  if (typeof initBb === 'function') safeInit('initBb', initBb);
+  if (typeof initYo === 'function') safeInit('initYo', initYo);
+  if (typeof initAih === 'function') safeInit('initAih', initAih);
+  if (typeof initDr === 'function') safeInit('initDr', initDr);
+  if (typeof initBetCalc === 'function') safeInit('initBetCalc', initBetCalc);
+  if (typeof initLive === 'function') safeInit('initLive', initLive);
+  if (typeof initGc === 'function') safeInit('initGc', initGc);
+  reportInitErrors();
+  if (typeof initNav === 'function') safeInit('initNav', initNav);
 
   // 保存データ復元
   var loaded = loadFromLS();
