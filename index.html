@@ -6464,16 +6464,19 @@ function renderHist(series, selDetails){
         var r = f[k]; if (!r) return '<span class="muted">—</span>';
         var st = histStyle(r.passing, d.n);
         var badge = '<span style="color:' + STYLE_COLORS[st.tag] + ';font-weight:700">' + st.tag + '</span>';
-        var info = r.no + ' ' + r.name;
-        if (r.pop) info += ' <span class="muted">(' + r.pop + '人気' + (r.odds ? ' ' + r.odds + '倍' : '') + ')</span>';
-        return '<div><b>' + esc(info) + '</b> ' + badge +
+        // ここは HTML を組み立てて返す（esc した文字列にタグを混ぜると
+        // 表に「<span class="muted">」などのコードがそのまま表示されてしまう）
+        var nmTxt = esc(String(r.no == null ? '' : r.no) + ' ' + String(r.name == null ? '' : r.name));
+        var popTxt = r.pop ? ' <span class="muted">(' + esc(String(r.pop)) + '人気' + (r.odds ? ' ' + esc(String(r.odds)) + '倍' : '') + ')</span>' : '';
+        return '<div><b>' + nmTxt + '</b>' + popTxt + ' ' + badge +
           (st.pos4 ? ' <span class="muted">' + esc(st.raw) + ' 4角' + st.pos4 + '</span>' : '') + '</div>';
       });
-      var cond = (d.meta.surface || '') + (d.meta.dist ? ' ' + d.meta.dist + 'm' : '') + (d.meta.place ? '・' + esc(d.meta.place) + (d.meta.rnum ? d.meta.rnum + 'R' : '') : '');
+      var condTxt = esc(String(d.meta.surface || '') + (d.meta.dist ? ' ' + d.meta.dist + 'm' : ''));
+      var placeTxt = d.meta.place ? '・' + esc(String(d.meta.place)) + (d.meta.rnum ? esc(String(d.meta.rnum)) + 'R' : '') : '';
       var baba = d.meta.baba ? '<span class="chip">' + esc(d.meta.baba) + '</span>' : '';
       var link = d.rid ? '<a target="_blank" rel="noreferrer" href="https://race.netkeiba.com/race/result.html?race_id=' + d.rid + '">詳細</a>' : '';
       html += '<tr><td><b>' + esc(d.meta.date || '') + '</b><br><span class="muted small">' + esc(d.meta.weather || '') + '</span></td>' +
-        '<td>' + esc(cond) + ' ' + baba + '</td>' +
+        '<td>' + condTxt + placeTxt + ' ' + baba + '</td>' +
         '<td>' + top[0] + '</td><td>' + top[1] + '</td><td>' + top[2] + '</td><td class="small">' + link + '</td></tr>';
     });
     html += '</tbody></table></div>';
@@ -9801,6 +9804,12 @@ function kaiFetchAny(url){
   });
 }
 
+/* 取得したHTMLが「レース一覧ページ」の体裁か（中継が動いているかの判定に使う）
+   - 体裁あり & データ0件 → その日は開催なし
+   - 体裁なし(空/エラーページ等) → 中継・通信の問題 ※以前は両方「開催なし」と表示して原因が分からなかった */
+function kaiListLooksValid(html){
+  return /RaceList_Body|RaceList_Box|RaceList_DataList|RaceList_DataTitle/i.test(String(html || ''));
+}
 /* ===== netkeiba レース一覧HTMLのパース（PC版 race_list_sub） ===== */
 function kaiClean(s){ return (typeof nkCleanName === 'function') ? nkCleanName(s) : String(s || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
 function kaiParseList(html){
@@ -9878,8 +9887,12 @@ function kaiFetchList(){
     if (!venues.length){
       kaiBusy(false);
       kai.cache = null;   // 開催なしの日は一覧を残さない
-      kaiStatus('この日は開催データがありませんでした。JRAの開催日（主に土日）を選んでください。または前日/翌日ボタンで前後を確認できます。', true);
       var card = $('kaiListCard'); if (card) card.style.display = 'none';
+      if (!kaiListLooksValid(html)){
+        kaiStatus('⚠ レース一覧の内容を解釈できませんでした（中継(リレー)の応答が空・不正の可能性）。「①データ入力」→「URL取込の通信設定」→「🔧 中継を診断」でご確認ください。', true);
+      } else {
+        kaiStatus('この日は開催データがありませんでした。JRAの開催日（主に土日）を選んでください。または前日/翌日ボタンで前後を確認できます。', true);
+      }
       return;
     }
     kai.cache = { date: d8, venues: venues };
@@ -12167,14 +12180,35 @@ function bfParseDbResult(html){
     out.meta.date = dm[1] + '年' + (+dm[2]) + '月' + (+dm[3]) + '日';
     out.meta.date8 = dm[1] + ('0' + dm[2]).slice(-2) + ('0' + dm[3]).slice(-2);
   }
-  // 開催場・レース番号はページ冒頭(例: 2026年9月6日(日) 1回中山4日 1R …)から
-  var head = bfStrip(html.slice(0, 6000));
-  var vm = head.match(/(\d{1,2})回(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)/);
+  // 開催場・レース番号・面/距離はページ全体から拾う
+  // （DB結果ページは「4回阪神2日目」「11R」「芝右1200m」等が下方の smalltxt / racedata にある）
+  var whole = bfStrip(html);
+  var vm = whole.match(/(\d{1,2})回(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉|大井|川崎|船橋|浦和|盛岡|水沢|門別|帯広|金沢|笠松|名古屋|園田|姫路|高知|佐賀|福山)/);
   if (vm) out.meta.place = vm[2];
-  var rm = head.match(/(?:障害)?(\d{1,2})R\b/);
-  if (rm) out.meta.rnum = rm[1];
+  if (!out.meta.place && out.meta.date8){
+    // 「4回阪神2日目」形式がない場合の保険: race_id の場コード(4-5桁目)
+    var rmm = String(html).match(/race_id=(\d{12})/) || String(html).match(/db\.netkeiba\.com\/race\/(\d{12})/);
+  }
+  var rm = String(html).match(/<dt>\s*(\d{1,2})R\s*<\/dt>/) ||
+           String(html).match(/class="active"[^>]*>(\d{1,2})R</) ||
+           whole.match(/(\d{1,2})R\s*[／\/]|(?:^|\s)(\d{1,2})R(?:\s|$)/);
+  if (rm) out.meta.rnum = rm[1] || rm[2];
+  var sdm = whole.match(/(芝|ダート|ダ|障(?:害)?)\s*(?:右|左|直|内|外)?\s*(\d{3,4})\s*m/);
+  if (sdm){
+    out.meta.surface = /障/.test(sdm[1]) ? '障' : (/ダ/.test(sdm[1]) ? 'ダ' : '芝');
+    out.meta.m = parseInt(sdm[2], 10) || 0;
+    out.meta.dist = out.meta.surface + out.meta.m + 'm';
+  }
   var gm = title.match(/\((G[123])\)|^\s*(G[123])\s/);
   if (gm) out.meta.grade = gm[1] || gm[2];
+  if (!out.meta.grade){
+    var g2 = out.meta.name.match(/\((G|Jpn)(I{1,3}|[123])\)/i);
+    if (g2){
+      var lv = g2[2].toUpperCase();
+      var num = (lv === 'I') ? 1 : (lv === 'II') ? 2 : (lv === 'III') ? 3 : parseInt(lv, 10);
+      out.meta.grade = /JPN/i.test(g2[1]) ? ('Jpn' + num) : ('G' + num);
+    }
+  }
 
   // 全角/半角空白・改行を取り除いてラベル同士を比較する（ヘッダは <br/> 入りが多い）
   var seg = '';
@@ -14068,9 +14102,12 @@ function rkFetch(){
     if (!venues.length){
       rkBusy(false);
       rk.cache = null; rk.sel = null;
-      rkMsg('この日は開催データがありません。JRA開催日（主に土日）を選んでください。', true);
       var b = $('rkList'); if (b) b.innerHTML = '';
       var dd = $('rkDetail'); if (dd) dd.innerHTML = '';
+      var looksOk = (typeof kaiListLooksValid === 'function') ? kaiListLooksValid(html) : true;
+      rkMsg(looksOk
+        ? 'この日は開催データがありません。JRA開催日（主に土日）を選んでください。'
+        : '⚠ レース一覧を取得できましたが内容を解釈できませんでした（中継(リレー)の応答が空・不正の可能性）。「URL取込の通信設定」→「🔧 中継を診断」でご確認ください。', true);
       return;
     }
     rk.cache = { date: d8, venues: venues };
@@ -15297,9 +15334,18 @@ function drInfForRid(rid){
       var tm = html.match(/<title>([\s\S]*?)<\/title>/i);
       if (tm) name = bfStrip(tm[1]).split('\uFF5C')[0].split('|')[0].replace(/\s*(結果.*|レース情報.*)$/, '');
     }
-    var head = bfStrip(html.slice(0, 9000));
-    var vmm = head.match(/(\d{1,2})回(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉|大井|川崎|船橋|浦和|帯広|門別|盛岡|水沢|金沢|笠松|名古屋|園田|姫路|高知|佐賀|荒尾|益田|福山|北海道)/);
+    var whole = bfStrip(html);
+    var vmm = whole.match(/(\d{1,2})回(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉|大井|川崎|船橋|浦和|帯広|門別|盛岡|水沢|金沢|笠松|名古屋|園田|姫路|高知|佐賀|荒尾|益田|福山|北海道)/);
     if (vmm) venue = vmm[2];
+    if (!venue){
+      // 現在の結果ページは「4回 阪神 2日目」のように span 分割される。
+      // RaceData02 の中の競馬場名を取り、それでも不明なら race_id の場コードから補う。
+      var r2 = html.match(/<div[^>]*class="RaceData02"[^>]*>([\s\S]*?)<\/div>/i);
+      var r2t = r2 ? bfStrip(r2[1]) : '';
+      var vm2 = r2t.match(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉|大井|川崎|船橋|浦和|帯広|門別|盛岡|水沢|金沢|笠松|名古屋|園田|姫路|高知|佐賀|荒尾|益田|福山)/);
+      if (vm2) venue = vm2[1];
+    }
+    if (!venue && typeof bfVenueByCode === 'function') venue = bfVenueByCode(String(rid).slice(4, 6)) || '';
     if (!name){
       // DBページmeta名から
       var pr = (typeof bfParseDbResult === 'function') ? bfParseDbResult(html) : { meta: {} };
@@ -15307,13 +15353,14 @@ function drInfForRid(rid){
     }
     if (!name) return null;
     var y = 0, mo = 0;
-    var dm = head.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+    var dm = whole.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
     if (dm){ y = parseInt(dm[1], 10); mo = parseInt(dm[2], 10); }
     if (!y){ var d2 = new Date(); y = d2.getFullYear(); mo = d2.getMonth() + 1; }
     // 面(芝/ダ/障)と距離。同名でも ジャパンカップ と ジャパンカップダート のような
     // 別レース(別条件)を混ぜないための照合キーに使う。
     var surf = '', dist = 0;
-    var sd = head.match(/(芝|ダート|ダ|障(?:害)?)\s*(\d{3,4})m/);
+    // 面・距離は RaceData01（「芝1200m」等）から。ページ後方にある場合も拾えるよう全体から探す
+    var sd = whole.match(/(芝|ダート|ダ|障(?:害)?)\s*(\d{3,4})\s*m/);
     if (sd){
       surf = /障/.test(sd[1]) ? '障' : (/ダ/.test(sd[1]) ? 'ダ' : '芝');
       dist = parseInt(sd[2], 10) || 0;
@@ -15353,14 +15400,16 @@ function drAnalyzeFromInf(inf, opt, progress, out){
             return;
           }
           out.racesUsed.push({ year: yr.year, rid: yr.rid, date: dateStr, name: meta.name || '',
-            place: meta.place || '', rnum: meta.rnum || '', dist: rows[0] ? (rows[0].dist || '') : '' });
+            place: meta.place || '', rnum: meta.rnum || '',
+            dist: meta.dist || (rows[0] ? (rows[0].dist || '') : ''),
+            grade: meta.grade || '' });
           var raceN = rows.length;
           rows.forEach(function(rw){
             if (!rw.id || !(rw.order >= 1)) return;
             samples.push({ yr: yr.year, rid: yr.rid, o: rw.order, no: rw.no || '', frame: rw.frame || '',
               name: rw.name || '', id: rw.id, pop: drNum(rw.pop), odds: drNum(rw.odds),
               jockey: rw.jockey || '', pass: rw.passing || '', raceN: raceN, dateStr: dateStr,
-              train: rw.trainer || '', wchg: rw.weightChg || '', dist: rw.dist || '',
+              train: rw.trainer || '', wchg: rw.weightChg || '', dist: meta.dist || rw.dist || '',
               metaName: meta.name || '', metaPlace: meta.place || '' });
             if (horseIds.indexOf(rw.id) < 0) horseIds.push(rw.id);
           });
@@ -16606,8 +16655,11 @@ function initLive(){
    ---------------------------------------------------------
    - 対象: 中央G1〜G3(芝・ダ・障害) + 代表的な地方交流Jpn1〜3
    - データ源:
-     ・中央: race.netkeiba.com の開催カレンダー(月) + 日別レース一覧
-        （レース名は短縮表示、等級は Icon_GradeType1..3 で判定）
+     ・中央: race.netkeiba.com の「重賞日程」(calendar.html?year=Y) を年1回取得し、
+        日程テーブル（日付・レース名・格・場・距離）から月別に組み立てる
+        ※旧実装は同ページの race_list.html?kaisai_date= リンクを拾っていたが、
+          現在のページはテーブル形式でリンクが無く常に0件になっていた（不具合修正）
+        クリック時に race_id を「日別レース一覧」から名前一致で解決して分析する
      ・地方交流(Jpn): db.netkeiba.com のレース名検索を年度ぶん実行
    - 日付セル内のレース名クリック → drAnalyzeRid() で⑥分析を実行し、
      drRenderAll() でこのタブ内に表示（既存⑥と同じ表）
@@ -16625,29 +16677,65 @@ function gcVenue(code){
   if (typeof bfVenueByCode === 'function'){ var v = bfVenueByCode(code); if (v) return v; }
   return ({ '01':'札幌','02':'函館','03':'福島','04':'新潟','05':'東京','06':'中山','07':'中京','08':'京都','09':'阪神','10':'小倉' }[code] || '');
 }
-/* ================= 中央: 月の開催日と日別の重賞 ================= */
-function gcMonthDates(y, m){
+/* ================= 中央: 年間の重賞日程テーブル ================= */
+function gcParseSchedule(html, year){
+  var rows = [];
+  var re = /<tr[^>]*class="schedule_list[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi, m;
+  while ((m = re.exec(String(html))) !== null){
+    var b = m[1];
+    var tds = b.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+    if (tds.length < 5) continue;
+    var pick = function(i){
+      return String(tds[i] || '').replace(/<[^>]*>/g, ' ')
+        .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+    };
+    var dm = pick(0).match(/(\d{1,2})\/(\d{1,2})/);
+    if (!dm) continue;
+    var nm = pick(1);
+    if (!nm) continue;
+    var grRaw = pick(2).toUpperCase();
+    var g = grRaw.indexOf('G1') >= 0 ? 'G1' : (grRaw.indexOf('G2') >= 0 ? 'G2' : (grRaw.indexOf('G3') >= 0 ? 'G3' : ''));
+    if (!g) continue;
+    rows.push({
+      date: year + ('0' + dm[1]).slice(-2) + ('0' + dm[2]).slice(-2),
+      name: nm, grade: g, venue: pick(3), dist: pick(4), cond: pick(5), no: ''
+    });
+  }
+  return rows;
+}
+/* 年度ぶんの日程（年1リクエスト）。空だった場合はキャッシュしない */
+function gcYearSchedule(y, progress){
   var ls = gcLs();
-  var key = y + '-' + m + '-dates';
-  if (ls.dates && ls.dates[key]) return Promise.resolve(ls.dates[key]);
-  return gcGet('https://race.netkeiba.com/top/calendar.html?year=' + y + '&month=' + m).then(function(html){
-    var out = [];
-    var seen = {};
-    var re = /race_list\.html\?kaisai_date=(\d{8})/g, x;
-    while ((x = re.exec(String(html))) !== null){
-      var d8 = x[1];
-      if (seen[d8]) continue; seen[d8] = 1;
-      if (d8.indexOf(String(y)) !== 0) continue;
-      out.push(d8);
+  if (ls.sched && ls.sched[y] && ls.sched[y].length) return Promise.resolve(ls.sched[y]);
+  progress = progress || function(){};
+  progress(y + '年の重賞日程を取得中…（1回の通信で年間分まとめて）');
+  // ※ /top/calendar.html は閲覧環境（UA）によって重賞テーブルが描画されない場合があるため、
+  //   「重賞日程」(/top/schedule.html?year=Y, 2002〜今年) を使う。こちらは常にテーブルが返る。
+  var urls = [
+    'https://race.netkeiba.com/top/schedule.html?year=' + y,
+    'https://race.netkeiba.com/top/calendar.html?year=' + y + '&month=1'
+  ];
+  var tryNext = function(i, lastHtml, lastErr){
+    if (i >= urls.length){
+      // 1つもHTMLが取れなかった = 通信/中継の問題（原因をそのまま返す）
+      if (lastHtml == null && lastErr) return Promise.reject(lastErr);
+      if (lastHtml && !/schedule_list|重賞|Race_Calendar/.test(String(lastHtml))){
+        throw new Error('重賞日程ページの応答が不正です（中継(リレー)の設定をご確認ください）');
+      }
+      return [];                         // 掲載前の年度など（空はキャッシュしない）
     }
-    out.sort();
-    ls.dates = ls.dates || {}; ls.dates[key] = out;
-    gcSave(ls);
-    return out;
-  });
+    return gcGet(urls[i]).then(function(html){
+      var rows = gcParseSchedule(html, y);
+      if (!rows.length) return tryNext(i + 1, html, lastErr);
+      ls.sched = ls.sched || {}; ls.sched[y] = rows;
+      gcSave(ls);
+      return rows;
+    }, function(e){ return tryNext(i + 1, lastHtml, e); });
+  };
+  return tryNext(0, null, null);
 }
 /* 日別一覧から「重賞(G1〜G3)のレース」を取り出す */
-function gcParseDay(html){
+function gcParseDay(html, all){
   var out = [];
   var seen = {};
   var items = String(html).match(/<li[^>]*class="[^"]*RaceList_DataItem[^"]*"[^>]*>([\s\S]*?)<\/li>/g) || [];
@@ -16665,59 +16753,71 @@ function gcParseDay(html){
       if (n === '2'){ grade = 'G2'; break; }
       if (n === '3'){ grade = 'G3'; break; }
     }
-    if (!grade) continue;
+    if (!grade && !all) continue;
     var name = '';
     var nmM = b.match(/class="ItemTitle">([\s\S]*?)<\/span>/);
     if (nmM) name = String(nmM[1]).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
     var no = '';
-    var nM = b.match(/(\d{1,2})R\s*<\/span>\s*<\/div>/);
+    var nM = b.match(/(\d{1,2})R\s*<\/span>\s*<\/div>/) || b.match(/Race_Num[^>]*>[\s\S]{0,40}?(\d{1,2})R/) || b.match(/(\d{1,2})R\s*</);
     if (nM) no = nM[1];
     out.push({ rid: rid, no: no, name: name || ('R' + no), grade: grade, venue: gcVenue(rid.substring(4, 6)) });
   }
   return out;
 }
-function gcDay(d8){
+function gcDay(d8, strict){
   var ls = gcLs();
-  if (ls.day && ls.day[d8]) return Promise.resolve(ls.day[d8]);
+  if (ls.day && ls.day[d8] && ls.day[d8].length) return Promise.resolve(ls.day[d8]);
   return gcGet('https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=' + d8).then(function(html){
-    var rows = gcParseDay(html);
+    if (strict && !/RaceList_Body|RaceList_Box|RaceList_DataList/i.test(String(html || ''))){
+      throw new Error('レース一覧を取得できませんでした（中継(リレー)の応答が空・不正の可能性）。「① データ入力」→「URL取込の通信設定」→「🔧 中継を診断」でご確認ください。');
+    }
+    var rows = gcParseDay(html, true);      // 名前解決用に重賞以外も含めて取る
     rows.forEach(function(r){ r.date = d8; });
-    ls.day = ls.day || {}; ls.day[d8] = rows;
-    gcSave(ls);
+    if (rows.length){ ls.day = ls.day || {}; ls.day[d8] = rows; gcSave(ls); }
     return rows;
-  }).catch(function(){ return []; });
+  }).catch(function(e){ if (strict) throw e; return []; });
 }
-/* 月の全重賞（中央のみ）。キャッシュキー y-m */
+/* 月の中央重賞（日程テーブルから絞り込むだけ。通信は年1回） */
 function gcMonth(y, m, progress){
-  var ls = gcLs();
-  var key = y + '-' + m;
-  if (ls.mon && ls.mon[key]) return Promise.resolve(ls.mon[key]);
   progress = progress || function(){};
-  return gcMonthDates(y, m).then(function(dates){
-    var all = [];
-    var done = 0;
-    return new Promise(function(res){
-      (function next(){
-        if (done >= dates.length){ res(all); return; }
-        var d8 = dates[done++];
-        progress(d8);
-        gcDay(d8).then(function(rows){
-          all = all.concat(rows || []);
-          next();
-        }, function(){ next(); });
-      })();
-    });
-  }).then(function(all){
-    var map = {};      // rid 重複除去（同名Rを別日に重複取得することはない想定だが保険）
-    var rows = [];
-    all.forEach(function(r){ if (!map[r.rid]){ map[r.rid] = 1; rows.push(r); } });
-    rows.sort(function(a, b){ return (a.date || '').localeCompare(b.date || '') || (a.no || '0').localeCompare(b.no || '0'); });
-    ls.mon = ls.mon || {}; ls.mon[key] = rows;
-    gcSave(ls);
-    return rows;
+  return gcYearSchedule(y, progress).then(function(rows){
+    return (rows || []).filter(function(r){ return parseInt(String(r.date).slice(4, 6), 10) === m; });
   });
 }
-
+/* レース名の照合キー（「第◯回」「(G2)」などを落として比較） */
+function gcNameCore(s){
+  var t = String(s == null ? '' : s)
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .replace(/^第\s*\d+\s*回/, '')
+    .replace(/ステークス/g, 'S').replace(/記念/g, '記念')
+    .replace(/[\s\u3000・･。、,]/g, '');
+  return t.toUpperCase();
+}
+/* 日程テーブルには race_id が無いので、日別一覧のレース名から解決する */
+function gcResolveRid(date8, name, progress){
+  progress = progress || function(){};
+  var key = date8 + '|' + gcNameCore(name);
+  var ls = gcLs();
+  if (ls.ridmap && ls.ridmap[key]) return Promise.resolve(ls.ridmap[key]);
+  progress('レースIDを照合中…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）');
+  return gcDay(date8, true).then(function(rows){
+    var want = gcNameCore(name);
+    var hit = null, loose = null;
+    (rows || []).forEach(function(r){
+      if (hit) return;
+      var have = gcNameCore(r.name);
+      if (!have) return;
+      var exact = (have === want) || (have.indexOf(want) >= 0) || (want.indexOf(have) >= 0);
+      if (!exact) return;
+      if (r.grade) hit = r; else if (!loose) loose = r;
+    });
+    var use = hit || loose;
+    if (!use) return '';
+    ls.ridmap = ls.ridmap || {}; ls.ridmap[key] = use.rid;
+    gcSave(ls);
+    return use.rid;
+  });
+}
 /* ================= 地方交流 Jpn（db.netkeiba検索・年度ごと） ================= */
 var GCL_JPN = [
   { word: '川崎記念',          level: 'Jpn1' },
@@ -16829,12 +16929,12 @@ function gcMonthBar(){
   var bar = $('gcMonthBar'); if (!bar) return;
   var h = [];
   var ls = gcLs();
+  var sched = (ls.sched && ls.sched[gcUI.y]) || [];
+  var jpnAll = (ls.jpn && ls.jpn['jpn-' + gcUI.y]) || [];
   for (var m = 1; m <= 12; m++){
-    var cnt = '';
-    var rows = ls.mon && ls.mon[gcUI.y + '-' + m];
-    if (rows && rows.length) cnt = '<span class="cnt">' + rows.length + '</span>';
-    var jpn = (ls.jpn && ls.jpn['jpn-' + gcUI.y] || []).filter(function(r){ return +r.date.slice(4, 6) === m; });
-    if (jpn.length) cnt = '<span class="cnt">' + ((rows ? rows.length : 0) + jpn.length) + '</span>';
+    var c = sched.filter(function(r){ return parseInt(String(r.date).slice(4, 6), 10) === m; }).length +
+            jpnAll.filter(function(r){ return parseInt(String(r.date).slice(4, 6), 10) === m; }).length;
+    var cnt = c ? '<span class="cnt">' + c + '</span>' : '';
     h.push('<button type="button" class="gcm' + (gcUI.m === m ? ' gcm-a' : '') + '" data-gcm="' + m + '">' + m + '月' + cnt + '</button>');
   }
   bar.innerHTML = h.join('');
@@ -16879,11 +16979,14 @@ function gcRenderMonth(y, m, central, jpn, needDate){
       // 並び順: 中央はR番順・Jpn後
       list.sort(function(a, b){ return (a.jpn ? 90 : (parseInt(a.no,10)||0)) - (b.jpn ? 90 : (parseInt(b.no,10)||0)); });
       list.forEach(function(r){
-        var key = r.rid || (r.name + r.date);
+        var key = r.rid || (r.date + '|' + r.name);
         var done = inFuture ? ' done' : '';
         var cls = (r.grade === 'G1') ? 'g1' : (r.grade === 'G2') ? 'g2' : (r.grade === 'G3') ? 'g3' : 'jpn';
+        var tip = r.grade + ' ' + r.name + (r.venue ? '（' + r.venue + '）' : '') + (r.dist ? ' ' + r.dist : '') +
+          (r.rid ? '' : ' ・クリックでレースIDを照合して分析します') + (done ? ' ・開催前のため分析は発走後〜' : '');
         h.push('<button type="button" class="gcr' + done + '" data-gcr="' + esc(key) + '" data-rid="' + esc(r.rid || '') + '"' +
-          ' title="' + esc(r.grade + ' ' + r.name + (r.venue ? '（' + r.venue + '）' : '') + (done ? ' ・開催前のため分析は発走前後にどうぞ' : '')) + '">' +
+          ' data-date="' + esc(r.date || '') + '" data-name="' + esc(r.name || '') + '"' +
+          ' title="' + esc(tip) + '">' +
           '<span class="gb ' + cls + '">' + esc(r.grade) + '</span><span class="gn">' + esc(r.name) + '</span>' +
           (r.venue ? '<span class="gv">' + esc(r.venue) + '</span>' : '') + '</button>');
       });
@@ -16892,7 +16995,7 @@ function gcRenderMonth(y, m, central, jpn, needDate){
     h.push('</tr>');
   }
   h.push('</tbody></table>');
-  if (!dates.length) h.push('<div class="small muted" style="margin-top:4px">この月の重賞はまだ netkeiba に掲載されていません（今年の後半開催などは開催日が確定してから表示されます）。</div>');
+  if (!central.length && !jpn.length) h.push('<div class="small muted" style="margin-top:4px">この月の重賞はまだ netkeiba に掲載されていません（今年の後半開催などは開催日が確定してから表示されます）。「↻ 再取得」で最新を取得できます。</div>');
   cal.innerHTML = h.join('');
 }
 function gcToday8(){
@@ -16902,7 +17005,7 @@ function gcToday8(){
 /* キャッシュ内容から月を描画（中央は必ず、Jpnは取得済みなら併記） */
 function gcRenderLoaded(y, m, withJpn){
   var ls = gcLs();
-  var central = (ls.mon && ls.mon[y + '-' + m]) || [];
+  var central = ((ls.sched && ls.sched[y]) || []).filter(function(r){ return parseInt(String(r.date).slice(4, 6), 10) === m; });
   var jpnRows = (withJpn && ls.jpn && ls.jpn['jpn-' + y]) ? ls.jpn['jpn-' + y].filter(function(r){ return +r.date.slice(4, 6) === m; }) : [];
   gcRenderMonth(y, m, central, jpnRows);
   var tot = central.length + jpnRows.length;
@@ -16911,45 +17014,55 @@ function gcRenderLoaded(y, m, withJpn){
   gcMonthBar();
 }
 function gcLoadMonth(y, m){
-  // 中央（race.netkeiba）と 地方交流Jpn（db.netkeiba検索）は別々に取得。
-  // Jpn検索は初回に十数秒かかるため、中央の月表示を先に出し、
-  // Jpnは「別途あとから」反映する（失敗しても中央は表示されたまま）。
+  // 中央は「重賞日程(年1取得)」から月で絞るだけ。地方交流Jpnは別経路（失敗しても中央は表示維持）
   var withJpn = !!($('gcJpn') && $('gcJpn').checked);
   gcUI.y = y; gcUI.m = m;
   var ym = $('gcYear'); if (ym) ym.value = String(y);
   gcMonthBar();
-  gcSetMsg(m + '月の重賞を読み込んでいます…（開催日数により数秒〜十数秒）');
+  gcSetMsg(m + '月の重賞を読み込んでいます…');
   var ls = gcLs();
-  var centralCached = !!(ls.mon && ls.mon[y + '-' + m]);
   var jpnCached = !withJpn || !!(ls.jpn && ls.jpn['jpn-' + y]);
-  // 1) 中央分を用意（キャッシュ or 取得）
-  var p = centralCached ? Promise.resolve() : gcMonth(y, m, function(d8){
-    gcSetMsg(m + '月の開催日を取得中… ' + d8.slice(4, 6) + '/' + d8.slice(6, 8));
-  });
-  p.then(function(){
-    if (gcUI.y === y && gcUI.m === m) gcRenderLoaded(y, m, withJpn && jpnCached);
-    // 2) Jpnが未取得なら後から反映（失敗しても中央表示は保持）
+  var renderLoadedWith = function(rows){
+    var ls2 = gcLs();
+    var jpnRows = (withJpn && ls2.jpn && ls2.jpn['jpn-' + y])
+      ? ls2.jpn['jpn-' + y].filter(function(r){ return parseInt(String(r.date).slice(4, 6), 10) === m; }) : [];
+    gcRenderMonth(y, m, rows, jpnRows);
+    var tot = rows.length + jpnRows.length;
+    gcSetMsg('✅ ' + y + '年' + m + '月の重賞 ' + tot + ' 件（中央' + rows.length +
+      (jpnRows.length ? '・地方Jpn' + jpnRows.length : '') + '）を表示。レース名をクリックで⑥分析。');
+    gcMonthBar();
+  };
+  gcUI.rows = [];
+  gcMonth(y, m, function(msg){ if (gcUI.y === y && gcUI.m === m) gcSetMsg(msg); }).then(function(rows){
+    if (!(gcUI.y === y && gcUI.m === m)) return;
+    gcUI.rows = rows;
+    renderLoadedWith(rows);
     if (withJpn && !jpnCached){
-      gcSetMsg('✅ 中央の重賞を表示しました。地方交流JpnレースをDB検索中（初回は十数秒ほど）…');
+      gcSetMsg('✅ 中央の重賞 ' + rows.length + ' 件を表示。地方交流JpnレースをDB検索中（初回は十数秒ほど）…');
       gcJpn(y).then(function(){
-        if (gcUI.y === y && gcUI.m === m) gcRenderLoaded(y, m, true);
+        if (gcUI.y === y && gcUI.m === m) renderLoadedWith(rows);
       }).catch(function(e2){
         if (!(gcUI.y === y && gcUI.m === m)) return;
-        gcSetMsg('✅ 中央の重賞を表示しました。地方交流Jpnは取得できませんでした（' +
-          ((e2 && e2.message) || e2) + '）。チェックを外すとJpnなしで表示します。', true);
+        renderLoadedWith(rows);
+        gcSetMsg('✅ 中央の重賞 ' + rows.length + ' 件を表示。地方交流Jpnは取得できませんでした（' +
+          ((e2 && e2.message) || e2) + '）。', true);
       });
     }
   }).catch(function(e){
     if (!(gcUI.y === y && gcUI.m === m)) return;
-    gcSetMsg('中央重賞の取得に失敗しました: ' + ((e && e.message) || e) + '。「↻ 再取得」でやり直せます。', true);
+    gcSetMsg('重賞カレンダーを取得できませんでした: ' + ((e && e.message) || e) +
+      '　※「① データ入力」→「URL取込の通信設定」→「🔧 中継を診断」で中継を確認し、「↻ 再取得」でやり直せます。', true);
   });
 }
 function gcReloadYear(){
   var y = gcUI.y;
   var ls = gcLs();
-  ['mon', 'dates', 'jpn'].forEach(function(k){
+  // 旧形式(mon/dates)も含めて、この年度のキャッシュを消してから取り直す
+  ['mon', 'dates', 'jpn', 'sched'].forEach(function(k){
     if (ls[k]) Object.keys(ls[k]).forEach(function(key){ if (key.indexOf(String(y)) === 0 || key.indexOf('jpn-' + y) === 0) delete ls[k][key]; });
   });
+  if (ls.day){ Object.keys(ls.day).forEach(function(d8){ if (d8.indexOf(String(y)) === 0) delete ls.day[d8]; }); }
+  if (ls.ridmap){ Object.keys(ls.ridmap).forEach(function(key){ if (key.indexOf(String(y)) === 0) delete ls.ridmap[key]; }); }
   gcSave(ls);
   gcSetMsg('この年度のカレンダー情報を消去しました。読み込み直します。');
   gcLoadMonth(y, gcUI.m);
@@ -16979,6 +17092,24 @@ function gcAnalyzeRid(rid){
     if (msg) msg.innerHTML = '<span style="color:#a3442f">⚠ 分析できませんでした: ' + esc((e && e.message) || e) + '</span>';
   });
 }
+/* 日程テーブルの行（日付＋レース名）から rid を解決して⑥分析を実行 */
+function gcAnalyzeByDate(date8, name){
+  var card = $('gcAnaCard'), msg = $('gcAnaMsg'), chip = $('gcAnaChip'), out = $('gcOut');
+  if (card) card.classList.remove('hid');
+  if (chip) chip.textContent = name;
+  if (out) out.innerHTML = '';
+  if (msg) msg.textContent = 'レースIDを照合しています…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）';
+  gcResolveRid(date8, name, function(m2){ if (msg) msg.textContent = m2; }).then(function(rid){
+    if (!rid){
+      if (msg) msg.innerHTML = '<span style="color:#a3442f">⚠ レースIDを特定できませんでした（' + esc(name) +
+        '）。この日のレース一覧に同名のレースが見つかりません。①で出馬表を読み込んでから「📥 この重賞の過去10年を分析」をお試しください。</span>';
+      return;
+    }
+    gcAnalyzeRid(rid);
+  }).catch(function(e){
+    if (msg) msg.innerHTML = '<span style="color:#a3442f">⚠ ' + esc((e && e.message) || e) + '</span>';
+  });
+}
 function gcEvent(){
   // 月切替
   var bar = $('gcMonthBar');
@@ -17004,14 +17135,18 @@ function gcEvent(){
   // 分析カード内のクリック: レース選択
   var cal = $('gcCal');
   if (cal) cal.addEventListener('click', function(e){
-    var b = (e.target && e.target.closest) ? e.target.closest('[data-rid]') : null;
+    var b = (e.target && e.target.closest) ? e.target.closest('[data-gcr]') : null;
     if (!b) return;
     var rid = b.getAttribute('data-rid') || '';
-    if (b.className.indexOf('done') >= 0 || !rid){
-      gcSetMsg('このレースは開催前のためridが未確定です（netkeibaに掲載される発走の数日前〜当日に読み直すと分析できます）。');
+    var date8 = b.getAttribute('data-date') || '';
+    var name = b.getAttribute('data-name') || '';
+    if (rid){ gcAnalyzeRid(rid); return; }
+    // 日程テーブルには race_id が無いので、日別レース一覧から名前一致で解決する
+    if (!date8 || !name){
+      gcSetMsg('このレースの情報が未確定です。日別の出馬表を①で読み込むと確実に分析できます。');
       return;
     }
-    gcAnalyzeRid(rid);
+    gcAnalyzeByDate(date8, name);
   });
   // 閉じる
   var cl = $('gcAnaClose');
