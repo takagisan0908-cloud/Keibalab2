@@ -727,6 +727,7 @@ table.htbl th, table.htbl td{border:1px solid #d3e0d2;padding:4px 7px}
           <input id="urlRelayInp" placeholder="https://xxxx.workers.dev/fetch" style="flex:1;min-width:260px">
           <button class="btn" id="btnRelaySave">保存</button>
           <button class="btn ghost" id="btnRelayTest">接続テスト</button>
+          <button class="btn primary" id="btnRelayAuto" title="自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）→ 予備の公開プロキシ の順に試し、最初に成功したものを保存します">🔎 使える中継を自動で選ぶ</button>
         </div>
         <div style="margin-top:8px"><button class="btn primary" id="btnRelayDiag">🔧 中継を診断（今デプロイしたURLで確認）</button>
           <span class="small muted"> 自動で各経路を試し「どれが動いているか/どう直せばいいか」を表示します</span>
@@ -1676,6 +1677,64 @@ function nkRepairText(t){
     } catch(e){}
   });
   return best;
+}
+/* ===== 中継(リレー)URLの組み立て（2026-09-10） =====
+   中継URLの書き方はサービスごとに違う。次の3通りに対応する。
+     1) 既定      http://host/relay + '?url=' + エンコードしたURL
+     2) {url}     例 https://xxx.com/?target={url}     … エンコード済みURLを差し込む
+     3) {rawurl}  例 https://cors.eu.org/{rawurl}       … URLそのものを差し込む
+   （GAS / Deno Deploy / 一部の公開プロキシは 2)3) の形になる） */
+function nkRelayBuild(base, target, method, body){
+  base = String(base || ''); target = String(target || '');
+  var url;
+  if (base.indexOf('{rawurl}') >= 0) url = base.split('{rawurl}').join(target);
+  else if (base.indexOf('{url}') >= 0) url = base.split('{url}').join(encodeURIComponent(target));
+  else url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(target);
+  if (method && String(method).toUpperCase() !== 'GET'){
+    url += '&method=' + encodeURIComponent(method) + '&body=' + encodeURIComponent(body || '');
+  }
+  return url;
+}
+/* 予備の中継（公開プロキシ）。アカウント不要で使えるが、遅い/不安定なことがある。
+   自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）が使えないときの緊急用。 */
+function nkRelayPresets(){
+  return [
+    { name: '予備: cors.eu.org（公開プロキシ）', url: 'https://cors.eu.org/{rawurl}', pub: true },
+    { name: '予備: allorigins（公開プロキシ）', url: 'https://api.allorigins.win/raw?url={url}', pub: true }
+  ];
+}
+/* 文字コードの判定。中継が文字コードを変換せずに素通しすると、EUC-JP のページが
+   U+FFFD だらけになる。バイト列から「置換文字が少ない読み方」を選ぶ。 */
+function nkScoreDecoded(s){
+  s = String(s == null ? '' : s);
+  var fffd = (s.match(/\uFFFD/g) || []).length;
+  return nkJPCount(s) - fffd * 3;
+}
+function nkDecodeBytes(buf, urlHint){
+  var bytes = (buf && buf.byteLength != null) ? new Uint8Array(buf) : new Uint8Array(0);
+  var hint = '';
+  var u = String(urlHint || '');
+  if (/db\.netkeiba\.com/.test(u)) hint = 'euc-jp';
+  else if (/jra\.go\.jp/.test(u)) hint = 'shift_jis';
+  var tryUtf8 = null;
+  try { tryUtf8 = new TextDecoder('utf-8').decode(bytes); } catch(e){}
+  if (tryUtf8 != null && (tryUtf8.match(/\uFFFD/g) || []).length < 5) return nkRepairText(tryUtf8);
+  var encs = [];
+  if (hint) encs.push(hint);
+  ['euc-jp','shift_jis','utf-8'].forEach(function(e){ if (encs.indexOf(e) < 0) encs.push(e); });
+  var best = tryUtf8, bestScore = (tryUtf8 == null) ? -Infinity : nkScoreDecoded(tryUtf8);
+  encs.forEach(function(enc){
+    try {
+      var s = new TextDecoder(enc).decode(bytes);
+      var sc = nkScoreDecoded(s);
+      if (sc > bestScore){ bestScore = sc; best = s; }
+    } catch(e){}
+  });
+  return nkRepairText(best == null ? '' : best);
+}
+/* fetch のレスポンスを「文字コードを直したテキスト」にする */
+function nkRespText(r, urlHint){
+  return r.arrayBuffer().then(function(buf){ return nkDecodeBytes(buf, urlHint); });
 }
 /* 「あれば配線する」版。HTMLに無いUI(旧バージョンのピッカー等)でも例外にしない */
 function bindIf(id, ev, fn){
@@ -4863,8 +4922,8 @@ function nkFetchTimeout(url, ms){
     var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, ms);
     fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store',
       headers: { 'Accept': 'text/html,application/json,*/*' } })
-    .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
+    .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return nkRespText(r, url); })
+    .then(function(t){ res(t); })
     .catch(function(e){ clearTimeout(timer); rej(e); });
   });
 }
@@ -4883,7 +4942,7 @@ function nkFetchCardText(raceId){
         return;
       }
       var base = candidates[i];
-      var full = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(u);
+      var full = nkRelayBuild(base, u);
       nkFetchTimeout(full, 15000).then(function(t){
         var looksEmpty = !t || t.length < 300;
         var looksJson  = !looksEmpty && /^\s*[\{\[]/.test(t) && !/<html/i.test(t);
@@ -4893,8 +4952,7 @@ function nkFetchCardText(raceId){
     };
     var doDirect = function(){
       fetch(u, { cache: 'no-store', headers: { 'Accept': 'text/html' } })
-        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-        .then(function(t){ return (typeof nkRepairText === 'function') ? nkRepairText(t) : t; })
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return nkRespText(r, u); })
         .then(function(t){ res(t); })
         .catch(function(e){ rej(new Error('直接取得も失敗: '+e.message+'。※netkeiba側がCORS未対応のため、公開サイトからは中継設定が必要です。')); });
     };
@@ -5237,7 +5295,7 @@ function nkTestRelay(){
   var custom = $('urlRelayInp').value.trim();
   if (el) el.innerHTML = '…接続テスト中';
   if (!custom){ if(el) el.innerHTML = 'カスタム中継URLが未入力です。'; return; }
-  nkFetchTimeout(custom + (custom.indexOf('?')>=0?'&':'?') + 'url=' + encodeURIComponent('https://race.netkeiba.com/top/index.html'), 15000)
+  nkFetchTimeout(nkRelayBuild(custom, 'https://race.netkeiba.com/top/index.html'), 15000)
     .then(function(t){
       if (t && t.length > 500 && /netkeiba/i.test(t)){ if(el) el.innerHTML = '✅ 中継OK。このURLで出馬表の取得が可能です'; }
       else { if(el) el.innerHTML = '⚠ 応答はあるがnetkeibaの内容が返っていません。URLの指定( /fetch の有無)を確認してください'; }
@@ -5316,7 +5374,7 @@ function nkDiagTargets(){
   ];
 }
 function nkDiagToken(base, target){
-  return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(target);
+  return nkRelayBuild(base, target);
 }
 /* 1つのURLを生テキストで取得（文字化け判定もする） */
 function nkDiagFetchOne(base, t, token){
@@ -5360,6 +5418,9 @@ function nkDiagRelay(cfg){
   if (state.urlRelay) cands.push(['カスタム中継(' + state.urlRelay + ')', state.urlRelay]);
   cands.push(['Netlify /.netlify/functions/race', '/.netlify/functions/race']);
   cands.push(['Pages/Vercel /api/race', '/api/race']);
+  (typeof nkRelayPresets === 'function' ? nkRelayPresets() : []).forEach(function(p){
+    if (!cands.some(function(c){ return c[1] === p.url; })) cands.push([p.name, p.url]);
+  });
   return new Promise(function(done){
     var lines = [], anyOk = false, anyPost = false, badHost = {}, okHost = {}, usedRelay = '';
     var ci = 0;
@@ -5423,6 +5484,46 @@ function nkDiagRelay(cfg){
     nextCand();
   });
 }
+/* 中継を自動で選ぶ: 自前の中継（Netlify/Vercel/Cloudflare/Deno/GAS）→ 公開プロキシ の順に試し、
+   最初に成功したものを保存する。ホストを引っ越した直後にこれ1つ押せば繋がる。 */
+function nkAutoPickRelay(){
+  var el = $('urlLog2');
+  if (el) el.innerHTML = '🔎 使える中継を探しています…（数秒〜十数秒。自前の中継 → 予備の公開プロキシの順に確認します）';
+  var test = 'https://race.netkeiba.com/race/shutuba.html?race_id=202609040211';
+  var cands = [];
+  if (state.urlRelay) cands.push({ name:'カスタム中継', url: state.urlRelay });
+  cands.push({ name:'Netlify (.netlify/functions/race)', url:'/.netlify/functions/race' });
+  cands.push({ name:'Vercel/Cloudflare Pages (/api/race)', url:'/api/race' });
+  cands = cands.concat(typeof nkRelayPresets === 'function' ? nkRelayPresets() : []);
+  var lines = [], i = 0;
+  function tryNext(){
+    if (i >= cands.length){
+      if (el) el.innerHTML = lines.join('<br>') + '<br>👉 <b>使える中継が見つかりませんでした。</b>通信設定の手順（同梱の「別ホストで運用する手順」）をご確認ください。';
+      return;
+    }
+    var c = cands[i++];
+    nkFetchTimeout(nkRelayBuild(c.url, test), 12000).then(function(t){
+      var ok = t && t.length > 300 && /Shutuba_Table|RaceName|HorseList|netkeiba/i.test(t);
+      if (!ok){
+        lines.push('⚠ ' + c.name + ' → 応答はあるが内容が違います(' + (t ? t.length : 0) + 'byte)');
+        return tryNext();
+      }
+      var prev = state.urlRelay || '';
+      if (c.pub || !/^(\/|\.)/.test(c.url)) state.urlRelay = c.url;   // 相対パスの中継は保存不要
+      saveNow();
+      lines.push('✅ ' + c.name + ' で接続できました。');
+      if (c.pub) lines.push('⚠ これは<b>予備の公開プロキシ</b>です（無料・アカウント不要ですが、遅い/不安定なことがあります）。自前の中継を用意できたら差し替えてください。');
+      lines.push(state.urlRelay ? ('保存した中継URL: ' + state.urlRelay) : 'このまま（アプリ内蔵の中継候補）で使えます。');
+      if (el) el.innerHTML = lines.join('<br>');
+      var inp = $('urlRelayInp'); if (inp) inp.value = state.urlRelay || '';
+      if (prev !== state.urlRelay && typeof drClearCache === 'function'){ /* キャッシュはそのままでOK */ }
+    }).catch(function(e){
+      lines.push('⚠ ' + c.name + ' → 接続できません（' + ((e && e.message) || e) + '）');
+      tryNext();
+    });
+  }
+  tryNext();
+}
 function initUrlImport(){
   var inp = $('urlRelayInp');
   if (inp) inp.value = state.urlRelay || '';
@@ -5436,6 +5537,7 @@ function initUrlImport(){
     var el = $('urlLog2'); if (el) el.innerHTML = '保存しました。「中継を診断」で確認できます。';
   });
   on('btnRelayTest', 'click', nkTestRelay);
+  bindIf('btnRelayAuto', 'click', nkAutoPickRelay);
   on('btnRelayDiag', 'click', function(){ nkDiagRelay(); });
   bindIf('drDiag', 'click', function(){ nkDiagRunInto('drMsg'); });
   bindIf('gcDiag', 'click', function(){ nkDiagRunInto('gcMsg'); });
@@ -5624,13 +5726,13 @@ function nkBiasFetchText(url){
     function next(){
       if (k >= cands.length){ rej(new Error('中継が未設定のため自動取込できません（出馬表URL取込と同じ設定が必要）。OCR・テキスト取込でも入力できます。')); return; }
       var base = cands[k++];
-      var full = base + (base.indexOf('?')>=0?'&':'?') + 'url=' + encodeURIComponent(url);
+      var full = nkRelayBuild(base, url);
       var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var timer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 15000);
       fetch(full, { signal: ctrl ? ctrl.signal : undefined, cache:'no-store',
         headers:{'Accept':'text/html,application/json,*/*'} })
-      .then(function(r){ clearTimeout(timer); if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-      .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
+      .then(function(r){ clearTimeout(timer); if(!r.ok) throw new Error('HTTP '+r.status); return nkRespText(r, url); })
+      .then(function(t){ res(t); })
       .catch(function(e){ clearTimeout(timer); if(k < cands.length) next(); else rej(e); });
     }
     next();
@@ -6341,7 +6443,7 @@ function histFetchHtml(url){
     var attempt = function(){
       if (idx < candidates.length){
         var base = candidates[idx++];
-        var full = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
+        var full = nkRelayBuild(base, url);
         nkFetchTimeout(full, 30000).then(function(t){
           if (!t || t.length < 400 || /^\s*[\[{]/.test(t)) { attempt(); return; }
           res(t);
@@ -6782,7 +6884,7 @@ function stFetchHtml(url){
     var attempt = function(){
       if (idx < candidates.length){
         var base = candidates[idx++];
-        var full = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
+        var full = nkRelayBuild(base, url);
         nkFetchTimeout(full, 30000).then(function(t){
           if (!t || t.length < 300 || /^\s*[\[{]/.test(t)) { attempt(); return; }
           res(t);
@@ -9938,8 +10040,8 @@ function kaiFetchTimeout(url, ms){
     var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, ms);
     fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store' })
-      .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(function(t){ res(typeof nkRepairText === 'function' ? nkRepairText(t) : t); })
+      .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return nkRespText(r, url); })
+      .then(function(t){ res(t); })
       .catch(function(e){ clearTimeout(timer); rej(e); });
   });
 }
@@ -9956,7 +10058,7 @@ function kaiFetchAny(url){
     function next(i){
       if (i >= cands.length){ if (!triedDirect) direct(); else rej(new Error('取得に失敗しました: ' + (lastErr ? lastErr.message : '通信不可'))); return; }
       var base = cands[i];
-      var full = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
+      var full = nkRelayBuild(base, url);
       kaiFetchTimeout(full, 15000).then(function(t){
         var empty = !t || t.length < 300;
         var json = !empty && /^\s*[\{\[]/.test(t) && !/<html/i.test(t);
@@ -10395,8 +10497,8 @@ function jvDateLabel(d8){
 /* ===== 中継リレー（POST対応） ===== */
 function jvRelayBuild(base, url, method, body){
   var sep = base.indexOf('?') >= 0 ? '&' : '?';
-  var s = base + sep + 'url=' + encodeURIComponent(url);
-  if (method && method !== 'GET'){
+  var s = nkRelayBuild(base, url);
+  if (method && method !== 'GET'){   // nkRelayBuild で method/body を付けるため分岐は残す
     s += '&method=' + encodeURIComponent(method) + '&body=' + encodeURIComponent(body || '');
   }
   return s;
@@ -10839,7 +10941,7 @@ function pgFetchRaw(nk){
   return new Promise(function(res, rej){
     function tryNext(i){
       if (i >= cands.length){ rej(new Error('血統取得に失敗: ' + (lastErr ? lastErr.message : '中継なし'))); return; }
-      var full = cands[i] + (cands[i].indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
+      var full = nkRelayBuild(cands[i], url);
       (typeof nkFetchTimeout === 'function' ? nkFetchTimeout(full, 15000) : Promise.reject(new Error('no fetch')))
         .then(function(t){ res(t); })
         .catch(function(e){ lastErr = e; tryNext(i + 1); });
@@ -12307,7 +12409,7 @@ function bfGet(url){
     function nxt(){
       if (i >= cands.length){ rej(new Error('中継なし')); return; }
       var b = cands[i++];
-      var full = b + (b.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url);
+      var full = nkRelayBuild(b, url);
       (typeof nkFetchTimeout === 'function' ? nkFetchTimeout(full, 30000) : Promise.reject(new Error('no fetch')))
         .then(function(t){ if (!t || t.length < 400) nxt(); else res(t); })
         .catch(function(){ nxt(); });
