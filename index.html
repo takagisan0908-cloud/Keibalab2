@@ -261,7 +261,10 @@ footer{max-width:1180px;margin:0 auto;padding:6px 18px 40px;font-size:.74rem;col
 /* AI印と総合評価の表を縦に伸びないようコンパクトに */
 table.ktbl{font-size:.75rem}
 table.ktbl th,table.ktbl td{padding:2px 5px;white-space:nowrap;vertical-align:middle}
-table.ktbl .fc{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle}
+table.ktbl .fc{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;border:1px solid rgba(0,0,0,.35)}
+/* 枠色チップ（背景＝枠色 / 文字＝読める色）。1枠=白・2枠=黒でも判別できるよう縁を付ける */
+.fcno{display:inline-block;min-width:1.35em;text-align:center;padding:0 4px;border-radius:4px;
+  font-weight:800;font-size:.85rem;line-height:1.5;border:1px solid rgba(0,0,0,.35);white-space:nowrap}
 table.ktbl .kt-p{color:var(--ok-ink);font-weight:800}
 table.ktbl td.vm{vertical-align:middle}
 table.ktbl .hname{display:inline-block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
@@ -301,45 +304,9 @@ main,footer,.tabs-inner{min-width:0}
 nav.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:10px}
 nav.tabs::-webkit-scrollbar{display:none}
 nav.tabs .tab{flex:0 0 auto}
-.simplayer{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#0b1a10,#050a07);
-  border:1px solid var(--line2);box-shadow:0 8px 24px rgba(10,40,20,.35)}
-.simplayer canvas{width:100%;height:auto;display:block}
-.simfsbtn{position:absolute;top:8px;right:10px;z-index:6;background:rgba(255,255,255,.92);color:var(--ink);border:1px solid rgba(0,0,0,.18);
-  border-radius:9px;font-size:1rem;line-height:1;padding:7px 9px;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.35)}
-.simfsbtn:active{background:var(--card)}
-.simplaybtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;border:none;cursor:pointer;
-  width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--ok-ink);font-size:22px;
-  display:flex;align-items:center;justify-content:center;border:2px solid rgba(20,90,50,.5);box-shadow:0 4px 16px rgba(0,0,0,.35)}
-.simplaybtn:active{transform:translate(-50%,-50%) scale(.95)}
-.simfsbar{position:absolute;left:0;right:0;top:0;z-index:4;height:34px;
-  background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);pointer-events:none}
-.simfsbar .sbt{position:absolute;left:10px;top:6px;color:var(--on-accent);font-size:.68rem;letter-spacing:.12em;opacity:.95;pointer-events:none}
-.simplayer:fullscreen{border-radius:0;border:none;width:100vw;height:100vh}
-.simplayer:fullscreen canvas{width:100vw;height:100vh;object-fit:contain;background:#070c09}
-.simplayer:-webkit-full-screen{border-radius:0;border:none;width:100vw;height:100vh}
-.simplayer:-webkit-full-screen canvas{width:100vw;height:100vh;object-fit:contain;background:#070c09}
-.simrot{font-size:.72rem;color:var(--mut)}
 .tblwrap{max-width:100%}
 table{max-width:100%}
 @supports (-webkit-touch-callout:none){ .progbar i{background-size:200% 100%} }
-/* ===== レース結果TV確定板（simBoard） ===== */
-.simboard{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;
-  background:rgba(230,240,230,.4);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:1;transition:opacity .5s}
-.simboard.fade{opacity:0;pointer-events:none}
-.simboard.hide{display:none}
-.simboard .board{width:min(560px,92%);border-radius:14px;overflow:hidden;border:1px solid #2b6e3f;box-shadow:0 16px 46px rgba(10,50,25,.35);background:var(--card)}
-.simboard .bhead{background:linear-gradient(135deg,#0c6a36,#14a95c);color:var(--on-accent);text-align:center;padding:10px 12px;font-weight:900;letter-spacing:.06em;font-size:1rem}
-.simboard table{width:100%;border-collapse:collapse}
-.simboard thead th{position:static}
-.simboard th{background:var(--card2);color:var(--ok-ink);font-size:.72rem;padding:6px 4px}
-.simboard .placeNo.pn1{background:linear-gradient(135deg,#ffe28a,#d0a018);color:var(--ink);border:1px solid var(--line2)}
-.simboard .placeNo.pn2{background:linear-gradient(135deg,var(--card2),var(--tint2));color:var(--ink);border:1px solid var(--line2)}
-.simboard .placeNo.pn3{background:linear-gradient(135deg,#f0b06b,#a5672a);color:var(--ink);border:1px solid #cf8a45}
-.simboard .placeNo.pn4,.simboard .placeNo.pn5{background:var(--card2);color:var(--ok-ink);border:1px solid var(--line2)}
-.simboard td{padding:7px 6px;font-size:.95rem;border-bottom:1px solid var(--line);text-align:center}
-.simboard tr.no1 td{background:var(--card2);color:var(--warn-ink);font-weight:800}
-.simboard .placeNo{display:inline-block;width:34px;height:34px;border-radius:50%;color:var(--on-accent);font-weight:900;line-height:34px;text-align:center}
-.simboard .bfoot{padding:9px 12px;font-size:.78rem;color:var(--ok-ink);text-align:center;border-top:1px dashed var(--line2)}
 @media (max-width:760px){
   body{font-size:14.5px}
   main{padding:10px 10px 34px}
@@ -369,8 +336,6 @@ table{max-width:100%}
   .slider label{flex-basis:100%}
   .simplaybtn{width:56px;height:56px;font-size:19px}
   .marks-line{font-size:.85rem}
-  .simboard td{font-size:.82rem;padding:5px 4px}
-  .simboard .placeNo{width:28px;height:28px;line-height:28px;font-size:.85rem}
 }
 @media (max-width:420px){
   .otypeGrid{grid-template-columns:1fr}
@@ -609,6 +574,20 @@ table.gc-tbl td.gc-cell.off{background:var(--card2);border-style:dashed}
 .bfdeep .bfdtbl td,.bfdeep .bfdtbl th{vertical-align:middle}
 .bfmore{display:inline;margin-left:4px}
 .bfmore summary{display:inline;cursor:pointer;color:var(--info-ink);font-size:.76rem}
+/* 勝ちタイムのレベル（🎯早い / ○平凡 / ⚠️遅い） */
+.tlchip{display:inline-block;padding:0 5px;border-radius:999px;font-size:.74rem;font-weight:800;
+  border:1px solid var(--line2);background:var(--card2);color:var(--ink);white-space:nowrap}
+.tlchip.fast{background:rgba(29,185,84,.16);border-color:rgba(29,185,84,.55);color:var(--ok-ink)}
+.tlchip.slow{background:rgba(255,123,114,.14);border-color:rgba(255,123,114,.55);color:var(--err-ink)}
+.tlchip.mid{color:var(--mut);font-weight:600}
+.tltag{display:inline-block;padding:0 5px;border-radius:4px;font-size:.72rem;font-weight:700;
+  background:rgba(120,130,150,.14);color:var(--mut);border:1px solid rgba(120,130,150,.3)}
+.tltag.prev{background:rgba(37,99,235,.13);color:#1d4ed8;border-color:rgba(37,99,235,.35)}
+@media (prefers-color-scheme: dark){ .tltag.prev{color:#8fb7ff} }
+.tltbl td,.tltbl th{vertical-align:middle}
+.tltbl .tlshort{min-width:250px;max-width:520px;line-height:1.6;font-size:.76rem}
+.tlrow.fast td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+.tlrow.slow td:first-child{box-shadow:inset 3px 0 0 var(--red)}
 .bfhit .bfdh{font-weight:800;font-size:.98rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
 .bfhittbl{width:100%}
 .bfhittbl td,.bfhittbl th{padding:3px 5px}
@@ -784,7 +763,16 @@ table.ktbl .kt-p{color:var(--ok-ink)}
 /* --- バー・プログレス --- */
 .progbar{background:var(--tint2)}
 .progbar i{background:var(--green)}
-.pacebar{background:var(--tint2)}
+/* 展開予想(ペース診断)のバー: ダークだと背景も矢印も同系色で見えなかったのを修正 */
+.pacebar{height:18px;background:linear-gradient(90deg,#4a9ae0 0%,#37b56c 45%,#e5ab2f 78%,#e0523f 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.20)}
+.pacebar i{top:0;height:100%;width:5px;background:#fff;border-radius:2px;
+  box-shadow:0 0 0 1.5px rgba(0,0,0,.75),0 0 9px rgba(255,255,255,.6)}
+.pacebar:before{content:"";position:absolute;top:0;bottom:0;left:0;right:0;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 1px,rgba(0,0,0,0) 1px 25%)}
+.pacescale span{color:var(--ink);opacity:.82}
+.pacebig{text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.scenario,.slist{color:var(--ink)}
 .bar{background:var(--tint2)}
 
 /* --- トップページ（ヒーロー＋タイル） --- */
@@ -1274,6 +1262,29 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <div class="small muted">※ 括弧の数字は4角通過位置。1〜2=「前」・3〜6=「中」・7以降=「後」に自動で振り分けます。手入力の後も下のボタンで自由に修正できます。</div>
       </details>
     </div>
+    <div class="card" id="tlCard">
+      <div class="cardhead">
+        <h2>⏱ 前走タイムのレベル（1着じゃなくても評価）</h2>
+        <span class="chip">前走の時計 → 🎯 / ⚠️</span>
+        <span class="sp"></span>
+        <span class="small muted">同条件の過去の勝ち時計と比較（距離・クラス・馬場を換算／着差から勝ち時計を復元）</span>
+      </div>
+      <p class="small muted" style="margin:2px 0 6px">
+        出走馬それぞれの<b>直近の走り（まずは前走）</b>の時計を、<b>1着かどうかに関係なく</b>評価します。<br>
+        比べるのは <b>同競馬場・同馬場(芝/ダ)・同距離帯・同じ時期の「過去の勝ち時計」</b>。
+        馬柱の<b>着差（＝勝ち馬までの秒差）</b>から負けレースの勝ち時計も復元するので、
+        未勝利クラスのように「1着が少ない馬」ばかりでも母集団を作れます。
+        <b>距離・クラス（新馬/未勝利/1勝〜3勝/OP・L・重賞）・馬場（稍重/重/不良）は基準時計で換算</b>してから比較します。<br>
+        そのうえで ①<b>自分の時計が速い</b>（<b>馬券内かどうかは問いません</b>）
+        ②<b>レース自体の勝ち時計が速い＝レベルの高いレースで勝ち馬から僅差</b>、という走りも同じ馬の行に<b>追記</b>します（1頭につき最大3走ぶん）。<br>
+        判定は<b>短評として📒馬ノートに自動登録</b>され、<b>前走</b>が🎯（時計が速い＝買い材料）／⚠️（勝ち時計が遅い＝割り引き）の馬には
+        <b>出馬表の取得時に自動で</b>馬名の横にマークを付けます。
+        <b>⚠️は「1着の勝ち時計が遅い」場合だけ</b>（負け馬の時計が勝ち馬より遅いのは着差のぶんなのでマークしません）。
+        次々走以降はマークを付けず、📒の短評（メモ）で確認できます。<br>
+        <b>勝ち馬には2着差</b>（同じレースを走った他馬の馬柱から復元）、<b>負け馬には勝ち馬からの着差</b>を表示します。
+      </p>
+      <div id="tlBox"></div>
+    </div>
     <div class="card" style="padding:10px 16px">
       <div class="small muted">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
     </div>
@@ -1477,6 +1488,28 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
     </div>
     <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b>🎓 タイム換算の学習（⏱前走タイムのレベルの判定基準を自動アップデート）</b>
+        <span class="chip" id="tlLearnChip">未学習</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn primary" id="tlLearnBtn" title="学習DB（このカードで取り込んだ全レース）と馬柱キャッシュから基準時計を学び直します">🎓 学習DBから基準時計を学習し直す</button>
+        <button type="button" class="btn ghost" id="tlLearnClear" title="学習した基準時計を消して、もとの静的テーブル（パータイム＋クラス補正）に戻します">学習値を消す</button>
+      </div>
+      <p class="small muted" style="margin:6px 0 0">
+        取り込んだ<b>JRA全レースの勝ち時計</b>（と①で取得した<b>馬柱</b>の勝ち時計）から、
+        <b>「距離 × クラス × 競馬場 × 年 × 馬場」の基準時計そのもの</b>を学習します。
+        学習すると②の<b>⏱前走タイムのレベル</b>（早い🎯/遅い⚠️）の判定基準が自動的に切り替わり、
+        <b>取込が終わるたび自動で学習し直す</b>ので、次走評価の基準がいつも最新になります。<br>
+        馬柱だけでは母集団が薄くなりがちです（例: 未勝利クラスの馬は1着が少ない）。
+        <b>年を1つ取り込むだけで約3,600レースの勝ち時計</b>が基準に使えるようになります。
+        学習は<b>中央値</b>で外れ値（新馬戦・少頭数・極端な馬場）に引っ張られないようにし、
+        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。
+      </p>
+      <div id="tlLearnMsg" class="small" style="margin-top:6px"></div>
+      <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
+      <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
+    </div>
     <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:var(--card2);border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
   </div>
 </section>
@@ -1491,61 +1524,21 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <div class="hid" id="simBody">
     <div class="card">
       <div class="simrow">
-        <button class="btn primary" id="btnRun">⚡ 結果を出す（映像なし）</button>
+        <button class="btn primary" id="btnRun">⚡ 結果を出す</button>
         <button class="btn" id="btnRerun">🔄 もう一度</button>
-        <button class="btn" id="btnMulti">⏩ 10回まとめて</button>
-        <button class="btn" id="btnBatch">⏩ 100回モンテカルロ集計</button>
-        <label style="display:flex;align-items:center;gap:5px">速さ
-          <select id="simSpeed">
-            <option value="10">遅め</option><option value="18" selected>標準</option><option value="30">速い</option><option value="60">最速</option>
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:5px" title="結果だけをすぐ出します（映像は描画しません）">
-          <input type="checkbox" id="simNoVideo" checked> 映像なし（結果だけ）
-        </label>
-        <label style="display:flex;align-items:center;gap:5px">映像
-          <select id="simView">
-            <option value="side" selected>🎮 最終直線・横スクロール2D(ゲーム風)</option>
-            <option value="straight">🏁 最終直線リプレイ(縦並び)</option>
-          </select>
-        </label>
         <label style="display:flex;align-items:center;gap:5px">まとめて
           <select id="simRuns">
             <option value="3">3回</option><option value="5">5回</option><option value="10" selected>10回</option><option value="20">20回</option><option value="50">50回</option>
           </select>
         </label>
-        <span class="small muted" id="simSpeedNote"></span>
+        <button class="btn" id="btnMulti">⏩ まとめて実行</button>
+        <button class="btn small red" id="btnAggReset" type="button" title="端末に保存されている「📊 合計集計」をこのレースぶんだけ消す">🗑 集計リセット</button>
+        <span class="small muted">※ 実行するたびに下の「📊 シミュレーション合計集計」へ積み上がります（端末に保存）。</span>
       </div>
+      <div id="simMsg" class="small" style="margin-top:6px;color:var(--ok-ink)"></div>
       <div id="simHint" class="small muted" style="margin-top:6px"></div>
       <div id="simRunState" class="small" style="margin-top:6px;color:var(--mut)"></div>
     </div>
-
-    <details class="card fold" id="simVideoCard">
-      <summary class="foldhead">
-        <span class="fmark"></span>
-        <h2 style="margin:0">レース映像（アニメーション）</h2>
-        <span class="chip">映像なし設定では使いません</span>
-        <span class="sp"></span><span class="foldhint"></span>
-      </summary>
-      <div class="foldbody">
-      <div class="simrow" style="margin-bottom:8px">
-        <h2 style="margin:0">再生画面</h2>
-        <span class="chip">動画プレイヤー</span>
-        <span class="sp"></span>
-        <span id="liveOrder" class="small" style="color:var(--ok-ink)"></span>
-      </div>
-      <div class="simplayer" id="simPlayer">
-        <div class="simfsbar"><span class="sbt">競馬AIラボ · RACE REPLAY</span></div>
-        <canvas id="simCanvas"></canvas>
-        <button class="simplaybtn" id="btnSimPlay" title="再生する">▶</button>
-        <button class="simfsbtn" id="btnSimFs" title="全画面で動画再生">⛶</button>
-        <!-- 結果は動画上ではなく下の「結果想定」表へ出すため、このオーバーレイは使用しない(隠れたまま) -->
-        <div class="simboard hide" id="simBoard" aria-hidden="true"><div class="board" id="simBoardIn"></div></div>
-      </div>
-      <div class="small muted simrot" style="margin-top:4px">💡 スマホでは端末を横に向けるか「⛶ 全画面」にすると大きく見えます。タップで再生 / タップでもう一度。</div>
-      <div id="simMsg" class="small" style="margin-top:6px"></div>
-      </div>
-    </details>
 
     <div class="row2" style="grid-template-columns:1.35fr .9fr">
       <div class="card" style="min-width:0">
@@ -1561,7 +1554,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
             </table>
           </div>
         </div>
-        <div id="simResultEmpty" class="small muted" style="margin-top:4px">「⚡ 結果を出す（映像なし）」を押すと、この1走行の全頭の着順・タイム・着差とレース展開がすぐに表示されます（映像は描画しないので一瞬で終わり、何度でも実行できます）。</div>
+        <div id="simResultEmpty" class="small muted" style="margin-top:4px">「⚡ 結果を出す」を押すと、この1走行の全頭の着順・タイム・着差とレース展開がすぐに表示されます（映像は廃止したので一瞬で終わり、何度でも実行できます）。実行するたびに下の「📊 合計集計」に積み上がります。</div>
       </div>
       <div class="card">
         <h2>レース展開</h2>
@@ -1573,25 +1566,30 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       </div>
     </div>
 
-    <details class="card fold" open>
+    <details class="card fold" open id="simAggCard">
       <summary class="foldhead">
         <span class="fmark"></span>
-        <h2 style="margin:0">100回モンテカルロ集計</h2>
-        <span class="chip">映像なし・即時</span>
+        <h2 style="margin:0">📊 シミュレーションの合計集計</h2>
+        <span class="chip">端末に保存・継続集計</span>
         <span class="sp"></span><span class="foldhint"></span>
       </summary>
       <div class="foldbody">
-      <div id="batchState" class="small muted" style="min-height:1.2em"></div>
-      <div id="statsSummary" style="margin-bottom:8px"></div>
-      <div class="tblwrap">
+      <div id="simAggSummary" class="small" style="margin:2px 0 8px"></div>
+      <div class="tblwrap" style="max-height:380px">
         <table>
           <thead><tr>
-            <th>着順</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
-            <th>1着率</th><th>連対率</th><th>複勝率</th><th>平均着順</th><th>成績</th>
+            <th>馬番</th><th style="text-align:left">馬名</th><th>単勝</th><th>AI勝率</th><th>回数</th>
+            <th>1着<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>連対<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>複勝<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>平均着順<br><span class="muted" style="font-weight:400">最高〜最低</span></th>
+            <th>出遅れ率<br><span class="muted" style="font-weight:400">②で入力</span></th>
+            <th>脚質のブレ<br><span class="muted" style="font-weight:400">馬柱から</span></th>
           </tr></thead>
-          <tbody id="statsBody"></tbody>
+          <tbody id="simAggBody"></tbody>
         </table>
       </div>
+      <div class="small muted" style="margin-top:8px">💡 「出遅れ率」は②で入力した値、「脚質のブレ」は馬柱（過去戦績の4角通過順）から自動判定したものです。ブレが大きい馬は毎回ちがう脚質で走るとして結果の振れ幅を広げています。集計はこのレースぶんだけ保存され、他のレースを切り替えても消えません。</div>
       </div>
     </details>
   </div>
@@ -1849,6 +1847,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         （重複する祖先は自動で使い回すので頭数の割に通信は増えません。2回目以降はキャッシュで即時）。
         急ぐときは「🧬 10代まで掘る」をOFFにすると5代まで（1〜2分）になります。
       </div>
+      <div id="bfTarget" class="small"></div>
       <div id="bfMsg" class="small" style="margin:4px 0"></div>
       <div id="bfDeepOut" class="small" style="margin:6px 0"></div>
       <div id="bfDeepHit" class="small" style="margin:6px 0;overflow-x:auto"></div>
@@ -1864,7 +1863,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <span class="sp"></span>
         <button class="btn ghost" id="btnHistCacheClear" title="netkeibaから取得した過去データのキャッシュを消します">キャッシュを削除</button>
       </div>
-      <p class="small muted">現在開いているレースと同じ系列の過去成績をnetkeibaから取得して閲覧できます。レース名が変更されていても、現在のレースに対応する過去の呼び名・開催で自動追跡します（例: 「セントウルS」の系統は正式名「セントウルステークス」としてnetkeibaに集約されています）。</p>
+      <p class="small muted">対象レースは<b>上の📅重賞カレンダーの選択</b>（または①で読み込んだ出馬表）に連動します。📊重賞データ分析・🧬血統ファクターも同じ対象レースを見ます。<br>
+      現在開いているレースと同じ系列の過去成績をnetkeibaから取得して閲覧できます。レース名が変更されていても、現在のレースに対応する過去の呼び名・開催で自動追跡します（例: 「セントウルS」の系統は正式名「セントウルステークス」としてnetkeibaに集約されています）。</p>
       <div id="histCurRace" style="font-weight:700;margin:6px 0 10px"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <label for="histRange">対象:</label>
@@ -2105,12 +2105,39 @@ function cleanInt(v){ var n = parseInt(v,10); return isNaN(n) ? '' : String(n); 
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function todayStr(){ var d = new Date(); return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日'; }
 
-/* ---------- 枠色 ---------- */
-var FRAME_COLORS = ['#222','#1a1a1a','#d33b2c','#1d6fd1','#8a5a2b','#222','#d9a40e','#3c9e4f','#f5f5f5','#8fb7dc'];
+/* ---------- 枠色（競馬新聞・JRA と同じ配色） ----------
+   1枠=白 / 2枠=黒 / 3枠=赤 / 4枠=青 / 5枠=黄 / 6枠=緑 / 7枠=橙 / 8枠=ピンク
+   FRAME_COLORS[1..8] を枠番で引く（[0] はダミー。以前は色が1つずれていた）。 */
+var FRAME_COLORS = [
+  '#888888',   /* 0: 未使用 */
+  '#ffffff',   /* 1枠 白 */
+  '#111111',   /* 2枠 黒 */
+  '#e60012',   /* 3枠 赤 */
+  '#1a5fb4',   /* 4枠 青 */
+  '#ffd400',   /* 5枠 黄 */
+  '#12a35a',   /* 6枠 緑 */
+  '#f58220',   /* 7枠 橙 */
+  '#f2a0c0'    /* 8枠 ピンク */
+];
 function frameColor(f){
   var n = parseInt(f,10);
   if (n >= 1 && n <= 8) return FRAME_COLORS[n];
   return '#7a7a7a';
+}
+/* 枠色の上に載せる文字色（白・黄・ピンクは暗い文字、それ以外は白文字） */
+function frameTextColor(f){
+  var n = parseInt(f,10);
+  return (n === 1 || n === 5 || n === 8) ? '#111111' : '#ffffff';
+}
+/* 枠の入力欄・セルに当てるインラインスタイル（新聞と同じく枠番自体を枠色で塗る） */
+function frameCellStyle(f){
+  return 'background:' + frameColor(f) + ';color:' + frameTextColor(f) +
+    ';border-color:rgba(0,0,0,.4);font-weight:800';
+}
+/* 枠番号を「新聞風のチップ」にするHTML（背景＝枠色 / 文字＝読める色） */
+function frameChipHTML(f, txt){
+  return '<span class="fcno" style="background:' + frameColor(f) + ';color:' + frameTextColor(f) + '">' +
+    String(txt == null ? (f || '') : txt) + '</span>';
 }
 
 /* ---------- state ---------- */
@@ -2124,7 +2151,7 @@ function defaultLearn(){
   return { useHist: true, hist: null, updated: '' };
 }
 function freshState(){
-  return { race:defaultRace(), weights:defaultWeights(), horses: [], simSpeed:'18', simView:'side', memo:'', savedAt:'', urlRelay:'', raceId:'', biasRaces:[],
+  return { race:defaultRace(), weights:defaultWeights(), horses: [], memo:'', savedAt:'', urlRelay:'', raceId:'', biasRaces:[],
     learn: defaultLearn(), paceOverride: null, biasOverride: '' };
 }
 var state = freshState();
@@ -3003,11 +3030,12 @@ function buildHorseRowHTML(h, i){
     '<td class="muted">' + (i+1) + '</td>' +
     '<td><span style="display:flex;gap:3px;align-items:center;justify-content:center">' +
       '<span class="fc" style="background:' + frameColor(h.frame) + '"></span>' +
-      '<input data-f="frame" class="sm" value="' + v(h.frame) + '" maxlength="1" title="枠番"></span></td>' +
+      '<input data-f="frame" class="sm" style="' + frameCellStyle(h.frame) + '" value="' + v(h.frame) + '" maxlength="1" title="枠番（1枠=白 2枠=黒 3枠=赤 4枠=青 5枠=黄 6枠=緑 7枠=橙 8枠=ピンク）"></span></td>' +
     '<td><input data-f="no" class="sm" value="' + v(h.no) + '" maxlength="2" title="馬番"></td>' +
     '<td style="white-space:nowrap"><span style="display:inline-flex;gap:3px;align-items:center">' +
       '<input data-f="name" class="nm" value="' + v(h.name) + '" title="馬名">' +
       (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') +
+      (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') +
       '</span>' +
       '<div class="aih-note" data-aih="' + h.uid + '" style="font-size:9px;line-height:1.2;color:var(--acc-ink);max-width:132px;white-space:normal"></div></td>' +
     '<td><input data-f="sexAge" class="sm" value="' + v(h.sexAge) + '" title="性齢 例: 牡5"></td>' +
@@ -3062,6 +3090,10 @@ function rebuildHorseTable(){
   updateGridHints();
   // 出馬表の出力段階で、馬柱AI評価（芝/ダ実績・替わり適正・得意条件）を自動入力する
   if (typeof aihAutoRun === 'function'){ try { aihAutoRun(); } catch(e){} }
+  // 出馬表取得のたびに「前走の勝ちタイムのレベル」を評価し直す（🎯/⚠️バッジ・②の表に反映）
+  if (typeof tlScanAll === 'function'){
+    try { tlScanAll(true); if (typeof tlRender === 'function') tlRender(); } catch(e){}
+  }
 }
 function updateGridHints(){
   var tip = $('raceHint');
@@ -3161,7 +3193,11 @@ function initInputTab(){
     if (f === 'slow'){ h.slowTouched = true; h.slowSrc = ''; }  // 出遅れ率は手入力優先(以後の自動上書きをやめる)
     if (f === 'frame'){
       var dot = tr.querySelector('.fc');
-      if (dot) dot.style.background = frameColor(el.value);
+      if (dot) dot.style.background = frameColor(el.value);      // 枠色ドット
+      var cs = frameCellStyle(el.value);                          // 枠番の入力欄も同じ枠色に
+      cs.split(';').forEach(function(kv){
+        var p2 = kv.split(':'); if (p2.length === 2) el.style[p2[0].trim()] = p2.slice(1).join(':').trim();
+      });
     }
     saveNow();
   });
@@ -3476,7 +3512,8 @@ function renderTables(res){
     var lapTxt = (r.ev && r.ev.laps && r.ev.laps.length) ? esc(fmtLap(r.ev)) : '';
     var nameFull = esc(h.name || '');
     var nameCell = '<span class="hname" title="' + nameFull.replace(/"/g, '&quot;') + '">' + nameFull +
-      (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') + '</span>';
+      (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') +
+      (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') + '</span>';
     html += '<tr' + (r.rank===1 ? ' class="leadcol"' : '') + '>' +
       '<td class="vm"><span class="mk0 ' + (r.markCls||'') + '">' + esc(r.mark||'') + '</span></td>' +
       '<td class="vm">' + r.rank + '</td>' +
@@ -3658,266 +3695,23 @@ function initAnalysisTab(){
 }
 
 /* =========================================================
-   タブ③：レースシミュレーター（リプレイ & モンテカルロ）
-   ---------- 見え方 ----------
-   ・既定「最終直線リプレイ」: 第4コーナー付近の想定隊列(脚質別ペース展開)から
-     最終直線→ゴールまでを、枠順色の馬番札(数字)だけで見やすく再生。
-   ・映像=コース全景: 上空からスタート→ゴールを通しで見る。
-   ・映像=テレビ中継風: 透視投影(遠くは小さく/近くは大きく)の追走カメラ。
-   着順・タイム・着差は AI勝率ベースのモデル(脚質別ペース)で決まります。
+   タブ③：レースシミュレーター（映像なし・結果と集計だけ）
+   ---------- 2026-09-11 変更 ----------
+   ・「速さ」「映像(アニメーション)」「100回集計」のUIとコードは削除しました。
+   ・⚡結果を出す / 🔄もう一度 / ⏩まとめて(3〜50回) だけで、着順・タイム・着差・展開を即時表示。
+   ・実行結果は「📊 シミュレーション合計集計」に積み上がり、端末に保存されます（集計リセット可能）。
+   ・出遅れ率(％)と「過去戦績で脚質が安定しない馬」を反映して着順をサンプルします。
    ========================================================= */
 var sim = { running:false, raf:0, parts:[], final:[], follow:null };
 
-/* =========================================================
-   コース形状(実際のJRAコースデータからの概形化)
-   出馬表の「開催(場)・距離・芝/ダート」から、その競馬場の楕円形状と
-   1周・直線の実寸データを当てはめる。札幌などは丸め・東京などは
-   細長い楕円になり、「ただの丸」に見えるのを防ぐ。
-   実データ出典: JRA公式 コース紹介(https://www.jra.go.jp/facilities/) 2026-09 閲覧
-   ========================================================= */
-var SIM_VENUES = [
-  { k:['札幌','サッポロ'], t:[1640.9,266.1], d:[1487,264.3] },
-  { k:['函館','ハコダテ'], t:[1626.6,262.1], d:[1475.8,260.3] },
-  { k:['福島','フクシマ'], t:[1600,292.0],  d:[1444.6,295.7] },
-  { k:['新潟','ニイガタ'], t:[1623,358.7],  d:[1472.5,353.9], out:[[1400,1600,1800,2000,3000,3200],[2223,658.7]] },
-  { k:['東京','トウキョウ'], t:[2083.1,525.9], d:[1899,501.6] },
-  { k:['中山','ナカヤマ'], t:[1667.1,310],  d:[1493,308], out:[[1200,1600,2200,2600,4000],[1839.7,310]] },
-  { k:['中京','チュウキョウ'], t:[1705.9,412.5], d:[1530,410.7] },
-  { k:['京都','キョウト'], t:[1782.8,328.4], d:[1607.6,329.1], out:[[1800,2200,2400,3000,3200],[1894.3,403.7]] },
-  { k:['阪神','ハンシン'], t:[1689,356.5],  d:[1517.6,352.7], out:[[1400,1600,1800,2400,2600],[2089,473.6]] },
-  { k:['小倉','コクラ'], t:[1615.1,293],  d:[1445.4,291.3] }
-];
-function simVenueInfo(){
-  var rm; try{ rm = readRaceMeta(); }catch(e){ rm = {}; }
-  var place = String(rm.place || (state.race && state.race.place) || '');
-  var txt = place;
-  var dist = parseFloat(rm.dist) || 0;
-  var dirt = /ダート|ダ/.test(place);
-  var hit = null;
-  for (var i=0;i<SIM_VENUES.length;i++){
-    var v = SIM_VENUES[i];
-    for (var j=0;j<v.k.length;j++){
-      if (txt.indexOf(v.k[j]) >= 0){ hit = v; break; }
-    }
-    if (hit) break;
-  }
-  if (!hit) return null;
-  var base = hit[dirt ? 'd' : 't'] || hit.t;
-  var lap = base[0], str = base[1];
-  if (hit.out){
-    var use = false;
-    for (var q=0;q<hit.out[0].length;q++){ if (hit.out[0][q] === dist){ use = true; break; } }
-    if (use){ lap = hit.out[1][0]; str = hit.out[1][1]; }
-  }
-  var straightCourse = (hit.k[0] === '新潟' && dist === 1000 && !dirt);
-  var q;
-  if (straightCourse) q = 0.055;                       // 新潟1000m直線は細長い走路
-  else q = clamp(0.95 - (str / lap) * 1.75, 0.42, 0.8);
-  return { name: hit.k[0], lap: lap, straight: str, a: straightCourse ? 560 : 430,
-           b: straightCourse ? 26 : Math.max(150, Math.round(430 * q)), dirt: dirt, straightCourse: straightCourse };
-}
-/* 映像モード: side=最終直線(横スクロール2D・ゲーム風) / straight=最終直線リプレイ(縦並び)
-   ※ スタートから流す「コース全景(通し)」「テレビ中継風(通し)」は廃止。映像は最終直線のみ。 */
-/* 映像なし（結果だけを即時表示）モードか。既定=映像なし */
-function simNoVideo(){
-  var el = $('simNoVideo');
-  if (el) return !!el.checked;
-  try { if (state && state.simNoVideo != null) return !!state.simNoVideo; } catch(e){}
-  return true;
-}
-function simViewMode(){
-  var v = 'side';
-  try { if (state && state.simView) v = state.simView; } catch(e){}
-  return (v === 'straight' || v === 'side') ? v : 'side';
-}
 /* 「最後の直線」再生を始めるゴールまでの残距離(m)。会場の直線長+4コーナー残り。 */
 function simFinalStartRem(D){
+  /* 展開ログ（4コーナー想定隊列）を作る「ゴールまでの残距離」。
+     映像は廃止したので会場別の直線長は使わず、距離から概算する。 */
   D = Math.max(200, parseFloat(D) || 2000);
-  var vi = null;
-  try { vi = simVenueInfo(); } catch(e){}
-  var sc = !!(vi && vi.straightCourse);
-  if (sc) return Math.min(D, 1000);          // 直線コース(新潟1000m)はほぼ全周が直線
-  var strM = (vi && parseFloat(vi.straight)) || 0;
-  var l0 = strM ? (strM + 150) : Math.max(240, D * 0.3);
-  return Math.max(200, Math.min(D * 0.94, l0));
-}
-var _simCourseCache = '';
-function simApplyCourseGeom(){
-  var vi = null; try { vi = simVenueInfo(); } catch(e){}
-  var key = vi ? (vi.name + '|' + vi.lap + '|' + vi.straight + '|' + (vi.straightCourse ? 'T' : 'F')) : 'gen';
-  if (_simCourseCache === key) return vi;
-  _simCourseCache = key;
-  simCrsBuild();
-  return vi;
+  return Math.max(200, Math.min(D * 0.94, Math.max(240, D * 0.3)));
 }
 
-/* =========================================================
-   コース幾何（楕円: 実コースの1周・直線比から扁平度を決める）
-   馬の位置・カメラ・コース図はすべてこの「中心線＝楕円」上で、
-   走行距離ベース(弧長)で計算する。
-   ========================================================= */
-var SIM_G = { cx:560, cy:306, a:430, b:206, th0: Math.PI/2 + 0.45 };  // cx,cy=中心(a,b=楕円半軸)
-var SIM_RO = 260;   // ゴール板通過後も「流し」で走る最大距離(m)。crsAt の直線延長と各馬の減速に使用
-var SIM_CRS = null;          // { pts:[{x,y}], cum:[], total, A, B, name, straightCourse }
-
-function simEllipsePerim(){
-  if (SIM_CRS && SIM_CRS.total) return SIM_CRS.total;
-  var a = SIM_G.a, b = SIM_G.b;
-  var h = Math.pow(a - b, 2) / Math.pow(a + b, 2);
-  return Math.PI * (a + b) * (1 + 3 * h / (10 + Math.sqrt(4 - 3 * h)));
-}
-
-/* 楕円の中心線を組み立てる。
-   ゴールは「右下」(u=75°, 0°=真右・90°=真下) に置き、
-   走行は 下辺を左→右へ→右コーナーを上へ→上辺を右→左→左コーナーを下へ…
-   の1周(画面で反時計回りに見える向き)で進む。 */
-function simCrsBuild(){
-  var vi = null;
-  try { vi = simVenueInfo(); } catch(e){}
-  var straightCourse = !!(vi && vi.straightCourse);
-  var A, B;
-  if (straightCourse){ A = 560; B = 26; }          // 新潟1000m直線コースは細長く
-  else {
-    A = 430;
-    var lap = vi ? vi.lap : 2083, str = vi ? vi.straight : 526;
-    // 直線比率(straight/lap)が高い競馬場ほど扁平な楕円にする
-    var q = clamp(0.95 - (str / lap) * 1.75, 0.42, 0.8);
-    B = Math.max(150, Math.round(430 * q));
-  }
-  SIM_G.a = A; SIM_G.b = B;
-  var cx = SIM_G.cx, cy = SIM_G.cy;
-  var N = 720, du = (Math.PI * 2) / N;
-  var u0 = Math.PI * 75 / 180;                     // ゴール位置(右下)
-  var pts = [], cum = [0], total = 0;
-  var px0 = cx + A * Math.cos(u0), py0 = cy + B * Math.sin(u0);
-  pts.push({ x: px0, y: py0 });
-  for (var i = 1; i <= N; i++){
-    var u = u0 - i * du;                           // 走行方向へ一周
-    var px = cx + A * Math.cos(u), py = cy + B * Math.sin(u);
-    var dx = px - px0, dy = py - py0;
-    total += Math.sqrt(dx * dx + dy * dy);
-    pts.push({ x: px, y: py });
-    cum.push(total);
-    px0 = px; py0 = py;
-  }
-  SIM_CRS = { pts: pts, cum: cum, total: total, A: A, B: B,
-              name: (vi ? vi.name : '既定'), straightCourse: straightCourse };
-}
-
-/* 走行距離m(0..D) → 中心線(楕円)上の位置。D=レース距離(1周=この距離として表示) */
-function crsAt(m, D){
-  if (!SIM_CRS){ try { simApplyCourseGeom(); } catch(e){} }
-  if (!SIM_CRS || !SIM_CRS.cum.length){ return { x: SIM_G.cx, y: SIM_G.cy, nx:0, ny:1, th:0 }; }
-  D = Math.max(1, D || 2000);
-  var m0 = Math.max(0, m || 0);
-  var frac = clamp(m0 / D, 0, 1);
-  var arc = frac * SIM_CRS.total;
-  var pts = SIM_CRS.pts, cum = SIM_CRS.cum;
-  var lo=0, hi=pts.length-1;
-  while (hi-lo>1){ var mid=(hi+lo)>>1; if (cum[mid]<=arc) lo=mid; else hi=mid; }
-  var p0=pts[lo], p1=pts[Math.min(hi, pts.length-1)];
-  var seg=cum[hi]-cum[lo] || 1;
-  var t=(arc-cum[lo])/seg;
-  var x=p0.x+(p1.x-p0.x)*t, y=p0.y+(p1.y-p0.y)*t;
-  var i0=Math.max(0, lo-1), i1=Math.min(pts.length-1, hi+1);
-  var tx=pts[i1].x-pts[i0].x, ty=pts[i1].y-pts[i0].y, tl=Math.sqrt(tx*tx+ty*ty)||1;
-  tx/=tl; ty/=tl;
-  var th=Math.atan2(ty, tx);
-  // 外向き法線: tangentを+90°回転し、楕円中心から外向きになる方を採用
-  var nx=-ty, ny=tx;
-  var ddx=x-SIM_G.cx, ddy=y-SIM_G.cy;
-  if (ddx*nx + ddy*ny < 0){ nx=-nx; ny=-ny; }
-  // ゴール板通過後は「ゴール地点の進行方向」へ最大 SIM_RO m だけ直線的に走り続ける表現
-  if (m0 > D){
-    var ro = Math.min(m0 - D, SIM_RO);
-    return { x: x + tx * ro, y: y + ty * ro, nx: nx, ny: ny, th: th, arc: arc + ro };
-  }
-  return { x: x, y: y, nx: nx, ny: ny, th: th, arc: arc };
-}
-function simPos(m, D){ var c = crsAt(m, D); return { x: c.x, y: c.y, th: c.th }; }
-function simMark(R, D){ return simPos(D - R, D); }
-/* =========================================================
-   映像プレイヤー：端末サイズへ追従する高解像度描画
-   ========================================================= */
-function simFsElement(){
-  var d = document;
-  return (d.fullscreenElement) || (d.webkitFullscreenElement) || null;
-}
-function simIsFs(){ var el = simFsElement(); return !!(el && el.id === 'simPlayer'); }
-/* canvasを現サイズに合わせ、論理座標のまま描けるctxを返す */
-function simCtx(){
-  var cv = $('simCanvas'); if (!cv) return null;
-  var pl = $('simPlayer');
-  var rect = pl ? pl.getBoundingClientRect() : null;
-  var fs = simIsFs();
-  var cssW, cssH;
-  if (fs){
-    cssW = window.innerWidth || (rect && rect.width) || 720;
-    cssH = window.innerHeight || (rect && rect.height) || 480;
-  } else if (rect && rect.width > 20){
-    cssW = rect.width;
-    cssH = cssW * 620 / 1120;
-  } else {
-    cssW = 980; cssH = 980 * 620 / 1120;
-  }
-  cssW = Math.max(160, cssW); cssH = Math.max(120, cssH);
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-  var W = 1120, H = 620;
-  var k = Math.min(cssW / W, cssH / H);
-  var pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
-  if (cv.width !== pw) cv.width = pw;
-  if (cv.height !== ph) cv.height = ph;
-  var ctx = cv.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#0c1c11'; ctx.fillRect(0, 0, cssW, cssH);
-  ctx.fillStyle = 'rgba(255,255,255,0.02)';
-  ctx.fillRect(0, 0, cssW, 4); ctx.fillRect(0, cssH - 4, cssW, 4);
-  var ox = (cssW - W * k) / 2, oy = (cssH - H * k) / 2;
-  ctx.setTransform(dpr * k, 0, 0, dpr * k, ox * dpr, oy * dpr);
-  return ctx;
-}
-/* 再生ボタンの状態を映像に同期 */
-function simSyncOverlay(){
-  var pb = $('btnSimPlay'); if (!pb) return;
-  if (sim.running){ pb.style.display = 'none'; return; }
-  pb.style.display = 'flex';
-  var msg = ($('simMsg') && $('simMsg').textContent) || '';
-  var replayed = /決着|🏁 決着/.test(msg);
-  pb.innerHTML = '▶';
-  pb.title = replayed ? 'もう一度再生する' : 'レースを再生';
-}
-/* 全画面切替（動画プレイヤーのように見る） */
-function simToggleFs(){
-  var pl = $('simPlayer'); if (!pl) return;
-  var d = document;
-  if (simIsFs()){
-    try { (d.exitFullscreen || d.webkitExitFullscreen || function(){}).call(d); } catch(e){}
-  } else {
-    try {
-      if (pl.requestFullscreen){
-        var pr = pl.requestFullscreen();
-        if (pr && typeof pr.catch === 'function') pr.catch(function(){
-          var m = $('simMsg'); if (m) m.textContent = 'この端末では全画面表示が使えません。端末を横に向けると大きく表示されます。';
-        });
-      } else if (pl.webkitRequestFullscreen){
-        pl.webkitRequestFullscreen();
-      }
-    } catch(e){}
-  }
-}
-function simFsChange(){
-  if (!sim.running){ if (typeof drawSimPreview === 'function') drawSimPreview(); }
-}
-
-function initSimCanvas(){
-  var cv = $('simCanvas'); if (!cv) return null;
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.round((window.innerWidth || 980) * dpr);
-  cv.height = Math.round(cv.width * 620 / 1120);
-  return cv;
-}
-
-function paceScale(){ return parseInt(state.simSpeed || '18', 10); }
 
 /* 指数分布サンプルで1レースの着順を生成 */
 function sampleOneOrder(ps){
@@ -3945,19 +3739,8 @@ function simResetResultUI(){
   var sE = $('simResultEmpty'); if (sE) sE.classList.remove('hid');
   var sx = $('simExp'); if (sx) sx.innerHTML = '';
 }
-/* 映像モードに合わせた説明文 */
-function simSetHint(){
-  var el = $('simHint'); if (!el) return;
-  var mode = simViewMode();
-  var parts = getParticipants();
-  var hd = '出走馬 ' + (parts ? parts.length : 0) + '頭';
-  if (mode === 'straight'){
-    el.innerHTML = hd + 'を「第4コーナー付近の想定隊列 → 最終直線 → ゴール」だけで再現。隊列と展開は <b>AIのレース展開予想（脚質別ペース・ペース判定）</b>から組み立て、スタート〜道中は映しません。各馬は <b>枠順の色を付けた馬番札</b>で表示し、先頭の状況に合わせて自動でズームします。▶ で再生（速さ=再生速度）。';
-  } else {
-    el.innerHTML = hd + 'の最終直線を<b>横スクロール2D（ゲーム風・側面視）</b>で再現。馬は<b>枠順色の馬体＋ゼッケン＋騎手</b>の横姿が4本脚を動かして右のGOALへ走り、カメラは先頭に合わせて進行方向へ進みます（200mポール・ゴールは自動で近づいてくる）。スタート〜道中は映しません。▶ で再生。';
-  }
-}
 function buildSimPanel(){
+  SIM_SV_CACHE = {};                    // 馬柱を取り直した可能性があるので脚質ブレの判定を作り直す
   var parts = getParticipants();
   $('simEmpty').style.display = parts ? 'none' : '';
   $('simBody').classList.toggle('hid', !parts);
@@ -3969,752 +3752,13 @@ function buildSimPanel(){
       return '<span><span class="mk0 ' + r.markCls + '">' + esc(r.mark) + '</span><b>' + esc(r.h.no) + '</b> ' + esc(r.h.name) + ' <span class="muted small">' + pct(r.prob) + '%</span></span>';
     }).join('');
   }
-  var svSel = $('simView'); if (svSel) svSel.value = simViewMode();
   simSetHint();
   simResetResultUI();
-  if (typeof simSyncOverlay === 'function') simSyncOverlay();
+  if (typeof simAggRender === 'function') simAggRender();
 }
 
-/* ===== 描画 ===== */
-/* ---- 色補助: 色を暗く/明るく(3D風の陰影) ---- */
-function simMix(hex, f){
-  var m = String(hex||'#888').match(/^#?([0-9a-f]{6})$/i);
-  if (!m) return 'rgb(' + Math.round(120*f) + ',' + Math.round(120*f) + ',' + Math.round(120*f) + ')';
-  var c = parseInt(m[1],16);
-  var r=(c>>16)&255, gg=(c>>8)&255, b=c&255;
-  r=Math.round(r*f); gg=Math.round(gg*f); b=Math.round(b*f);
-  return 'rgb('+r+','+gg+','+b+')';
-}
-function simLum(hex){
-  var m = String(hex||'#888').match(/^#?([0-9a-f]{6})$/i);
-  if (!m) return 0.5;
-  var c = parseInt(m[1],16);
-  return ((((c>>16)&255)*0.299 + ((c>>8)&255)*0.587 + (c&255)*0.114) / 255);
-}
-/* 進行方向(heading) */
-function simHeading(m, D){
-  var c = crsAt(m, D);
-  return c.th;
-}
-/* 脚(ギャロップ)。phaseで前後脚を動かす。joint: 肩/腰, dir: +1前 -1後 */
-function simLeg(ctx, jointX, jointY, off, S, phase, col, lw){
-  var t = phase + off;
-  var swing = Math.sin(t);
-  var lift = Math.max(0, Math.sin(t + Math.PI / 2)) * 0.9;  // 0..1 足の上げ
-  var fx = jointX + swing * 0.68 * S;
-  var fy = jointY + S * (0.95 - lift * 0.82);
-  ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(jointX, jointY); ctx.lineTo(fx, fy); ctx.stroke();
-  ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(fx, fy, lw*0.55, 0, Math.PI*2); ctx.fill();
-}
-/* 3D風の馬体スプライト（左向きに走る馬を前方=画面向きに回転して描く）。
-   S=サイズ(高さ目安px)。ローカル座標は進行方向が+xになるよう回転済みの状態で描かれる。 */
-function drawHorseFig(ctx, S, phase, frameCol, no, lead){
-  var bob = Math.sin(phase * 2) * S * 0.05;
-  var base = simMix(frameCol, 1), dark = simMix(frameCol, 0.55), dark2 = simMix(frameCol, 0.34);
-  var lum = simLum(frameCol);
-  ctx.save();
-  ctx.translate(0, bob);
-  // 地面の影
-  ctx.fillStyle = 'rgba(8,22,14,.30)';
-  ctx.beginPath(); ctx.ellipse(-S*0.15, S*0.05, S*1.85, S*0.5, 0, 0, Math.PI*2); ctx.fill();
-  // 尾(なびかせる)
-  ctx.strokeStyle = dark; ctx.lineWidth = Math.max(1.5, S*0.34); ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-1.5*S, -1.25*S);
-  ctx.quadraticCurveTo(-2.2*S, (-1.45 + Math.sin(phase*1.7))*S, (-2.55 + Math.sin(phase*1.1)*0.12)*S, (-1.7 + Math.sin(phase*1.7))*S);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = Math.max(1, S*0.12);
-  ctx.beginPath(); ctx.moveTo(-1.6*S, -1.3*S); ctx.quadraticCurveTo(-2.1*S, -1.55*S, -2.5*S, -1.8*S); ctx.stroke();
-  // 後ろ脚（遠・近）
-  simLeg(ctx, -0.85*S, -1.28*S, 0.2, S, phase, dark2, Math.max(1.6, S*0.26));
-  simLeg(ctx, -1.15*S, -1.22*S, 0.2+Math.PI, S, phase, dark, Math.max(1.8, S*0.3));
-  // 前脚（遠・近）
-  simLeg(ctx, 1.15*S, -1.26*S, 0.2+Math.PI*0.5, S, phase, dark2, Math.max(1.6, S*0.26));
-  simLeg(ctx, 0.85*S, -1.20*S, 0.2+Math.PI*1.5, S, phase, dark, Math.max(1.8, S*0.3));
-  // 胴体(3D風にグラデ陰影。対応していない環境ではベタ塗り)
-  var g = null;
-  try {
-    g = ctx.createLinearGradient(0, -1.6*S, 0, -0.4*S);
-    g.addColorStop(0, simMix(frameCol, 1.28));
-    g.addColorStop(0.55, base);
-    g.addColorStop(1, dark);
-  } catch(e){ g = null; }
-  ctx.fillStyle = g || base;
-  ctx.beginPath(); ctx.ellipse(0, -0.98*S, S*1.62, S*0.62, -0.06, 0, Math.PI*2); ctx.fill();
-  ctx.lineWidth = Math.max(1.4, S*0.12); ctx.strokeStyle = 'rgba(15,22,16,.85)'; ctx.stroke();
-  // 首〜頭
-  ctx.strokeStyle = dark; ctx.lineWidth = Math.max(2.2, S*0.5); ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(0.7*S, -1.35*S); ctx.quadraticCurveTo(1.35*S, -1.95*S, 1.9*S, -2.15*S); ctx.stroke();
-  ctx.strokeStyle = base; ctx.lineWidth = Math.max(1.4, S*0.3);
-  ctx.beginPath(); ctx.moveTo(0.78*S, -1.42*S); ctx.quadraticCurveTo(1.3*S, -1.92*S, 1.82*S, -2.1*S); ctx.stroke();
-  // たてがみ
-  ctx.strokeStyle = 'rgba(20,26,20,.6)'; ctx.lineWidth = Math.max(1.2, S*0.22);
-  ctx.beginPath(); ctx.moveTo(0.95*S, -1.55*S); ctx.quadraticCurveTo(1.35*S, -1.85*S, 1.7*S, -2.05*S); ctx.stroke();
-  // 頭部
-  ctx.fillStyle = g || base;
-  ctx.beginPath(); ctx.ellipse(2.0*S, -2.05*S, S*0.46, S*0.3, -0.35, 0, Math.PI*2); ctx.fill();
-  ctx.lineWidth = Math.max(1.2, S*0.1); ctx.strokeStyle = 'rgba(15,22,16,.8)'; ctx.stroke();
-  // 目
-  ctx.fillStyle = '#101010';
-  ctx.beginPath(); ctx.arc(1.9*S, -2.18*S, Math.max(0.7, S*0.07), 0, Math.PI*2); ctx.fill();
-  // ゼッケン(馬番・白地)＋騎手
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  var zx=-0.02*S, zy=-1.35*S, zw=S*1.0, zh=S*0.72;
-  if (ctx.roundRect) ctx.roundRect(zx, zy, zw, zh, S*0.12); else ctx.rect(zx, zy, zw, zh);
-  ctx.fill(); ctx.lineWidth = Math.max(1.2, S*0.1); ctx.strokeStyle='#1c1c1c'; ctx.stroke();
-  ctx.fillStyle = '#101820';
-  ctx.font = 'bold ' + Math.max(7, Math.round(S*0.8)) + 'px sans-serif';
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(String(no==null?'':no), zx+zw/2, zy+zh/2+0.5);
-  ctx.textBaseline='alphabetic';
-  // 騎手（小さな体+枠色ヘルメット）
-  ctx.fillStyle = dark2;
-  ctx.beginPath(); ctx.ellipse(0.12*S, -1.85*S, S*0.3, S*0.55, -0.25, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = frameCol;
-  ctx.beginPath(); ctx.arc(0.36*S, -2.38*S, Math.max(2, S*0.3), 0, Math.PI*2); ctx.fill();
-  ctx.lineWidth = Math.max(1, S*0.1); ctx.strokeStyle = simMix(frameCol,0.6); ctx.stroke();
-  // ゼッケン外周に光沢
-  ctx.fillStyle = lum > 0.6 ? 'rgba(20,30,20,.18)' : 'rgba(255,255,255,.28)';
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(zx, zy, zw, zh*0.35, S*0.12); else ctx.rect(zx, zy, zw, zh*0.35);
-  ctx.fill();
-  if (lead){
-    ctx.font = 'bold ' + Math.max(8, Math.round(S*0.42)) + 'px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillStyle = '#a3121f'; ctx.fillText('★', 0.02*S, -1.62*S);
-  }
-  ctx.restore();
-}
-/* 枠順色ゼッケン入り馬体＋上空に馬番バッジ（常時識別可能に） */
-function drawHorseSprite(ctx, cx, cy, s, phase, frameCol, no, nameText, isLeader){
-  var ang = 0;
-  drawHorseFigWorld(ctx, cx, cy, s, phase, frameCol, no, isLeader, ang, nameText);
-}
-/* ワールド座標版：heading指定で馬体描画＋上に馬番バッジ */
-function drawHorseFigWorld(ctx, cx, cy, S, phase, frameCol, no, lead, heading, nameText){
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(heading);
-  drawHorseFig(ctx, S, phase, frameCol, no, lead);
-  ctx.restore();
-  // 馬番バッジ（無回転で常に読める）
-  var by = cy - S*2.15;
-  badgeHorseNo(ctx, cx, by - S*0.55, S*0.62, frameCol, no, lead, nameText);
-}
-/* 馬番バッジ */
-function badgeHorseNo(ctx, cx, cy, r, frameCol, no, lead, nameText){
-  ctx.save();
-  ctx.fillStyle = 'rgba(12,20,14,.85)';
-  ctx.beginPath(); ctx.ellipse(cx, cy + r*0.16, r*1.05, r*0.32, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-  ctx.fillStyle = frameCol; ctx.fill();
-  ctx.lineWidth = Math.max(1.2, r*0.14); ctx.strokeStyle = '#fff'; ctx.stroke();
-  var lum = simLum(frameCol);
-  ctx.fillStyle = lum > 0.62 ? '#132018' : '#ffffff';
-  ctx.font = 'bold ' + Math.max(7, Math.round(r*1.05)) + 'px sans-serif';
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(String(no==null?'':no), cx, cy+0.5);
-  ctx.textBaseline='alphabetic';
-  if (lead){
-    ctx.fillStyle = 'rgba(255,215,64,.95)';
-    ctx.font = 'bold ' + Math.max(7, Math.round(r*0.62)) + 'px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillText('1着', cx, cy - r - 4);
-    ctx.textBaseline='alphabetic';
-  }
-  if (nameText && lead){
-    ctx.font = 'bold ' + Math.max(8, Math.round(r*0.7)) + 'px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillStyle = '#1d2b20';
-    ctx.fillText(String(nameText).slice(0,6), cx, cy + r + 9);
-  }
-  ctx.restore();
-}
-function simFrameLabel(){
-  var rm;
-  try { rm = readRaceMeta(); } catch(e){ rm = {}; }
-  var place = rm.place || (state.race && state.race.place) || '';
-  var surf = '', dist = rm.dist || '';
-  var pm = String(place).match(/(芝|ダート|ダ)/); if (pm) surf = pm[1] === 'ダート' ? 'ダート' : pm[1];
-  var babaL = { fast:'良', good:'稍重', yield:'重', soft:'不良', dirt_fast:'ダート良', dirt_seal:'ダート重' }[rm.baba] || '';
-  return [place, surf, (dist ? dist + 'm' : ''), babaL].filter(Boolean).join(' ') || 'コース想定図';
-}
 
-/* トラック(コース図)描画：楕円コース全体を真上から描く */
-function drawTrack(ctx, parts, raceDist){
-  simApplyCourseGeom();
-  var D = Math.max(200, parseFloat(raceDist) || 2000);
-  var W = 1120, H = 620;
-  if (!SIM_CRS) return;
-  // 外周の芝
-  ctx.fillStyle = '#3f7038';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#4a7e40';
-  for (var gx = 0; gx < W; gx += 14){
-    ctx.fillRect(gx + ((gx / 14 | 0) % 2) * 7, 0, 7, 30);
-  }
-  var Nn = Math.max(360, Math.round(SIM_CRS.total / 4));
-  function band(off){
-    var pts = [];
-    for (var i = 0; i <= Nn; i++){
-      var c = crsAt((i / Nn) * D, D);
-      pts.push({ x: c.x + c.nx * off, y: c.y + c.ny * off });
-    }
-    return pts;
-  }
-  var outer = band(16), inner = band(-26);
-  function drawPoly(pts){
-    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.closePath();
-  }
-  // 走路(芝のバンド)
-  ctx.beginPath(); ctx.moveTo(outer[0].x, outer[0].y);
-  for (var oi = 1; oi < outer.length; oi++) ctx.lineTo(outer[oi].x, outer[oi].y);
-  for (var ij = inner.length - 1; ij >= 0; ij--) ctx.lineTo(inner[ij].x, inner[ij].y);
-  ctx.closePath(); ctx.fillStyle = '#5e9145'; ctx.fill();
-  // 内馬場
-  drawPoly(inner); ctx.fillStyle = '#a3cb82'; ctx.fill();
-  // 芝目(内馬場に横縞)
-  ctx.save(); drawPoly(inner); ctx.clip();
-  ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 3;
-  var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
-  for (var b0 = 0; b0 < inner.length; b0++){
-    if (inner[b0].x < minX) minX = inner[b0].x;
-    if (inner[b0].x > maxX) maxX = inner[b0].x;
-    if (inner[b0].y < minY) minY = inner[b0].y;
-    if (inner[b0].y > maxY) maxY = inner[b0].y;
-  }
-  for (var ly = minY; ly < maxY; ly += 13){
-    ctx.beginPath(); ctx.moveTo(minX - 10, ly); ctx.lineTo(maxX + 10, ly); ctx.stroke();
-  }
-  ctx.restore();
-  drawPoly(inner); ctx.fillStyle = 'rgba(140,180,110,.10)'; ctx.fill();
-  // 内外柵(白線)
-  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
-  drawPoly(outer); ctx.stroke();
-  drawPoly(inner); ctx.stroke();
-  ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.lineWidth = 1;
-  drawPoly(band(0)); ctx.stroke();
-
-  // 距離表示(残りR m) ※200m毎に短い目盛、400m毎(残り400含む)に数字
-  var posted = 0;
-  for (var R = 200; R < D; R += 200){
-    var c = crsAt(D - R, D);
-    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(c.x + c.nx * (-24), c.y + c.ny * (-24));
-    ctx.lineTo(c.x + c.nx * 14, c.y + c.ny * 14);
-    ctx.stroke();
-    if (R % 400 === 0 || R <= 400){
-      var tx = c.x + c.nx * 26, ty = c.y + c.ny * 26;
-      ctx.fillStyle = 'rgba(20,40,22,.78)';
-      ctx.beginPath(); ctx.arc(tx, ty, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('' + R, tx, ty + 0.5);
-      ctx.textBaseline = 'alphabetic';
-      posted++;
-    }
-  }
-  // スタート地点ラベル
-  var st = crsAt(2, D);
-  ctx.fillStyle = 'rgba(30,50,30,.8)';
-  ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('ST.', st.x + st.nx * 30, st.y + st.ny * 30 + 14);
-
-  // ゴール線(チェッカー)＋GOAL：fraction 0 = 下辺(ホームストレッチ)の終端
-  (function(){
-    var c0 = crsAt(0, D);
-    var segs = 14;
-    var ax = -c0.ny, ay = c0.nx;   // 進行方向tangent（目印用）
-    var ix = c0.x + c0.nx * (-24), iy = c0.y + c0.ny * (-24);
-    var ox = c0.x + c0.nx * 16, oy = c0.y + c0.ny * 16;
-    var dirX = ox - ix, dirY = oy - iy;
-    for (var i = 0; i < segs; i++){
-      var t0 = i / segs, t1 = (i + 1) / segs;
-      ctx.fillStyle = (i % 2 === 0) ? '#fff' : '#111';
-      ctx.beginPath();
-      ctx.moveTo(ix + dirX * t0, iy + dirY * t0);
-      ctx.lineTo(ix + dirX * t1, iy + dirY * t1);
-      ctx.lineTo(ix + dirX * t1 + ax * 3, iy + dirY * t1 + ay * 3);
-      ctx.lineTo(ix + dirX * t0 + ax * 3, iy + dirY * t0 + ay * 3);
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle = '#1d2b20'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('🏁 GOAL', c0.x + c0.nx * 30 + ax * 8, c0.y + c0.ny * 30 + ay * 8);
-  })();
-
-  // ヘッダ(レース条件)
-  var head = simFrameLabel();
-  ctx.fillStyle = 'rgba(12,28,17,.78)';
-  ctx.beginPath(); ctx.moveTo(6, 2); ctx.lineTo(6 + ctx.measureText(head).width + 26, 2);
-  ctx.lineTo(6 + ctx.measureText(head).width + 26, 24);
-  ctx.lineTo(6, 24); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#dff0d8';
-  ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
-  ctx.fillText(head, 14, 16);
-  ctx.fillStyle = 'rgba(255,255,255,.7)';
-  ctx.font = '9px sans-serif';
-  ctx.fillText('※ コースは実コースの1周・直線比から扁平させた楕円の略図です', 14, 34);
-  void posted;
-}
-
-/* 距離m進んだ位置に馬を1頭描画 */
-function drawRunner(ctx, m, D, p, i, isLeader){
-  var pos = simPos(m, D);
-  var scale = 11;
-  drawHorseFigWorld(ctx, pos.x, pos.y, scale, Date.now() / 130 + i * 2.1, frameColor(p.frame), p.no, isLeader, simHeading(m, D), p.name);
-  return pos;
-}
-
-function simCssSize(){
-  var pl = $('simPlayer'); var rect = pl ? pl.getBoundingClientRect() : null;
-  var fs = simIsFs();
-  var cssW, cssH;
-  if (fs){ cssW = window.innerWidth || (rect && rect.width) || 720; cssH = window.innerHeight || (rect && rect.height) || 480; }
-  else if (rect && rect.width > 20){
-    cssW = rect.width;
-    // iPhone(狭い縦画面)では、ゲーム風2D(横スクロール/最終直線)を高めにして馬を大きく見せる
-    var mv = 'side';
-    try { mv = simViewMode(); } catch(e){}
-    var game2d = (mv === 'side' || mv === 'straight');
-    if (cssW < 560) cssH = cssW * (game2d ? 0.92 : 0.68);
-    else cssH = cssW * 620 / 1120;
-  }
-  else { cssW = 980; cssH = 980 * 620 / 1120; }
-  return { cssW: Math.max(160, cssW), cssH: Math.max(140, cssH) };
-}
-/* canvasを現サイズに合わせ、cssピクセル基準(dpr補正済み)のctxを返す */
-function simPrepCss(){
-  var cv = $('simCanvas'); if (!cv) return null;
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-  var s = simCssSize();
-  var pw = Math.round(s.cssW * dpr), ph = Math.round(s.cssH * dpr);
-  if (cv.width !== pw) cv.width = pw;
-  if (cv.height !== ph) cv.height = ph;
-  var ctx = cv.getContext('2d');
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#0b1a10';
-  ctx.fillRect(0, 0, pw, ph);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#0b1a10';
-  ctx.fillRect(0, 0, s.cssW, s.cssH);
-  return { ctx: ctx, dpr: dpr, cssW: s.cssW, cssH: s.cssH };
-}
-/* css座標に馬体(馬番ゼッケン付き)を描く。heading=進行方向, depth=カメラ距離による拡大率 */
-function drawHorseCss(ctx, cx, cy, S, phase, frameCol, no, lead, heading, nameText, depth){
-  S = S * (depth || 1);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(heading);
-  drawHorseFig(ctx, S, phase, frameCol, no, lead);
-  ctx.restore();
-  badgeHorseNo(ctx, cx, cy - S*2.0, Math.max(5, S*0.62), frameCol, no, lead, nameText);
-}
-
-/* =========================================================
-   3D投影レンダラ(テレビ中継風)
-   - 世界は平面(x,y)。カメラをレースの後方・外側・上空に置き、
-     馬の画面上の大きさ = 焦点距離 ÷ 距離 で「実際の縮尺」のまま描く。
-   - straight=最終直線リプレイ(4コーナー想定隊列→ゴール), tv=テレビ中継風(追走), full=上空俯瞰
-   ========================================================= */
-function v3(x,y,z){ return {x:x,y:y,z:z}; }
-function vsub(a,b){ return v3(a.x-b.x,a.y-b.y,a.z-b.z); }
-function vadd(a,b){ return v3(a.x+b.x,a.y+b.y,a.z+b.z); }
-function vdot(a,b){ return a.x*b.x+a.y*b.y+a.z*b.z; }
-function vcross(a,b){ return v3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x); }
-function vlen(a){ return Math.sqrt(vdot(a,a)); }
-function vnorm(a){ var l=vlen(a)||1; return v3(a.x/l,a.y/l,a.z/l); }
-/* カメラ(eye, R, U, F, focal)を構築
-   側方追走: 追走対象と同じ進行位置の外側に置き、走路を横から見る(中継のレールカメラ風) */
-var _cssCX = 0, _cssCY = 0;
-function cssCx(){ return _cssCX; }
-function cssCy(){ return _cssCY; }
-/* =========================================================
-   simDrawFrame: 1フレーム描画（最終直線のみ）
-   cam = { view:'side'|'straight' }
-   ========================================================= */
-/* 最終直線リプレイを「横に伸ばした隊列帯」で描画する。
-   馬はゴールまでの前後差(縦列の前後)だけを使い、各馬を固定レーン(インアウト変化なし)に配置。
-   馬番札が重ならないため、スターホース/ウマ娘風に「横一列に並んで前後だけで競う」展開が読める。 */
-function simDrawStraightBand(ctx0, parts, dists, D, rem){
-  var ctx = ctx0.ctx, cssW = ctx0.cssW, cssH = ctx0.cssH;
-  var n = parts.length;
-  ctx.fillStyle = '#0a1f12'; ctx.fillRect(0, 0, cssW, cssH);
-  if (!n) return;
-  // ---- 幾何: 横=ゴールまでの距離(前後差) / 縦=馬ごとの固定レーン ----
-  var sRem = simFinalStartRem(D);
-  var d0 = Math.max(0, D - sRem - 90);   // 帯の左端 = 想定隊列よりやや後方
-  var d1 = D + SIM_RO + 20;              // 右端 = ゴールより約240m先(ゴール板通過後の「駆け抜け→減速」まで描く)
-  var W = Math.max(1, d1 - d0);
-  var xL = Math.round(cssW * 0.08);
-  var xR = Math.round(cssW - cssW * 0.05);
-  if (xR - xL < 130){ xL = Math.round(cssW * 0.06); xR = cssW - 16; }
-  var yA = Math.round(cssH * 0.24);
-  var yB = Math.round(cssH * 0.93);
-  if (yB - yA < 70){ yA = 52; yB = cssH - 42; }
-  var rowH = (yB - yA) / Math.max(1, n);
-  function xAt(d){ return xL + Math.max(0, Math.min(W, d - d0)) / W * (xR - xL); }
-
-  // ---- 走路の帯 ----
-  var g2 = null;
-  try { g2 = ctx.createLinearGradient(0, yA, 0, yB); if (!g2 || typeof g2.addColorStop !== 'function') g2 = null; } catch(e){ g2 = null; }
-  if (g2){ g2.addColorStop(0, '#143527'); g2.addColorStop(0.5, '#0d2a1a'); g2.addColorStop(1, '#143527'); ctx.fillStyle = g2; }
-  else ctx.fillStyle = '#0d2a1a';
-  ctx.fillRect(xL, yA, xR - xL, yB - yA);
-  ctx.strokeStyle = 'rgba(120,190,130,.30)'; ctx.lineWidth = 1;
-  for (var ri = 0; ri <= n; ri++){
-    var yy = yA + rowH * ri;
-    ctx.beginPath(); ctx.moveTo(xL, yy); ctx.lineTo(xR, yy); ctx.stroke();
-  }
-
-  // ---- 距離ポール(400m / 200m) ----
-  [400, 200].forEach(function(RR){
-    if (RR >= D) return;
-    var pX = xAt(D - RR);
-    if (pX <= xL) return;
-    ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.3;
-    ctx.setLineDash([4, 5]);
-    ctx.beginPath(); ctx.moveTo(pX, yA - 8); ctx.lineTo(pX, yB + 7); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText(String(RR) + 'm', pX, yB + 9);
-  });
-
-  // ---- ゴール(縦ストライプ: 右端でなく「距離Dの位置」に描き、通過後も右へ流れる) ----
-  var gx = xAt(D);
-  if (gx >= xL && gx <= xR + 60){
-    ctx.save();
-    ctx.beginPath(); ctx.rect(gx - 4, yA, 8, yB - yA); ctx.clip();
-    var gSeg = Math.max(6, Math.round((yB - yA) / 9)), gS = (yB - yA) / gSeg;
-    for (var gs2 = 0; gs2 < gSeg; gs2++){
-      ctx.fillStyle = (gs2 % 2) ? '#f2f2f2' : '#0b0b0b';
-      ctx.fillRect(gx - 4, yA + gs2 * gS, 8, gS);
-    }
-    ctx.restore();
-    ctx.fillStyle = '#ffe9a8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('GOAL', gx + 8, yA - 9);
-  }
-
-  // ---- 馬(後方→先頭の順に描画、各馬固定レーン) ----
-  var leadI = -1, leadD2 = -1;
-  for (var li = 0; li < n; li++){ if ((dists[li] || 0) > leadD2){ leadD2 = dists[li]; leadI = li; } }
-  var ord2 = parts.map(function(p, i){ return i; })
-    .sort(function(a, b){ return (dists[a] || 0) - (dists[b] || 0); });
-  var pr = Math.max(5, Math.min(15, rowH * 0.52 - 1));
-  for (var k = 0; k < ord2.length; k++){
-    var ii = ord2[k];
-    var dd = Math.max(d0, Math.min(d1, dists[ii] || 0));
-    var cx = xAt(dd);
-    var cy = yA + rowH * (ii + 0.5);
-    var fc = frameColor(parts[ii].frame);
-    var isLead = (ii === leadI);
-    var r = pr + (isLead ? 2.5 : 0);
-    ctx.beginPath(); ctx.arc(cx, cy, r + (isLead ? 2.6 : 1.1), 0, Math.PI * 2);
-    ctx.fillStyle = isLead ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.06)';
-    ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = fc; ctx.fill();
-    ctx.lineWidth = isLead ? 2 : 1;
-    ctx.strokeStyle = '#fff'; ctx.stroke();
-    ctx.fillStyle = (simLum(fc) > 0.55) ? '#15231a' : '#fff';
-    ctx.font = 'bold ' + Math.max(9, Math.round(r * 1.12)) + 'px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(parts[ii].no), cx, cy + 0.5);
-    ctx.textBaseline = 'alphabetic';
-    sim._shots.push({ x: cx, y: cy, i: ii, no: parts[ii].no, r: Math.max(12, r + 4) });
-  }
-
-  // ---- 上部バー ----
-  ctx.fillStyle = 'rgba(8,24,14,.82)'; ctx.fillRect(0, 0, cssW, 26);
-  ctx.fillStyle = '#dff0d8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏁 最終直線リプレイ（4コーナー想定隊列 → ゴール）　' + (rem > 0 ? ('残り ' + Math.round(Math.max(0, rem)) + 'm') : 'ゴール板を通過・流しています'), 10, 13);
-  // 先頭3着
-  var top3 = ord2.slice().reverse().slice(0, 3);
-  ctx.textBaseline = 'middle'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
-  var tx = 10;
-  top3.forEach(function(ii, tk){
-    var fc2 = frameColor(parts[ii].frame);
-    var lb = (tk === 0 ? '🏇 先頭' : (tk + 1) + '着') + ': ' + parts[ii].no + '番 ' + String(parts[ii].name || '').slice(0, 7);
-    ctx.fillStyle = fc2; ctx.font = 'bold 11px sans-serif';
-    var w0 = ctx.measureText(lb).width;
-    ctx.fillText(lb, tx, 40);
-    tx += w0 + 14;
-  });
-  ctx.textBaseline = 'alphabetic';
-  // 凡例
-  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = '10px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('横 = ゴールまでの前後差（右のGOALへ進む）。縦 = 馬ごとの固定走路でインアウトは省略。枠順色の馬番で前後のみの展開を表示。', xL, yB + 22);
-  ctx.textBaseline = 'alphabetic';
-}
-/* =========================================================
-   横スクロール2D（最終直線・側面視 ゲーム風）
-   - 馬は枠順色の馬体＋ゼッケン＋騎手の横姿（drawHorseFig）で右へ走る
-   - カメラは先頭に合わせ、残り距離が少ないとゴールが右端から近づく
-   - 距離ポール・ゴール・レーン帯は実距離基準で固定 → 馬が右へ進むと
-     「背景が左へ流れる」横スクロールの感覚になる
-   ========================================================= */
-function simSideHud(ctx, cssW, cssH, rem, leadP, kind){
-  ctx.fillStyle = 'rgba(8,24,14,.82)'; ctx.fillRect(0, 0, cssW, 26);
-  ctx.fillStyle = '#dff0d8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  var lbl0 = '🎮 横スクロール2D（最終直線・側面視）　' + (rem > 0 ? ('残り ' + Math.round(rem) + 'm') : 'ゴール板を通過・流しています');
-  ctx.fillText(lbl0, 10, 13);
-  ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
-  ctx.fillText('▶ 右のGOALへ進む（200mポールが流れる）', cssW - 10, 13);
-  ctx.textBaseline = 'alphabetic';
-  if (leadP && leadP.no != null){
-    var fc = frameColor(leadP.frame);
-    ctx.fillStyle = 'rgba(8,24,14,.78)'; ctx.fillRect(0, 26, cssW, 20);
-    ctx.fillStyle = fc; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText('🏇 先頭 ' + String(leadP.no) + '番 ' + String(leadP.name || '').slice(0, 12), 10, 36);
-    ctx.textBaseline = 'alphabetic';
-  }
-}
-function simDrawSideScroll(ctx0, parts, dists, D, rem, info){
-  var ctx = ctx0.ctx, cssW = ctx0.cssW, cssH = ctx0.cssH;
-  var n = parts.length;
-  if (!sim._shots) sim._shots = [];   // 直接呼び出し時(テスト等)の保険
-  // ---- 空（パララックス雲つき） ----
-  var horizonY = Math.round(cssH * 0.30);
-  var sky = null;
-  try { sky = ctx.createLinearGradient(0, 0, 0, horizonY); sky.addColorStop(0, '#6fb4ec'); sky.addColorStop(1, '#e6f5ff'); } catch(e){ sky = null; }
-  ctx.fillStyle = sky || '#aadcf5';
-  ctx.fillRect(0, 0, cssW, horizonY + 1);
-  // 雲（走行距離に応じてゆっくり流れる）
-  var leadD0 = -1;
-  for (var ci = 0; ci < n; ci++){ if ((dists[ci] || 0) > leadD0) leadD0 = dists[ci] || 0; }
-  var drift = (leadD0 > 0) ? (leadD0 * 0.35) % 400 : 0;
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  for (var cl = 0; cl < 5; cl++){
-    var cx0 = (cl * 230 - drift) % (cssW + 260) - 130;
-    if (cx0 < -140) cx0 += cssW + 260;
-    ctx.beginPath();
-    ctx.ellipse(cx0, cssH * 0.05 + (cl % 2) * 26, 52, 13, 0, 0, Math.PI * 2);
-    ctx.ellipse(cx0 + 40, cssH * 0.03 + (cl % 2) * 26, 34, 11, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // 観客席（遠景シルエット。少しだけ流れる）
-  ctx.fillStyle = 'rgba(50,74,58,.35)';
-  var stDrift = (leadD0 > 0) ? (leadD0 * 0.12) % 160 : 0;
-  for (var st = 0; st < 12; st++){
-    var sx = (st * 96 - stDrift) % (cssW + 200) - 100;
-    if (sx < -110) sx += cssW + 200;
-    ctx.fillRect(sx, horizonY - 34 - (st % 3) * 4, 26, 36);
-  }
-  ctx.fillStyle = 'rgba(255,255,255,.5)';
-  for (var fl = 0; fl < 16; fl++){
-    var fx2 = (fl * 140 - stDrift * 0.4) % (cssW + 200) - 100;
-    if (fx2 < -110) fx2 += cssW + 200;
-    ctx.fillRect(fx2, horizonY - 40, 3, 5);
-  }
-  // ---- 地面（芝のレーン帯） ----
-  var turf = null;
-  try { turf = ctx.createLinearGradient(0, horizonY, 0, cssH); turf.addColorStop(0, '#c9e4aa'); turf.addColorStop(1, '#2d6a22'); } catch(e){ turf = null; }
-  ctx.fillStyle = turf || '#4f8f3e';
-  ctx.fillRect(0, horizonY, cssW, cssH - horizonY);
-  if (!n){ simSideHud(ctx, cssW, cssH, Math.round(rem), null, info && info.kind); return; }
-
-  // ---- 表示窓（実距離メートル。先頭に合わせて右端へGOALが近づく） ----
-  var leadI = -1, leadD = -1, minD = 1e9;
-  for (var k = 0; k < n; k++){
-    var dv = dists[k] || 0;
-    if (dv > leadD){ leadD = dv; leadI = k; }
-    if (dv < minD) minD = dv;
-  }
-  var spread = Math.max(1, leadD - minD);
-  var V = clamp(spread * 2.1 + 160, 230, 660);
-  // ゴール(距離D)の先も映す「流し」: 先頭がDを過ぎてもカメラは先頭を追い、GOALが左へ流れて行く
-  var wR = Math.max(leadD + 130, V * 0.95, D + 40);
-  var wL = wR - V;
-  if (wL < -8){ wL = -8; wR = Math.max(wL + V, D + 40, leadD + 40); }
-  var span = Math.max(1, wR - wL);
-  var xL = Math.round(cssW * 0.06), xR = Math.round(cssW * 0.985);
-  if (xR - xL < 130){ xL = 24; xR = cssW - 24; }
-  function X(m){ return xL + clamp((m - wL) / span, 0, 1) * (xR - xL); }
-
-  // 走路レーンの横帯（芝の濃淡＋区切り線）
-  var yTop = Math.round(cssH * 0.34), yBot = Math.round(cssH * 0.985);
-  if (yBot - yTop < 100){ yTop = Math.round(cssH * 0.18); yBot = cssH - 6; }
-  var rowH = (yBot - yTop) / Math.max(1, n);
-  for (var r = 0; r < n; r++){
-    var ry = yTop + rowH * r;
-    if (r % 2 === 1){ ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(xL, ry, xR - xL, rowH); }
-    ctx.strokeStyle = 'rgba(18,56,22,.3)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(xL, ry); ctx.lineTo(xR, ry); ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(20,70,30,.5)'; ctx.lineWidth = 1.6;
-  ctx.beginPath(); ctx.moveTo(xL, yBot); ctx.lineTo(xR, yBot); ctx.stroke();
-
-  // 距離ポール(残り400/200/100m)・ゴール
-  [400, 200, 100].forEach(function(RR){
-    if (RR >= D) return;
-    var px = X(D - RR);
-    if (px <= xL || px >= xR) return;
-    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.4;
-    ctx.setLineDash([5, 6]);
-    ctx.beginPath(); ctx.moveTo(px, yTop - 6); ctx.lineTo(px, yBot + 4); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText(String(RR) + 'm', px, yBot + 16);
-    ctx.textBaseline = 'alphabetic';
-  });
-  // ゴール(白黒ストライプ)
-  var gx = X(D);
-  if (gx >= xL && gx <= xR){
-    var seg = Math.max(4, Math.round((yBot - yTop) / 10));
-    ctx.save();
-    ctx.beginPath(); ctx.rect(gx - 3, yTop, 6, yBot - yTop); ctx.clip();
-    for (var gk = 0; gk * seg < (yBot - yTop); gk++){
-      ctx.fillStyle = (gk % 2 === 0) ? '#ffffff' : '#111a12';
-      ctx.fillRect(gx - 3, yTop + gk * seg, 6, seg);
-    }
-    ctx.restore();
-    ctx.fillStyle = '#0f2818'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('🏁 GOAL', gx, yTop - 8);
-    ctx.textAlign = 'left';
-  }
-
-  // ---- 馬（下=手前から上=奥の順で描き、上ほど重ねて読める） ----
-  var now = Date.now();
-  var place = dists.map(function(v, i){ return i; }).sort(function(a, b){ return (dists[b] || 0) - (dists[a] || 0); });
-  var pMap = {};
-  place.forEach(function(i, rk){ pMap[i] = rk + 1; });
-  for (var ii = n - 1; ii >= 0; ii--){
-    // ゴール(D)の先を走る馬も表示窓に収まる限り進める。Dで頭打ちにすると
-    // 「ゴールした瞬間にピタッと止まる」ように見えるため、流し領域(SIM_RO先)まで許可し、
-    // 画面外(xR+60 より先)に入った馬はカリングで「画面の右へ走り去る」表現にする
-    var dd = Math.min(dists[ii] || 0, D + SIM_RO + 60);
-    var hx = X(dd);
-    if (hx < xL - 30 || hx > xR + 60) continue;   // 画面外は省略（入ってくると出現＝スクロール感）
-    var cy = yTop + rowH * (ii + 0.5);
-    var S = clamp(rowH * 0.4, 5, 22);
-    var fc = frameColor(parts[ii].frame);
-    var isLead = (ii === leadI);
-    // 地面の影
-    ctx.save();
-    ctx.translate(hx, cy + S * 0.06);
-    ctx.fillStyle = 'rgba(8,24,14,.3)';
-    ctx.beginPath(); ctx.ellipse(0, 0, S * 1.9, S * 0.32, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    if (isLead){
-      ctx.fillStyle = 'rgba(255,255,255,.5)';
-      ctx.beginPath(); ctx.ellipse(hx, cy - S * 1.1, S * 2.3, S * 1.7, 0, 0, Math.PI * 2); ctx.fill();
-    }
-    var ph = now / 150 + ii * 0.9;
-    ctx.save();
-    ctx.translate(hx, cy - S * 0.12);
-    drawHorseFig(ctx, S, ph, fc, parts[ii].no, isLead);
-    ctx.restore();
-    // 順位(1着だけ冠＋名前、上位は小さく)
-    if (isLead){
-      ctx.fillStyle = '#1d3b1d'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('1着 ' + String(parts[ii].no) + '番 ' + String(parts[ii].name || '').slice(0, 9), hx, cy - S * 2.9);
-      ctx.textAlign = 'left';
-    } else if (pMap[ii] <= 3){
-      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(String(pMap[ii]) + '着', hx, cy - S * 2.7);
-      ctx.textAlign = 'left';
-    }
-    sim._shots.push({ x: hx, y: cy - S * 1.9, i: ii, no: parts[ii].no, r: Math.max(14, S * 1.7) });
-  }
-  simSideHud(ctx, cssW, cssH, Math.round(Math.max(0, D - leadD)), parts[leadI], info && info.kind);
-  // フッター凡例
-  if (yBot + 24 < cssH - 2){
-    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('横 = ゴールまでの前後差（右のGOALへ進む・カメラは先頭に追従）　縦 = 走路（手前=下）。200mポールが左へ流れる＝馬が前進しています。', xL, yBot + 26);
-  } else {
-    ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('▶ 200mポールが左へ流れる＝前進（先頭に追従）', xL, cssH - 4);
-  }
-  ctx.textBaseline = 'alphabetic';
-}
-
-function simDrawFrame(ctx0, parts, dists, D, cam, info){
-  simApplyCourseGeom();
-  var ctx = ctx0.ctx, cssW = ctx0.cssW, cssH = ctx0.cssH;
-  _cssCX = cssW/2; _cssCY = cssH/2;
-  var n = parts.length;
-  var mode = (cam && cam.view) || 'straight';          // side(横スクロール2D) / straight(最終直線リプレイ)
-  var leadI = -1, leadD = -1;
-  for (var li=0; li<n; li++){ var dv=dists[li]||0; if (dv>leadD){ leadD=dv; leadI=li; } }
-  var ord = parts.map(function(p,i){ return i; }).sort(function(a,b){ return (dists[b]||0)-(dists[a]||0); });
-  var rem = Math.max(0, D - leadD);
-  sim._shots = [];
-
-  // ================= 横スクロール2D（最終直線・ゲーム風） =================
-  if (mode === 'side'){
-    simDrawSideScroll(ctx0, parts, dists, D, rem, info);
-    return;
-  }
-
-  // ================= 最終直線リプレイ（縦並びの俯瞰） =================
-  ctx.fillStyle = '#0b1a10'; ctx.fillRect(0, 0, cssW, cssH);
-  var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  function addPt(x, y){
-    if (x < x0) x0 = x; if (x > x1) x1 = x;
-    if (y < y0) y0 = y; if (y > y1) y1 = y;
-  }
-  // 枠の基準: 出走馬すべて＋ゴール。400m/200mポールは先頭より前(ゴール寄り)にある間だけ枠に加え、
-  // 「第4コーナーの想定隊列 → ゴール」までを常に一枚の画面で見せ、追い込み時は自然に寄る。
-  var leadRem = Math.max(0, D - leadD);   // 先頭の残り距離
-  for (var ga = 0; ga < ord.length; ga++){
-    var dgb = dists[ord[ga]] || 0;
-    if ((D - dgb) > leadRem + 160) continue;   // 深い後方は枠外(画面が引きすぎないように)
-    var g = simPos(dgb, D); addPt(g.x, g.y);
-  }
-  var cGoal = crsAt(D, D); addPt(cGoal.x, cGoal.y);
-  [400, 200].forEach(function(rr){
-    if (rr >= D || rr <= 0) return;
-    if (rr > leadRem + 30) return;        // 先頭が通り過ぎたら枠から外す
-    var q = crsAt(D - rr, D); addPt(q.x, q.y);
-  });
-  var pad = Math.max(110, Math.min(cssW, cssH) / 6);
-  x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
-  var ww0 = x1 - x0, hh0 = y1 - y0;
-  if (ww0 < 260){ var cxm = (x0 + x1) / 2; x0 = cxm - 130; x1 = cxm + 130; }
-  if (hh0 < 180){ var cym = (y0 + y1) / 2; y0 = cym - 90; y1 = cym + 90; }
-  x0 = Math.max(-120, x0); y0 = Math.max(-120, y0);
-  x1 = Math.min(1240, x1); y1 = Math.min(740, y1);
-  var K = Math.min(cssW / Math.max(1, (x1 - x0)), cssH / Math.max(1, (y1 - y0)));
-  K = Math.min(K, 5.2);
-  var ox = cssW / 2 - ((x0 + x1) / 2) * K, oy = cssH / 2 - ((y0 + y1) / 2) * K;
-  ctx.setTransform(ctx0.dpr * K, 0, 0, ctx0.dpr * K, ox * ctx0.dpr, oy * ctx0.dpr);
-  drawTrack(ctx, parts, D);
-  // 馬（枠色のゼッケン＋馬番）を「後方→先頭」順に描画（上位ほど上に重ねる）
-  var rMap = Math.max(3, 7 / K);          // 画面で約7pxの半径
-  var fMap = Math.max(4, 11.5 / K);       // 画面で約11pxの文字
-  for (var oa = ord.length - 1; oa >= 0; oa--){
-    var ii = ord[oa], w2 = simPos(dists[ii] || 0, D);
-    var rr2 = rMap + (ii === leadI ? 1.8 : 0);
-    ctx.beginPath(); ctx.arc(w2.x, w2.y, rr2, 0, Math.PI * 2);
-    ctx.fillStyle = frameColor(parts[ii].frame); ctx.fill();
-    ctx.lineWidth = Math.max(0.8, 2.2 / K); ctx.strokeStyle = '#fff'; ctx.stroke();
-    ctx.fillStyle = '#10231a'; ctx.font = 'bold ' + fMap + 'px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(parts[ii].no), w2.x, w2.y + 0.5);
-    ctx.textBaseline = 'alphabetic';
-    sim._shots.push({ x: ox + w2.x * K, y: oy + w2.y * K, i: ii, no: parts[ii].no, r: Math.max(10, rr2 * K * 1.4) });
-  }
-  ctx.setTransform(ctx0.dpr, 0, 0, ctx0.dpr, 0, 0);
-  ctx.fillStyle = 'rgba(10,28,17,.72)'; ctx.fillRect(0, 0, cssW, 30);
-  ctx.fillStyle = '#dff0d8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('🏁 最終直線リプレイ（4コーナー想定隊列 → ゴール）　残り ' + Math.round(rem) + 'm', 10, 15);
-  ctx.textBaseline = 'alphabetic';
-}
-/* 馬ごとの走路内レーン(横幅) 擬似 */
-function simLane(i){
-  if (!sim._lanes){ sim._lanes = {}; }
-  if (sim._lanes[i] == null) sim._lanes[i] = ((i*7+3) % 5) - 2;   // -2..+2 m
-  return sim._lanes[i];
-}
-/* ---- 映像用「展開モデル」（脚質別ペース + 決着タイム固定） ---- */
+/* ---- 展開モデル（脚質別ペース + 決着タイム固定） ---- */
 function simFlowStyle(str){
   var t = String(str || '').replace(/自在.*/, '');
   if (t.indexOf('逃') >= 0) return '逃げ';
@@ -4783,12 +3827,6 @@ function simSlowRate(p){
   if (!(sl >= 6)) return 1;
   return (Math.random() * 100 < Math.min(90, sl)) ? (0.5 + Math.random() * 0.5) : 1;
 }
-/* 出遅れ率から「見た目のスタート遅れ(メートル)」を抽選(通し映像のみで使用) */
-function simSlowLagM(p){
-  var sl = parseFloat(String((p && p.slow) || '0').replace(/[^0-9.]/g, ''));
-  if (!(sl >= 8)) return 0;
-  return (Math.random() * 100 < Math.min(92, sl)) ? (3 + Math.random() * 9) : 0;
-}
 
 /* 距離から基準平均時速(m/s)を決める */
 function simAvgVw(D){
@@ -4811,7 +3849,12 @@ function simSampleFinish(parts, D){
   var n = parts.length;
   var probs = parts.map(function(p){
     var pb = (p && isFinite(p.prob)) ? Math.max(p.prob, 0.0005) : 0.0005;
-    return pb * simSlowRate(p);
+    var f = simSlowRate(p);                    // 出遅れ率(％) → 一定確率でスタート不利
+    var sv = simStyleVarOf(p);                 // 脚質が安定しない馬 → 結果の振れ幅を大きくする
+    if (simUnstable(sv)){
+      f *= 1 + (Math.random() - 0.5) * 2 * Math.min(0.6, sv.sd * 1.2);
+    }
+    return pb * f;
   });
   var order = sampleOneOrder(probs);
   var vw = simAvgVw(D);
@@ -4832,227 +3875,7 @@ function simSampleFinish(parts, D){
   order.forEach(function(idx){ finT[idx] = baseT + mar[idx] / vw; });
   return { order: order, mar: mar, mmax: mmax, vw: vw, finT: finT };
 }
-/* 最終直線モードのプレビュー: 先頭が最終直線入口(残りsRem)に来た瞬間の各馬の残距離 */
-function simStraightCols(parts, D){
-  var sig = parts.map(function(p){ return p.no + ':' + Math.round((p.prob || 0) * 1000); }).join('|') + '|' + D;
-  if (sim._pvSig === sig && sim._pvCols) return sim._pvCols;
-  var n = parts.length, cols = new Array(n);
-  if (n){
-    var F = simSampleFinish(parts, D);
-    var paceAdj = simPaceAdjOf();
-    var sRem = simFinalStartRem(D);
-    var tS = Math.max(0, 1 - sRem / D) * (F.finT[F.order[0]] || 1);
-    for (var i = 0; i < n; i++){
-      var pl = simBuildPlan(simFlowStyle(parts[i].style), F.finT[i] || 1, paceAdj);
-      cols[i] = Math.max(0, simPlanU(pl, tS) * D);
-    }
-  }
-  sim._pvSig = sig; sim._pvCols = cols;
-  return cols;
-}
 
-function runVisualRace(){
-  if (sim.running) return;
-  simBoardHide();
-  simResetResultUI();   // 前回の結果を一旦クリアしてから走らせる
-  simApplyCourseGeom();
-  var parts = getParticipants();
-  if (!parts){ buildSimPanel(); return; }
-  var n = parts.length;
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  var F = simSampleFinish(parts, D);
-  var order = F.order.slice();
-  sim.final = order.slice();
-  var vw = F.vw, mar = F.mar.slice(), mmax = F.mmax, finT = F.finT.slice();
-  sim._mar = mar.slice();
-  sim._finT = finT; sim._vw = vw;   // 結果表(タイム・着差)用
-  sim._log = [];                    // 道中の隊列記録(展開文の材料)
-  var logTook = {};                 // 記録済みステージ g
-
-  // ===== レース全体の「馬の動き」を脚質ごとのペースモデルで決める =====
-  //  逃げ=序盤にハナ、先行=好位、差し=中団、追込=後方。直線(残り~25%)は
-  //  差し・追込が加速、逃げ・先行はペース次第で失速。決着タイム(着順)は維持する。
-  var paceAdj = simPaceAdjOf();
-  var PLAN = new Array(n);
-  for (var pi2 = 0; pi2 < n; pi2++){
-    PLAN[pi2] = simBuildPlan(simFlowStyle(parts[pi2].style), finT[pi2] || 1, paceAdj);
-    // 通し映像(スタートから)では出遅れ率の高い馬がたまにゲートで遅れる演出(着順は上で抽選済み)
-    PLAN[pi2].lag = (!lastOnly) ? simSlowLagM(parts[pi2]) : 0;
-  }
-  sim._plan = PLAN;   // 脚質ペースプラン(展開文などの材料)
-
-  // ===== 映像モードと再生区間 =====
-  var viewMode = simViewMode();            // side / straight（どちらも最終直線）
-  var lastOnly = true;                     // 最終直線: 4コーナー想定隊列→ゴールだけを映す
-  var sRem = simFinalStartRem(D);          // ゴールまでの残距離を「想定隊列(最終直線入口)」として再生開始
-  // 最終直線のみ: 先頭が第4コーナー(最終直線入口)に入る時点から再生
-  var leaderF = finT[order[0]] || 1;
-  var tS = 0;
-  if (lastOnly){ tS = Math.max(0, (1 - sRem / D)) * leaderF; }  // 先頭が最終直線入口に来る瞬間から再生
-
-  // ===== 再生時間（画面スピードに応じた演出尺） =====
-  var speed = paceScale();
-  var lastT = (D + mmax) / vw;              // レース実時間
-  var clipScale = 1;
-  if (lastOnly){ clipScale = 0.55 + 0.45 * (sRem / D); }   // 最終直線だけでも見やすい尺に
-  var animMs = 15000 * (0.5 + 4.6 / Math.max(4, speed)) * clipScale;
-  var msPerSec = animMs / lastT;
-  // ゴール板通過後の「流し」(実際の競馬のように止まらず走り抜けて減速する演出)
-  // ゴール板を通過してから「徐々に減速して止まる流し」を、ゴール直後〜全頭が走り抜けるまで映す
-  var runoutAnimMs = 2400;   // ゴール後の「流し」演出尺(ms)
-  var runoutRaceSec = Math.max(7, Math.min(15, runoutAnimMs / Math.max(1e-3, msPerSec))); // 実時間換算の流し尺(最後にゴールした馬から約7〜15秒・最速馬でも約190mでほぼ停止)
-  if (sim.raf) cancelAnimationFrame(sim.raf);
-  var startT = null, crossed = [], runoutEndReal = 0;
-  var runoutStartReal = 0, runoutStartWall = 0, runoutSlo = false;  // 全頭ゴール後の流しはゆっくり(スロー)再生
-  sim.running = true;
-  $('btnRun').disabled = true; $('btnRerun').disabled = true;
-  simSyncOverlay();
-
-  /* ステージ別ログ(展開文用)。lastOnlyは4コーナー以降の区間だけを残す */
-  function logStage(real, dists){
-    var lead = -1, ld = -1;
-    for (var i = 0; i < n; i++){ if ((dists[i] || 0) > ld){ ld = dists[i]; lead = i; } }
-    if (lead < 0) return;
-    var top = dists.map(function(v, i){ return i; }).sort(function(a, b){ return (dists[b] || 0) - (dists[a] || 0); });
-    var g;
-    if (lastOnly){
-      var rem = Math.max(0, D - ld);
-      if (!sim._log.length){
-        sim._log.push({ g: 0, lab: '4コーナー（想定隊列）', rem: Math.round(sRem), top: top });
-      }
-      var tr = Math.round(rem / 50) * 50;    // 50m刻みで代表を記録
-      // ※ g は「後半ほど大きい」値にする（残り距離 tr は時間とともに減るため反転）。並べ替えで逆順になるのを防ぐ
-      if (tr <= 300 && !logTook['r' + tr]){ logTook['r' + tr] = 1; sim._log.push({ g: 1000 + (1000 - tr), lab: (tr <= 50 ? 'ゴール前' : ('残り' + tr + 'm')), rem: tr, top: top }); }
-      return;
-    }
-    // スタートからの通し(全景・中継): 序盤/向正面/3コーナー/4コーナー/直線残り
-    var u = Math.max(0, Math.min(1, (real - tS) / Math.max(0.01, leaderF)));
-    var near = null, best = 1e9;
-    var keys = [0.12, 0.35, 0.6, 0.8, 0.94];
-    for (var q = 0; q < keys.length; q++){ var dd = Math.abs(u - keys[q]); if (dd < best){ best = dd; near = keys[q]; } }
-    if (u >= 0.02 && !logTook['g' + near]){ logTook['g' + near] = 1; sim._log.push({ g: near, rem: Math.round(D - ld), top: top }); }
-  }
-
-  function tick(now){
-    if (!sim.running) return;
-    if (!startT) startT = now;
-    var real;
-    if (runoutSlo){
-      // 全頭ゴール後の「流し」は時間の進みを遅くして、減速して止まる様子をじっくり映す
-      real = runoutStartReal + (now - runoutStartWall) / (msPerSec * 1.7);
-    } else {
-      real = tS + (now - startT) / msPerSec;   // レース時刻(秒)
-    }
-    var ctx0 = simPrepCss();
-    if (!ctx0){ sim.raf = requestAnimationFrame(tick); return; }
-    var dists = [], crossedOrder = [];
-    for (var i = 0; i < n; i++){
-      var pl = PLAN[i];
-      var u = simPlanU(pl, real);
-      if (u >= 1){
-        // ゴール通過を「最初の1回だけ」記録する(毎フレーム上書きすると流し距離が0になり
-        // ゴール地点で全馬が固まる不具合になるため、初回のみ pl.clock に通過時刻を残す)
-        if (pl.clock == null) pl.clock = real;
-        if (crossed.indexOf(i) < 0) crossed.push(i);
-      }
-      var d;
-      if (pl.clock != null){
-        // ゴール通過後: 全速のまま駆け抜けてから「徐々にスピードを落として止まる」流し。
-        // 速度を v = vf*(1 - tt*tt) とし(tt=0の直後はほぼ全速で、次第にゆるやかに減速、tt=1で停止)、
-        // その積分値で距離を出すことで、ゴール直後にガクッと止まる不自然さを無くす。
-        var Td = Math.max(1e-3, runoutRaceSec);
-        var dtc = Math.min(Math.max(0, real - pl.clock), Td);
-        var vf = Math.min(22, Math.max(10, D / Math.max(0.5, pl.F)));   // 通過時の速さ(m/s 相当)
-        var tt = dtc / Td;                       // 0..1(1で停まる)
-        d = D + vf * Td * (tt - tt * tt * tt / 3);
-      } else {
-        // 位置(スタートからの距離メートル)。最終直線モードは先頭が残りsRemに来た瞬間から再生
-        d = Math.min(D, Math.max(0, u * D));
-        // スタート直後の出遅れ演出(ゲートが開いて最初の10%ほどで解消する見た目上の遅れ)
-        if (pl.lag && u < 1){
-          var cut = Math.max(0, 1 - (real / Math.max(0.001, pl.F * 0.12)));
-          if (cut > 0) d = Math.max(0, d - pl.lag * cut);
-        }
-      }
-      dists.push(d);
-      crossedOrder.push(u >= 1);
-    }
-    var rs = dists.slice();
-    order = dists.map(function(v, i){ return i; }).sort(function(a, b){ return rs[b] - rs[a]; });
-    logStage(real, dists);
-    drawSingleFrame(ctx0, parts, dists, D);   // 毎フレーム描画(映像はtSから=想定隊列の瞬間から)
-    if (crossed.length < n){
-      sim.raf = requestAnimationFrame(tick);
-    } else {
-      // 全頭ゴール後も「最後にゴールした馬」から runoutRaceSec 分だけ走り続けてから確定表示。
-      // 全頭がそろったこの瞬間を起点に、レース時間をゆっくり進めて「駆け抜け→減速→停止」を映す
-      if (!runoutEndReal){
-        runoutStartReal = real;                 // == 最後にゴールした馬の通過時刻
-        runoutStartWall = now;
-        runoutSlo = true;
-        runoutEndReal = real + runoutRaceSec;
-      }
-      if (real < runoutEndReal){
-        sim.raf = requestAnimationFrame(tick);
-        return;
-      }
-      // 全頭の決着順(ゴール到達順)を crossed から並べ直す
-      var fin = parts.map(function(p, i){ return i; }).sort(function(a, b){ return (PLAN[b].clock || 1e9) - (PLAN[a].clock || 1e9); });
-      finishVisualRace(parts, fin, crossed);
-    }
-  }
-
-  // 1コマ描画（映像は最終直線のみ）
-  function drawSingleFrame(c0, parts, dists, D){
-    simDrawFrame(c0, parts, dists, D, { view: viewMode }, { view: viewMode, lastOnly: true });
-  }
-  sim.raf = requestAnimationFrame(tick);
-}
-/* ===== テレビ中継風「結果確定板」（上位5頭を数秒表示） ===== */
-function simBoardHTML(parts, order, meta){
-  var top = order.slice(0,5);
-  var head = '<div style="font-size:.98em">🏁 レース結果・着順確定</div>' +
-    '<div style="font-size:.7em;font-weight:600;opacity:.88;margin-top:2px;letter-spacing:.03em">' + esc((meta && meta.name) || 'RACE REPLAY') +
-    ((meta && meta.dist) ? ('　' + esc(meta.dist) + 'm') : '') + ((meta && meta.grade) ? ('　' + esc(meta.grade)) : '') + '</div>';
-  var trs = top.map(function(pi, k){
-    var p = parts[pi] || { no:'', name:'', frame:'', odds:'', prob:0 };
-    var rk = k + 1;
-    var fc = frameColor(p.frame);
-    var umaban = '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:27px;height:27px;border-radius:7px;background:' + fc + ';color:' + (simLum(fc) > 0.6 ? 'var(--ink)' : 'var(--on-accent)') + ';font-weight:900;border:1px solid rgba(255,255,255,.28)">' + esc(p.no) + '</span>';
-    var odds = p.odds ? String(p.odds).replace(/[^\d.,]/g,'') : '';
-    var ref = odds ? ('<div style="font-weight:900;color:var(--warn-ink);font-size:.98rem">' + esc(odds) + '</div><div class="small" style="color:var(--mut);font-size:.64rem">単勝(参考)</div>')
-                   : ('<div style="font-weight:800;color:var(--ok-ink)">' + pct(p.prob) + '</div><div class="small" style="color:var(--mut);font-size:.64rem">勝率参考</div>');
-    return '<tr class="no' + rk + '"><td><span class="placeNo pn' + Math.min(rk,5) + '">' + rk + '</span></td>' +
-      '<td>' + umaban + '</td>' +
-      '<td style="text-align:left;font-weight:700">' + esc(p.name || '') + '</td>' +
-      '<td style="text-align:right">' + ref + '</td></tr>';
-  }).join('');
-  return head +
-    '<table><thead><tr><th style="width:56px">着順</th><th style="width:60px">馬番</th><th style="text-align:left">馬名</th><th style="width:118px;text-align:right">参考</th></tr></thead><tbody>' + trs + '</tbody></table>' +
-    '<div class="bfoot">この着順はシミュレーション上の1例です。信頼性は下の「100回集計」をご覧ください</div>';
-}
-function showSimBoard(parts, order){
-  var b = $('simBoard'); if (!b || !parts || !parts.length) return;
-  var inn = $('simBoardIn'); if (!inn) return;
-  inn.innerHTML = simBoardHTML(parts, order, readRaceMeta());
-  b.classList.remove('hide'); b.classList.remove('fade');
-  b.setAttribute('aria-hidden', 'false');
-  var tk = ++sim._bt;   // 連打・再走で古いタイマを無効化
-  setTimeout(function(){
-    if (tk !== sim._bt) return;
-    b.classList.add('fade');           // 約5.4秒保持 → フェードアウト
-    setTimeout(function(){
-      if (tk !== sim._bt) return;
-      b.classList.add('hide'); b.classList.remove('fade');
-      b.setAttribute('aria-hidden', 'true');
-    }, 650);
-  }, 5400);
-}
-function simBoardHide(){
-  sim._bt++;
-  var b = $('simBoard');
-  if (b){ b.classList.add('hide'); b.classList.remove('fade'); b.setAttribute('aria-hidden', 'true'); }
-}
 sim._bt = 0;
 
 function simTimeFmt(sec){
@@ -5081,7 +3904,7 @@ function simExpHTML(parts, order, D){
     var lab = L.lab || STAGES[L.g] || ('残り' + (L.rem || 0) + 'm');
     var names = L.top.slice(0, 4).map(function(ii, k){
       var p = parts[ii]; var rl = (k === 0 ? '先頭' : (k === 1 ? '2番手' : (k === 2 ? '3番手' : '4番手')));
-      return '<span style="white-space:nowrap"><b style="color:' + frameColor(p.frame) + '">' + esc(p.no) + '</b> ' + esc(p.name || '') + '</span>';
+      return '<span style="white-space:nowrap">' + frameChipHTML(p.frame, esc(p.no)) + ' ' + esc(p.name || '') + '</span>';
     });
     html += '<div style="margin:2px 0">・<b>' + lab + '</b>（残り約' + (L.rem || 0) + 'm）— ' + names.join(' / ') + '</div>';
   });
@@ -5100,21 +3923,8 @@ function simExpHTML(parts, order, D){
   }
   html += '<hr style="border:none;border-top:1px dashed var(--line2);margin:10px 0 8px">' +
     '<div><b>決着</b>：<span style="color:var(--err-ink);font-weight:900">' + esc(w.no) + ' ' + esc(w.name) + '</span>（' + winT + (d2 ? '、' + s2.no + '着差' + d2 : '') + (d3 ? '・' + s3.no + '着差' + d3 : '') + '）— ' + flow + '</div>' +
-    '<div style="margin-top:6px;color:var(--mut)">※ この「結果想定」は1回のシミュレーション例です。複数回の傾向は下の「100回モンテカルロ集計」をご覧ください。</div>';
+    '<div style="margin-top:6px;color:var(--mut)">※ この「結果想定」は1回のシミュレーション例です。複数回の傾向は下の「📊 シミュレーション合計集計」に積み上がります。</div>';
   return html;
-}
-function finishVisualRace(parts, order, crossed){
-  sim.running = false;
-  $('btnRun').disabled = false; $('btnRerun').disabled = false;
-  if (crossed && crossed.length === parts.length) order = crossed.slice();
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  var w = parts[order[0]];
-  simRenderOutcome(parts, order, D);       // ページ内「結果想定」表＋展開（映像なしモードと共通）
-  var sx = $('simMsg');
-  if (sx) sx.textContent = '🏁 決着。1着: ' + w.no + ' ' + w.name + '。詳しい着順・タイム・展開は下の「結果想定・レース展開」をご覧ください。';
-  simBoardHide();            // 動画内の結果オーバーレイは使わない（ページ内表示へ）
-  saveNow();
-  simSyncOverlay();
 }
 
 /* ===== 映像なし「結果だけ」即時シミュレーション ===== */
@@ -5133,8 +3943,7 @@ function simInstantOnce(withLogs){
     var paceAdj = (typeof simPaceAdjOf === 'function') ? simPaceAdjOf() : {};
     var PLAN = new Array(n);
     for (var i = 0; i < n; i++){
-      PLAN[i] = simBuildPlan(simFlowStyle(parts[i].style), F.finT[i] || 1, paceAdj);
-      PLAN[i].lag = simSlowLagM(parts[i]);
+      PLAN[i] = simBuildPlan(simFlowStyleFor(parts[i]), F.finT[i] || 1, paceAdj);
     }
     sim._plan = PLAN;
     sim._log = simBuildLogs(parts, F, D, PLAN);
@@ -5202,7 +4011,7 @@ function simRenderOutcome(parts, order, D){
   var sE = $('simResultEmpty'); if (sE) sE.classList.add('hid');
   var sx = $('simExp'); if (sx) sx.innerHTML = simExpHTML(parts, order, D);
 }
-/* 映像なしでN回まとめて実行（累計の1着回数などを表示） */
+/* N回まとめて実行（合計集計にも自動で積み上がる） */
 function simRunInstant(times){
   var parts = getParticipants();
   if (!parts){ buildSimPanel(); return; }
@@ -5214,11 +4023,12 @@ function simRunInstant(times){
   if (!sim._rs){
     sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} };
   }
-  var last = null;
+  var last = null, orders = [];
   for (var k = 0; k < times; k++){
     var one = simInstantOnce(k === times - 1);   // 道中ログは最後の1回だけ作る
     if (!one) return;
     last = one;
+    orders.push(one.order);
     sim._rs.runs++;
     one.order.forEach(function(pi, rank){
       sim._rs.sumPos[pi] = (sim._rs.sumPos[pi] || 0) + (rank + 1);
@@ -5229,9 +4039,13 @@ function simRunInstant(times){
   sim._log = sim._log || [];
   simRenderOutcome(last.parts, last.order, last.D);
   simRenderRunState(last.parts);
+  var agg = null;                                   // 📊 合計集計に積み上げ（実行した回数ぶん全部）
+  orders.forEach(function(o){ agg = simAggAdd(parts, o); });
+  simAggRender();
   var sx = $('simMsg');
-  if (sx) sx.textContent = '⚡ ' + times + '回の結果を出しました（映像なし）。最後の1走を着順表・展開に表示しています。1着: ' +
-    last.parts[last.order[0]].no + ' ' + last.parts[last.order[0]].name;
+  if (sx) sx.textContent = '⚡ ' + times + '回の結果を出しました。最後の1走を着順表・展開に表示しています。1着: ' +
+    last.parts[last.order[0]].no + ' ' + last.parts[last.order[0]].name +
+    '（合計集計: 累計 ' + ((agg && agg.runs) || 0) + '回）';
   saveNow();
 }
 /* 連続実行の累計を表示 */
@@ -5245,7 +4059,7 @@ function simRenderRunState(parts){
     if (c > bestN){ bestN = c; best = i; }
   });
   var lines = [];
-  lines.push('<b>このレースの実行累計: ' + rs.runs + '回</b>（映像なし・即時）');
+  lines.push('<b>このレースの実行累計: ' + rs.runs + '回</b>（📊 合計集計は下の表をご覧ください）');
   if (best >= 0 && bestN > 0){
     lines.push('最多1着: <b>' + esc(parts[best].no) + ' ' + esc(parts[best].name) + '</b>（' + bestN + '回 / ' + pct(bestN / rs.runs) + '%）');
   }
@@ -5258,81 +4072,191 @@ function simRunsCount(){
   return (v >= 1 && v <= 500) ? v : 10;
 }
 
-/* ===== モンテカルロ集計 ===== */
-function montecarlo(){
-  var parts = getParticipants();
-  if (!parts) return;
-  var runs = 100, n = parts.length;
-  var cntFirst = new Array(n).fill(0);
-  var cntRental = new Array(n).fill(0);
-  var cntShow = new Array(n).fill(0);
-  var sumPos = new Array(n).fill(0);
-  var wins = 0, rps = 0;
-  for (var r=0;r<runs;r++){
-    var probs = parts.map(function(p){
-      var pb = (p && isFinite(p.prob)) ? Math.max(p.prob, 0.0005) : 0.0005;
-      return pb * simSlowRate(p);
-    });
-    var ord = sampleOneOrder(probs);
-    var w = parts[ord[0]];
-    if (w.prob > 0.2) wins++;
-    rps += (ord[1] === parts[0].idx || ord[0] === parts[0].idx) ? 1 : 0;
-    ord.forEach(function(pi, rank){
-      cntFirst[pi] += (rank===0)?1:0;
-      cntRental[pi] += (rank<=1)?1:0;
-      cntShow[pi] += (rank<=2)?1:0;
-      sumPos[pi] += (rank+1);
-    });
-  }
-  $('batchState').textContent = '100レース分のモンテカルロ試行が完了しました（' + todayStr() + '）';
-  var rows = parts.map(function(p,i){
-    return { p:p, f:cntFirst[i], rl:cntRental[i], sh:cntShow[i], avg:sumPos[i]/runs };
-  }).sort(function(a,b){ return b.f - a.f || b.sh - a.sh; });
-  var html = '';
-  rows.forEach(function(x, rank){
-    html += '<tr><td>' + (rank+1) + '</td><td>' + esc(x.p.no) + '</td><td style="text-align:left">' + esc(x.p.name) + '</td>' +
-      '<td class="tbl-odds">' + esc(x.p.odds || '−') + '</td><td>' + pct(x.p.prob) + '%</td>' +
-      '<td><b style="color:var(--ok-ink)">' + pct(x.f/runs) + '%</b></td>' +
-      '<td>' + pct(x.rl/runs) + '%</td><td>' + pct(x.sh/runs) + '%</td>' +
-      '<td>' + x.avg.toFixed(1) + '</td><td>' + barRate(x.f/runs) + '</td></tr>';
-  });
-  $('statsBody').innerHTML = html;
-  $('statsSummary').innerHTML = '※「成績」バーは1着率の目安。ランダム要素により人気薄にもチャンスが生まれます。集計はAI勝率を実力差に変換した簡易モデルです。';
+/* ===== 脚質の安定度（馬柱の過去戦績から） =====
+   過去レースの4角通過順 → 脚質（逃げ/先行/差し/追込）を復元し、
+   バラつきが大きい馬は「毎回ちがう脚質で走る」ものとしてシミュレーションに反映する。 */
+var SIM_SV_CACHE = {};
+function simStyleHistOf(p){
+  if (!p) return null;
+  var h = null;
+  try { h = (state.horses || [])[p.idx] || null; } catch(e){}
+  if (!h || !h.nk || typeof tlStyleHist !== 'function') return null;
+  if (SIM_SV_CACHE[h.nk] !== undefined) return SIM_SV_CACHE[h.nk];
+  var r = null;
+  try { r = tlStyleHist(h); } catch(e){ r = null; }
+  SIM_SV_CACHE[h.nk] = r;
+  return r;
 }
-function barRate(v){
-  var w = Math.max(1, Math.round(v*100));
-  return '<div class="barbg"><i style="width:' + w + '%;background:linear-gradient(90deg,#e05656,#b92b1e)"></i></div>';
+function simStyleVarOf(p){
+  var r = simStyleHistOf(p);
+  return (r && r.n >= 3) ? r : null;
+}
+/* 脚質が安定しない馬かどうか（判定は p47 の tlStyleUnstable に集約） */
+function simUnstable(sv){
+  if (!sv) return false;
+  if (typeof tlStyleUnstable === 'function') return tlStyleUnstable(sv);
+  return !!(sv.n >= 3 && sv.sd >= 0.22);
+}
+/* その馬の今回の脚質（ブレる馬は過去に出した脚質から抽選） */
+function simFlowStyleFor(p){
+  var sv = simStyleVarOf(p);
+  if (simUnstable(sv) && sv.styles && sv.styles.length){
+    return sv.styles[Math.floor(Math.random() * sv.styles.length)];   // 過去に出した脚質から抽選
+  }
+  return simFlowStyle(p && p.style);
+}
+function simStyleNote(){
+  var parts = getParticipants() || [];
+  var out = [];
+  parts.forEach(function(p){
+    var sv = simStyleVarOf(p);
+    if (simUnstable(sv)) out.push({ p: p, sv: sv });
+  });
+  if (!out.length) return '';
+  return '　⚠️ <b>脚質が安定しない馬 ' + out.length + '頭</b>（過去戦績の4角通過順から判定・毎回ちがう脚質で走るとして振れ幅を大きくしています）: ' +
+    out.slice(0, 6).map(function(x){
+      return esc(x.p.no) + ' ' + esc(x.p.name) + '（4角 ' + x.sv.styles.join('→') + '・バラつき±' + Math.round(x.sv.sd * 100) + '%）';
+    }).join(' / ') + (out.length > 6 ? ' ほか' + (out.length - 6) + '頭' : '');
 }
 
-/* 「⚡ 結果を出す」: 映像なし=その場で結果、映像あり=アニメーション再生 */
-function simRunPrimary(){
-  if (simNoVideo()) simRunInstant(1);
-  else runVisualRace();
+/* ===== シミュレーションの合計集計（端末に保存・リセット可能） ===== */
+var SIMAGG_LS = 'khl_simagg_v1';
+function simAggLs(){ try { return JSON.parse(localStorage.getItem(SIMAGG_LS) || '{}') || {}; } catch(e){ return {}; } }
+function simAggSave(o){ try { localStorage.setItem(SIMAGG_LS, JSON.stringify(o)); } catch(e){} }
+function simAggKey(parts){
+  var meta = {};
+  try { meta = readRaceMeta() || {}; } catch(e){}
+  var rid = '';
+  try { rid = String(state.raceId || ''); } catch(e){}
+  var sig = [meta.name || '', meta.dist || '', (parts || []).map(function(p){ return p.no + ':' + p.name; }).join(',')].join('|');
+  return rid || sig;
 }
-/* 映像なし設定の見た目（映像カードと結果欄の出し分け／ボタン表記） */
-function simSyncNoVideo(){
-  var nov = simNoVideo();
-  var card = $('simVideoCard');
-  if (card){
-    try { card.open = !nov; } catch(e){}                       // 映像なし=折りたたむ
-    try { if (card.classList && card.classList.toggle) card.classList.toggle('simnovideo', nov); } catch(e){}
+function simAggAdd(parts, order){
+  if (!parts || !order) return null;
+  var ls = simAggLs();
+  var k = simAggKey(parts);
+  var meta = {};
+  try { meta = readRaceMeta() || {}; } catch(e){}
+  var a = ls[k] || (ls[k] = { key: k, name: '', dist: '', runs: 0, at: '', horses: {} });
+  a.name = meta.name || a.name || '';
+  a.dist = meta.dist || a.dist || '';
+  a.runs = (a.runs || 0) + 1;
+  a.at = new Date().toISOString();
+  order.forEach(function(pi, rank){
+    var p = parts[pi]; if (!p) return;
+    var id = p.no + ':' + p.name;
+    var h = a.horses[id] || (a.horses[id] = { no: p.no, name: p.name, runs: 0, w: 0, t2: 0, t3: 0, sum: 0, best: 99, worst: 0, odds: '', prob: 0, slow: '', sv: null });
+    h.runs++; h.sum += (rank + 1);
+    if (rank === 0) h.w++;
+    if (rank <= 1) h.t2++;
+    if (rank <= 2) h.t3++;
+    h.best = Math.min(h.best, rank + 1);
+    h.worst = Math.max(h.worst, rank + 1);
+    h.odds = p.odds || h.odds; h.prob = p.prob;
+    try {
+      var hh = (state.horses || [])[p.idx] || {};
+      h.slow = hh.slow || h.slow;
+    } catch(e){}
+    var sv = simStyleVarOf(p);
+    h.sv = sv ? { sd: sv.sd, n: sv.n, dom: sv.dom, styles: sv.styles, bad: simUnstable(sv) } : h.sv;
+  });
+  ls[k] = a;
+  simAggSave(ls);
+  return a;
+}
+function simAggCur(){
+  var parts = getParticipants();
+  if (!parts) return null;
+  var ls = simAggLs();
+  return ls[simAggKey(parts)] || null;
+}
+function simAggRender(){
+  var box = $('simAggBody');
+  var sum = $('simAggSummary');
+  var a = simAggCur();
+  if (sum) sum.innerHTML = '';
+  if (!box) return;
+  if (!a || !a.runs){
+    box.innerHTML = '<tr><td colspan="11" class="muted">まだ集計がありません。「⚡ 結果を出す」や「⏩ まとめて」を実行すると、' +
+      'その結果がこのレースの<b>合計集計</b>に積み上がります（端末に保存されるので、次回起動後も続きから集計されます）。</td></tr>';
+    return;
   }
-  var b = $('btnRun');
-  if (b) b.textContent = nov ? '⚡ 結果を出す（映像なし）' : '▶ 出走させる（映像つき）';
-  var hint = $('simHint');
-  if (hint){
-    if (nov) hint.innerHTML = '💡 映像を描画せずに着順・タイム・展開をすぐ表示します。1回が一瞬で終わるので「⏩ まとめて」で何度でも走らせて傾向を見られます。';
-    else simSetHint();
+  var rows = Object.keys(a.horses).map(function(k){ return a.horses[k]; });
+  rows.sort(function(x, y){
+    return (y.w / y.runs) - (x.w / x.runs) || (y.t3 / y.runs) - (x.t3 / x.runs) ||
+      (x.sum / x.runs) - (y.sum / y.runs) || String(x.no).localeCompare(String(y.no));
+  });
+  var html = rows.map(function(h){
+    var r1 = h.w / h.runs, r2 = h.t2 / h.runs, r3 = h.t3 / h.runs, avg = h.sum / h.runs;
+    var slow = parseFloat(String(h.slow || '0').replace(/[^0-9.]/g, '')) || 0;
+    var sv = (h.sv && (h.sv.bad || (h.sv.sd != null && h.sv.sd >= 0.22))) ? h.sv : null;
+    return '<tr' + (r1 >= 0.2 ? ' class="leadcol"' : '') + '>' +
+      '<td>' + esc(h.no) + '</td><td style="text-align:left;font-weight:700">' + esc(h.name) + '</td>' +
+      '<td style="text-align:right">' + (h.odds ? esc(String(h.odds)) : '−') + '</td>' +
+      '<td style="text-align:right">' + pct(h.prob) + '%</td>' +
+      '<td>' + h.runs + '</td>' +
+      '<td><b>' + h.w + '</b><br><span class="muted">' + pct(r1) + '%</span></td>' +
+      '<td>' + h.t2 + '<br><span class="muted">' + pct(r2) + '%</span></td>' +
+      '<td>' + h.t3 + '<br><span class="muted">' + pct(r3) + '%</span></td>' +
+      '<td>' + avg.toFixed(1) + '<br><span class="muted">' + h.best + '〜' + h.worst + '着</span></td>' +
+      '<td>' + (slow > 0 ? '<span class="tlchip slow">' + slow + '%</span>' : '<span class="muted">−</span>') + '</td>' +
+      '<td style="text-align:left">' + (sv
+        ? '<span class="tlchip slow" title="直近' + esc(String(sv.n || 0)) + '走の4角: ' + esc((sv.styles || []).join('→')) + '">±' + Math.round((sv.sd || 0) * 100) + '%</span>'
+        : (h.sv ? '<span class="muted" title="直近' + esc(String(h.sv.n || 0)) + '走の4角: ' + esc((h.sv.styles || []).join('→')) + '">安定</span>' : '<span class="muted">−</span>')) + '</td>' +
+      '</tr>';
+  }).join('');
+  box.innerHTML = html;
+  if (sum){
+    var top = rows[0];
+    sum.innerHTML = '<div class="small">📊 <b>' + esc(a.name || 'このレース') + '</b>' + (a.dist ? '（' + esc(String(a.dist)) + 'm）' : '') +
+      '　累計 <b>' + a.runs + '</b> 回　｜　最多1着: <b>' + esc(top.no + ' ' + top.name) + '</b>（' + top.w + '回 / ' + pct(top.w / top.runs) + '%）' +
+      '　<span class="muted">更新 ' + esc(String(a.at || '').slice(0, 16).replace('T', ' ')) + '</span></div>';
   }
 }
+/* 集計の実削除（確認なし） */
+function simAggClear(){
+  var parts = getParticipants();
+  var ls = simAggLs();
+  var k = simAggKey(parts || []);
+  var had = ls[k] ? (ls[k].runs || 0) : 0;
+  delete ls[k];
+  simAggSave(ls);
+  sim._rs = null; sim._rsKey = null;
+  simAggRender();
+  if (parts) simRenderRunState(parts);
+  return had;
+}
+/* 集計リセットボタン（確認してから simAggClear） */
+function simAggReset(){
+  var a = simAggCur();
+  var fn = function(){ simAggClear(); };
+  if (typeof showConfirm === 'function'){
+    showConfirm('このレースのシミュレーション合計集計（' + ((a && a.runs) || 0) + '回ぶん）をリセットしますか？', fn);
+  } else fn();
+}
+
+/* ===== ③タブの説明文と初期化 ===== */
+function simSetHint(){
+  var el = $('simHint'); if (!el) return;
+  var parts = getParticipants();
+  var n = parts ? parts.length : 0;
+  var slowN = 0;
+  if (parts) parts.forEach(function(p){
+    var sl = parseFloat(String(p.slow || '0').replace(/[^0-9.]/g, '')) || 0;
+    if (sl >= 6) slowN++;
+  });
+  el.innerHTML = '💡 出走馬 <b>' + n + '</b>頭を、AI印の勝率（全馬の和=100%）を実力差として1走ずつ再現します。' +
+    '「⚡ 結果を出す」=1走、「⏩ まとめて」=選んだ回数だけ連続で走らせて、<b>下の「📊 合計集計」に積み上げ</b>ます。' +
+    (slowN ? '　🐢 <b>出遅れ率6%以上の馬 ' + slowN + '頭</b>は、その確率でスタート不利（実力0.5〜1.0倍）になります。' : '') +
+    simStyleNote();
+}
+function simRunPrimary(){ simRunInstant(1); }
 function initSimTab(){
-  // 「⚡ 結果を出す（映像なし）」: 映像なし設定なら即時、映像ありなら従来のアニメーション
   var primary = function(){ simRunPrimary(); };
   on('btnRun', 'click', primary);
   on('btnRerun', 'click', primary);
-  on('btnSimPlay', 'click', function(){ runVisualRace(); });
   on('btnMulti', 'click', function(){ simRunInstant(simRunsCount()); });
-  on('btnBatch', 'click', function(){ montecarlo(); });
+  on('btnAggReset', 'click', function(){ simAggReset(); });
   // 累計リセット（動的に差し替わるので委譲で拾う）
   document.addEventListener('click', function(e){
     if (e.target && e.target.id === 'simResetRuns'){
@@ -5341,33 +4265,8 @@ function initSimTab(){
       simRenderRunState();
     }
   });
-  var nv = $('simNoVideo');
-  if (nv){
-    try { nv.checked = (state.simNoVideo != null) ? !!state.simNoVideo : true; } catch(e){}
-    nv.addEventListener('change', function(){
-      try { state.simNoVideo = !!nv.checked; } catch(e){}
-      simSyncNoVideo();
-      saveNow();
-    });
-  }
-  var sv2 = $('simView'); if (sv2) sv2.addEventListener('change', function(){ simSyncNoVideo(); });
-  simSyncNoVideo();
-  on('simSpeed', 'change', function(){ state.simSpeed = this.value; saveNow(); });
-  on('simView', 'change', function(){
-    state.simView = (this.value === 'straight') ? 'straight' : 'side';
-    saveNow();
-    simSetHint();
-    if (!sim.running){ if (typeof drawSimPreview === 'function') drawSimPreview(); if (typeof simSyncOverlay === 'function') simSyncOverlay(); }
-  });
-  var fsChangeEv = function(){ simFsChange(); simSyncOverlay(); };
-  try {
-    document.addEventListener('fullscreenchange', fsChangeEv);
-    document.addEventListener('webkitfullscreenchange', fsChangeEv);
-  } catch(e){}
-  window.addEventListener('resize', function(){
-    if (!sim.running){ simFsChange(); }
-  });
-  simSyncOverlay();
+  simSetHint();
+  simAggRender();
 }
 
 /* =========================================================
@@ -5719,7 +4618,7 @@ function nkImportCard(){
     var meta = nkParseRaceMeta(html);
     var list = nkParseShutuba(html);
     if (!list.length) throw new Error('出馬表の行を解析できませんでした。netkeiba側の表示変更の可能性があります。');
-    state.raceId = rid; saveNow();
+    state.raceId = rid; state.raceAt = Date.now(); saveNow();
     if (!state.horses.length){
       state.horses = list.map(function(p){
         return mkHorse({ frame:p.frame, no:p.no, name:p.name, sexAge:p.sexAge, weight:p.weight, jockey:p.jockey, nk:p.nk||'' });
@@ -5758,7 +4657,7 @@ function nkImportOdds(){
   nkBusy(true);
   nkLog(['単勝オッズを取得中…（レースID ' + rid + '）']);
   nkFetchOddsAny(rid).then(function(payload){
-    state.raceId = rid; saveNow();
+    state.raceId = rid; state.raceAt = Date.now(); saveNow();
     var p = nkParseOddsData(payload);
     if (!p.odds.length){
       // 空ならステータス表示
@@ -5815,7 +4714,7 @@ function nkImportCardThen(afterOk){
     var meta = nkParseRaceMeta(html);
     var list = nkParseShutuba(html);
     if (!list.length) throw new Error('出馬表の行を解析できませんでした。');
-    state.raceId = rid; saveNow();
+    state.raceId = rid; state.raceAt = Date.now(); saveNow();
     if (!state.horses.length){
       state.horses = list.map(function(p){ return mkHorse({ frame:p.frame, no:p.no, name:p.name, sexAge:p.sexAge, weight:p.weight, jockey:p.jockey }); });
     } else {
@@ -6979,10 +5878,34 @@ function biasVenueCheckHTML(){
     if (diff.length){
       h.push('<div class="small" style="color:var(--err-ink)">⚠ 別競馬場のデータが混ざっています（バイアス判定から外すことを推奨）: ' +
         diff.map(function(x){ return esc((x.rc.label || x.rc.id) + '＝' + x.v); }).join(' / ') + '</div>');
+      h.push('<div class="small muted" style="margin-top:2px">※ 以前の開催の記録が残っているとこの表示は消えません。' +
+        '下のボタンで<b>別競馬場ぶんだけ削除</b>するか、<b>キャッシュを消して取り直し</b>てください（削除は「戻す」で復元できます）。</div>');
     } else {
       h.push('<div class="small" style="color:var(--ok-ink)">✅ すべて対象レースと同じ「' + esc(tv.name || '同') + '」開催のデータで判定しています。</div>');
     }
   }
+  // キャッシュの一時削除と再取得（別競馬場の記録が残って表示が消えないとき用）
+  (function(){
+    var tv2 = biasTargetVenue();
+    var sp2 = biasRowsOfDay();
+    var diffN = 0;
+    sp2.day.forEach(function(rc){
+      var v = biasRaceVenue(rc);
+      if (tv2.name && v && v !== tv2.name) diffN++;
+    });
+    var trashN = (state.biasTrash || []).length;
+    h.push('<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">');
+    h.push('<button type="button" class="btn ghost" data-biasact="dropvenue"' + (diffN ? '' : ' disabled') +
+      ' title="対象レースと別の競馬場の記録だけを消します（当日の同競馬場ぶんは残る）">🧹 別競馬場ぶんだけ削除' +
+      (diffN ? '（' + diffN + '件）' : '') + '</button>');
+    h.push('<button type="button" class="btn ghost" data-biasact="refetch"' + (sp2.day.length ? '' : ' disabled') +
+      ' title="当日の記録キャッシュをいったん全部消して、netkeiba から取り直します">♻️ キャッシュを消して取り直す（' + sp2.day.length + '件）</button>');
+    if (trashN) h.push('<button type="button" class="btn ghost" data-biasact="untrash" title="さっき削除した記録を戻します">↩️ 削除を戻す（' + trashN + '件）</button>');
+    if (sp2.other.length){
+      h.push('<span class="small muted">別日の記録 ' + sp2.other.length + '件は判定に使っていません（「🧹 別日の記録を消す」は上のカード）</span>');
+    }
+    h.push('</div>');
+  })();
   // 展開学習DBに含まれる他場レース
   if (typeof lnLoad === 'function'){
     try {
@@ -7074,6 +5997,46 @@ function showAnalysis(){
   if ($('kentaiBody') && !$('kentaiBody').classList.contains('hid')) renderKentaiFull();
 }
 
+/* 📍同競馬場開催のチェック: キャッシュの一時削除と再取得
+   削除した行は state.biasTrash に入れておき「↩️ 削除を戻す」で復元できます。 */
+function biasCacheAct(act){
+  var tv = biasTargetVenue();
+  var sp = biasRowsOfDay();
+  if (act === 'untrash'){
+    var back = state.biasTrash || [];
+    if (!back.length) return;
+    var have = {};
+    (state.biasRaces || []).forEach(function(x){ have[x.id] = 1; });
+    back.forEach(function(x){ if (!have[x.id]) state.biasRaces.push(x); });
+    state.biasTrash = [];
+    saveNow(); renderBiasCard(); showAnalysis();
+    return;
+  }
+  if (act === 'dropvenue'){
+    var drop = sp.day.filter(function(rc){
+      var v = biasRaceVenue(rc);
+      return !!(tv.name && v && v !== tv.name);
+    });
+    if (!drop.length) return;
+    var ids = {};
+    drop.forEach(function(rc){ ids[rc.id] = 1; });
+    showConfirm('対象レース（' + (tv.name || '?') + '）と別の競馬場の記録 ' + drop.length + ' 件を削除しますか？\n（「↩️ 削除を戻す」で復元できます）', function(){
+      state.biasTrash = drop.slice();
+      state.biasRaces = (state.biasRaces || []).filter(function(x){ return !ids[x.id]; });
+      saveNow(); renderBiasCard(); showAnalysis();
+    });
+    return;
+  }
+  if (act === 'refetch'){
+    if (!sp.day.length) return;
+    showConfirm('当日（' + biasDayInfo().label + '）の記録 ' + sp.day.length + ' 件を消して、netkeiba から取り直しますか？\n（別日の記録は残ります・「↩️ 削除を戻す」で復元できます）', function(){
+      state.biasTrash = sp.day.slice();
+      state.biasRaces = sp.other.slice();
+      saveNow(); renderBiasCard(); showAnalysis();
+      if (typeof nkBiasFetchAll === 'function') nkBiasFetchAll();
+    });
+  }
+}
 function initBias(){
   document.addEventListener('click', function(e){
     var t = e.target;
@@ -7105,6 +6068,14 @@ function initBias(){
         state.biasRaces = sp.day.slice(); saveNow(); renderBiasCard(); showAnalysis();
       });
       return;
+    }
+    if (ba){
+      var act = ba.getAttribute('data-biasact');
+      if (act === 'dropvenue' || act === 'refetch' || act === 'untrash'){
+        e.preventDefault();
+        biasCacheAct(act);
+        return;
+      }
     }
     var mb = t.closest && t.closest('[data-bm]');
     if (mb){
@@ -7361,7 +6332,10 @@ function histFetchDetail(rid, label){
 
 /* 現在のレースID（state or 入力欄） */
 function histCurrentRid(){
-  var rid = String(state.raceId || '').trim();
+  /* ⑥カレンダーで選んだレースが新しければ、そちらを追いかける */
+  var rid = '';
+  try { var p = (typeof drPickRid === 'function') ? drPickRid() : null; if (p && p.rid) rid = String(p.rid); } catch(e){}
+  if (!rid) rid = String(state.raceId || '').trim();
   if (!rid){
     var inp = $('histUrlInp'); var v = inp ? String(inp.value).trim() : '';
     if (v && typeof nkExtractRaceId === 'function') rid = nkExtractRaceId(v);
@@ -7372,10 +6346,16 @@ function histCurrentRid(){
 
 function histRaceLabel(){
   var s = state.race || {};
-  var lab = s.name || '';
-  var rid = String(state.raceId || '');
-  if (lab && rid) return lab + ' (race_id=' + rid + ')';
-  if (lab) return lab;
+  var lab = '';
+  var from = '';
+  try {
+    var p = (typeof drPickRid === 'function') ? drPickRid() : null;
+    if (p && p.from === '📅カレンダー'){ lab = (typeof drTargetName === 'function') ? drTargetName() : ''; from = '（📅カレンダーで選択中）'; }
+  } catch(e){}
+  if (!lab) lab = s.name || '';
+  var rid = histCurrentRid();
+  if (lab && rid) return lab + ' (race_id=' + rid + ')' + from;
+  if (lab) return lab + from;
   if (rid) return 'race_id=' + rid;
   return '';
 }
@@ -7555,7 +6535,7 @@ function histStart(){
 }
 
 function histRefreshHeader(){
-  var rid = String(state.raceId || '').trim();
+  var rid = histCurrentRid();
   var inp = $('histUrlInp'); if (inp && !inp.value) inp.value = rid;
   var cur = $('histCurRace');
   var lab = histRaceLabel();
@@ -7576,7 +6556,7 @@ function initHist(){
     var rid = v;
     if (typeof nkExtractRaceId === 'function' && v) rid = nkExtractRaceId(v);
     if (!rid){ histLog('レースURLまたは race_id=◯◯ を入力してください'); return; }
-    state.raceId = rid; saveNow();
+    state.raceId = rid; state.raceAt = Date.now(); saveNow();
     histRefreshHeader();
     histLog('race_id=' + rid + ' を対象に設定しました。');
     histStart();
@@ -11126,7 +10106,7 @@ function kaiImportByRaceId(rid){
       log.push('✅ 出馬表を ' + list.length + '頭に入れ替えました（同じ馬番の調教・持ちタイム等は保持）');
     }
     applyNkRaceMeta(meta);
-    state.raceId = rid;
+    state.raceId = rid; state.raceAt = Date.now();
     // 自己学習用に馬データを記録
     if (typeof apEnsureLive === 'function'){ try { apEnsureLive(rid); } catch(e){} }
     // 自動保存（現在レース）
@@ -11183,7 +10163,7 @@ function kaiRestoreHist(rid){
   if (!h.horses) h.horses = [];
   state.race = Object.assign(defaultRace(), h.race || {});
   state.horses = h.horses.map(function(x){ return Object.assign({}, x); });
-  state.raceId = rid;
+  state.raceId = rid; state.raceAt = Date.now();
   syncRaceDomFromState();
   refreshRaceLine();
   rebuildHorseTable();
@@ -13386,6 +12366,11 @@ function bfParseDbResult(html){
     out.meta.m = parseInt(sdm[2], 10) || 0;
     out.meta.dist = out.meta.surface + out.meta.m + 'm';
   }
+  // 天候・馬場状態（🎓タイム換算の学習で使う）。例: 「天候 : 曇 / ダート : 良 / 発走 : 10:05」
+  var wm = whole.match(/天候\s*[:：]\s*(晴|曇|雨|小雨|雪|小雪|霧)/);
+  if (wm) out.meta.tenko = wm[1];
+  var bmm = whole.match(/(?:芝|ダート|障害)\s*[:：]\s*(良|稍重|重|不良)/);
+  if (bmm) out.meta.baba = bmm[1];
   var gm = title.match(/\((G[123])\)|^\s*(G[123])\s/);
   if (gm) out.meta.grade = gm[1] || gm[2];
   if (!out.meta.grade){
@@ -14199,11 +13184,29 @@ function bfMine(entries){
   return S.concat(P);
 }
 function bfRaceName(){
+  try { if (typeof drTargetName === 'function'){ var n = drTargetName(); if (n) return n; } } catch(e){}
   try { return (state.race && (state.race.name || '')) || ''; } catch(e){ return ''; }
+}
+/* 🧬ブロックの「対象レース」表示（⑥カレンダーの選択に連動） */
+function bfRenderTarget(){
+  var box = $('bfTarget'); if (!box) return;
+  var nm = '', rid = '', from = '';
+  try { nm = bfRaceName(); } catch(e){}
+  try { var p = (typeof drPickRid === 'function') ? drPickRid() : null; if (p){ rid = p.rid; from = p.from; } } catch(e){}
+  var last = '';
+  try { last = ((bfLs().last || {}).name) || ''; } catch(e){}
+  if (!nm && !last){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="small" style="margin:2px 0 6px">🎯 対象レース: <b>' + esc(nm || last || '未選択') + '</b>' +
+    (rid ? ' <span class="muted">(race_id=' + esc(rid) + ')</span>' : '') +
+    (from ? ' <span class="chip">' + esc(from) + '</span>' : '') +
+    (last && nm && last !== nm ? ' <span class="muted">／抽出済み: ' + esc(last) + '（下のボタンで抽出し直すと切り替わります）</span>' : '') +
+    ' <span class="muted">← 上の📅カレンダーでレースを選ぶと切り替わります</span></div>';
 }
 function bfGrade(){
   try {
-    var g = (state.race && state.race.grade) || '';
+    var g = '';
+    try { if (typeof drTargetGrade === 'function') g = drTargetGrade(); } catch(e0){}
+    if (!g) g = (state.race && state.race.grade) || '';
     if (g === BF_G1 || g === BF_G2 || g === BF_G3) return g;
     var nm = bfRaceName();
     var m = nm.match(/\((G[123])\)/);
@@ -14827,6 +13830,7 @@ function initBf(){
       bfStatus('血統・開催探索キャッシュを消去しました。');
     } catch(e){}
   });
+  bfRenderTarget();
   bfRender();
   bfRenderDeep();
   bfRenderDeepHit();
@@ -15323,7 +14327,10 @@ function diImportDate(date8, progress){
           var rec = {
             rid: it.rid, date8: date8, at: new Date().toISOString(), h: h,
             meta: { name: pr.meta.name, date8: pr.meta.date8 || date8, date: pr.meta.date,
-                    place: pr.meta.place, rnum: pr.meta.rnum, grade: pr.meta.grade },
+                    place: pr.meta.place, rnum: pr.meta.rnum, grade: pr.meta.grade,
+                    // 🎓タイム換算の学習に使う（面・距離・馬場状態・天候）
+                    surface: pr.meta.surface || '', m: pr.meta.m || 0, dist: pr.meta.dist || '',
+                    baba: pr.meta.baba || '', tenko: pr.meta.tenko || '' },
             n: pr.n, source: 'netkeiba', rows: pr.rows,
             // 払戻(全券種): payout=券種別{nos,pays} 正規化 / payouts=的中1件ごとの生リスト
             payout: pr.payout || null, payouts: pr.payouts || null,
@@ -15354,6 +14361,7 @@ function diImportDate(date8, progress){
     });
     return seq.then(function(){
       result.evicted = diEvictedRun;
+      if (typeof tlLearnSchedule === 'function'){ try { tlLearnSchedule(6000); } catch(e){} }   // 🎓タイム換算の学習（連続取込中はまとめて1回）
       var evMsg = result.evicted
         ? '　⚠ 保存領域が満杯になったため、最も古いレースから ' + result.evicted + ' 件を自動で削除して新しい分を保存しました（古い順に上書き）。' : '';
       if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }   // 自己学習(3モデル・年月集計)の表示更新
@@ -15403,6 +14411,7 @@ function diImportDate(date8, progress){
       });
       return seq.then(function(){
         result.evicted = diEvictedRun;
+        if (typeof tlLearnSchedule === 'function'){ try { tlLearnSchedule(6000); } catch(e){} }   // 🎓タイム換算の学習
         var evMsg2 = result.evicted
           ? '　⚠ 保存領域が満杯になったため、最も古いレースから ' + result.evicted + ' 件を自動で削除して新しい分を保存しました。' : '';
         if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }
@@ -15453,6 +14462,7 @@ function diImportFile(file){
       });
       diStatus('📥 バックアップから復元: 追加 ' + add + ' / 既にあったのでスキップ ' + exist + ' 件。');
       diRenderStat();
+      if (typeof tlLearnSchedule === 'function'){ try { tlLearnSchedule(1500); } catch(e){} }   // 🎓タイム換算の学習
     } catch(e){ diStatus('バックアップの読込に失敗しました: ' + (e && e.message || e), true); }
   };
   rd.onerror = function(){ diStatus('ファイルを読み込めませんでした', true); };
@@ -15519,6 +14529,10 @@ function diYearBuild(){
       diYearUiBusy(false);
       DI_YEAR_BUSY = false;
       diRenderStat();
+      // 🎓 タイム換算の学習: 取り込んだ全レースの勝ち時計から「距離×クラス×競馬場×年×馬場」の基準時計を学び直す
+      if (typeof tlLearnRun === 'function'){
+        try { tlLearnRun(false); } catch(e){ diYearMsgSet('⚠ タイム換算の学習でエラー: ' + (e && e.message || e), true); }
+      }
       if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / 旧データを全券種払戻つきへ更新 ' + tot.upg + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
     });
   });
@@ -16186,7 +15200,7 @@ function hdAn(races){
   races.forEach(function(r){
     var bb = String(r.baba || '').trim();
     if (!bb) return;
-    var key = (bb === '良' || bb === '稍重' || bb === '重' || bb === '不良') ? bb : 'その他';
+    var key = (typeof bbNormBaba === 'function' ? bbNormBaba(bb) : bb) || 'その他';   // 「稍」「不」も正式名に揃える
     (babaRows[key] = babaRows[key] || []).push(r);
   });
   ['良', '稍重', '重', '不良', 'その他'].forEach(function(b){ if (babaRows[b] && babaRows[b].length) push(b, babaRows[b]); });
@@ -16436,7 +15450,7 @@ function initHd(){
 var NAV_ITEMS = [
   { t:'t-input',    icon:'📥', name:'データ入力',            sub:'netkeiba URL取込・レース選択・出馬表・全馬データ', cur:true },
   { t:'t-kentai',   icon:'🧠', name:'展開予想・AI印',        sub:'ペース診断・AI印・買い目・トラックバイアス・自己学習' },
-  { t:'t-sim',      icon:'🎥', name:'レースシミュレーター',  sub:'出走アニメーション・100回モンテカルロ集計' },
+  { t:'t-sim',      icon:'🏇', name:'レースシミュレーター',  sub:'着順サンプル・📊合計集計（出遅れ率・脚質のブレを反映）' },
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
@@ -18145,26 +17159,63 @@ function drRenderAll(res, boxEl){
 function drPickRid(){
   var rid = '';
   try { rid = String((state && state.raceId) || '').trim(); } catch(e){}
-  if (/^\d{12}$/.test(rid)) return { rid: rid, from: '①データ入力' };
   var sel = {};
   try { sel = (state && state.gradeSel) || {}; } catch(e){}
-  if (/^\d{12}$/.test(String(sel.rid || ''))) return { rid: String(sel.rid), from: '📅カレンダー' };
+  var hasImp = /^\d{12}$/.test(rid), hasCal = /^\d{12}$/.test(String(sel.rid || ''));
+  /* 2026-09-11: ①で出馬表を読み込んだあとに📅カレンダーでレースを選んだら、
+     📊分析・🧬血統ファクター・🏛過去データはすべて「カレンダーで選んだレース」に切り替わります。
+     逆にカレンダー選択後に①で新しい出馬表を読み込めば、そちらが対象に戻ります。 */
+  var impAt = 0, calAt = 0;
+  try { impAt = parseInt(state && state.raceAt, 10) || 0; } catch(e){}
+  try { calAt = parseInt(sel.at, 10) || 0; } catch(e){}
+  if (hasCal && calAt > impAt) return { rid: String(sel.rid), from: '📅カレンダー' };
+  if (hasImp) return { rid: rid, from: '①データ入力' };
+  if (hasCal) return { rid: String(sel.rid), from: '📅カレンダー' };
   try { if (DR_LAST && /^\d{12}$/.test(String(DR_LAST.rid || ''))) return { rid: String(DR_LAST.rid), from: '直近の分析' }; } catch(e){}
   return null;
 }
+/* 対象レースのグレード（📅カレンダーの行情報を優先） */
+function drTargetGrade(){
+  try {
+    var sel = (state && state.gradeSel) || {};
+    var pick = drPickRid();
+    if (pick && pick.from === '📅カレンダー' && sel.grade) return String(sel.grade);
+    var nm = drTargetName();
+    var m = nm.match(/\((G[123]|Jpn[123]?)\)/) || nm.match(/(G[123])/);
+    if (m) return m[1];
+    try { if ((state.race && state.race.grade) && pick && pick.from === '①データ入力') return String(state.race.grade); } catch(e){}
+  } catch(e){}
+  return '';
+}
+/* 対象レースが切り替わったら、連動する表示（🏛過去データ・🧬血統）も更新する */
+function drTargetChanged(){
+  try { if (typeof histRefreshHeader === 'function') histRefreshHeader(); } catch(e){}
+  try { if (typeof bfRenderTarget === 'function') bfRenderTarget(); } catch(e){}
+  try { if (typeof drRenderPick === 'function') drRenderPick(); } catch(e){}
+}
 function drTargetName(){
+  var sel = {};
+  try { sel = (state && state.gradeSel) || {}; } catch(e){}
+  var impAt = 0, calAt = 0;
+  try { impAt = parseInt(state && state.raceAt, 10) || 0; } catch(e){}
+  try { calAt = parseInt(sel.at, 10) || 0; } catch(e){}
   var nm = '';
-  try { nm = String((state && state.race && state.race.name) || ''); } catch(e){}
-  if (!nm){ try { nm = String(((state && state.gradeSel) || {}).name || ''); } catch(e){} }
+  if (sel.name && calAt > impAt) nm = String(sel.name);          // 📅カレンダーの選択が新しければそれを優先
+  if (!nm){ try { nm = String((state && state.race && state.race.name) || ''); } catch(e){} }
+  if (!nm){ try { nm = String(sel.name || ''); } catch(e){} }
   if (!nm){ try { nm = String((DR_LAST && DR_LAST.name) || ''); } catch(e){} }
   return nm;
 }
 function drSetTarget(rid, name, extra){
   var g0 = {};
   try { g0 = (state && state.gradeSel) || {}; } catch(e){}
-  var g = { rid: String(rid || ''), name: String(name || g0.name || ''),
+  var nm = String(name || g0.name || '');
+  var gr = (extra && extra.grade) || g0.grade || '';
+  if (!gr){ var m = nm.match(/\((G[123]|Jpn[123]?)\)/); if (m) gr = m[1]; }
+  var g = { rid: String(rid || ''), name: nm, grade: gr,
     venue: (extra && extra.venue) || g0.venue || '', date: (extra && extra.date) || g0.date || '', at: Date.now() };
   try { state.gradeSel = g; if (typeof saveNow === 'function') saveNow(); } catch(e){}
+  try { drTargetChanged(); } catch(e){}
   return g;
 }
 /* 📅カレンダーが保持している重賞日程（新しい年度ぶん）→ {year, rows} */
@@ -20369,8 +19420,10 @@ function bbCurCtx(){
 }
 function bbNormBaba(s){
   s = String(s == null ? '' : s).replace(/[\s\u3000]/g, '');
-  var m = s.match(/^(良|稍重|重|不良)/);
-  return m ? m[1] : '';
+  // netkeiba の馬柱は「稍」「不」のように省略表記されるので、正式名に揃える
+  var m = s.match(/^(良|稍重|稍|重|不良|不)/);
+  if (!m) return '';
+  return ({ '稍': '稍重', '不': '不良' })[m[1]] || m[1];
 }
 
 /* ---------- 集計（同期・キャッシュのみ。ネットワーク不可） ---------- */
@@ -21826,6 +20879,1406 @@ function initAih(){
 }
 
 /* =========================================================
+   47 勝ちタイムのレベル（2・3歳 未勝利／1勝／2勝／3勝クラス）
+   ---------------------------------------------------------
+   ねらい: 条件戦を勝った馬の「勝ちタイムの水準」を、
+     ①同競馬場・同馬場(芝/ダ)・同距離帯(±200m)・同じ時期(±3週)の過去の勝ち時計（＝開催場の歴代同レベル）
+     ②距離別の基準時計(パータイム)
+   の両方と比べて **早い🎯 / 平凡○ / 遅い⚠️** を付け、次走以降の扱いを決める材料にする。
+     ・早い → 次走以降は買い（🎯）
+     ・遅い → 次走以降は少し疑う（⚠️）
+     ・平凡 → 特に対応なし（○）
+   判定は「短評」として📒馬ノートに自動登録し、該当馬が**次走**（＝前走がその勝ちレース）で
+   出馬表に載ったら、出馬表と②のAI印表の馬名の横に 🎯 / ⚠️ を自動で出す。
+   次々走以降はバッジは付けず、📒馬ノートの短評（メモ）で確認できる。
+   データ源は 馬柱キャッシュ（khl_hd_v1 / 🐎全馬プロフィール・⏱持ちタイム で取得）。
+   ========================================================= */
+var TL_LS = 'khl_timelv_v1';
+var TL_SPD = 0.08;      // m/s: これ以上速ければ「早い」
+var TL_PAR_F = 1.0;     // 秒: 基準時計よりこれ以上速ければ「早い」（過去比較ができないときのフォールバック）
+var TL_PAR_S = 1.4;     // 秒: 基準時計よりこれ以上遅ければ「遅い」
+function tlLs(){ try { return JSON.parse(localStorage.getItem(TL_LS) || '{}') || {}; } catch(e){ return {}; } }
+function tlSave(o){ try { localStorage.setItem(TL_LS, JSON.stringify(o)); } catch(e){} }
+function tlBlank(){ return { byNk: {}, byName: {}, set: { note: true }, ev: {} }; }
+function tlStore(){
+  var o = tlLs();
+  if (!o.byNk) o.byNk = {};
+  if (!o.byName) o.byName = {};
+  if (!o.set) o.set = { note: true };
+  if (!o.ev) o.ev = {};
+  return o;
+}
+/* ---------- 日付の正規化（netkeiba は 2026/08/16、raceId は 20260816 形式） ---------- */
+function tlD8(x){
+  var t = String(x == null ? '' : x).trim();
+  if (/^\d{8}$/.test(t)) return t;
+  var m = t.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if (m) return m[1] + ('0' + m[2]).slice(-2) + ('0' + m[3]).slice(-2);
+  var n = t.replace(/[^0-9]/g, '');
+  return n.length >= 8 ? n.slice(0, 8) : '';
+}
+function tlDoy(d8){
+  if (!/^\d{8}$/.test(d8)) return null;
+  var y = parseInt(d8.slice(0, 4), 10), mo = parseInt(d8.slice(4, 6), 10), da = parseInt(d8.slice(6, 8), 10);
+  var dt = new Date(y, mo - 1, da);
+  if (isNaN(dt.getTime())) return null;
+  return Math.round((dt - new Date(y, 0, 0)) / 86400000);
+}
+function tlNearDoy(a, b, win){
+  if (a == null || b == null) return true;      // 日付が読めないときは期間で絞らない
+  var df = Math.abs(a - b);
+  if (df > 182) df = 365 - df;                   // 年またぎ
+  return df <= (win || 21);
+}
+/* 基準時計(パー)のクラス補正。PAR_TIME は概ね「未勝利〜1勝クラス」水準なので、
+   クラス・格が上がるほど速い時計が出るぶんの差を引いておく（実データの平均差から概算）。 */
+function tlParOff(rname){
+  var n = String(rname || '');
+  var g = n.match(/[(（](G[IV]+|L|OP|LISTED)[)）]/i);
+  if (g){
+    var t = g[1].toUpperCase();
+    if (t === 'GI' || t === 'G1') return -1.7;
+    if (t === 'GII' || t === 'G2') return -1.4;
+    if (t === 'GIII' || t === 'G3') return -1.1;
+    if (t === 'L' || t === 'LISTED') return -0.9;
+    if (t === 'OP') return -0.7;
+  }
+  if (/新馬/.test(n)) return 1.5;
+  var c = tlClassOf(n);
+  if (c === '未勝利') return 0.9;
+  if (c === '1勝クラス') return 0.4;
+  if (c === '2勝クラス') return 0.0;
+  if (c === '3勝クラス') return -0.4;
+  return 0.1;                                     // 特別戦など（1勝〜2勝クラス中心）
+}
+/* ---------- クラス・年齢の判定 ---------- */
+var TL_CLASSES = ['未勝利', '1勝クラス', '2勝クラス', '3勝クラス'];
+function tlClassOf(name){
+  var s = String(name || '');
+  for (var i = 0; i < TL_CLASSES.length; i++){ if (s.indexOf(TL_CLASSES[i]) >= 0) return TL_CLASSES[i]; }
+  if (/500万/.test(s)) return '1勝クラス';
+  if (/1000万/.test(s)) return '2勝クラス';
+  if (/新馬|メイドン/.test(s)) return '新馬';
+  return '';
+}
+function tlAgeOf(name){
+  var m = String(name || '').match(/([2-9])歳/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+/* 対象: 2・3歳戦の 未勝利 / 1勝 / 2勝 / 3勝クラス（年齢が取れない場合はクラス名だけで判断） */
+function tlIsTarget(row){
+  if (!row || parseInt(row.order, 10) !== 1) return false;
+  var nm = String(row.name || '');
+  var cls = tlClassOf(nm);
+  if (!cls || cls === '新馬') return false;
+  if (/以上/.test(nm)) return false;      // 「3歳以上1勝クラス」等は古馬も出る＝2・3歳戦ではない
+  var age = tlAgeOf(nm);
+  if (age && (age < 2 || age > 3)) return false;
+  return true;
+}
+/* ---------- 馬場（netkeiba馬柱は「稍」「不」の省略表記）と良換算 ---------- */
+function tlBaba(x){
+  var b = (typeof bbNormBaba === 'function') ? bbNormBaba(x) : String(x == null ? '' : x).trim();
+  return b || String(x == null ? '' : x).trim();
+}
+/* 良馬場換算の補正値（秒）。芝は雨で遅く、ダートは雨で速くなる。
+   ※旧値(稍重1.4/重3.0/不良5.0)は大きすぎて、不良馬場の時計が「良なら世界記録級」に化けていた。
+     実データ(287走)で検証し、一般的な目安に合わせて縮小した。surface に 'ダ' を含むかで出し分ける。 */
+var TL_BABA_ADJ_TURF = { '稍重': 0.7, '重': 1.4, '不良': 2.0 };
+var TL_BABA_ADJ_DIRT = { '稍重': -0.5, '重': -0.9, '不良': -0.6 };
+function tlBabaAdjStatic(baba, surface){
+  var b = tlBaba(baba);
+  if (!b || b === '良') return 0;
+  var T = String(surface || '').indexOf('ダ') >= 0 ? TL_BABA_ADJ_DIRT : TL_BABA_ADJ_TURF;
+  return T[b] || 0;
+}
+/* 馬場換算: 🎓学習DBから学習した値があればそれを優先（無ければ上の静的テーブル） */
+function tlBabaAdj(baba, surface){
+  var b = tlBaba(baba);
+  if (!b || b === '良') return 0;
+  var L = (typeof tlLearnBabaAdj === 'function') ? tlLearnBabaAdj(b, surface) : null;
+  return (L != null) ? L : tlBabaAdjStatic(b, surface);
+}
+/* ---------- 比較母集団: 同面・同距離帯・同じ時期の「勝ち時計」 ----------
+   1着の行は自分の時計、それ以外の行は「自分の時計 − 着差(秒)」がそのレースの勝ち時計になる。
+   （netkeiba 馬柱の着差列は“勝ち馬までの秒差”。例: 16着 1:39.6 / 着差5.8 → 勝ち時計 1:33.8）
+   これにより未勝利クラスの出走馬（1着の行がほとんど無い）でも母集団が確保できる。
+   同じレースは1件だけ（一番上の着順の行＝推定が最も正確）を数える。 */
+var TL_SPD2 = 0.12;     // m/s: 他場を含む母集団のときの「速い/遅い」しきい値（コース差があるので少し緩める）
+/* 基準時計(PAR_TIME)を距離で線形補間して「その距離の基準速度 m/s」を出す。
+   母集団に 1400m や 1800m が混ざっても、この基準比で対象距離に換算してから平均する。 */
+function tlParSpd(surface, m){
+  m = parseInt(m, 10);
+  if (!m) return null;
+  var key = String(surface || '').indexOf('ダ') >= 0 ? 'dirt' : 'turf';
+  var T = (typeof PAR_TIME !== 'undefined' && PAR_TIME[key]) ? PAR_TIME[key] : null;
+  if (!T) return null;
+  var ks = Object.keys(T).map(Number).sort(function(a, b){ return a - b; });
+  if (!ks.length) return null;
+  var sec;
+  if (m <= ks[0]) sec = T[ks[0]] * m / ks[0];
+  else if (m >= ks[ks.length - 1]) sec = T[ks[ks.length - 1]] * m / ks[ks.length - 1];
+  else {
+    sec = null;
+    for (var i = 0; i < ks.length - 1; i++){
+      if (m >= ks[i] && m <= ks[i + 1]){
+        var t = (m - ks[i]) / (ks[i + 1] - ks[i]);
+        sec = T[ks[i]] + (T[ks[i + 1]] - T[ks[i]]) * t;
+        break;
+      }
+    }
+  }
+  return sec ? (m / sec) : null;
+}
+function tlMedian(a){
+  if (!a || !a.length) return 0;
+  var b = a.slice().sort(function(x, y){ return x - y; });
+  var n = b.length;
+  return (n % 2) ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2;
+}
+/* その距離・そのクラス（レース名）の基準時計（秒）。距離は PAR_TIME を線形補間、クラスは tlParOff。 */
+function tlBaseSecStatic(surface, m, rname){
+  m = parseInt(m, 10);
+  if (!m) return null;
+  var key = String(surface || '').indexOf('ダ') >= 0 ? 'dirt' : 'turf';
+  var T = (typeof PAR_TIME !== 'undefined' && PAR_TIME[key]) ? PAR_TIME[key] : null;
+  if (!T) return null;
+  var ks = Object.keys(T).map(Number).sort(function(a, b){ return a - b; });
+  if (!ks.length) return null;
+  var sec;
+  if (m <= ks[0]) sec = T[ks[0]] * m / ks[0];
+  else if (m >= ks[ks.length - 1]) sec = T[ks[ks.length - 1]] * m / ks[ks.length - 1];
+  else {
+    for (var i = 0; i < ks.length - 1; i++){
+      if (m >= ks[i] && m <= ks[i + 1]){
+        var t = (m - ks[i]) / (ks[i + 1] - ks[i]);
+        sec = T[ks[i]] + (T[ks[i + 1]] - T[ks[i]]) * t;
+        break;
+      }
+    }
+  }
+  return sec != null ? (sec + tlParOff(rname) * tlClsScale(m)) : null;
+}
+/* 基準時計: 🎓学習DB（④の年指定一括取込）から学習した「距離×クラス×競馬場×年」があればそれを優先。
+   学習データが薄いセルは上の静的テーブル（パータイム＋クラス補正）にそのままフォールバックします。
+   venue / d8 は省略可（省略すると競馬場補正・年補正は掛けません）。 */
+function tlBaseSec(surface, m, rname, venue, d8){
+  if (typeof tlLearnBase === 'function'){
+    var L = tlLearnBase(surface, m, (typeof tlLearnCls === 'function') ? tlLearnCls(rname) : '', venue, d8,
+                        (typeof tlLearnAge === 'function') ? tlLearnAge(rname) : '');
+    if (L != null) return L;
+  }
+  return tlBaseSecStatic(surface, m, rname);
+}
+/* クラス差は距離が伸びるほど「秒」で大きくなるので、1600m基準で0.7〜1.6倍に伸縮する */
+function tlClsScale(m){
+  var x = (parseInt(m, 10) || 1600) / 1600;
+  return Math.max(0.7, Math.min(1.6, x));
+}
+/* キャッシュ済みの全馬柱から「勝ち時計（良換算）」の見本を集めて、対象距離・対象面に換算する */
+function tlWinSamples(o){
+  var res = { n: 0, sec: 0, spd: 0, src: '', tier: -1, th: TL_SPD, list: [], ratios: [] };
+  var ls;
+  try { ls = (typeof hdLs === 'function') ? hdLs() : {}; } catch(e){ return res; }
+  if (!o || !o.dist) return res;
+  var d8_0 = tlD8(o.date), doy0 = tlDoy(d8_0);
+  var sk8 = '';
+  if (o.selfKey){ var pp = String(o.selfKey).split('|'); sk8 = tlD8(pp[0]) + '|' + (pp[1] || ''); }
+  var best = {};
+  Object.keys(ls || {}).forEach(function(nk){
+    var rows = (ls[nk] && ls[nk].r) || [];
+    rows.forEach(function(r){
+      if (!r) return;
+      var ord = parseInt(r.order, 10);
+      if (!(ord >= 1)) return;                                          // 取消・除外・中止は使わない
+      if (o.venue && String(r.venueName || '') !== o.venue) return;      // 競馬場（段によって絞る/絞らない）
+      if (o.surface && String(r.surface || '') !== o.surface) return;    // 芝/ダ
+      if (String(r.surface || '') === '障') return;                      // 障害は時計の土俵が違う
+      if (tlBaba(r.baba) === '不良') return;                             // 不良は補正の誤差が大きいので母集団に使わない
+      var band = o.band || 200;
+      if (!r.m || Math.abs(r.m - o.dist) > band) return;                // 同距離帯
+      var d8 = tlD8(r.date);
+      if (!d8 || (d8_0 && d8 > d8_0)) return;                            // 対象レースより後は使わない
+      if (!tlNearDoy(tlDoy(d8), doy0, o.days || 21)) return;             // 同じ時期（季節は揃える）
+      var rname = String(r.name || '');
+      if (sk8 && (d8 + '|' + rname) === sk8) return;                     // 評価するレース自身は除く
+      var sec0 = (typeof nkToSec === 'function') ? nkToSec(r.time) : null;
+      if (!sec0) return;
+      var wsec;
+      if (ord === 1) wsec = sec0;
+      else {
+        var g = parseFloat(String(r.margin || '').replace(/[^0-9.]/g, ''));
+        if (!isFinite(g) || g < 0 || g > 20) return;                     // 着差が読めない行は推定に使わない
+        wsec = sec0 - g;                                                 // 着差は「勝ち馬までの秒差」なので引く
+      }
+      wsec = wsec - tlBabaAdj(r.baba, r.surface);                         // 良馬場換算
+      if (!(wsec > 5)) return;
+      var base = tlBaseSec(o.surface, r.m, rname, r.venueName, d8);       // その距離・クラス・場・年の基準時計
+      var rk = d8 + '|' + String(r.venueName || '') + '|' + String(r.r || '') + '|' + rname + '|' + r.m;
+      var prev = best[rk];
+      if (!prev || ord < prev.order) best[rk] = { sec: wsec, base: base, order: ord, m: r.m, d8: d8, venue: r.venueName, name: rname };
+    });
+  });
+  var resids = [], secs = [];
+  Object.keys(best).forEach(function(k){
+    var b = best[k];
+    if (b.base == null) return;                                          // 基準時計が出せない距離は使わない
+    b.resid = b.base - b.sec;                                            // ＋＝そのクラスの基準より速い
+    res.list.push(b); resids.push(b.resid); secs.push(b.sec);
+  });
+  res.n = res.list.length;
+  if (!res.n) return res;
+  var tgtBase = tlBaseSec(o.surface, o.dist, o.name, o.venue, o.date);
+  if (tgtBase != null){
+    // 距離もクラスも違う見本を「基準時計との差（秒）」に直し、その中央値を対象レースの基準に戻す
+    // （平均だと新馬・少頭数などの外れ値に引っ張られるので中央値を使う）
+    res.resid = tlMedian(resids);
+    res.residAvg = resids.reduce(function(a, b){ return a + b; }, 0) / resids.length;
+    res.sec = tgtBase - res.resid;
+    res.spd = o.dist / res.sec;
+    res.via = 'resid';
+  } else {
+    res.sec = secs.reduce(function(a, b){ return a + b; }, 0) / secs.length;
+    res.spd = o.dist / res.sec;
+    res.via = 'raw';
+  }
+  res.min = Math.min.apply(null, secs);
+  res.max = Math.max.apply(null, secs);
+  return res;
+}
+/* ①同場 → ②他場も含む → ③期間を±7週に拡大、の順で3件以上集まるところを採用する */
+var TL_TIERS = [
+  { own: true,  days: 21,  band: 200, src: '同場・前後3週の勝ち時計', th: TL_SPD },
+  { own: true,  days: 100, band: 200, src: '同場・前後14週の勝ち時計', th: TL_SPD },
+  { own: false, days: 21,  band: 200, src: '他場も含む前後3週の勝ち時計', th: TL_SPD2 },
+  { own: false, days: 100, band: 300, src: '他場も含む前後14週の勝ち時計', th: TL_SPD2 }
+];
+function tlPastAvg(venue, surface, dist, dateStr, selfKey, rname){
+  var last = { n: 0, sec: 0, spd: 0, src: '母集団なし', tier: -1, th: TL_SPD, list: [] };
+  if (typeof hdLs !== 'function' || !dist) return last;
+  for (var i = 0; i < TL_TIERS.length; i++){
+    var T = TL_TIERS[i];
+    var r = tlWinSamples({
+      venue: T.own ? venue : '', surface: surface, dist: dist, date: dateStr,
+      selfKey: selfKey, days: T.days, band: T.band, name: rname
+    });
+    r.th = T.th; r.tier = i;
+    if (r.n >= 3){ r.src = T.src + ' ' + r.n + ' 件（距離・クラスは基準時計で換算）'; return r; }
+    last = r;
+  }
+  last.src = '母集団なし'; last.tier = -1; last.th = TL_SPD;
+  return last;
+}
+/* 1レースぶんを評価 → {lv:'fast'|'mid'|'slow', ...} */
+/* ---------- レースの識別子（同じレースを別馬の馬柱から探す） ---------- */
+function tlRaceKeyOf(row){
+  return [tlD8(row && row.date), String((row && row.venue) || ''), String((row && row.r) || ''),
+    String((row && row.m) || '')].join('|');
+}
+/* 勝ち馬の「2着差」。netkeiba の着差列は“勝ち馬との差（秒）”なので、
+   同じレースでこの馬に負けた行（勝ち馬欄＝この馬）の最小値が 2着差になる。 */
+function tlWinGap(row, hName){
+  if (!row || parseInt(row.order, 10) !== 1) return null;
+  var nm = tlNormName(hName);
+  if (!nm) return null;
+  var key = tlRaceKeyOf(row), best = null, ls = {};
+  try { ls = hdLs(); } catch(e){ return null; }
+  Object.keys(ls || {}).forEach(function(k){
+    var rows = (ls[k] && ls[k].r) || [];
+    rows.forEach(function(r){
+      if (!r || !(parseInt(r.order, 10) > 1)) return;
+      if (tlRaceKeyOf(r) !== key) return;
+      if (tlNormName(r.winner) !== nm) return;
+      var g = parseFloat(String(r.margin || '').replace(/[^0-9.\-]/g, ''));
+      if (isFinite(g) && g >= 0 && g <= 20 && (best == null || g < best)) best = g;
+    });
+  });
+  return best;
+}
+/* そのレースの勝ち時計（良換算・推定）: 1着＝自分の時計、それ以外＝自分の時計 − 着差
+   ※netkeiba 馬柱の「着差」列は“勝ち馬までの秒差”（例: 3着 1:34.0 / 着差0.2 → 勝ち時計 1:33.8）。
+     実データ16頭ぶんで全着順の一致性を確認済み（16着 1:39.6 / 着差5.8 → 1:33.8）。 */
+function tlWinSecOf(secAdj, row){
+  var ord = parseInt(row && row.order, 10) || 0;
+  if (ord === 1) return secAdj;
+  var g = parseFloat(String((row && row.margin) || '').replace(/[^0-9.]/g, ''));
+  if (!isFinite(g) || g < 0) return null;
+  return secAdj - g;
+}
+/* 判定（速度差优先 → 基準時計差） */
+function tlLevel(dSpd, dPar, th){
+  var T = (th || TL_SPD);
+  if (dSpd != null) return (dSpd >= T) ? 'fast' : (dSpd <= -T ? 'slow' : 'mid');
+  if (dPar != null) return (dPar <= -TL_PAR_F) ? 'fast' : (dPar >= TL_PAR_S ? 'slow' : 'mid');
+  return '';
+}
+/* ---------- 1走ぶんを評価（1着以外も対象） ---------- */
+function tlEvalRun(row, hName, selfKey){
+  if (!row) return null;
+  var sec = (typeof nkToSec === 'function') ? nkToSec(row.time) : null;
+  if (!sec || !row.m) return null;
+  var venue = row.venueName || '';
+  var surface = String(row.surface || '');
+  var baba = tlBaba(row.baba);
+  var adj = tlBabaAdj(baba, surface);
+  var secAdj = sec - adj;                                          // 良馬場換算
+  var sk = selfKey || (tlD8(row.date) + '|' + String(row.name || ''));
+  var past = tlPastAvg(venue, surface, row.m, row.date, sk, row.name);
+  if (surface === '障') return null;                                     // 障害戦は評価しない
+  // 母集団が足りなかったときの基準時計（🎓学習値があればそれ、無ければパータイム＋クラス補正）
+  var par = tlBaseSec(surface, row.m, row.name, venue, row.date);
+  var parLearned = (typeof tlLearnBase === 'function') &&
+    tlLearnBase(surface, row.m, (typeof tlLearnCls === 'function') ? tlLearnCls(row.name) : '', venue, row.date,
+                (typeof tlLearnAge === 'function') ? tlLearnAge(row.name) : '') != null;
+  if (par == null){
+    var par0 = (typeof nkParSec === 'function') ? nkParSec(surface, row.m, '良') : null;
+    par = (par0 != null) ? (par0 + tlParOff(row.name)) : null;   // PAR_TIME が無い環境用の最後の保険
+  }
+  var dSpd = (past.n >= 3 && past.spd) ? (row.m / secAdj - past.spd) : null;
+  var dPar = (par != null) ? (secAdj - par) : null;
+  var th = past.th || TL_SPD;
+  var lv = tlLevel(dSpd, dPar, th);
+  if (!lv) return null;
+  var order = parseInt(row.order, 10) || 0;
+  var gap = parseFloat(String(row.margin || '').replace(/[^0-9.]/g, ''));
+  gap = isFinite(gap) ? gap : null;
+  var winSec = tlWinSecOf(secAdj, row);
+  var dSpdW = (winSec != null && past.n >= 3 && past.spd) ? (row.m / winSec - past.spd) : null;
+  var dParW = (winSec != null && par != null) ? (winSec - par) : null;
+  var raceLv = (winSec != null) ? tlLevel(dSpdW, dParW, th) : '';
+  var ev = {
+    lv: lv, raceLv: raceLv, order: order, isWin: order === 1,
+    sec: sec, secAdj: secAdj, babaAdj: adj, baba: baba, timeStr: String(row.time || ''),
+    gap: (order === 1 ? 0 : gap), winSec: winSec,
+    winGap: (order === 1) ? tlWinGap(row, hName) : null,          // 勝ち馬なら2着差
+    dSpd: dSpd, dPar: dPar, dSpdW: dSpdW, dParW: dParW,
+    pastN: past.n, pastSec: past.sec, pastSrc: past.src || '', pastTier: past.tier, th: th, par: par, parLearned: !!parLearned,
+    date: String(row.date || ''), d8: tlD8(row.date), venue: venue, surface: surface,
+    dist: row.m, cls: tlClassOf(row.name), age: tlAgeOf(row.name),
+    rname: String(row.name || ''), rno: String(row.r || ''), head: String(row.head || ''),
+    winner: String(row.winner || ''), pass: String(row.pass || ''),
+    at: new Date().toISOString()
+  };
+  ev.babaBad = (baba === '不良');                    // 不良馬場の時計は参考値（マークは付けない）
+  ev.badge = ev.babaBad ? '' : tlBadgeOf(ev);
+  ev.txt = tlShortText(ev, hName);
+  return ev;
+}
+/* 1着以外でも「追記する価値がある」走りか
+   A) 自分の時計が同条件より速い（着順・馬券内は問わない）
+   B) レース自体の勝ち時計が速い（レベルの高いレース）で、勝ち馬から1.0秒差以内 */
+function tlNotable(ev){
+  if (!ev || ev.babaBad) return false;
+  if (ev.lv === 'fast') return true;
+  if (ev.raceLv === 'fast' && ev.lv !== 'slow' && ev.gap != null && ev.gap <= 1.0) return true;
+  return false;
+}
+function tlEvalRow(row, selfKey){ return tlEvalRun(row, '', selfKey); }   // 旧API（1着の評価）
+/* バッジ用の総合判定（🎯＝時計が買い材料／⚠️＝時計が割り引き材料）
+   1着でなくても、①自分の時計が速い ②レース自体のレベルが高く勝ち馬から僅差 なら🎯 */
+function tlBadgeOf(ev){
+  if (!ev) return '';
+  if (ev.lv === 'fast') return 'fast';                                    // 1着じゃなくても時計が速い
+  if (ev.raceLv === 'fast' && ev.lv !== 'slow' && ev.gap != null && ev.gap <= 1.0) return 'fast';   // レベルの高いレースで僅差
+  if (ev.isWin && ev.lv === 'slow') return 'slow';                        // ⚠️は「勝ち時計が遅い」＝レースのレベルが低いときだけ
+  return '';
+}
+function tlSameRun(a, b){
+  return !!(a && b && a.d8 === b.d8 && a.rname === b.rname && a.dist === b.dist && a.order === b.order);
+}
+
+/* ---------- 出走馬1頭: 前走（必ず）＋直近の対象クラスV＋直近3走の好時計 ---------- */
+function tlRaceDateStr(){
+  var d8 = '';
+  try {
+    if (typeof jvCurrent === 'function'){
+      var c = jvCurrent();
+      d8 = tlD8((c && c.date8) || '');
+      if (d8) return d8;
+    }
+  } catch(e){}
+  try { d8 = tlD8((state.race && state.race.date) || ''); } catch(e){}
+  if (d8) return d8;
+  var n = new Date();                 // 開催日が分からないときは「今日」より前の戦績だけを使う
+  return '' + n.getFullYear() + ('0' + (n.getMonth() + 1)).slice(-2) + ('0' + n.getDate()).slice(-2);
+}
+function tlHorseRows(h){
+  var ls = {};
+  try { ls = (typeof hdLs === 'function') ? hdLs() : {}; } catch(e){ ls = {}; }
+  var rec = (h && h.nk) ? ls[h.nk] : null;
+  if (!rec || !rec.r || !rec.r.length) return null;
+  var today = tlRaceDateStr();
+  var rows = rec.r.filter(function(r){ return r && tlD8(r.date); }).slice();
+  rows.sort(function(a, b){ return tlD8(b.date).localeCompare(tlD8(a.date)); });   // 新しい順
+  if (today) rows = rows.filter(function(r){ return tlD8(r.date) < today; });      // 今回より前だけ
+  return rows;
+}
+function tlScanHorse(h){
+  var rows = tlHorseRows(h);
+  if (!rows) return { st: 'nodata' };
+  if (!rows.length) return { st: 'norun' };
+  var prev = rows[0], evs = [];
+  var evPrev = null;
+  try { evPrev = tlEvalRun(prev, h && h.name); } catch(e){ evPrev = null; }
+  if (evPrev){
+    evPrev.isPrev = true; evPrev.tag = '前走';
+    evs.push(evPrev);
+  }
+  // 直近の「2・3歳 未勝利〜3勝クラス」の勝ち鞍（前走とは別の走りなら追加）
+  for (var i = 0; i < rows.length; i++){
+    if (!tlIsTarget(rows[i])) continue;
+    var evW = null;
+    try { evW = tlEvalRun(rows[i], h && h.name); } catch(e){ evW = null; }
+    if (evW){
+      if (tlSameRun(evW, evPrev)){ if (evPrev) evPrev.tag = '前走＝対象クラスのV'; }
+      else { evW.isPrev = false; evW.tag = '直近の対象クラスV'; evs.push(evW); }
+    }
+    break;
+  }
+  // 直近3走のうち「1着じゃなくても評価できる走り」
+  for (var j = 0; j < Math.min(3, rows.length) && evs.length < 3; j++){
+    var e3 = null;
+    try { e3 = tlEvalRun(rows[j], h && h.name); } catch(e){ e3 = null; }
+    if (!e3 || !tlNotable(e3)) continue;
+    var dup = false;
+    evs.forEach(function(x){ if (tlSameRun(x, e3)) dup = true; });
+    if (dup) continue;
+    e3.isPrev = false; e3.tag = '直近3走の好時計'; evs.push(e3);
+  }
+  var out = {
+    st: evs.length ? 'eval' : 'noeval',
+    prev: { date: prev.date, name: prev.name, order: prev.order, cls: tlClassOf(prev.name) }
+  };
+  if (!evs.length) return out;
+  evs = evs.slice(0, 3);
+  evs.forEach(function(ev){ ev.no = h.no || ''; ev.name = h.name || ''; ev.nk = h.nk || ''; });
+  out.evs = evs;
+  out.ev = evs[0];                                     // 先頭＝前走（前走だけ評価できない場合は直近V）
+  out.ev.prevOrder = prev.order; out.ev.prevName = prev.name; out.ev.prevDate = prev.date;
+  // 1着の走り（バッジの旧仕様との互換）
+  for (var k = 0; k < evs.length; k++){ if (evs[k].isWin){ out.winEv = evs[k]; break; } }
+  return out;
+}
+/* ---------- 短評の文章 ---------- */
+function tlCondText(ev){
+  return (ev.date || '') + ' ' + (ev.venue || '') + ' ' + (ev.surface || '') + (ev.dist || '') + 'm' +
+    (ev.baba ? '・' + ev.baba : '') + (ev.cls ? '・' + ev.cls : '') + (ev.age ? '（' + ev.age + '歳戦）' : '');
+}
+function tlCmpText(ev){
+  var adjTxt = ev.babaAdj ? '（' + ev.baba + '→良換算 ' + ev.timeStr + '→' + ev.secAdj.toFixed(1) + '秒）' : '';
+  if (ev.dSpd != null){
+    var dt = ev.pastSec - ev.secAdj;                      // 秒差（＋＝自分のほうが速い）
+    return (ev.pastSrc || '同条件の過去') + 'の平均 ' + ev.pastSec.toFixed(1) + '秒より ' +
+      (dt > 0 ? dt.toFixed(1) + '秒速い' : (dt < 0 ? Math.abs(dt).toFixed(1) + '秒遅い' : '同タイム')) +
+      '（速度 ' + (ev.dSpd > 0 ? '+' : '') + ev.dSpd.toFixed(2) + ' m/s、しきい値±' + (ev.th || TL_SPD).toFixed(2) + '）' + adjTxt;
+  }
+  if (ev.dPar != null){
+    return '基準時計(パー・良)より ' + (ev.dPar > 0 ? '+' : '') + ev.dPar.toFixed(1) + ' 秒' +
+      (ev.dPar < 0 ? '（速い）' : (ev.dPar > 0 ? '（遅い）' : '')) + adjTxt +
+      ' ※比較できる過去の勝ち時計が3件未満のため、クラス補正した基準時計で判定（参考）';
+  }
+  return '比較データなし' + adjTxt;
+}
+function tlShortText(ev, hName){
+  var ord = ev.order || 0;
+  var head;
+  if (ev.isWin){
+    head = ev.lv === 'fast' ? '🎯 勝ちタイムが同条件の過去より速い'
+      : ev.lv === 'slow' ? '⚠️ 勝ちタイムが同条件の過去より遅い'
+      : '○ 勝ちタイムは同条件の過去とほぼ同じ水準';
+  } else if (ev.lv === 'fast'){
+    head = '🎯 ' + ord + '着でも時計は同条件の過去より速い';
+  } else if (ev.badge === 'fast'){
+    head = '🎯 ' + ord + '着・自分の時計は同条件並みだが、勝ち時計が速いレベルの高いレースで' +
+      (ev.gap != null ? '勝ち馬から' + ev.gap.toFixed(1) + '秒差' : '僅差');
+  } else if (ev.lv === 'slow'){
+    head = '△ ' + ord + '着・時計も同条件の過去より遅い';
+  } else {
+    head = '○ ' + ord + '着・時計は同条件の過去とほぼ同じ水準';
+  }
+  if (ev.babaBad) head += '（※不良馬場の時計なので参考値）';
+  var s = head + '／' + (ev.rname || '') + '（' + tlCondText(ev) + '）' +
+    (ev.isWin ? '勝ちタイム ' : (ord + '着タイム ')) + (ev.timeStr || '') + '。' + tlCmpText(ev) + '。';
+  // 着差
+  if (ev.isWin){
+    s += (ev.winGap != null)
+      ? '2着差 ' + ev.winGap.toFixed(1) + '秒（' + (ev.winner ? '2着 ' + String(ev.winner).replace(/[()]/g, '') : '同レース他馬の馬柱から算出') + '）。'
+      : '（2着差は同レースを走った他馬の馬柱が無いため不明）。';
+  } else if (ev.gap != null){
+    s += '勝ち馬' + (ev.winner ? ' ' + ev.winner : '') + 'とは ' + ev.gap.toFixed(1) + '秒差' +
+      (ev.order > 3 ? '（馬券内ではありません）' : '') + '。';
+  }
+  // レース自体のレベル（1着以外でも「勝ち時計」は推定できる）
+  if (!ev.isWin && ev.raceLv){
+    var wd = (ev.pastSec && ev.winSec != null) ? (ev.pastSec - ev.winSec) : null;
+    var wcmp = (wd != null) ? (wd > 0.5 ? '（同条件より' + wd.toFixed(1) + '秒速い）' : (wd < -0.5 ? '（同条件より' + Math.abs(wd).toFixed(1) + '秒遅い）' : '')) : '';
+    var wTxt = (ev.winSec != null ? 'このレースの勝ち時計は ' + ev.winSec.toFixed(1) + '秒（良換算・推定）' + wcmp + 'で、' : 'このレースの勝ち時計では、');
+    s += wTxt + (ev.raceLv === 'fast' ? 'レース自体のレベルが高い。'
+      : ev.raceLv === 'slow' ? 'レース全体のレベルは高くない。' : '特に突出はしていない。');
+  }
+  // 結論
+  if (ev.badge === 'fast') s += ev.isWin ? '時計面は上。次走以降も素直に買い。' : '着順ほど悪くない。次走以降は買い材料。';
+  else if (ev.lv === 'slow') s += ev.isWin ? '時計面は物足りない。次走以降は少し疑って扱う。' : '時計も足りない。次走以降は割り引き。';
+  else s += '時計面での加点・減点はなし（普通）。';
+  return s;
+}
+/* ---------- ストア ---------- */
+function tlPut(h, res, store){
+  var o = store || tlStore();
+  var key = (h && h.nk) ? String(h.nk) : ('nm:' + tlNormName(h && h.name));
+  if (res && res.st === 'eval'){
+    var ev = res.ev;
+    /* 先頭（代表＝前走）は ev 自身。2件目以降だけ more に入れて保存する
+       （ev.evs = [ev,...] にすると自己参照で JSON.stringify が失敗し、保存が丸ごと飛ぶ） */
+    ev.more = (res.evs || []).slice(1);
+    o.byNk[key] = ev;
+    if (h && h.name) o.byName[tlNormName(h.name)] = ev;
+    var k2 = tlD8(ev.date) + '|' + ev.rname + '|' + ev.dist;
+    if (!o.ev[k2]){ o.ev[k2] = { noted: false }; }
+    ev._key = k2;
+  } else {
+    delete o.byNk[key];
+  }
+  if (!store) tlSave(o);
+  return o;
+}
+function tlNormName(s){ return String(s || '').replace(/[\s\u3000]/g, ''); }
+function tlGet(h){
+  var o = tlLs();
+  var ev = null;
+  if (h && h.nk && o.byNk && o.byNk[String(h.nk)]) ev = o.byNk[String(h.nk)];
+  if (!ev && h && h.name && o.byName) ev = o.byName[tlNormName(h.name)] || null;
+  if (!ev) return null;
+  return ev;
+}
+/* 出馬表・AI印表に出すバッジ（前走の時計で判定。1着じゃなくても出す） */
+function tlBadgeHTML(h){
+  var ev = tlGet(h);
+  if (!ev || !ev.isPrev) return '';
+  var tip = esc(ev.txt || '');
+  if (ev.badge === 'fast') return '<span class="tlchip fast" title="' + tip + '">🎯</span>';
+  if (ev.badge === 'slow') return '<span class="tlchip slow" title="' + tip + '">⚠️</span>';
+  return '';
+}
+/* ---------- 短評の自動登録（📒馬ノート） ---------- */
+function tlNoteOnce(h, ev, store){
+  if (!ev || !ev.badge) return '';                    // マークが付かない走り（平凡）は登録しない（ノイズ防止）
+                                                       // ※自分の時計が平凡でも「レースのレベルが高い＋僅差」なら🎯なので lv では判定しない
+  var o = store || tlStore();                          // 呼び出し側のストアを渡されたらそれを使う（保存は1回にまとめる）
+  var key = tlD8(ev.date) + '|' + ev.rname + '|' + ev.dist;
+  var rec = o.ev[key] || (o.ev[key] = { noted: false, names: [] });
+  var nm = tlNormName(h && h.name);
+  if (rec.names && rec.names.indexOf(nm) >= 0) return '';
+  if (typeof hbNewNote !== 'function') return '';
+  try {
+    hbNewNote({ name: h.name, nk: h.nk || '', no: h.no || '' }, 'short', ev.txt,
+      { label: (ev.rname || '') + '（' + (ev.date || '') + (ev.isWin ? '・1着' : '・' + ev.order + '着') + '）', date: ev.date || '' });
+    rec.names = (rec.names || []).concat([nm]);
+    if (!store) tlSave(o);
+    return 'noted';
+  } catch(e){ return ''; }
+}
+/* ---------- 全出走馬をスキャン ---------- */
+function tlScanAll(auto){
+  var hs = [];
+  try { hs = (state.horses || []).filter(function(h){ return h && (h.nk || h.name); }); } catch(e){}
+  var out = { rows: [], n: 0, nodata: 0, noeval: 0, fast: 0, slow: 0, mid: 0, noted: 0, extra: 0, wins: 0 };
+  if (!hs.length) return out;
+  var o = tlStore();
+  hs.forEach(function(h){
+    var res;
+    try { res = tlScanHorse(h); } catch(e){ res = { st: 'err' }; }
+    if (!res) res = { st: 'nodata' };
+    if (res.st === 'nodata' || res.st === 'norun') out.nodata++;
+    if (res.st === 'eval'){
+      out.n++;
+      var evs = res.evs || [];
+      // 馬ごとの代表判定＝前走（前走が評価できない場合は直近の対象クラスV）
+      var b = res.ev.badge || 'mid';
+      out[b === 'fast' ? 'fast' : (b === 'slow' ? 'slow' : 'mid')]++;
+      if (res.winEv) out.wins++;
+      out.extra += Math.max(0, evs.length - 1);
+      if (!auto && o.set.note !== false){
+        evs.forEach(function(ev){
+          if (!ev.badge) return;                          // 平凡（マークなし）は登録しない
+          if (ev.isWin || tlNotable(ev)){ if (tlNoteOnce(h, ev, o)) out.noted++; }
+        });
+      }
+    } else if (res.st === 'noeval') out.noeval++;
+    tlPut(h, res, o);
+    out.rows.push({ h: h, res: res });
+  });
+  tlSave(o);                       // 保存は1回だけ（18頭ぶんを毎回書くと重い）
+  return out;
+}
+/* ---------- 脚質の安定度（馬柱の4角通過順から） ----------
+   過去6走の「4角通過順 → 脚質(逃げ/先行/差し/追込)」を復元し、
+   バラつき v = 1 - (最多脚質の割合) を返す。v=0 なら毎回同じ脚質、v が大きいほど不安定。 */
+function tlStyleOf(pass, head){
+  var ps = String(pass || '').split(/[-\s\u3000]+/).filter(function(x){ return /^\d+$/.test(x); });
+  if (!ps.length) return '';
+  var p4 = parseInt(ps[ps.length - 1], 10);
+  if (!p4) return '';
+  var n = parseInt(head, 10) || 0;
+  var r = n >= 4 ? (p4 / n) : (p4 / 12);
+  if (p4 === 1) return '逃げ';
+  if (r <= 0.28) return '先行';
+  if (r <= 0.62) return '差し';
+  return '追込';
+}
+/* 4角の位置を 0(先頭)〜1(最後方) に正規化 */
+function tlPosQ(pass, head){
+  var ps = String(pass || '').split(/[-\s\u3000]+/).filter(function(x){ return /^\d+$/.test(x); });
+  if (!ps.length) return null;
+  var p4 = parseInt(ps[ps.length - 1], 10);
+  if (!p4) return null;
+  var n = parseInt(head, 10) || 0;
+  return n >= 4 ? (p4 - 1) / (n - 1) : (p4 - 1) / 11;
+}
+function tlSd(a){
+  if (!a || a.length < 2) return 0;
+  var m = a.reduce(function(x, y){ return x + y; }, 0) / a.length;
+  return Math.sqrt(a.reduce(function(t, x){ return t + (x - m) * (x - m); }, 0) / a.length);
+}
+function tlStyleHist(h){
+  if (!h || !h.nk || typeof hdLs !== 'function') return null;
+  var ls;
+  try { ls = hdLs(); } catch(e){ return null; }
+  var rec = ls[h.nk];
+  if (!rec || !rec.r) return null;
+  var today = tlRaceDateStr();
+  var rows = rec.r.filter(function(r){
+    return r && tlD8(r.date) && (!today || tlD8(r.date) < today) && parseInt(r.order, 10) > 0;
+  });
+  rows.sort(function(a, b){ return tlD8(b.date).localeCompare(tlD8(a.date)); });
+  rows = rows.slice(0, 6);
+  var styles = [], cnt = {}, qs = [];
+  rows.forEach(function(r){
+    var st = tlStyleOf(r.pass, r.head);
+    if (!st) return;
+    styles.push(st); cnt[st] = (cnt[st] || 0) + 1;
+    var q = tlPosQ(r.pass, r.head);
+    if (q != null) qs.push(q);
+  });
+  if (styles.length < 3) return null;
+  var mx = 0, dom = '';
+  Object.keys(cnt).forEach(function(k){ if (cnt[k] > mx){ mx = cnt[k]; dom = k; } });
+  var sd = tlSd(qs);                       // 4角位置のバラつき（0=毎回同じ位置, 0.5=毎回まったく違う位置）
+  return { n: styles.length, styles: styles, cnt: cnt, dom: dom, domR: mx / styles.length, q: qs, sd: sd, v: sd };
+}
+/* 「脚質が安定しない」の判定（4角位置のバラつき sd が 0.22 以上＝頭数の2割以上ブレる） */
+function tlStyleUnstable(sv){
+  return !!(sv && sv.n >= 3 && sv.sd >= 0.22);
+}
+/* ---------- 表示 ---------- */
+var TL_LV = { fast: { icon: '🎯', txt: '速い', cls: 'fast' }, mid: { icon: '○', txt: '普通', cls: 'mid' }, slow: { icon: '⚠️', txt: '遅い', cls: 'slow' } };
+function tlLvChip(lv){
+  var m = TL_LV[lv] || null;
+  if (!m) return '<span class="muted">-</span>';
+  return '<span class="tlchip ' + m.cls + '" title="同条件の過去との比較">' + m.icon + ' ' + m.txt + '</span>';
+}
+/* 出馬表・AI印に付くのと同じマーク（🎯/⚠️/なし） */
+function tlBadgeChip(ev){
+  if (ev.badge === 'fast') return '<span class="tlchip fast" title="前走の時計が買い材料">🎯</span>';
+  if (ev.badge === 'slow') return '<span class="tlchip slow" title="勝ち時計が遅い＝レースのレベルが低い">⚠️</span>';
+  return '<span class="muted" title="マークなし">—</span>';
+}
+function tlOrdTxt(ev){
+  var o = ev.order ? (ev.order + '着') : '-';
+  var hd = parseInt(ev.head, 10);
+  return hd ? (o + '<span class="muted">/' + hd + '頭</span>') : o;
+}
+function tlTimeTxt(ev){
+  var t = esc(ev.timeStr || '-');
+  if (ev.babaAdj) return t + '<br><span class="muted">良換算 ' + ev.secAdj.toFixed(1) + '秒（' + esc(ev.baba) + ' + ' + ev.babaAdj.toFixed(1) + '）</span>';
+  return t + '<br><span class="muted">' + ev.secAdj.toFixed(1) + '秒</span>';
+}
+function tlHowFastTxt(ev){
+  if (ev.dSpd != null){
+    var dt = ev.pastSec - ev.secAdj;
+    return '過去 ' + ev.pastN + ' 件の勝ち時計の平均より ' +
+      (dt > 0 ? '<b>' + dt.toFixed(1) + '秒速い</b>' : (dt < 0 ? '<b>' + Math.abs(dt).toFixed(1) + '秒遅い</b>' : '同タイム')) +
+      '<span class="muted">（' + ev.pastSec.toFixed(1) + '秒 / ' + (ev.dSpd > 0 ? '+' : '') + ev.dSpd.toFixed(2) + ' m/s・しきい値±' + (ev.th || TL_SPD).toFixed(2) + '）</span><br>' +
+      '<span class="muted">' + esc(ev.pastSrc || '') + '</span>';
+  }
+  if (ev.dPar != null){
+    return (ev.parLearned ? '🎓学習した基準時計' : '基準時計') + 'より ' + (ev.dPar > 0 ? '+' : '') + ev.dPar.toFixed(1) +
+      ' 秒<span class="muted">（同条件の過去が3走未満・' + (ev.parLearned ? '🎓学習値' : '静的テーブル') + '）</span>';
+  }
+  return '<span class="muted">比較データなし</span>';
+}
+function tlRaceLvTxt(ev){
+  if (ev.isWin) return '<span class="muted">＝自分の勝ち時計</span> ' + tlLvChip(ev.raceLv || ev.lv);
+  if (ev.winSec == null) return '<span class="muted">不明</span>';
+  return '勝ち時計 ' + ev.winSec.toFixed(1) + '秒 ' + tlLvChip(ev.raceLv);
+}
+function tlGapTxt(ev){
+  if (ev.isWin){
+    return (ev.winGap != null)
+      ? '<b>2着差 ' + ev.winGap.toFixed(1) + '秒</b>' + (ev.winner ? '<br><span class="muted">2着 ' + esc(String(ev.winner).replace(/[()]/g, '')) + '</span>' : '')
+      : '<span class="muted">2着差は不明<br>（同レース他馬の馬柱なし）</span>';
+  }
+  if (ev.gap == null) return '<span class="muted">-</span>';
+  return '勝ち馬から ' + ev.gap.toFixed(1) + '秒差' + (ev.order > 3 ? '<br><span class="muted">（馬券内ではない）</span>' : '');
+}
+function tlRender(){
+  var box = $('tlBox'); if (!box) return;
+  var o = tlStore();
+  var hs = [];
+  try { hs = (state.horses || []); } catch(e){}
+  var h = [];
+  if (typeof tlLearnUseHTML === 'function'){ try { var _lu = tlLearnUseHTML(); if (_lu) h.push(_lu); } catch(e){} }
+  h.push('<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">');
+  h.push('<button type="button" class="btn primary" id="tlScan" title="馬柱キャッシュから出走馬の直近の走りを評価します。前走は必ず評価し、1着でなくても「時計が速い」「レース自体のレベルが高い」走りは追記します。早い/遅いは📒馬ノートにも自動登録されます。">🔍 出走馬の前走タイムを評価</button>');
+  h.push('<label style="display:inline-flex;gap:4px;align-items:center;font-size:.82rem" title="速い/遅いと判定した走りの短評を📒馬ノートへ自動で追加します（普通は追加しません）">' +
+    '<input type="checkbox" id="tlNote"' + (o.set.note === false ? '' : ' checked') + '> 短評を📒馬ノートへ自動登録</label>');
+  h.push('<button type="button" class="btn ghost" id="tlClear" title="勝ちタイム評価の保存を消します（📒馬ノートに登録済みの短評は残ります）">🗑 評価を消去</button>');
+  h.push('<span class="small muted" id="tlMsg"></span>');
+  h.push('</div>');
+  if (!hs.length){
+    h.push('<div class="small muted">出走馬がありません。①で出馬表を読み込むと、直近の走りを自動で評価します。</div>');
+    box.innerHTML = h.join(''); return;
+  }
+  // 保存済みの評価だけで表を作る（スキャンはボタン/取込時）
+  var groups = [], noeval = 0, nodata = 0, nRows = 0, nFast = 0, nSlow = 0, nMid = 0, nWin = 0;
+  hs.forEach(function(hh){
+    var ev = tlGet(hh);
+    if (!ev){ noeval++; if (!hh.nk) nodata++; return; }
+    var evs = [ev].concat(ev.more || []);
+    groups.push({ h: hh, ev: ev, evs: evs });
+    if (ev.badge === 'fast') nFast++; else if (ev.badge === 'slow') nSlow++; else nMid++;
+  });
+  if (!groups.length){
+    h.push('<div class="small muted">まだ評価がありません。上の「🔍 出走馬の前走タイムを評価」を押してください' +
+      '（馬柱データが必要です。未取得の馬は ①の各馬の「🐎 馬情報」または「🐎 全馬プロフィール」で取得できます）。</div>');
+    box.innerHTML = h.join(''); return;
+  }
+  var tlW = function(b){ return b === 'fast' ? 0 : (b === 'slow' ? 1 : 2); };   // fast=0 は falsy なので || を使わない
+  groups.sort(function(a, b){
+    return (tlW(a.ev.badge) - tlW(b.ev.badge)) || tlD8(b.ev.date).localeCompare(tlD8(a.ev.date));
+  });
+  var trs = [];
+  groups.forEach(function(g){
+    g.evs.forEach(function(ev, i){
+      if (ev.isWin) nWin++;
+      nRows++;
+      var tr = [];
+      tr.push('<tr>');
+      if (i === 0){
+        tr.push('<td>' + esc(g.h.no || '') + '</td>');
+        tr.push('<td>' + esc(g.h.name || '') + '</td>');
+      } else {
+        tr.push('<td></td><td></td>');
+      }
+      tr.push('<td>' + tlBadgeChip(ev) + '</td>');
+      tr.push('<td><span class="tltag' + (ev.isPrev ? ' prev' : '') + '">' + esc(ev.tag || (ev.isWin ? '直近の対象クラスV' : '前走')) + '</span><br>' +
+        '<b>' + esc(ev.rname || '') + '</b> <span class="muted">' + esc(ev.date || '') + '</span><br>' +
+        '<span class="muted">' + esc(tlCondText(ev)) + '</span></td>');
+      tr.push('<td>' + tlOrdTxt(ev) + '</td>');
+      tr.push('<td>' + tlTimeTxt(ev) + '</td>');
+      tr.push('<td>' + tlLvChip(ev.lv) + ' ' + tlHowFastTxt(ev) + '</td>');
+      tr.push('<td>' + tlRaceLvTxt(ev) + '</td>');
+      tr.push('<td>' + tlGapTxt(ev) + '</td>');
+      tr.push('<td class="small" style="text-align:left">' + esc(ev.txt || '') + '</td>');
+      tr.push('</tr>');
+      trs.push(tr.join(''));
+    });
+  });
+  h.push('<div class="small muted" style="margin-bottom:4px">出走馬 ' + hs.length + ' 頭のうち <b>' + groups.length + ' 頭</b>を評価' +
+    '（🎯 時計が速い <b>' + nFast + '</b> 頭／⚠️ 勝ち時計が遅い <b>' + nSlow + '</b> 頭／マークなし <b>' + nMid + '</b> 頭）' +
+    '・表示した走り <b>' + nRows + '</b>（うち1着 ' + nWin + '）' +
+    (nodata ? '・馬柱未取得 ' + nodata + ' 頭' : '') + (noeval ? '・評価不能 ' + noeval + ' 頭' : '') + '</div>');
+  h.push('<div style="overflow-x:auto"><table class="ktbl sctbl"><thead><tr>' +
+    '<th>馬番</th><th>馬名</th><th>出馬表マーク</th><th>対象の走り</th><th>着順</th><th>タイム（良換算）</th>' +
+    '<th>どれほど速かったか</th><th>レースの勝ち時計レベル</th><th>着差</th><th>短評</th>' +
+    '</tr></thead><tbody>' + trs.join('') + '</tbody></table></div>');
+  h.push('<div class="small muted" style="margin-top:4px;line-height:1.7">' +
+    '<b>※並びは「前走」のマーク順（🎯→⚠️→なし）。</b>1頭につき最大3行（前走／直近の対象クラスV／直近3走の好時計）を出します。<br>' +
+    '<b>【1着じゃなくても追記する条件】</b>①自分の時計が同条件の過去の勝ち時計より速い（<b>馬券内かどうかは問いません</b>）' +
+    '②勝ち時計が速い＝レース自体のレベルが高く、勝ち馬から1.0秒差以内。このどちらかなら同じ馬の行に<b>追記</b>します。<br>' +
+    '<b>【⚠️について】</b>⚠️は「1着の勝ち時計が遅い」＝そのレースのレベルが低かったときだけ付けます' +
+    '（負け馬の時計が勝ち馬より遅いのは着差のぶんなので、それだけでは⚠️にしません）。<br>' +
+    '<b>【比較のしかた】</b>母集団はキャッシュ済み馬柱の「勝ち時計」です。1着の行は自分の時計、' +
+    'それ以外の行は<b>自分の時計 − 着差(秒)</b>でそのレースの勝ち時計を復元するので、' +
+    '1着が少ない未勝利クラスの出走馬でも母集団を確保できます。' +
+    '探す順番は ①同場・±3週 → ②同場・±14週 → ③他場も含む±3週 → ④他場も含む±14週 で、3件以上集まったところを使います' +
+    '（距離は同距離帯＝±200m、④だけ±300m。季節がずれると時計も変わるので「同じ時期」を優先します）。' +
+    '<b>距離（1200〜2400mなど）とクラス（新馬/未勝利/1勝/2勝/3勝/OP/L/G3・G2・G1）は基準時計で換算</b>し、代表値には<b>中央値</b>を使います（外れ値に強くするため）。' +
+    '<b>馬場は良に換算</b>（芝: 稍重+0.7 / 重+1.4 / 不良+2.0秒、ダートは雨で速くなるので 稍重-0.5 / 重-0.9 / 不良-0.6秒）。' +
+    '判定は<b>速度差</b>で、同場の母集団なら±0.08m/s（芝1600mで約0.4秒）、他場を含む場合は±0.12m/s。' +
+    '3件も集まらないときはクラス補正した基準時計との差で判定します（参考値）。<br>' +
+    '<b>【不良馬場】</b>不良馬場の時計は換算の誤差が大きいので参考表示にし、🎯/⚠️は付けません（母集団にも使いません）。' +
+    '<b>【障害戦】</b>は時計の土俵が違うため評価しません。<br>' +
+    '<b>【着差】</b>1着以外は「勝ち馬からの差」をその馬の着差列から、1着の<b>2着差</b>は同じレースを走った他馬の馬柱（着差列）から復元します。' +
+    '同じレースの他馬が未取得だと「不明」と出ます（①の「🐎 全馬プロフィール」で取得すると埋まります）。<br>' +
+    'トラックバイアスカードが当日開催ぶんしか出ないのに対し、こちらは過去開催の時計から「その馬がどれほど速い時計を持っているか」を見る補助です。</div>');
+  box.innerHTML = h.join('');
+  var b = $('tlScan');
+  if (b){ b.onclick = function(){ b.disabled = true; b.textContent = '評価中…'; setTimeout(tlRunScan, 20); }; }
+  var cb = $('tlNote');
+  if (cb) cb.onchange = function(){ try { var oo = tlStore(); oo.set.note = cb.checked; tlSave(oo); } catch(e){} };
+  var c = $('tlClear');
+  if (c) c.onclick = function(){
+    try {
+      var o2 = tlStore(); o2.byNk = {}; o2.byName = {}; tlSave(o2);
+    } catch(e){}
+    tlRender(); tlMsg('評価を消去しました（📒馬ノートの短評は残っています）');
+  };
+}
+function tlRunScan(){
+  var r;
+  try { r = tlScanAll(false); } catch(e){ tlMsg('評価に失敗しました: ' + (e && e.message ? e.message : e), true); return; }
+  tlMsg('評価 ' + r.n + ' 頭（🎯 ' + (r.fast || 0) + '／⚠️ ' + (r.slow || 0) + '／○ ' + (r.mid || 0) + '）' +
+    '・1着の走り ' + (r.wins || 0) + '／追記した走り ' + (r.extra || 0) +
+    (r.noted ? '・短評を ' + r.noted + ' 件登録' : '') +
+    (r.nodata ? '・馬柱未取得 ' + r.nodata + ' 頭' : '') + (r.noeval ? '・評価不能 ' + r.noeval + ' 頭' : ''),
+    r.n ? null : '馬柱キャッシュが空です。①の「🐎 全馬プロフィール」で取得してから実行してください。');
+  tlRender();
+}
+function tlMsg(m, err){
+  var e = $('tlMsg'); if (e) e.innerHTML = m ? '<span' + (err ? ' style="color:var(--err-ink)"' : '') + '>' + m + '</span>' : '';
+}
+/* =========================================================
+   🎓 タイム換算の学習
+   （④「年指定で過去データを自動取込（学習DB用・JRA全レース）」と連携）
+   ---------------------------------------------------------
+   学習DB（JRA全レースの勝ち時計）と馬柱キャッシュ（着差から復元した勝ち時計）から、
+   「距離 × クラス × 年齢 × 競馬場 × 年 × 馬場」の**基準時計そのもの**を学習します。
+   結果は khl_tllearn_v1 に保存し、tlBaseSec() と tlBabaAdj() が学習値を優先して使います。
+   学習データが無ければ従来の静的テーブル（PAR_TIME＋クラス補正）のままなので、動きは変わりません。
+
+   ■ モデルのかたち（2段）
+     基準時計 = 距離レベル(面|距離)
+              + クラス補正(面|クラス) + 年齢補正(面|2歳/3歳/3歳以上/4歳以上)
+              + 競馬場補正(面|場) + 年補正(年) + 距離×クラスの個別補正(件数が十分ある組合せだけ)
+     → 主効果（距離・クラス・年齢・場・年）はどの組み合わせでも埋まるので、
+       「ダート3400mのG1」のような珍しい条件でも基準時計が出せます（＝馬柱の母集団と基準がズレない）。
+       件数がある組み合わせだけは、さらに個別補正を足して精度を上げます。
+
+   ■ 学習のしかた（メディアンポリッシュ＝中央値を順番に抜いていく）
+     1. 「面|距離」のセルごとに勝ち時計の**中央値**を抜く（＝距離レベル）
+     2. 残りを「面|クラス」→「面|年齢」→「面|競馬場」→「年」の順に抜く（＝それぞれの補正）
+     3. 良以外で走ったサンプルに残った残りの中央値＝使った馬場補正の誤差 → **馬場補正を学習**
+     4. 学習した馬場補正でもう一度良換算し直して 1〜3 を繰り返す（2回で収束）
+     5. 最後に「面|距離|クラス」の組み合わせで残りを抜く（＝個別補正）
+     平均でなく中央値を使うのは、新馬戦・少頭数・極端な馬場などの外れ値に引っ張られないため。
+     件数が足りないグループ（n < しきい値）は**補正をかけずに捨てる**ので、
+     珍しい条件の外れ値が競馬場補正や年補正を壊しません（旧版で ダ|東京 +77.9秒 が出た不具合の対策）。
+
+   ■ いつ学習するか
+     ・年指定の一括取込が終わったとき（自動・結果を表示）
+     ・日付指定/バックアップ復元の取込が終わったとき（6秒デバウンスで自動）
+     ・「🎓 学習し直す」ボタン（手動）
+   学習すると②⏱カードの判定基準がその場で切り替わり、出走馬がいれば自動で評価し直します。
+   ========================================================= */
+var TL_LEARN_LS = 'khl_tllearn_v1';
+var TL_LEARN_MIN = 8;          // 距離×クラスの個別補正: この件数以上あれば上乗せ
+var TL_LEARN_MIND = 10;        // 距離レベル・クラス補正
+var TL_LEARN_MINV = 15;        // 競馬場・年・年齢の補正
+var TL_LEARN_MINB = 10;        // 馬場補正
+var TL_LEARN_MIN_TOTAL = 60;   // これよりサンプルが少ないと学習しない（ノイズのほうが多い）
+var TL_LEARN_CLS = ['新馬', '未勝利', '1勝クラス', '2勝クラス', '3勝クラス', '特別', 'OP', 'L', 'G3', 'G2', 'G1'];
+var TL_LEARN_AGES = ['2歳', '3歳', '3歳以上', '4歳以上'];
+var TL_JRA_VENUES = ['札幌', '函館', '福島', '新潟', '東京', '中山', '中京', '京都', '阪神', '小倉'];
+var tlLearnMem = null, tlLearnTimer = null;
+
+/* ---------- 保存/読込 ---------- */
+function tlLearnLoad(){
+  if (tlLearnMem) return tlLearnMem;
+  try {
+    var o = JSON.parse(localStorage.getItem(TL_LEARN_LS) || 'null');
+    tlLearnMem = (o && o.dist) ? o : null;
+  } catch(e){ tlLearnMem = null; }
+  return tlLearnMem;
+}
+function tlLearnSave(m){
+  try { localStorage.setItem(TL_LEARN_LS, JSON.stringify(m)); tlLearnMem = m; return true; }
+  catch(e){ tlLearnMem = m; return false; }
+}
+function tlLearnClear(){
+  try { localStorage.removeItem(TL_LEARN_LS); } catch(e){}
+  tlLearnMem = null;
+}
+function tlLearnReady(m){ return !!(m && m.dist && m.nS >= TL_LEARN_MIN_TOTAL); }
+function tlLearnHas(){ return tlLearnReady(tlLearnLoad()); }
+
+/* ---------- 分類（学習時も評価時も同じ関数を使う＝ズレない） ---------- */
+function tlLearnCls(name, grade){
+  var n = String(name || '');
+  var g = String(grade || '').replace(/\s+/g, '').toUpperCase();
+  var t = g || String((n.match(/[(（]\s*(G\s*(?:III|II|I|3|2|1)|Jpn\s*[123]|L|OP|LISTED)\s*[)）]/i) || [])[1] || '').replace(/\s+/g, '').toUpperCase();
+  if (/^JPN1$/.test(t) || /^G(I|1)$/.test(t)) return 'G1';
+  if (/^JPN2$/.test(t) || /^G(II|2)$/.test(t)) return 'G2';
+  if (/^JPN3$/.test(t) || /^G(III|3)$/.test(t)) return 'G3';
+  if (t === 'L' || t === 'LISTED') return 'L';
+  if (t === 'OP' || /オープン/.test(n)) return 'OP';
+  if (/新馬|メイドン/.test(n)) return '新馬';
+  var c = tlClassOf(n);
+  if (c) return c;
+  return '特別';
+}
+function tlLearnSurf(x){
+  var s = String(x || '');
+  return s.indexOf('ダ') >= 0 ? 'ダ' : (s.indexOf('障') >= 0 ? '障' : '芝');
+}
+/* 距離帯（重賞は長距離ほど時計の差が大きいので、クラス補正を距離帯ごとにも持つ） */
+function tlLearnBand(m){
+  m = parseInt(m, 10) || 0;
+  return m <= 1400 ? '短' : (m <= 2000 ? '中' : '長');
+}
+/* 年齢区分（レース名から）。2歳戦は明らかに時計がかかるのでクラスとは別に補正します */
+function tlLearnAge(name){
+  var n = String(name || '');
+  if (/2歳/.test(n)) return '2歳';
+  if (/3歳以上/.test(n)) return '3歳以上';
+  if (/4歳以上/.test(n)) return '4歳以上';
+  if (/3歳/.test(n)) return '3歳';
+  return '';
+}
+
+/* ---------- サンプル集め: 学習DB（年指定の一括取込）＋馬柱キャッシュ ---------- */
+function tlLearnSamples(){
+  var out = [], seen = {}, nDb = 0, nHd = 0, bad = 0, drop = 0;
+  function push(o){
+    if (!o) return;
+    var sf = tlLearnSurf(o.surface);
+    if (sf === '障') { drop++; return; }                       // 障害は時計の土俵が違う
+    var m = parseInt(o.m, 10);
+    if (!(m >= 800 && m <= 4000)) { drop++; return; }
+    var sec = parseFloat(o.sec);
+    if (!(sec > 20 && sec < 500)) { drop++; return; }
+    var d8 = tlD8(o.d8);
+    if (!d8) { drop++; return; }
+    var ven = String(o.venue || '');
+    if (TL_JRA_VENUES.indexOf(ven) < 0) { drop++; return; }     // 地方・海外は時計の土俵が違う
+    var cls = o.cls || tlLearnCls(o.name, o.grade);
+    // 同じレース（同日・同場・同名・同距離・同勝ち時計）は1件に集約
+    var k = d8 + '|' + ven + '|' + sf + '|' + m + '|' + cls + '|' + Math.round(sec * 10);
+    if (seen[k]) return;
+    seen[k] = 1;
+    out.push({ d8: d8, year: d8.slice(0, 4), venue: ven, surface: sf, m: m, cls: cls,
+               age: tlLearnAge(o.name), baba: tlBaba(o.baba) || '', sec: sec, name: o.name || '', src: o.src || '' });
+  }
+  /* 1) 学習DB: ④で年指定取込したJRA全レース（1着のタイムをそのまま使う） */
+  try {
+    var db = (typeof diLs === 'function') ? diLs() : null;
+    var races = (db && db.races) || {};
+    Object.keys(races).forEach(function(rid){
+      var rec = races[rid];
+      if (!rec || !rec.meta) return;
+      var rows = rec.rows || [];
+      if (!rows.length) return;
+      var w = null;
+      for (var i = 0; i < rows.length; i++){ if (parseInt(rows[i].order, 10) === 1){ w = rows[i]; break; } }
+      if (!w) w = rows[0];
+      var sec = (typeof nkToSec === 'function') ? nkToSec(w.time) : null;
+      if (!sec){ bad++; return; }
+      push({ d8: rec.meta.date8 || String(rid).slice(0, 8), venue: rec.meta.place, surface: rec.meta.surface,
+             m: rec.meta.m, baba: rec.meta.baba, name: rec.meta.name, grade: rec.meta.grade, sec: sec, src: 'db' });
+      nDb++;
+    });
+  } catch(e){}
+  /* 2) 馬柱キャッシュ: 1着以外の行も「自分の時計 − 着差」で勝ち時計を復元して使う */
+  try {
+    var ls = (typeof hdLs === 'function') ? hdLs() : {};
+    var best = {};
+    Object.keys(ls).forEach(function(nk){
+      var rows = (ls[nk] && ls[nk].r) || [];
+      rows.forEach(function(r){
+        if (!r) return;
+        var ord = parseInt(r.order, 10);
+        if (!(ord >= 1)) return;
+        var sec0 = (typeof nkToSec === 'function') ? nkToSec(r.time) : null;
+        if (!sec0) return;
+        var wsec;
+        if (ord === 1) wsec = sec0;
+        else {
+          var gp = parseFloat(String(r.margin || '').replace(/[^0-9.]/g, ''));
+          if (!isFinite(gp) || gp < 0 || gp > 20) return;
+          wsec = sec0 - gp;                                      // 着差は「勝ち馬までの秒差」なので引く
+        }
+        var d8 = tlD8(r.date);
+        var rk = d8 + '|' + (r.venueName || '') + '|' + String(r.r || '') + '|' + (r.name || '') + '|' + r.m;
+        var prev = best[rk];
+        if (!prev || ord < prev.order) best[rk] = { order: ord, sec: wsec, d8: d8, venue: r.venueName, surface: r.surface, m: r.m, baba: r.baba, name: r.name };
+      });
+    });
+    Object.keys(best).forEach(function(k){
+      var b = best[k];
+      push({ d8: b.d8, venue: b.venue, surface: b.surface, m: b.m, baba: b.baba, name: b.name, sec: b.sec, src: 'hd' });
+      nHd++;
+    });
+  } catch(e){}
+  return { list: out, nDb: nDb, nHd: nHd, bad: bad, drop: drop };
+}
+
+/* ---------- メディアンポリッシュ: グループごとの中央値を抜いて store に積む ----------
+   minN に満たないグループは補正せず、そのサンプルに x.thin を立てて後の工程から外します
+   （外すと、珍しい条件の外れ値が競馬場補正や年補正を壊しません） */
+function tlAbsorb(list, store, keyFn, minN, asDelta, markThin){
+  var grp = {};
+  list.forEach(function(x){
+    if (x.thin) return;
+    var k = keyFn(x);
+    if (!k) return;
+    (grp[k] = grp[k] || []).push(x);
+  });
+  Object.keys(grp).forEach(function(k){
+    var a = grp[k];
+    if (a.length < minN){
+      if (markThin) a.forEach(function(x){ x.thin = 1; });
+      return;
+    }
+    var md = tlMedian(a.map(function(x){ return x.r; }));
+    if (!isFinite(md)) return;
+    var prev = store[k] || { s: 0, o: 0, n: 0 };
+    store[k] = asDelta ? { o: +(prev.o + md).toFixed(3), n: a.length }
+                       : { s: +(prev.s + md).toFixed(2), n: a.length };
+    a.forEach(function(x){ x.r -= md; });
+  });
+  return store;
+}
+function tlLearnAdjUse(x, babaTbl){
+  if (!x.baba || x.baba === '良') return 0;
+  var k = x.surface + '|' + x.baba;
+  if (babaTbl && babaTbl[k] && babaTbl[k].n >= TL_LEARN_MINB) return babaTbl[k].o;
+  return tlBabaAdjStatic(x.baba, x.surface);
+}
+/* ---------- 学習本体 ---------- */
+function tlLearnBuild(){
+  var S = tlLearnSamples();
+  var list = S.list || [];
+  if (list.length < TL_LEARN_MIN_TOTAL) return { err: 'サンプル不足', nS: list.length, nDb: S.nDb, nHd: S.nHd };
+  var model = {
+    v: 2, at: new Date().toISOString(), nS: list.length, nDb: S.nDb, nHd: S.nHd, drop: S.drop, bad: S.bad,
+    dist: {}, cls: {}, cls2: {}, age: {}, ven: {}, yr: {}, baba: {}, cell: {}, nbaba: 0
+  };
+  var it;
+  for (it = 0; it < 2; it++){
+    list.forEach(function(x){ x.t = x.sec - tlLearnAdjUse(x, model.baba); x.r = x.t; x.thin = 0; });
+    model.dist = {}; model.cls = {}; model.cls2 = {}; model.age = {}; model.ven = {}; model.yr = {};
+    tlAbsorb(list, model.dist, function(x){ return x.surface + '|' + x.m; }, TL_LEARN_MIND, false, true);
+    tlAbsorb(list, model.cls, function(x){ return x.surface + '|' + x.cls; }, TL_LEARN_MIND, true, false);
+    tlAbsorb(list, model.cls2, function(x){ return x.surface + '|' + tlLearnBand(x.m) + '|' + x.cls; }, TL_LEARN_MIND, true, false);
+    tlAbsorb(list, model.age, function(x){ return x.age ? (x.surface + '|' + x.age) : ''; }, TL_LEARN_MINV, true, false);
+    tlAbsorb(list, model.ven, function(x){ return x.surface + '|' + x.venue; }, TL_LEARN_MINV, true, false);
+    tlAbsorb(list, model.yr, function(x){ return x.year; }, TL_LEARN_MINV, true, false);
+    /* 馬場補正: 良以外に残った残りの中央値＝いま使った補正の誤差 → 学習値 = 使った値 + 誤差 */
+    var bg = {};
+    list.forEach(function(x){
+      if (x.thin || !x.baba || x.baba === '良') return;
+      var k = x.surface + '|' + x.baba;
+      (bg[k] = bg[k] || []).push(x.r);
+    });
+    var nb = {};
+    Object.keys(bg).forEach(function(k){
+      var a = bg[k];
+      if (a.length < TL_LEARN_MINB) return;
+      var md = tlMedian(a);
+      if (!isFinite(md)) return;
+      var p = k.split('|');
+      var used = tlLearnAdjUse({ surface: p[0], baba: p[1] }, model.baba);
+      nb[k] = { o: +(used + md).toFixed(3), n: a.length };
+    });
+    model.baba = nb;
+    model.nbaba = Object.keys(nb).length;
+  }
+  /* 距離×クラスの個別補正（主効果で取りきれない交互作用。件数がある組合せだけ） */
+  list.forEach(function(x){ x.r0 = x.r; });
+  model.cell = {};
+  tlAbsorb(list, model.cell, function(x){ return x.surface + '|' + x.m + '|' + x.cls; }, TL_LEARN_MIN, true, false);
+  /* 学習の当てはまり（残りのバラつき）と、静的テーブルとの差 */
+  var used = list.filter(function(x){ return !x.thin; });
+  var ab = used.map(function(x){ return Math.abs(x.r); });
+  model.fitMae = ab.length ? +(ab.reduce(function(a, b){ return a + b; }, 0) / ab.length).toFixed(2) : 0;
+  model.nThin = list.length - used.length;
+  model.dists = { '芝': [], 'ダ': [] };
+  Object.keys(model.dist).forEach(function(k){
+    var p = k.split('|');
+    if (model.dists[p[0]]) model.dists[p[0]].push(+p[1]);
+  });
+  Object.keys(model.dists).forEach(function(sf){ model.dists[sf].sort(function(a, b){ return a - b; }); });
+  model.years = Object.keys(model.yr).sort();
+  var diffs = [];
+  model.dists['芝'].concat(model.dists['ダ']).forEach(function(){});
+  Object.keys(model.dist).forEach(function(kd){
+    var sf = kd.split('|')[0], d = +kd.split('|')[1];
+    TL_LEARN_CLS.forEach(function(c){
+      var st = tlBaseSecStatic(sf, d, c);
+      if (st == null) return;
+      var L = tlLearnBaseOf(model, sf, d, c, '', '', '');
+      if (L == null) return;
+      diffs.push({ k: sf + '|' + d + '|' + c, learn: +L.toFixed(2), stat: +st.toFixed(2), d: +(L - st).toFixed(2) });
+    });
+  });
+  diffs.sort(function(a, b){ return Math.abs(b.d) - Math.abs(a.d); });
+  model.diffTop = diffs.slice(0, 8);
+  model.diffAvg = diffs.length ? +(diffs.reduce(function(a, x){ return a + x.d; }, 0) / diffs.length).toFixed(2) : 0;
+  model.cells = Object.keys(model.cell).length;
+  return model;
+}
+
+/* ---------- モデルから基準時計を組み立てる（内部） ---------- */
+function tlLearnBaseOf(M, surface, m, cls, venue, d8, age){
+  if (!tlLearnReady(M)) return null;
+  var S = tlLearnSurf(surface);
+  if (S === '障') return null;
+  m = parseInt(m, 10);
+  if (!m) return null;
+  cls = cls || '特別';
+  /* 1) 距離レベル（無ければ前後の距離から線形補間／両端は傾きで外挿・400m超は使わない） */
+  var ds = [];
+  Object.keys(M.dist).forEach(function(k){
+    var p = k.split('|');
+    if (p[0] !== S) return;
+    if ((M.dist[k].n || 0) < TL_LEARN_MIND) return;
+    ds.push({ m: +p[1], s: M.dist[k].s });
+  });
+  if (!ds.length) return null;
+  ds.sort(function(a, b){ return a.m - b.m; });
+  var lo = null, hi = null, sec;
+  ds.forEach(function(x){ if (x.m <= m) lo = x; if (x.m >= m && hi == null) hi = x; });
+  if (lo && hi && lo.m !== hi.m) sec = lo.s + (hi.s - lo.s) * (m - lo.m) / (hi.m - lo.m);
+  else if (lo && hi) sec = lo.s;
+  else {
+    var e = lo || hi;
+    if (Math.abs(e.m - m) > 400) return null;
+    var slope = ds.length >= 2 ? (ds[ds.length - 1].s - ds[0].s) / (ds[ds.length - 1].m - ds[0].m) : (e.s / e.m);
+    sec = e.s + slope * (m - e.m);
+  }
+  if (!(sec > 10)) return null;
+  /* 2) 主効果の補正 */
+  function addO(tbl, k, minN){
+    if (!tbl || !k) return;
+    var e = tbl[k];
+    if (e && e.n >= minN) sec += e.o;
+  }
+  addO(M.cls, S + '|' + cls, TL_LEARN_MIND);
+  addO(M.cls2, S + '|' + tlLearnBand(m) + '|' + cls, TL_LEARN_MIND);   // 距離帯ごとのクラス差（重賞は長距離ほど差が大きい）
+  addO(M.age, age ? (S + '|' + age) : '', TL_LEARN_MINV);
+  addO(M.ven, venue ? (S + '|' + venue) : '', TL_LEARN_MINV);
+  var y = String(tlD8(d8) || '').slice(0, 4);
+  if (y && M.yr){
+    if (M.yr[y] && M.yr[y].n >= TL_LEARN_MINV) sec += M.yr[y].o;
+    else {
+      var bestY = null;
+      Object.keys(M.yr).forEach(function(k){
+        var dd = Math.abs(parseInt(k, 10) - parseInt(y, 10));
+        if (dd > 2 || dd === 0 || !(M.yr[k].n >= TL_LEARN_MINV)) return;
+        if (!bestY || dd < bestY.d) bestY = { d: dd, o: M.yr[k].o };
+      });
+      if (bestY) sec += bestY.o;
+    }
+  }
+  /* 3) 距離×クラスの個別補正 */
+  addO(M.cell, S + '|' + m + '|' + cls, TL_LEARN_MIN);
+  return sec;
+}
+/* ---------- 学習値の参照（基準時計） ---------- */
+function tlLearnBase(surface, m, cls, venue, d8, age){
+  return tlLearnBaseOf(tlLearnLoad(), surface, m, cls, venue, d8, age);
+}
+/* ---------- 学習値の参照（馬場補正） ---------- */
+function tlLearnBabaAdj(baba, surface){
+  var b = tlBaba(baba);
+  if (!b || b === '良') return 0;
+  var M = tlLearnLoad();
+  if (!tlLearnReady(M) || !M.baba) return null;
+  var e = M.baba[tlLearnSurf(surface) + '|' + b];
+  return (e && e.n >= TL_LEARN_MINB) ? e.o : null;
+}
+
+/* ---------- 実行（学習して保存して表示） ---------- */
+function tlLearnRun(auto, quiet){
+  var t0 = Date.now();
+  var m = tlLearnBuild();
+  if (m && m.err){
+    if (!auto) tlLearnMsg('🎓 学習できませんでした: ' + m.err + '（集まった勝ち時計 ' + (m.nS || 0) + ' 件／学習DB ' + (m.nDb || 0) + ' レース＋馬柱 ' + (m.nHd || 0) + ' レース）。④で年を指定して過去データを取り込むと学習できます。', true);
+    tlLearnRender();
+    return null;
+  }
+  if (!m) return null;
+  var saved = tlLearnSave(m);
+  m.ms = Date.now() - t0;
+  var msg = '🎓 タイム換算を学習しました: 勝ち時計 ' + m.nS + ' 件（学習DB ' + m.nDb + ' レース＋馬柱 ' + m.nHd + ' レース）から ' +
+    '距離 ' + Object.keys(m.dist).length + '・クラス ' + Object.keys(m.cls).length + '・距離帯×クラス ' + Object.keys(m.cls2).length +
+    '・年齢 ' + Object.keys(m.age).length + '・競馬場 ' + Object.keys(m.ven).length + '・年 ' + Object.keys(m.yr).length + '・馬場 ' + m.nbaba +
+    '・距離×クラスの個別補正 ' + m.cells + '（当てはまり MAE ' + m.fitMae + '秒／' + m.ms + 'ms）' +
+    (saved ? '' : '　⚠ 保存領域が足りず保存できませんでした');
+  if (!quiet) tlLearnMsg(msg, !saved);
+  /* 判定基準が切り替わったので、出走馬がいれば評価し直す（出馬表の🎯/⚠️も更新） */
+  try {
+    var hs = (typeof state !== 'undefined' && state && state.horses) ? state.horses : [];
+    if (hs && hs.length){
+      var r = tlScanAll(!!auto);
+      if (typeof tlRender === 'function') tlRender();
+      if (typeof rebuildHorseTable === 'function') rebuildHorseTable();
+      if (!quiet) tlLearnMsg(msg + '　→ ⏱の評価も新しい基準でやり直しました（' + r.n + ' 頭／🎯 ' + r.fast + '／⚠️ ' + r.slow + '）', !saved);
+    }
+  } catch(e){}
+  tlLearnRender();
+  return m;
+}
+/* 取込が終わるたびに呼ぶ（連続取込中はまとめて1回だけ学習するようにデバウンス） */
+function tlLearnSchedule(delay){
+  try { if (tlLearnTimer) clearTimeout(tlLearnTimer); } catch(e){}
+  tlLearnTimer = setTimeout(function(){
+    tlLearnTimer = null;
+    try { tlLearnRun(true, true); } catch(e){}
+  }, delay || 6000);
+}
+function tlLearnMsg(m, err){
+  var e = $('tlLearnMsg');
+  if (e) e.innerHTML = m ? '<span' + (err ? ' style="color:var(--err-ink)"' : '') + '>' + esc(m) + '</span>' : '';
+}
+
+/* ---------- 表示 ---------- */
+function tlLearnWhen(m){
+  var a = String((m && m.at) || '');
+  if (!a) return '';
+  var d = new Date(a);
+  if (isNaN(d.getTime())) return a.slice(0, 10);
+  return d.getFullYear() + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + d.getDate()).slice(-2) +
+    ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+/* ⏱カードの上部に出す「いま使っている基準」の1行 */
+function tlLearnUseHTML(){
+  var m = tlLearnLoad();
+  if (!tlLearnReady(m)) return '';
+  return '<div class="small" style="margin:0 0 6px;padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--card2)">' +
+    '🎓 <b>学習した基準時計を使用しています</b>（勝ち時計 ' + m.nS + ' 件＝学習DB ' + m.nDb + ' レース＋馬柱 ' + m.nHd +
+    ' レース／距離・クラス・年齢・競馬場・年・馬場を学習値で換算・学習 ' + tlLearnWhen(m) + '）' +
+    '　<span class="muted">④で年を取り込むと自動で学習し直します。学習データが無い条件は従来の基準時計（パータイム＋クラス補正）を使います。</span></div>';
+}
+function tlLearnChips(tbl, minN, fmt){
+  var ks = Object.keys(tbl || {}).filter(function(k){ return tbl[k].n >= minN; });
+  ks.sort(function(a, b){ return tbl[a].o - tbl[b].o; });
+  return ks.map(function(k){
+    return '<span class="chip" style="font-size:.7rem">' + fmt(k, tbl[k]) + '</span>';
+  }).join(' ');
+}
+function tlLearnRender(){
+  var chip = $('tlLearnChip'), stat = $('tlLearnStat'), tbl = $('tlLearnTbl');
+  var m = tlLearnLoad();
+  if (chip) chip.textContent = tlLearnReady(m) ? ('学習済み ' + m.nS + ' 件') : '未学習';
+  if (!stat || !tbl) return;
+  if (!tlLearnReady(m)){
+    stat.innerHTML = '<span class="muted">まだ学習していません。いまは<b>基準時計の静的テーブル（パータイム＋クラス補正）</b>で判定しています。' +
+      '④で年を指定して過去データを取り込むと、その年のJRA全レースの勝ち時計から基準を学習して自動で切り替わります。</span>';
+    tbl.innerHTML = '';
+    return;
+  }
+  stat.innerHTML = '学習: <b>' + tlLearnWhen(m) + '</b>　勝ち時計 <b>' + m.nS + '</b> 件（学習DB ' + m.nDb + ' レース／馬柱 ' + m.nHd + ' レース・使わなかった ' + (m.drop || 0) + ' 件）' +
+    '　→ 距離 ' + Object.keys(m.dist).length + '・クラス ' + Object.keys(m.cls).length + '・距離帯×クラス ' + Object.keys(m.cls2 || {}).length +
+    '・年齢 ' + Object.keys(m.age).length + '・競馬場 ' + Object.keys(m.ven).length + '・年 ' + Object.keys(m.yr).length + '・馬場 ' + m.nbaba + '・個別補正 ' + m.cells +
+    '<br><span class="muted">当てはまり: 平均絶対誤差 <b>' + m.fitMae + '秒</b>（1レースの勝ち時計をこの誤差で言い当てられる）。' +
+    '静的テーブルとの平均差 ' + (m.diffAvg > 0 ? '+' : '') + m.diffAvg + ' 秒。件数が足りないグループは補正しません（n&lt;' + TL_LEARN_MIN + '）。</span>';
+  var h = [];
+  ['芝', 'ダ'].forEach(function(sf){
+    var ds = (m.dists && m.dists[sf]) || [];
+    if (!ds.length) return;
+    var cls = TL_LEARN_CLS.filter(function(c){ return (m.cls[sf + '|' + c] || { n: 0 }).n >= TL_LEARN_MIND; });
+    h.push('<div style="font-weight:700;margin:8px 0 2px">' + (sf === '芝' ? '🌱 芝' : '🟤 ダート') +
+      '　学習した基準時計（良馬場・3歳以上相当・競馬場/年の補正なし・秒）</div>');
+    h.push('<div style="overflow-x:auto"><table class="ktbl" style="font-size:.72rem;white-space:nowrap">');
+    h.push('<tr><th>距離</th>' + (cls.length ? cls.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') : '<th>基準</th>') + '</tr>');
+    ds.forEach(function(d){
+      var dl = m.dist[sf + '|' + d];
+      var tds = (cls.length ? cls : ['']).map(function(c){
+        var L = tlLearnBaseOf(m, sf, d, c || '特別', '', '', '');
+        var st = c ? tlBaseSecStatic(sf, d, c) : null;
+        if (L == null) return '<td class="muted">-</td>';
+        var dd = (st != null) ? (L - st) : null;
+        var ce = c ? m.cell[sf + '|' + d + '|' + c] : null;
+        return '<td title="n=' + (dl ? dl.n : 0) + (ce ? '／個別補正 ' + (ce.o > 0 ? '+' : '') + ce.o.toFixed(2) + '秒(n=' + ce.n + ')' : '') +
+          (dd != null ? '／静的テーブル比 ' + (dd > 0 ? '+' : '') + dd.toFixed(1) + '秒' : '') + '"><b>' + L.toFixed(1) + '</b>' +
+          (dd != null && Math.abs(dd) >= 0.5 ? ' <span class="muted" style="font-size:.9em">(' + (dd > 0 ? '+' : '') + dd.toFixed(1) + ')</span>' : '') + '</td>';
+      });
+      h.push('<tr><th>' + d + 'm</th>' + tds.join('') + '</tr>');
+    });
+    h.push('</table></div>');
+  });
+  function sec2(v){ return (v > 0 ? '+' : '') + v.toFixed(2) + '秒'; }
+  h.push('<div style="font-weight:700;margin:8px 0 2px">クラス補正（未勝利を0とした各クラスの差）</div><div class="small">');
+  ['芝', 'ダ'].forEach(function(sf){
+    var ks = TL_LEARN_CLS.filter(function(c){ return (m.cls[sf + '|' + c] || { n: 0 }).n >= TL_LEARN_MIND; });
+    if (!ks.length) return;
+    h.push('<div style="margin:2px 0">' + (sf === '芝' ? '🌱 芝' : '🟤 ダート') + ': ' + ks.map(function(c){
+      var e = m.cls[sf + '|' + c];
+      return '<span class="chip" style="font-size:.7rem">' + esc(c) + ' ' + sec2(e.o) + ' <span class="muted">n=' + e.n + '</span></span>';
+    }).join(' ') + '</div>');
+  });
+  h.push('</div>');
+  var c2k = Object.keys(m.cls2 || {}).filter(function(k){ return m.cls2[k].n >= TL_LEARN_MIND && Math.abs(m.cls2[k].o) >= 0.2; });
+  if (c2k.length){
+    h.push('<div style="font-weight:700;margin:6px 0 2px">距離帯ごとのクラス差の上乗せ（短=〜1400m／中=1500〜2000m／長=2100m〜、差が0.2秒以上だけ表示）</div><div class="small">' +
+      tlLearnChips(m.cls2, TL_LEARN_MIND, function(k, v){
+        var p = k.split('|');
+        return (Math.abs(v.o) < 0.2) ? '' : ((p[0] === '芝' ? '🌱' : '🟤') + ' ' + p[1] + '距離 ' + esc(p[2]) + ' ' + sec2(v.o) + ' <span class="muted">n=' + v.n + '</span>');
+      }) + '</div>');
+  }
+  h.push('<div style="font-weight:700;margin:8px 0 2px">年齢区分の補正（＋＝時計がかかる／−＝速い）</div><div class="small">' +
+    tlLearnChips(m.age, TL_LEARN_MINV, function(k, v){ var p = k.split('|'); return (p[0] === '芝' ? '🌱' : '🟤') + ' ' + esc(p[1]) + ' ' + sec2(v.o) + ' <span class="muted">n=' + v.n + '</span>'; }) + '</div>');
+  h.push('<div style="font-weight:700;margin:8px 0 2px">競馬場補正（＋＝時計がかかる／−＝速い）</div><div class="small">' +
+    tlLearnChips(m.ven, TL_LEARN_MINV, function(k, v){ var p = k.split('|'); return (p[0] === '芝' ? '🌱' : '🟤') + ' ' + esc(p[1]) + ' ' + sec2(v.o) + ' <span class="muted">n=' + v.n + '</span>'; }) + '</div>');
+  h.push('<div style="font-weight:700;margin:8px 0 2px">年補正（コース改修や時計の出方の年差）</div><div class="small">' +
+    tlLearnChips(m.yr, TL_LEARN_MINV, function(k, v){ return k + '年 ' + sec2(v.o) + ' <span class="muted">n=' + v.n + '</span>'; }) + '</div>');
+  /* 馬場補正（学習値 vs 静的値） */
+  var bk = Object.keys(m.baba);
+  if (bk.length){
+    h.push('<div style="font-weight:700;margin:8px 0 2px">馬場補正（良換算するために引く秒数）</div>');
+    h.push('<table class="ktbl" style="font-size:.74rem"><tr><th>面</th><th>馬場</th><th>学習値</th><th>静的テーブル</th><th>差</th><th>件数</th></tr>');
+    bk.sort().forEach(function(k){
+      var p = k.split('|'), e = m.baba[k];
+      var st = tlBabaAdjStatic(p[1], p[0]);
+      h.push('<tr><td>' + (p[0] === '芝' ? '芝' : 'ダート') + '</td><td>' + esc(p[1]) + '</td><td><b>' + sec2(e.o) + '</b></td>' +
+        '<td class="muted">' + sec2(st) + '</td><td>' + sec2(e.o - st) + '</td><td class="muted">' + e.n + '</td></tr>');
+    });
+    h.push('</table>');
+  }
+  if ((m.diffTop || []).length){
+    h.push('<details style="margin-top:6px"><summary class="small">静的テーブルとの差が大きい条件 上位' + m.diffTop.length + '件（＝学習の効果が出るところ）</summary>' +
+      '<table class="ktbl" style="font-size:.72rem;margin-top:4px"><tr><th>面</th><th>距離</th><th>クラス</th><th>学習値</th><th>静的</th><th>差</th></tr>');
+    m.diffTop.forEach(function(d){
+      var p = d.k.split('|');
+      h.push('<tr><td>' + p[0] + '</td><td>' + p[1] + 'm</td><td>' + esc(p[2]) + '</td><td><b>' + d.learn.toFixed(1) + '</b></td>' +
+        '<td class="muted">' + d.stat.toFixed(1) + '</td><td style="color:' + (d.d > 0 ? 'var(--err-ink)' : 'var(--acc)') + '">' + sec2(d.d) + '</td></tr>');
+    });
+    h.push('</table></details>');
+  }
+  tbl.innerHTML = h.join('');
+}
+
+/* ---------- 初期化 ---------- */
+function initTl(){
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (!t || !t.id) return;
+    if (t.id === 'tlScan'){ e.preventDefault(); tlRunScan(); }
+    if (t.id === 'tlLearnBtn'){ e.preventDefault(); tlLearnRun(false); }
+    if (t.id === 'tlLearnClear'){
+      e.preventDefault();
+      tlLearnClear(); tlLearnRender(); tlLearnMsg('🎓 学習した基準時計を消しました（静的テーブル＝パータイム＋クラス補正に戻ります）。', false);
+      try { tlRender(); if (typeof rebuildHorseTable === 'function') rebuildHorseTable(); } catch(e2){}
+    }
+    if (t.id === 'tlClear'){
+      e.preventDefault();
+      var fn = function(){ tlSave(tlBlank()); tlRender(); tlMsg('評価を消去しました。'); try { if (typeof rebuildHorseTable === 'function') rebuildHorseTable(); } catch(e2){} };
+      if (typeof showConfirm === 'function') showConfirm('勝ちタイムの評価（🎯/⚠️バッジ）を消去しますか？\n📒馬ノートに登録済みの短評は残ります。', fn); else fn();
+    }
+  });
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t && t.id === 'tlNote'){
+      var o = tlStore(); o.set.note = !!t.checked; tlSave(o);
+      tlMsg(t.checked ? '短評の自動登録をONにしました（次回「評価」を押したときから）' : '短評の自動登録をOFFにしました');
+    }
+  });
+  tlLearnRender();
+  tlRender();
+}
+
+/* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
 
@@ -21869,13 +22322,11 @@ function goTab(id){
     sim.running = false;
     if (sim.raf) cancelAnimationFrame(sim.raf);
     $('btnRun').disabled = false; $('btnRerun').disabled = false;
-    if (typeof drawSimPreview === 'function') drawSimPreview();
-    if (typeof simSyncOverlay === 'function') simSyncOverlay();
   }
   _curTab = id;
   setNav();
   if (id === 't-kentai'){ renderKentaiFull(); if (typeof rnRefresh === 'function') rnRefresh(); }
-  if (id === 't-sim'){ buildSimPanel(); drawSimPreview(); if (typeof simSyncOverlay === 'function') simSyncOverlay(); }
+  if (id === 't-sim'){ buildSimPanel(); }
   if (id === 't-horse' && typeof hbRefresh === 'function') hbRefresh();
   if (id === 't-input'){ if (typeof hbSyncInputBadges === 'function') hbSyncInputBadges(); if (typeof kaiHistRender === 'function') kaiHistRender(); if (typeof rkRender === 'function') rkRender(); }
   if (id === 't-jravideo' && typeof jvRefresh === 'function') jvRefresh();
@@ -21893,29 +22344,12 @@ function goTab(id){
   }
   window.scrollTo({ top:0, behavior:'smooth' });
 }
-function drawSimPreview(){
-  var cv = $('simCanvas'); if (!cv) return;
-  var ctx0 = (typeof simPrepCss === 'function') ? simPrepCss() : null;
-  if (!ctx0) return;
-  var parts = getParticipants() || [];
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  if (typeof simApplyCourseGeom === 'function') simApplyCourseGeom();
-  var view = (state.simView === 'straight') ? 'straight' : 'side';   // 映像は最終直線のみ
-  if (typeof simDrawFrame !== 'function') return;
-  var view0 = { view: view };
-  // プレビュー: 実走と同じ展開モデルで「4コーナー想定隊列」の瞬間を描く
-  var cols = (typeof simStraightCols === 'function') ? simStraightCols(parts, D) : [];
-  simDrawFrame(ctx0, parts, cols, D, view0, { view: view, lastOnly: true });
-}
 /* ---------- エクスポート/インポート ---------- */
 function doExport(){
   var obj = {
     app:'keiba-lab', ver:1, saved: new Date().toISOString(),
     race: state.race, weights: state.weights, urlRelay: state.urlRelay || '',
-    raceId: state.raceId || '', biasRaces: state.biasRaces || [],
-    simSpeed: String(state.simSpeed == null ? '18' : state.simSpeed),
-    simView: (state.simView === 'straight') ? 'straight' : 'side',
-    simNoVideo: (state.simNoVideo != null) ? !!state.simNoVideo : true,
+    raceId: state.raceId || '', raceAt: state.raceAt || 0, biasRaces: state.biasRaces || [], biasTrash: state.biasTrash || [],
     learn: state.learn || null, paceOverride: (state.paceOverride == null ? null : state.paceOverride),
     biasOverride: state.biasOverride || '',
     horses: state.horses.map(function(h){
@@ -21939,10 +22373,6 @@ function doImport(file){
       if (!o || !Array.isArray(o.horses)) throw new Error('形式が不正です');
       state.race = Object.assign(defaultRace(), o.race || {});
       state.weights = Object.assign(defaultWeights(), o.weights || {});
-      state.simSpeed = (o.simSpeed) ? String(o.simSpeed) : '18';
-      state.simView = (o.simView === 'straight') ? 'straight' : 'side';
-      state.simNoVideo = (o.simNoVideo != null) ? !!o.simNoVideo : true;
-      var nvI = $('simNoVideo'); if (nvI) nvI.checked = state.simNoVideo;
       state.urlRelay = o.urlRelay || '';
       // 2026-09-11: Netlify は廃止（関数を削除）したため、保存済みの Netlify 中継URLは捨てる。
       // 残していると毎回「死んだURL」を先に試して⑥などの取得が遅くなる/失敗する。
@@ -21951,14 +22381,14 @@ function doImport(file){
         state.urlRelay = '';
       }
       state.raceId = o.raceId || '';
+      state.raceAt = parseInt(o.raceAt, 10) || 0;
       state.biasRaces = Array.isArray(o.biasRaces) ? o.biasRaces : [];
+      state.biasTrash = Array.isArray(o.biasTrash) ? o.biasTrash : [];
       state.learn = Object.assign(defaultLearn(), o.learn || {});
       state.paceOverride = (o.paceOverride == null) ? null : o.paceOverride;
       state.biasOverride = (o.biasOverride == null) ? '' : String(o.biasOverride);
       state.horses = o.horses.map(function(p){ return mkHorse(p); });
       var wb = $('weightSliders'); if (wb) wb.dataset.built = '';
-      var ss = $('simSpeed'); if (ss) ss.value = state.simSpeed;
-      var svI = $('simView'); if (svI) svI.value = state.simView;
       var rli = $('urlRelayInp'); if (rli) rli.value = state.urlRelay;
       syncRaceDomFromState(); refreshRaceLine();
       rebuildHorseTable();
@@ -21991,13 +22421,9 @@ function boot(){
       state.horses = [];
       state.race = defaultRace();
       state.weights = defaultWeights();
-      state.simSpeed = '18';
-      state.simView = 'side';
-      var svNew = $('simView'); if (svNew) svNew.value = 'side';
       state.learn = defaultLearn();
       state.paceOverride = null;
       state.biasOverride = '';
-      var ssNew = $('simSpeed'); if (ssNew) ssNew.value = '18';
       syncRaceDomFromState(); refreshRaceLine(); rebuildHorseTable();
       var wb = $('weightSliders'); if (wb) wb.dataset.built = ''; // 次回スライダーを作り直す
       goTab('t-input');
@@ -22023,7 +22449,6 @@ function boot(){
   if (typeof initBias === 'function') safeInit('initBias', initBias);
   safeInit('initAnalysisTab', initAnalysisTab);
   safeInit('initSimTab', initSimTab);
-  safeInit('initSimCanvas', initSimCanvas);
   if (typeof initHist === 'function') safeInit('initHist', initHist);
   if (typeof initStyleAI === 'function') safeInit('initStyleAI', initStyleAI);
   if (typeof initUmasiru === 'function') safeInit('initUmasiru', initUmasiru);
@@ -22045,6 +22470,7 @@ function boot(){
   if (typeof initLive === 'function') safeInit('initLive', initLive);
   if (typeof initGc === 'function') safeInit('initGc', initGc);
   if (typeof initTenki === 'function') safeInit('initTenki', initTenki);
+  if (typeof initTl === 'function') safeInit('initTl', initTl);   // 勝ちタイムのレベル(🎯/⚠️)
   reportInitErrors();
   if (typeof initTheme === 'function') safeInit('initTheme', initTheme);
   if (typeof initNav === 'function') safeInit('initNav', initNav);
@@ -22052,9 +22478,6 @@ function boot(){
   // 保存データ復元
   var loaded = loadFromLS();
   syncRaceDomFromState(); refreshRaceLine(); rebuildHorseTable();
-  var ss0 = $('simSpeed'); if (ss0) ss0.value = state.simSpeed;
-  var sv0 = $('simView'); if (sv0) sv0.value = state.simView;
-  var nv0 = $('simNoVideo'); if (nv0) nv0.checked = (state.simNoVideo != null) ? !!state.simNoVideo : true;
   var rl0 = $('urlRelayInp'); if (rl0) rl0.value = state.urlRelay || '';
   goTab('t-top');
   if (!loaded){
