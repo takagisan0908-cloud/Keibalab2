@@ -16277,9 +16277,46 @@ function drHalf(s){
      ニュージーランドトロフィー→ニュージーランドT / 阪神スプリングジャンプ→阪神スプリングJ
      アメリカジョッキークラブカップ→アメリカジョッキーC / サウジアラビアロイヤルカップ→サウジアラビアRC
    末尾の「競走」(地方競馬の正式名)も外す: 東京大賞典競走 ⇄ 東京大賞典 */
-function drAbbrNorm(s){
+/* netkeiba が使う「2文字以上の略号」→日本語 の対応表（名前の末尾に付く形）。
+   実測で確認したものだけを入れる:
+     京成杯AH   ⇄ 京成杯オータムハンデ(キャップ)   … race一覧/結果ページは「京成杯AH」、DBは「京成杯オータムH」
+     アメリカJCC / AJCC ⇄ アメリカジョッキークラブカップ
+     京王杯SC   ⇄ 京王杯スプリングカップ            アイビスSD ⇄ アイビスサマーダッシュ
+     ダービー卿CT ⇄ ダービー卿チャレンジトロフィー   朝日杯FS ⇄ 朝日杯フューチュリティステークス
+     阪神JF     ⇄ 阪神ジュベナイルフィリーズ        マイルCS ⇄ マイルチャンピオンシップ
+     中山GJ / 京都HJ / 京都JS ⇄ グランド・ハイ・ジャンプ(ステークス)
+     ヴィクトリアM ⇄ ヴィクトリアマイル */
+var DR_ABBR_EXP = [
+  ['AJCC', 'アメリカジョッキークラブカップ'],
+  ['JCC',  'ジョッキークラブカップ'],
+  ['AH',   'オータムハンデ'],
+  ['SC',   'スプリングカップ'],
+  ['SD',   'サマーダッシュ'],
+  ['CT',   'チャレンジトロフィー'],
+  ['FS',   'フューチュリティステークス'],
+  ['JF',   'ジュベナイルフィリーズ'],
+  ['CS',   'チャンピオンシップ'],
+  ['HJ',   'ハイジャンプ'],
+  ['GJ',   'グランドジャンプ'],
+  ['JS',   'ジャンプステークス'],
+  ['M',    'マイル']
+];
+/* 末尾の略号を日本語に展開する（例: 京成杯AH → 京成杯オータムハンデ）。DB検索のキーワード作りにも使う */
+function drExpandAbbr(s){
   var t = drHalf(drCl(s));
+  for (var i = 0; i < DR_ABBR_EXP.length; i++){
+    var a = DR_ABBR_EXP[i][0];
+    // 「AJCC」のように名前まるごとが略号のケースも展開する（1文字略号 'M' 単体は展開しない）
+    var whole = (a.length >= 2 && t === a);
+    if (whole || (t.length > a.length + 1 && t.slice(-a.length) === a)) return t.slice(0, t.length - a.length) + DR_ABBR_EXP[i][1];
+  }
+  return t;
+}
+function drAbbrNorm(s){
+  var t = drExpandAbbr(s);                 // ★先に略号(AH/SC/CT/M…)を日本語へ展開する
   t = t.replace(/競走$/, '');
+  // ★「ハンデキャップ」は「カップ→C」より先に処理する（後だと「オータムHC」になって DB名「オータムH」とズレる）
+  t = t.replace(/ハンデキャップ|ハンデ/g, 'H');
   t = t.replace(/クラブカップ$/, 'C');        // アメリカジョッキークラブカップ
   t = t.replace(/ロイヤルカップ$/, 'RC');     // サウジアラビアロイヤルカップ
   t = t.replace(/カップ/g, 'C').replace(/ステークス/g, 'S');
@@ -16288,7 +16325,6 @@ function drAbbrNorm(s){
   t = t.replace(/トロフィー/g, 'T');
   t = t.replace(/フィリーズ/g, 'F');
   t = t.replace(/ダッシュ/g, 'D');
-  t = t.replace(/ハンデキャップ|ハンデ/g, 'H');
   return t;
 }
 /* 末尾の半角略号1字の有無だけの差を同一視する。
@@ -16328,6 +16364,10 @@ function drRaceEq(a, b){
   var x = drRaceCore(a), y = drRaceCore(b);
   if (!x || !y) return false;
   if (x === y) return true;
+  // まず「冠を外さない形」で略称をそろえて比較する。
+  // 冠を外すと壊れる名前があるため（例: 朝日杯FS → 'FS'）。
+  if (drAbbrNorm(x) === drAbbrNorm(y)) return true;
+  if (drDropTailLetter(x, y)) return true;
   // スポンサー冠だけが違う（外すと完全一致）の場合のみ同一視
   var xa = drStripAggressive(x), ya = drStripAggressive(y);
   if (xa === ya) return true;
@@ -16476,7 +16516,7 @@ function drSearchWords(nm){
   // 半角略号のままだとDB検索が0件になる（word=ジャパンC→0件、word=ジャパンカップ→20件）。
   // そこで略号を展開した語と、略号を落とした前方一致語（例: マイルチャンピオン）も候補にする。
   var EXP = { C: ['カップ', 'シップ'], S: ['ステークス', 'シップ'], D: ['ダッシュ'], H: ['ハンデ'],
-              F: ['フィリーズ'], T: ['トロフィー'], J: ['ジャンプ'] };
+              F: ['フィリーズ'], T: ['トロフィー'], J: ['ジャンプ'], M: ['マイル'] };
   function pushVariants(b){
     b = drHalf(b);
     push(b);
@@ -16487,14 +16527,17 @@ function drSearchWords(nm){
     }
   }
   var core = drRaceCore(drExpandName(nm));   // 短縮名(マイルCS等)は先に正式名へ戻す
+  var exp = drExpandAbbr(core);              // 2文字略号(京成杯AH等)は日本語へ展開（略号形だとDB検索が0件になる）
   // 1) 正式名でまず検索（DB検索は部分一致なので、正式名が一番よく当たる）
-  pushVariants(core);
+  pushVariants(exp);
   // 2) 冠スポンサー名を落とした素の名前（例: 日刊スポーツ賞中山金杯 → 中山金杯、サンスポ杯阪神牝馬S → 阪神牝馬S）
-  var m = String(drHalf(core)).match(/^.{2,14}?(賞|杯)/);
-  if (m && String(drHalf(core)).length > m[0].length + 1) pushVariants(String(drHalf(core)).slice(m[0].length));
-  // 3) 最後の手段として略称形（カップ→C など）と、その冠なし形
-  push(drAbbrNorm(core));
-  if (m && String(drHalf(core)).length > m[0].length + 1) push(drAbbrNorm(String(drHalf(core)).slice(m[0].length)));
+  var m = String(drHalf(exp)).match(/^.{2,14}?(賞|杯)/);
+  var bare = (m && String(drHalf(exp)).length > m[0].length + 1) ? String(drHalf(exp)).slice(m[0].length) : '';
+  if (bare) pushVariants(bare);
+  // 3) 最後の手段として、渡された表記そのものと略称形（カップ→C など）
+  if (exp !== core) push(core);
+  push(drAbbrNorm(exp));
+  if (bare) push(drAbbrNorm(bare));
   return out;
 }
 
@@ -16642,7 +16685,9 @@ function drAliasOf(nm){
   return '';
 }
 function drNameSkeleton(nm){
-  if (typeof rsBase === 'function'){ try { return rsBase(nm); } catch(e){} }
+  // rsBase は「末尾の略号1文字を落とす」方式なので、京成杯AH のような2文字略号を取りこぼす
+  // （'京成杯AH'→'京成杯A' となり、日程表の '京成杯オータムハンデ' と一致しない）。
+  // drAbbrNorm（略号を展開してから統一略号に寄せる）を比較キーにする。
   return drAbbrNorm(drRaceCore(nm));
 }
 function drExpandName(nm, y, venue, mo){
@@ -17519,9 +17564,12 @@ function drRunPick(){
     drMsgSet('レースIDを解決できません。📅カレンダーを読み直してからお試しください。', true);
     return;
   }
-  gcResolveRid(date8, name, function(m){ drMsgSet(m); }).then(function(rid){
+  gcResolveRid(date8, name, function(m){ drMsgSet(m); }, venue).then(function(rid){
     if (!rid){
-      drMsgSet('「' + name + '」のレースIDを特定できませんでした。📅カレンダーのレース名クリック、または①でのレースURL取込をお試しください。', true);
+      // race_id がまだ無い（今年の後半など開催前）→ レース名から過去開催を集計する
+      drSetTarget('', name, { venue: venue, date: date8 });
+      drRenderPick();
+      drRunForName(name, venue, date8, '');
       return;
     }
     drSetTarget(rid, name, { venue: venue, date: date8 });
@@ -17529,22 +17577,70 @@ function drRunPick(){
     drRunForRid(rid, name);
   }).catch(function(e){ drMsgSet(String((e && e.message) || e), true); });
 }
+/* race_id がまだ無いレース（今年の後半など未掲載・開催前）を「レース名」から集計する。
+   過去10年の集計に今年の race_id は不要で、netkeiba DB のレース名検索が過去の同名レースを引く。 */
+function drAnalyzeByName(name, venue, date8, dist, progress){
+  progress = progress || function(){};
+  if (!name) return Promise.reject(new Error('レース名がありません'));
+  var d8 = String(date8 || '');
+  var now = new Date();
+  var inf = {
+    rid: '', name: String(name), venue: String(venue || ''),
+    year: parseInt(d8.slice(0, 4), 10) || now.getFullYear(),
+    month: parseInt(d8.slice(4, 6), 10) || (now.getMonth() + 1),
+    surf: '', dist: parseInt(String(dist == null ? '' : dist).replace(/[^0-9]/g, ''), 10) || 0
+  };
+  // 日程の距離表記（例: '芝1600' / 'ダ1800'）から面も拾う（芝⇄ダの別レースを混ぜないため）
+  var dtext = String(dist == null ? '' : dist);
+  var surf0 = /障/.test(dtext) ? '障' : (/ダ/.test(dtext) ? 'ダ' : (/芝/.test(dtext) ? '芝' : ''));
+  var dist0 = parseInt(dtext.replace(/[^0-9]/g, ''), 10) || 0;
+  inf.surf = surf0; inf.dist = dist0;
+  var out = { name: String(name), rid: '', samples: [], tables: [], errors: [], base: 0 };
+  progress('レース名「' + name + '」の過去開催を netkeiba DB から探しています…（今年のレースIDは未確定のため使いません）');
+  return drAnalyzeFromInf(inf, {}, progress, out).then(function(res){
+    res = res || out;
+    if (!res.name) res.name = String(name);
+    res.byName = true;          // 「レース名から集計した」目印（表示に注記を出す）
+    return res;
+  });
+}
+/* 分析結果の共通の後処理（表示・対象レースの記憶・完了メッセージ） */
+function drFinishRun(res, name, rid, viaName){
+  drRenderAll(res);
+  var nm = (res && res.name) || name || '';
+  var ls = drLs();
+  ls.last = { name: nm, at: Date.now(), count: (res.samples || []).length };
+  drSave(ls);
+  try { DR_LAST = { rid: String(rid || (res && res.rid) || ''), name: nm, at: Date.now() }; } catch(e){}
+  drSetTarget(rid || '', nm);
+  drRenderPick();
+  var all = (res.tables && res.tables.all) || { n: 0 };
+  drMsgSet('✅ 完了: 「' + nm + '」の過去 ' + ((res.racesUsed || []).length || res.yearsUsed || 0) +
+    ' 回・出走延べ ' + all.n + '頭を集計しました。' +
+    (viaName ? '（今年のレースIDがまだ無いため、レース名から過去開催を集計しました）' : ''), false);
+  drStat('最終更新: ' + new Date().toLocaleString('ja-JP') + '　対象: ' + esc(nm || rid));
+}
+/* レース名だけを指定して📊側の分析を実行（rid が無いレース用） */
+function drRunForName(name, venue, date8, dist){
+  var b = $('drBtn'); if (b) b.disabled = true;
+  drMsgSet('このレースはまだ race_id がありません（開催前・netkeiba未掲載）。レース名から過去10年を集計します…');
+  drStat('読み込み中…');
+  drAnalyzeByName(name, venue, date8, dist, function(m){ drMsgSet(m); }).then(function(res){
+    drFinishRun(res, name, '', true);
+  }).catch(function(e){
+    drMsgSet(String((e && e.message) || e), true);
+    drStat('');
+  }).finally(function(){
+    if (b) b.disabled = false;
+  });
+}
 /* rid を指定して📊側の分析を実行（①の state.race は書き換えない） */
 function drRunForRid(rid, name){
   var b = $('drBtn'); if (b) b.disabled = true;
   drMsgSet('分析を開始します…（初回は1〜3分。進行状況が下に出ます）');
   drStat('読み込み中…');
   drAnalyzeRid(rid, {}, function(m){ drMsgSet(m); }).then(function(res){
-    drRenderAll(res);
-    var ls = drLs();
-    ls.last = { name: res.name || name || '', at: Date.now(), count: (res.samples || []).length };
-    drSave(ls);
-    drSetTarget(rid, res.name || name || '');
-    drRenderPick();
-    var all = (res.tables && res.tables.all) || { n: 0 };
-    drMsgSet('✅ 完了: 「' + (res.name || name || '') + '」の過去 ' + ((res.racesUsed || []).length || res.yearsUsed || 0) +
-      ' 回・出走延べ ' + all.n + '頭を集計しました。', false);
-    drStat('最終更新: ' + new Date().toLocaleString('ja-JP') + '　対象: ' + esc(res.name || name || rid));
+    drFinishRun(res, name, rid, false);
   }).catch(function(e){
     drMsgSet(String((e && e.message) || e), true);
     drStat('');
@@ -17572,6 +17668,11 @@ function drRun(force){
   var pick = drPickRid();
   if (!hasRace){
     if (pick){ drRunForRid(pick.rid, drTargetName()); return; }
+    // race_id は無いが名前だけ決まっている（開催前の重賞を📅カレンダーで選んだ等）→ 名前から集計する
+    var nmOnly = drTargetName();
+    var sel0 = {};
+    try { sel0 = (state && state.gradeSel) || {}; } catch(e){}
+    if (nmOnly){ drRunForName(nmOnly, sel0.venue || '', sel0.date || '', ''); return; }
     // どれも無いときは、何をすればよいか具体的に案内する（無反応に見えるのを防ぐ）
     drMsgSet('分析するレースがまだありません。上の📅重賞カレンダーのレース名をクリックするか、' +
       'このカードのプルダウンで重賞を選ぶか、①「データ入力」でレースURLを取り込んでください。', true);
@@ -18383,19 +18484,77 @@ function gcNameCore(s){
   var t = String(s == null ? '' : s)
     .replace(/[（(][^）)]*[）)]/g, '')
     .replace(/^第\s*\d+\s*回/, '')
-    .replace(/競走$/, '')
-    .replace(/ステークス/g, 'S').replace(/カップ/g, 'C')
     .replace(/[\s\u3000・･。、,]/g, '');
+  // 略称の統一は drAbbrNorm に任せる（AH＝オータムハンデ などの2文字略号にも対応）。
+  // 例) カレンダー「京成杯オータムハンデ」 / レース一覧「京成杯AH」 / DB「京成杯オータムH」 → すべて「京成杯オータムH」
+  if (typeof drAbbrNorm === 'function'){
+    try { t = drAbbrNorm(t); } catch(e){}
+  } else {
+    t = t.replace(/競走$/, '').replace(/ステークス/g, 'S').replace(/カップ/g, 'C');
+  }
   return t.toUpperCase();
 }
-/* 日程テーブルには race_id が無いので、日別一覧のレース名から解決する */
-function gcResolveRid(date8, name, progress){
+/* DB検索の行テキストから競馬場名を拾う（'2026-09-05 4中山1 …' → 中山） */
+var GC_VEN_RE = /\d{1,2}(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉|大井|川崎|船橋|浦和|門別|盛岡|水沢|金沢|笠松|名古屋|園田|姫路|高知|佐賀|帯広)\d/;
+function gcVenueOfTxt(txt){
+  var m = String(txt || '').match(GC_VEN_RE);
+  if (m) return m[1];
+  if (typeof gcVenueInTxt === 'function'){ try { return gcVenueInTxt(txt) || ''; } catch(e){} }
+  return '';
+}
+/* netkeiba DB をレース名で検索し、指定日(date8)のレースIDを引く（日別一覧で見つからなかったときの保険）。
+   略号形(京成杯AH)・正式名(京成杯オータムハンデ)の両方で試し、開催場が分かれば一致する行を優先する。 */
+function gcResolveRidDb(date8, name, venue, progress){
+  if (typeof gcDbSearch !== 'function') return Promise.resolve('');
   progress = progress || function(){};
-  var key = date8 + '|' + gcNameCore(name);
+  var d8 = String(date8 || '');
+  var words = [];
+  var pushW = function(w){
+    w = String(w == null ? '' : w).replace(/[（(][^）)]*[）)]/g, '').replace(/[\s\u3000]/g, '');
+    if (w.length >= 2 && words.indexOf(w) < 0) words.push(w);
+  };
+  // 略号(京成杯AH 等)はDB検索で0件になりやすいので、日本語に展開した正式名を「最初に」試す
+  try { if (typeof drExpandAbbr === 'function') pushW(drExpandAbbr(name)); } catch(e){}
+  pushW(name);
+  try { if (typeof drRaceCore === 'function') pushW(drRaceCore(name)); } catch(e){}
+  try { if (typeof drAbbrNorm === 'function') pushW(drAbbrNorm(name)); } catch(e){}
+  progress('レース一覧に同名が見つからないため、netkeiba DB を「' + name + '」で検索しています…');
+  var seq = Promise.resolve('');
+  words.forEach(function(w){
+    seq = seq.then(function(found){
+      if (found) return found;
+      return gcDbSearch(w).then(function(list){
+        var cands = (list || []).filter(function(r){ return String(r.date8) === d8; });
+        if (!cands.length) return '';
+        var pick = null;
+        cands.forEach(function(r){
+          if (pick) return;
+          var v = gcVenueOfTxt(r.txt || '');
+          if (!venue || !v || v === venue) pick = r;
+        });
+        if (!pick) pick = cands[0];
+        return (pick && pick.rid) || '';
+      }).catch(function(){ return ''; });
+    });
+  });
+  return seq;
+}
+/* 日程テーブルには race_id が無いので、日別一覧のレース名から解決する。
+   日別一覧に無い（表記違い・一覧未取得）ときは netkeiba DB のレース名検索にフォールバックする。 */
+function gcResolveRid(date8, name, progress, venue){
+  progress = progress || function(){};
+  var d8 = String(date8 || '');
+  var key = d8 + '|' + gcNameCore(name) + (venue ? '|' + venue : '');
   var ls = gcLs();
   if (ls.ridmap && ls.ridmap[key]) return Promise.resolve(ls.ridmap[key]);
-  progress('レースIDを照合中…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）');
-  return gcDay(date8, true).then(function(rows){
+  var saveRid = function(rid){
+    if (!rid) return '';
+    var l2 = gcLs(); l2.ridmap = l2.ridmap || {}; l2.ridmap[key] = rid; gcSave(l2);
+    return rid;
+  };
+  progress('レースIDを照合中…（' + d8.slice(4, 6) + '/' + d8.slice(6, 8) + ' ' + name + '）');
+  // 一覧取得の失敗（中継が不安定・古い日付で掲載なし）でも DB検索で解決できるように catch する
+  return gcDay(d8, true).catch(function(){ return []; }).then(function(rows){
     var want = gcNameCore(name);
     var hit = null, loose = null;
     (rows || []).forEach(function(r){
@@ -18404,13 +18563,12 @@ function gcResolveRid(date8, name, progress){
       if (!have) return;
       var exact = (have === want) || (have.indexOf(want) >= 0) || (want.indexOf(have) >= 0);
       if (!exact) return;
+      if (venue && r.venue && r.venue !== venue) return;   // 同日・同名の場違いを拾わない
       if (r.grade) hit = r; else if (!loose) loose = r;
     });
     var use = hit || loose;
-    if (!use) return '';
-    ls.ridmap = ls.ridmap || {}; ls.ridmap[key] = use.rid;
-    gcSave(ls);
-    return use.rid;
+    if (use) return saveRid(use.rid);
+    return gcResolveRidDb(d8, name, venue, progress).then(saveRid);
   });
 }
 /* ================= 地方交流 Jpn（db.netkeiba検索・年度ごと） ================= */
@@ -18594,9 +18752,10 @@ function gcRenderMonth(y, m, central, jpn, needDate){
         var done = inFuture ? ' done' : '';
         var cls = (r.grade === 'G1') ? 'g1' : (r.grade === 'G2') ? 'g2' : (r.grade === 'G3') ? 'g3' : 'jpn';
         var tip = r.grade + ' ' + r.name + (r.venue ? '（' + r.venue + '）' : '') + (r.dist ? ' ' + r.dist : '') +
-          (r.rid ? '' : ' ・クリックでレースIDを照合して分析します') + (done ? ' ・開催前のため分析は発走後〜' : '');
+          (r.rid ? '' : ' ・クリックでレースIDを照合して分析します') +
+          (done ? ' ・開催前でもクリックで「過去10年の同名レース」を分析できます（今年の出走馬は発走後に反映）' : '');
         h.push('<button type="button" class="gcr' + done + '" data-gcr="' + esc(key) + '" data-rid="' + esc(r.rid || '') + '"' +
-          ' data-date="' + esc(r.date || '') + '" data-name="' + esc(r.name || '') + '"' +
+          ' data-date="' + esc(r.date || '') + '" data-name="' + esc(r.name || '') + '" data-venue="' + esc(r.venue || '') + '"' +
           ' title="' + esc(tip) + '">' +
           '<span class="gb ' + cls + '">' + esc(r.grade) + '</span><span class="gn">' + esc(r.name) + '</span>' +
           (r.venue ? '<span class="gv">' + esc(r.venue) + '</span>' : '') + '</button>');
@@ -18681,7 +18840,7 @@ function gcReloadYear(){
 }
 
 /* ================= クリックで⑥分析 ================= */
-function gcAnalyzeRid(rid, name){
+function gcAnalyzeRid(rid, name, venue, date8){
   var card = $('gcAnaCard');
   var msg = $('gcAnaMsg'); var chip = $('gcAnaChip');
   if (!card) return;
@@ -18692,42 +18851,90 @@ function gcAnalyzeRid(rid, name){
   var b = $('gcAnaClose');
   // 📊重賞データ分析側の「対象レース」もこのレースに切り替える（①を読み込んでいなくても📊が動くように）
   try {
-    if (typeof drSetTarget === 'function'){ drSetTarget(rid, name || ''); }
+    if (typeof drSetTarget === 'function'){ drSetTarget(rid, name || '', { venue: venue || '', date: date8 || '' }); }
     if (typeof drRenderPick === 'function') drRenderPick();
   } catch(e){}
   drAnalyzeRid(rid, {}, function(m){ if (msg) msg.textContent = m; }).then(function(res){
-    if (msg){
-      var all = (res.tables && res.tables.all) || { n: 0 };
-      var nR = (res.racesUsed || []).length;
-      msg.textContent = '✅ 完了: 「' + (res.name || '') + '」の過去 ' + (nR || res.yearsUsed || 0) + ' 回・' + all.n + ' 頭を集計' +
-        ((res.excluded && res.excluded.length) ? '（名前・開催場が不一致の ' + res.excluded.length + ' 件は除外）' : '') +
-        '。参照したレースは下の「🗂 この分析が参照した過去レース」で確認できます。';
-    }
-    drRenderAll(res, out);
-    // 同じ結果を📊重賞データ分析（過去10年・馬券内の共通点）にも表示（追加通信なし）
-    try { if (typeof drMirror === 'function') drMirror(res, '📅カレンダー'); } catch(e){}
-    try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
+    gcShowAnalyzed(res, (res && res.name) || name, msg, out, card);
   }).catch(function(e){
     if (msg) msg.innerHTML = '<span style="color:var(--err-ink)">⚠ 分析できませんでした: ' + esc((e && e.message) || e) + '</span>';
   });
 }
+/* 分析結果の表示（rid経路・レース名経路の共通処理） */
+function gcShowAnalyzed(res, name, msg, out, card){
+  res = res || {};
+  msg = msg || $('gcAnaMsg'); out = out || $('gcOut'); card = card || $('gcAnaCard');
+  if (msg){
+    var all = (res.tables && res.tables.all) || { n: 0 };
+    var nR = (res.racesUsed || []).length;
+    msg.textContent = '✅ 完了: 「' + (res.name || name || '') + '」の過去 ' + (nR || res.yearsUsed || 0) + ' 回・' + all.n + ' 頭を集計' +
+      ((res.excluded && res.excluded.length) ? '（名前・開催場が不一致の ' + res.excluded.length + ' 件は除外）' : '') +
+      (res.byName ? '　※このレースはまだ race_id が無い（開催前）ため、レース名から過去の同名レースを集計しました' : '') +
+      '。参照したレースは下の「🗂 この分析が参照した過去レース」で確認できます。';
+  }
+  drRenderAll(res, out);
+  // 同じ結果を📊重賞データ分析（過去10年・馬券内の共通点）にも表示（追加通信なし）
+  try { if (typeof drMirror === 'function') drMirror(res, '📅カレンダー'); } catch(e){}
+  try { if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
+}
 /* 日程テーブルの行（日付＋レース名）から rid を解決して⑥分析を実行 */
-function gcAnalyzeByDate(date8, name){
+function gcAnalyzeByDate(date8, name, venue){
   var card = $('gcAnaCard'), msg = $('gcAnaMsg'), chip = $('gcAnaChip'), out = $('gcOut');
   if (card) card.classList.remove('hid');
   if (chip) chip.textContent = name;
   if (out) out.innerHTML = '';
   if (msg) msg.textContent = 'レースIDを照合しています…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）';
-  gcResolveRid(date8, name, function(m2){ if (msg) msg.textContent = m2; }).then(function(rid){
+  gcResolveRid(date8, name, function(m2){ if (msg) msg.textContent = m2; }, venue).then(function(rid){
     if (!rid){
-      if (msg) msg.innerHTML = '<span style="color:var(--err-ink)">⚠ レースIDを特定できませんでした（' + esc(name) +
-        '）。この日のレース一覧に同名のレースが見つかりません。①で出馬表を読み込んでから「📥 この重賞の過去10年を分析」をお試しください。</span>';
+      // race_id がまだ無いレース（今年の後半など開催前・netkeiba未掲載）。
+      // 過去10年の集計に今年の race_id は不要なので、レース名から過去の同名レースを集計する。
+      gcAnalyzeByName(date8, name, venue, function(m3){ if (msg) msg.textContent = m3; },
+        function(res){ gcShowAnalyzed(res, name, msg, out, card); });
       return;
     }
-    gcAnalyzeRid(rid, name);
+    gcAnalyzeRid(rid, name, venue, date8);
   }).catch(function(e){
     if (msg) msg.innerHTML = '<span style="color:var(--err-ink)">⚠ ' + esc((e && e.message) || e) + '</span>';
   });
+}
+/* race_id が無いレースを「レース名」から分析する（開催前の重賞も過去の同名レースで集計できる） */
+function gcAnalyzeByName(date8, name, venue, progress, done){
+  var row = gcFindRow(date8, name);
+  var v = venue || (row && row.venue) || '';
+  var dist = (row && row.dist) || '';
+  try {
+    if (typeof drSetTarget === 'function') drSetTarget('', name, { venue: v, date: String(date8 || '') });
+    if (typeof drRenderPick === 'function') drRenderPick();
+  } catch(e){}
+  if (typeof drAnalyzeByName !== 'function'){
+    var m0 = $('gcAnaMsg');
+    if (m0) m0.innerHTML = '<span style="color:var(--err-ink)">⚠ レース名からの分析が使えません。</span>';
+    return;
+  }
+  drAnalyzeByName(name, v, date8, dist, progress || function(){}).then(function(res){
+    if (done) done(res);
+  }).catch(function(e){
+    var m1 = $('gcAnaMsg');
+    if (m1) m1.innerHTML = '<span style="color:var(--err-ink)">⚠ レース名からも過去の開催を見つけられませんでした（' +
+      esc((e && e.message) || e) + '）。①で出馬表を読み込んでから「📥 この重賞の過去10年を分析」をお試しください。</span>';
+  });
+}
+/* 日程（キャッシュ）からその日・その名前の行を探す（開催場・距離を取るため） */
+function gcFindRow(date8, name){
+  var d8 = String(date8 || ''), want = gcNameCore(name);
+  var ls = gcLs();
+  var pools = [(gcUI && gcUI.rows) || []];
+  var y = d8.slice(0, 4);
+  if (ls.sched && ls.sched[y]) pools.push(ls.sched[y]);
+  for (var i = 0; i < pools.length; i++){
+    var arr = pools[i] || [];
+    for (var k = 0; k < arr.length; k++){
+      var r = arr[k];
+      if (!r || String(r.date || '') !== d8) continue;
+      if (gcNameCore(r.name) === want) return r;
+    }
+  }
+  return null;
 }
 function gcEvent(){
   // 月切替
@@ -18759,13 +18966,14 @@ function gcEvent(){
     var rid = b.getAttribute('data-rid') || '';
     var date8 = b.getAttribute('data-date') || '';
     var name = b.getAttribute('data-name') || '';
-    if (rid){ gcAnalyzeRid(rid, name); return; }
+    var ven = b.getAttribute('data-venue') || '';
+    if (rid){ gcAnalyzeRid(rid, name, ven); return; }
     // 日程テーブルには race_id が無いので、日別レース一覧から名前一致で解決する
     if (!date8 || !name){
       gcSetMsg('このレースの情報が未確定です。日別の出馬表を①で読み込むと確実に分析できます。');
       return;
     }
-    gcAnalyzeByDate(date8, name);
+    gcAnalyzeByDate(date8, name, ven);
   });
   // 閉じる
   var cl = $('gcAnaClose');
