@@ -166,6 +166,12 @@ details.card.fold>summary.foldhead .foldhint{font-size:.72rem;color:var(--mut);f
 details.card.fold[open]>summary.foldhead .foldhint::before{content:"クリックで折りたたむ"}
 details.card.fold:not([open])>summary.foldhead .foldhint::before{content:"クリックで開く"}
 details.card.fold>.foldbody{margin-top:8px}
+/* 折り込んだままでも中身の要点が読めるようにする「要約行」（summary内の2行目） */
+details.card.fold>summary.foldhead .foldpick{flex:1 0 100%;font-weight:600;font-size:.82rem;
+  color:var(--ink);background:var(--card2);border:1px solid var(--line2);border-radius:10px;
+  padding:6px 10px;line-height:1.7;cursor:pointer;margin-top:2px}
+details.card.fold>summary.foldhead .foldpick b{color:var(--ok-ink)}
+details.card.fold>summary.foldhead .foldpick .pickwarn{color:var(--warn-ink);font-weight:700}
 .hbsbox{max-height:58vh;overflow:auto;border:1px solid var(--line);border-radius:11px;
   padding:2px 8px;background:var(--card);-webkit-overflow-scrolling:touch}
 .hbsbox .hbhorse:first-child{margin-top:4px}
@@ -1176,7 +1182,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <th style="min-width:60px">単勝</th>
           <th style="min-width:64px">脚質</th>
           <th style="min-width:52px">印</th>
-          <th style="min-width:76px">出遅れ率%<br><span style="font-weight:400">(0〜999)</span></th>
+          <th style="min-width:76px">出遅れ率%<br><span style="font-weight:400">(0〜100)</span></th>
           <th style="min-width:120px">調教タイム(最後の追い切り等)</th>
           <th style="min-width:96px" title="上段: netkeibaから取得した前走の上3F(上がり3ハロン)。下段入力: 前走タイム(今回と同距離±200m分を自動反映)">上3F / 持ちタイム</th>
           <th></th>
@@ -1184,7 +1190,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <tbody id="horseBody"></tbody>
       </table>
     </div>
-    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」。逃げ・先行型ほど、この数値が高いとAI評価が下がります。<b>この欄は手入力です</b>（netkeiba取得時も自動では書き込みません）。🐎馬情報では、過去レースの位置取りから検出した出遅れ（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定。終盤だけ伸びた後方は除外）を<b>参考表示</b>します。</div>
+    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」で<b>0〜100%</b>（100を超える入力は100に丸めます）。逃げ・先行型ほど、この数値が高いとAI評価が下がります。<b>この欄は手入力です</b>（netkeiba取得時も自動では書き込みません）。🐎馬情報では、過去レースの位置取りから検出した出遅れ（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定。終盤だけ伸びた後方は除外）を<b>参考表示</b>します。</div>
     <button class="btn dashed" id="btnAddHorse" style="margin-top:8px">＋ 馬を1頭追加（上限18頭）</button>
   </div>
 
@@ -1389,7 +1395,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
                 <option value="a">勝負手（馬連・3連複多め）</option>
               </select>
             </label>
-            <span class="small muted">金額を変えると下の配分も自動で変わります。単勝・複勝は実オッズから期待値を計算。馬連・3連複はオッズ未確定のためAI的中率を目安に配分します。</span>
+            <span class="small muted">金額を変えると下の配分も自動で変わります。<b>馬券は100円単位でしか買えないため、配分はすべて100円単位（1点あたり100円の倍数）</b>で出します。単勝・複勝は実オッズから期待値を計算。馬連・3連複はオッズ未確定のためAI的中率を目安に配分します。</span>
           </div>
           <div id="buyBox"></div>
         </div>
@@ -1399,16 +1405,24 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         </div>
       </div>
     </div>
-    <div class="card" id="aihCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-      <div class="cardhead">
-        <h2>🏇 馬柱AI評価（芝・ダ替わりの適正 / 得意コース・距離・馬場）<span class="small muted" style="font-weight:400"> ※出馬表の出力時に自動入力</span></h2>
+    <!-- 2026-09-12 第15弾: 縦長になるので折り込み。折り込んだままでも「今回の狙い目馬」が
+         文章の要約（#aihPick）で読めるように summary 内へ常時表示しています -->
+    <details class="card fold" id="aihCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🏇 馬柱AI評価（芝・ダ替わりの適正 / 得意コース・距離・馬場）<span class="small muted" style="font-weight:400"> ※出馬表の出力時に自動入力</span></h2>
         <span class="chip" id="aihChip">未取得</span>
-        <span class="sp"></span>
+        <span class="sp"></span><span class="foldhint"></span>
+        <div class="foldpick" id="aihPick" title="折り込んだままでも狙い目が分かるように、馬柱AI評価の結果を文章で要約しています（開くと馬ごとの表が出ます）">🎯 <b>狙い目</b>: 出馬表を取り込むと、芝・ダ替わりの適正／得意コース・距離・馬場から今回の狙い目馬をここに文章で要約します。</div>
+      </summary>
+      <div class="foldbody">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px">
         <button type="button" class="btn ghost" id="aihBtn" title="出馬表を出力した時点で自動的に馬柱を取得してAI評価します。このボタンは今すぐ手動で再取得・再表示したいとき用です">🔄 馬柱AI評価を今すぐ再取得（出馬表の出力時に自動入力）</button>
+        <div id="aihMsg" class="small" style="margin:0"></div>
       </div>
-      <div id="aihMsg" class="small" style="margin:2px 0 4px"></div>
       <div id="aihOut" class="small"></div>
-    </div>
+      </div>
+    </details>
 
     <div class="card" id="learnCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
       <div class="cardhead">
@@ -1441,25 +1455,38 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <div id="memoOut"></div>
     </div>
 
-    <div class="card" id="apCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-  <div class="cardhead">
-    <h2>🔁 AI予想の自己学習（3モデル印評価 × 年月ごと学習 → DB保存）</h2>
+    <!-- 2026-09-12 第15弾: 説明が長いのでカードごと折り込み。
+         折り込んだままでも学習状況の要点が読めるように summary 内（#apPick）へ1行表示します -->
+    <details class="card fold" id="apCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+  <summary class="foldhead">
+    <span class="fmark"></span>
+    <h2 style="margin:0">🔁 AI予想の自己学習（3モデル印評価 × 年月ごと学習 → DB保存）</h2>
     <span class="chip" id="apCount">未学習</span>
-    <span class="sp"></span>
+    <span class="sp"></span><span class="foldhint"></span>
+    <div class="foldpick" id="apPick" title="折り込んだままでも学習の状況が分かるように要点を1行で表示しています（開くと月別の回収率・3モデルの成績表が出ます）">📚 まだ自己検証の記録がありません。過去データ（日付指定・年指定の一括取得・結果メモの📥取込）でレースを取り込むと、開催年月ごとに学習が始まります。</div>
+  </summary>
+  <div class="foldbody">
+  <div class="cardhead" style="margin-bottom:6px">
     <label style="display:inline-flex;align-items:center;gap:4px;font-size:.82rem" title="学習した補正をAI印に反映するか">
       <input type="checkbox" id="apUseChk" checked> 反映する
     </label>
     <button type="button" class="btn ghost" id="apReset" style="font-size:.72rem;padding:2px 8px">学習をリセット</button>
     <button type="button" class="btn ghost" id="apRelearn" style="font-size:.72rem;padding:2px 8px;border-color:#1c6e42;color:var(--ok-ink)" title="予想モデル(判定式)を変えたり、過去レースを年指定一括取込・結果メモ📥・横(サイド)取得で追加したあとに押すと、保存済みの過去レースを現在のモデルで評価し直して年月別の学習集計を再構築します。記録を全消去せずに済みます。">🔄 再学習する</button>
+    <span class="sp"></span>
+    <span class="small muted">※ 結果が確定していない月（今日はまだ来ていない月）は表示・学習の対象外です</span>
   </div>
-  <div class="small muted" style="margin-bottom:6px">
+  <details style="margin:0 0 6px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+    <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 自己学習のしくみ・回収率の計算方法の説明を開く／閉じる</summary>
+  <div class="small muted" style="margin:6px 8px 8px">
     過去データ（日付指定・<b>年指定の一括取得</b>・結果メモの📥取込）で<u>1レース取得するたびに</u>、
     そのレースを<b>3つのモデル（印評価）</b>で予想し直して実際の着順・単勝払戻と照合し、<b>開催年月ごとに</b>学習します（「前の月まで」の実績から翌月以降の予想へ反映＝のぞき見なし）。
     <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 本命を<b>約5番人気以下（中穴〜大穴）</b>から選んで配当を狙う ／ 🔰 <b>ハイブリッド</b>: 🎯と💰をλで混合し<b>回収率100%以上</b>を目指して自動調整（モデルごとに印が変わり得ます）。
     <br>　💰 <b>回収率の計算</b>: 各レース<b>1万円</b>を想定資金とし、そのモデルが印を打った5頭(◎○▲☆△)の単勝へ<b>AIの信頼度で配分購入</b>した場合の総払戻 ÷ 1万円 を回収率とします（過去保存データには単勝以外の払戻が無いため、単勝でシミュレーション）。
     <br>　🔄 <b>再学習する</b>: 予想モデル・判定式を変更した後や、<b>過去レースの横(サイド)取得</b>・年指定一括取込・結果メモ📥でレースを追加した後に押すと、<b>保存済みの過去レースを「今のモデル」で評価し直して</b>年月別の集計・学習パラメータを再構築します（従来はモデル変更後に再集計できず、消して取り込み直す必要がありました）。
     <br>学習した集計とパラメータは保存領域（IndexedDB対応ブラウザでは<b>DB「keiba_ap_v1」</b>へ自動保存、非対応時は従来キー）に貯まり、血統ファクター（⑥のオカルト血統）などにも再利用されます。
+    <br>📅 <b>結果が確定していない月は表示しません</b>: 今日はまだ来ていない月（例: 9月なのに10月ぶんの集計がある）は回収率の表から外し、今月ぶんは「今月・結果は確定途中」と印を付けて表示します。未来の月は学習にも使いません。
   </div>
+  </details>
   <div class="small" style="margin-bottom:4px">📶 AI印へ反映するモデル:
     <span id="apModelSet" style="display:inline-flex;gap:4px;flex-wrap:wrap">
       <label style="display:inline-flex;gap:3px;align-items:center;font-size:.82rem;background:var(--card2);padding:1px 6px;border-radius:10px"><input type="radio" name="apModel" value="hit">🎯 的中率重視</label>
@@ -1469,7 +1496,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   </div>
   <div id="apRelearnMsg" class="small" style="margin:4px 0"></div>
   <div id="apOut" class="small" style="margin-top:6px"></div>
-</div>
+  </div>
+    </details>
 <div class="card" id="rnCard">
       <div class="cardhead">
         <h2>🖋 レース結果メモ（レース後の内容を保存 → 次走で自動表示）</h2>
@@ -1530,7 +1558,10 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <button type="button" class="btn primary" id="tlLearnBtn" title="学習DB（このカードで取り込んだ全レース）と馬柱キャッシュから基準時計を学び直します">🎓 学習DBから基準時計を学習し直す</button>
         <button type="button" class="btn ghost" id="tlLearnClear" title="学習した基準時計を消して、もとの静的テーブル（パータイム＋クラス補正）に戻します">学習値を消す</button>
       </div>
-      <p class="small muted" style="margin:6px 0 0">
+      <!-- 2026-09-12 第15弾: 補正・上乗せの仕組みの説明は長いので折り込み -->
+      <details style="margin:6px 0 0;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+        <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 タイム換算の学習のしかた（基準時計・各種<b>補正</b>と距離帯の<b>上乗せ</b>の説明）を開く／閉じる</summary>
+        <p class="small muted" style="margin:6px 8px 8px">
         取り込んだ<b>JRA全レースの勝ち時計</b>（と①で取得した<b>馬柱</b>の勝ち時計）から、
         <b>「距離 × クラス × 競馬場 × 年 × 馬場」の基準時計そのもの</b>を学習します。
         学習すると②の<b>⏱前走タイムのレベル</b>（早い🎯/遅い⚠️）の判定基準が自動的に切り替わり、
@@ -1538,8 +1569,15 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         馬柱だけでは母集団が薄くなりがちです（例: 未勝利クラスの馬は1着が少ない）。
         <b>年を1つ取り込むだけで約3,600レースの勝ち時計</b>が基準に使えるようになります。
         学習は<b>中央値</b>で外れ値（新馬戦・少頭数・極端な馬場）に引っ張られないようにし、
-        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。
-      </p>
+        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。<br>
+        <b>【学習している補正の内訳】</b>①<b>距離の基準時計</b>（面×距離）②<b>クラス補正</b>（未勝利を0とした各クラスの差）
+        ③<b>距離帯ごとのクラス差の上乗せ</b>（短=〜1400m／中=1500〜2000m／長=2100m〜。距離が伸びるほどクラス差も広がるため、②に<b>上乗せ</b>します）
+        ④<b>年齢区分の補正</b>（2歳・3歳は時計がかかります）⑤<b>競馬場補正</b>（コースごとの時計の出方）
+        ⑥<b>年補正</b>（コース改修や馬場の年差）⑦<b>馬場補正</b>（良へ換算するために引く秒数）⑧<b>距離×クラスの個別補正</b>（件数がある組合せだけ）。
+        <b>件数が足りないグループ（n&lt;しきい値）は補正をかけずに捨てる</b>ので、珍しい条件の外れ値が競馬場補正や年補正を壊しません。
+        🚧 <b>障害は平地（芝・ダート）とは別枠</b>で学習し、障害の基準には障害の学習値だけを使います。
+        </p>
+      </details>
       <div id="tlLearnMsg" class="small" style="margin-top:6px"></div>
       <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
       <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
@@ -2159,6 +2197,26 @@ function cleanInt(v){ var n = parseInt(v,10); return isNaN(n) ? '' : String(n); 
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function todayStr(){ var d = new Date(); return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日'; }
 
+/* ---------- 出遅れ率（％）は 0〜100 の範囲で扱う ----------
+   2026-09-12 第15弾: 以前は入力欄が「0〜999」で、999 のような値もそのまま
+   AI予想のファクター（勝率ペナルティ）へ渡っていました。出遅れ率は「割合」なので
+   取り得る値は 0〜100% です。ここで一括して 0〜100 に丸めます。
+   - slowPctOf(v) : 数値(0〜100)で返す。空・不正値は 0
+   - slowValTxt(v): 入力欄・保存用の文字列で返す（空は空のまま＝未入力） */
+function slowPctOf(v){
+  if (v == null) return 0;
+  var x = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+  if (!isFinite(x) || x <= 0) return 0;
+  return x > 100 ? 100 : x;
+}
+function slowValTxt(v){
+  var s = String(v == null ? '' : v).replace(/[^0-9.]/g, '').trim();
+  if (!s) return '';
+  var x = slowPctOf(s);
+  var r = Math.round(x * 10) / 10;                 // 小数第1位まで（12.5% など）
+  return String(r);
+}
+
 /* ---------- 枠色（競馬新聞・JRA と同じ配色） ----------
    1枠=白 / 2枠=黒 / 3枠=赤 / 4枠=青 / 5枠=黄 / 6枠=緑 / 7枠=橙 / 8枠=ピンク
    FRAME_COLORS[1..8] を枠番で引く（[0] はダミー。以前は色が1つずれていた）。 */
@@ -2339,9 +2397,13 @@ function loadFromLS(){
       state.weights = Object.assign(defaultWeights(), o.weights || {});
       state.learn = Object.assign(defaultLearn(), o.learn || {});
       if (o.paceOverride == null) state.paceOverride = null;
-      // 古い保存データの馬に新項目(slow等)を補う
+      // 古い保存データの馬に新項目(slow等)を補う＋出遅れ率を0〜100%へ丸め直す
       state.horses = state.horses.map(function(h){
         if (h && h.slow == null) h = Object.assign({}, h, { slow: '', last3f: '', last3raw: '', prevD: '' });
+        if (h && h.slow != null){
+          var st = slowValTxt(h.slow);
+          if (st !== String(h.slow)) h = Object.assign({}, h, { slow: st });
+        }
         return h;
       });
       return true;
@@ -2360,7 +2422,7 @@ function mkHorse(p){
     sexAge: p.sexAge || '', weight: p.weight || '', jockey: p.jockey || '',
     odds: p.odds || '', style: p.style || '', mark: p.mark || '',
     yobi: p.yobi || '', time: p.time || '', nk: p.nk || '',
-    slow: p.slow != null ? String(p.slow) : '', last3f: p.last3f || '', last3raw: p.last3raw || '',
+    slow: (p.slow != null ? slowValTxt(p.slow) : ''), last3f: p.last3f || '', last3raw: p.last3raw || '',
     prevD: p.prevD || '',
     ped: Array.isArray(p.ped) ? p.ped.slice() : []
   };
@@ -2942,7 +3004,8 @@ function analyzeRace(){
     var out = v * m;
     // 出遅れ率は「脚質によらず共通の勝率ペナルティ」。先行型だけ過大に効かせると
     // 実データ(差し・追込にも出遅れはある)とずれるため、率を線形ではなく逓減させて掛ける
-    var slow = clamp((num(h.slow) || 0) / 100, 0, 0.95);
+    // ※ 出遅れ率は 0〜100% の範囲で扱う（#2026-09-12 第15弾・slowPctOfで0〜100に丸める）
+    var slow = slowPctOf(h.slow) / 100;
     if (slow > 0.02){
       var mul2 = Math.max(0.55, 1 - Math.pow(slow * 100 - 2, 0.75) / 60);
       out *= mul2;
@@ -3000,7 +3063,7 @@ function analyzeRace(){
     var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑥でON)の僅かな加点（オカルト反映）
     // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
-    var slw = clamp((_num(h.slow) || 0) / 100, 0, 0.95);
+    var slw = slowPctOf(h.slow) / 100;
     if (slw > 0.02) u *= Math.max(0.6, 1 - Math.pow(slw * 100 - 2, 0.8) / 55);
     return u;
   });
@@ -3071,8 +3134,8 @@ function analyzeRace(){
       t.push((yoInfo && yoInfo.ctx && yoInfo.ctx.isYoso ? '洋芝適性上位' : 'コース適性上位') +
         (r.yosoHit.tier <= 2 ? '（同コース種別 ' + yoFmt(r.yosoHit.sec) + '）' : ''));
     }
-    var slowP = num(h.slow);
-    if (slowP != null && slowP >= 10) t.push('出遅れ率' + slowP + '%');
+    var slowP = slowPctOf(h.slow);
+    if (slowP >= 10) t.push('出遅れ率' + slowP + '%');
     var sc = styleClass(h.style);
     if (sc){
       if (pace.score < 0.45 && (sc==='E'||sc==='S')) t.push('スローなら' + styleLabel(h.style) + 'が展開利');
@@ -3209,9 +3272,9 @@ function buildHorseRowHTML(h, i){
     '<td><select data-f="style" title="脚質">' + selopts(STYLE_OPTS, h.style, '不明') + '</select></td>' +
     '<td><select data-f="mark" title="あなたの印(参考材料)">' + selopts(MARK_OPTS, h.mark, '−') + '</select></td>' +
     '<td><span style="display:inline-flex;gap:2px;align-items:center">' +
-      '<input data-f="slow" inputmode="numeric" class="sm" maxlength="3" value="' + v(h.slow) + '" placeholder="10" title="出遅れ率(％)。' +
+      '<input data-f="slow" inputmode="numeric" class="sm" maxlength="3" value="' + v(h.slow) + '" placeholder="10" title="出遅れ率(％・0〜100)。' +
         ((h.slowSrc && h.slowAll) ? ('netkeiba過去' + h.slowAll + '走から自動計算（明示' + (h.slowN||0) + '回・推定' + (h.slowI||0) + '回）。') : '') +
-        '手入力も可。数字が大きい馬は逃げ・先行型ほど評価が下がります">' +
+        '手入力も可。100を超える値は100に丸めます（出遅れ率は割合なので0〜100%です）。数字が大きい馬は逃げ・先行型ほど評価が下がります">' +
       (h.slowSrc && !h.slowTouched && h.slowAll ? '<span class="chip" style="padding:0 3px;font-size:9px;line-height:14px;color:var(--warn-ink);background:var(--card2);border:1px solid var(--line2)" title="出遅れ率を netkeiba の過去レースから自動計算しました（編集すると手動設定になります）">⚡自動</span>' : '') +
       '</span></td>' +
     '<td><input data-f="yobi" value="' + v(h.yobi) + '" style="min-width:148px" placeholder="6F 83.5-5F 69.1-3F 38.9" title="最終追い切り等の調教ラップ"></td>' +
@@ -3354,7 +3417,17 @@ function initInputTab(){
     if (!h || !f) return;
     h[f] = el.value;
     if (f === 'time' && !el.value.trim()) h.prevD = '';  // 手入力でクリアしたら前走距離メモも消す
-    if (f === 'slow'){ h.slowTouched = true; h.slowSrc = ''; }  // 出遅れ率は手入力優先(以後の自動上書きをやめる)
+    if (f === 'slow'){
+      // 出遅れ率は 0〜100% の範囲（#2026-09-12 第15弾・旧「0〜999」を廃止）。
+      // 入力中は「数字と . 以外を落とす／100を超えたら100に丸める」だけにして、
+      // 「12.」のように打っている途中の文字は消さない（保存値は必ず0〜100に正規化）。
+      var raw = String(el.value).replace(/[^0-9.]/g, '');
+      if (raw !== String(el.value)) el.value = raw;
+      var xp = parseFloat(raw);
+      if (isFinite(xp) && xp > 100) el.value = '100';
+      h.slow = slowValTxt(el.value);
+      h.slowTouched = true; h.slowSrc = '';               // 出遅れ率は手入力優先(以後の自動上書きをやめる)
+    }
     if (f === 'frame'){
       var dot = tr.querySelector('.fc');
       if (dot) dot.style.background = frameColor(el.value);      // 枠色ドット
@@ -3365,7 +3438,18 @@ function initInputTab(){
     }
     saveNow();
   });
-  on(tb, 'change', function(e){ countAndSave(); updateGridHints(); });
+  on(tb, 'change', function(e){
+    // 出遅れ率はフォーカスが外れたときに 0〜100% の表示へ確定させる
+    var el2 = e.target;
+    if (el2 && el2.tagName === 'INPUT' && el2.dataset && el2.dataset.f === 'slow'){
+      var tr2 = el2.closest && el2.closest('tr');
+      var h2 = tr2 ? findHorseByUid(tr2.dataset.uid) : null;
+      var sv2 = slowValTxt(el2.value);
+      if (sv2 !== String(el2.value)) el2.value = sv2;
+      if (h2){ h2.slow = sv2; h2.slowTouched = true; h2.slowSrc = ''; }
+    }
+    countAndSave(); updateGridHints();
+  });
 
   on(tb, 'click', function(e){
     var btn = e.target.closest('.rowdel');
@@ -3640,7 +3724,7 @@ function renderTables(res){
   var nY = state.horses.filter(function(h){ return evaluateLapStr(h.yobi).per != null; }).length;
   var nT = state.horses.filter(function(h){ return evaluateTimeStr(h.time) != null; }).length;
   var nS = state.horses.filter(function(h){ return styleClass(h.style); }).length;
-  var nSl = state.horses.filter(function(h){ return (num(h.slow) || 0) > 0; }).length;
+  var nSl = state.horses.filter(function(h){ return slowPctOf(h.slow) > 0; }).length;
   var note = '入力状況: オッズ ' + nO + '頭 / 調教 ' + nY + '頭 / 持ちタイム ' + nT + '頭 / 脚質 ' + nS + '頭' + (nSl ? ' / 出遅れ率 ' + nSl + '頭' : '');
   var wN = $('wNote');
   if (wN) wN.innerHTML = '<div class="small muted">' + note + '</div>';
@@ -3717,32 +3801,68 @@ function renderTables(res){
   if (mx){ if (typeof apModelMarksHTML === 'function'){ try { mx.innerHTML = apModelMarksHTML(); } catch(e){} } }
 }
 
-/* 買い目シート: 予算を指定すると券種ごとの金額を自動配分して返す */
+/* 買い目シート: 予算を指定すると券種ごとの金額を自動配分して返す
+   2026-09-12 第15弾: 馬券は【100円単位】でしか買えないので、
+   券種ごとの金額も「1点あたり100円の倍数」になるように割り当てます。
+   （旧版は 400円÷3点＝133円 / 600円÷4点＝150円 のような10円単位の金額を出していました） */
 function betSheetHTML(res){
   var rows = (res && res.rows) || [];
   if (rows.length < 2) return '<p class="muted small">馬を2頭以上登録すると買い目を提案します</p>';
-  var money = 2000;
-  try { var iv = parseInt($('buyMoney') && $('buyMoney').value, 10); if (iv && iv >= 100 && iv <= 1000000) money = iv; } catch(e){}
+  var moneyIn = 2000;
+  try { var iv = parseInt($('buyMoney') && $('buyMoney').value, 10); if (iv && iv > 0 && iv <= 1000000) moneyIn = iv; } catch(e){}
   var mode = 'b';
   try { mode = ($('buyMode') && $('buyMode').value) || 'b'; } catch(e){}
   var frac = { k: [0.18, 0.36, 0.26, 0.20], b: [0.13, 0.23, 0.34, 0.30], a: [0.07, 0.15, 0.34, 0.44] }[mode] || [0.13, 0.23, 0.34, 0.30];
-  function yen(f){ var v = Math.round(money * f); return v - (v % 100); }
-  var aS = yen(frac[0]), aP = yen(frac[1]), aU = yen(frac[2]), aT = yen(frac[3]);
-  var left = money - (aS + aP + aU + aT);
-  if (left >= 100) aS += left;
-  var t1 = rows[0], t2 = rows[1], t3 = rows[2];
+
+  var t1 = rows[0];
   var o1 = num(t1.h.odds), p1 = t1.prob;
   var names = {};
   rows.forEach(function(r){ names[r.h.no] = r.h.name || ''; });
   var opps = rows.slice(1, 5).map(function(r){ return r.h.no; });
   var top3no = rows.slice(0, 3).map(function(r){ return r.h.no; });
+  var nP = Math.min(3, top3no.length);            // 複勝の点数
+  var nU = opps.length;                           // 馬連(軸流し)の点数
+  var nT = (top3no.length >= 3) ? 1 : 0;          // 3連複Boxは3頭いないと成立しない
+
+  /* --- 予算を「100円玉」の枚数で扱う --- */
+  var U = Math.floor(moneyIn / 100);
+  var money = U * 100;
+  if (U < 1) return '<p class="muted small">予算は100円以上（100円単位）で指定してください。馬券は100円単位でしか購入できません。</p>';
+  // 1) 券種ごとに100円玉を配る（最大剰余法で端数も配り切る）
+  var want = frac.map(function(f){ return U * f; });
+  var u = want.map(function(v){ return Math.floor(v); });
+  var rest = U - u.reduce(function(a, b){ return a + b; }, 0);
+  if (rest > 0){
+    want.map(function(v, i){ return { i: i, f: v - Math.floor(v) }; })
+      .sort(function(a, b){ return (b.f - a.f) || (a.i - b.i); })
+      .slice(0, rest)
+      .forEach(function(o){ u[o.i]++; });
+  }
+  // 2) 点数で割り切れない券種は「1点100円の倍数」へ切り下げる（余りは単勝＝1点へ回す）
+  if (nP > 0){ var pu = Math.floor(u[1] / nP); u[1] = pu * nP; } else { u[1] = 0; }
+  if (nU > 0){ var mu = Math.floor(u[2] / nU); u[2] = mu * nU; } else { u[2] = 0; }
+  if (!nT) u[3] = 0;
+  u[0] += U - (u[0] + u[1] + u[2] + u[3]);
+  var aS = u[0] * 100, aP = u[1] * 100, aU = u[2] * 100, aT = u[3] * 100;
+
   var ev1 = (o1 && o1 > 1 && p1 != null) ? (o1 * p1) : null;
   var out = [];
-  out.push('<div class="buyline"><span class="bett">単勝</span><span class="set">' + esc(t1.h.no + ' ' + (names[t1.h.no] || '')) + '</span><span class="pay">' + (t1.h.odds ? esc(t1.h.odds) + '倍' : 'オッズ未入力') + '</span><span class="amt">' + aS + '円</span></div>');
-  out.push('<div class="buyline"><span class="bett">複勝</span><span class="set">' + top3no.join('・') + '</span><span class="pay">3点×' + Math.floor(aP / 3) + '円 の抑え</span><span class="amt">' + aP + '円</span></div>');
-  out.push('<div class="buyline"><span class="bett">馬連(軸)</span><span class="set">' + esc(t1.h.no) + '−' + opps.join('・') + '</span><span class="pay">' + opps.length + '点×' + Math.floor(aU / opps.length) + '円 の流し</span><span class="amt">' + aU + '円</span></div>');
-  out.push('<div class="buyline"><span class="bett">3連複Box</span><span class="set">' + top3no.join('・') + '</span><span class="pay">AI上位3頭の1点</span><span class="amt">' + aT + '円</span></div>');
-  out.push('<div class="small" style="margin-top:5px">合計 <b>' + (aS + aP + aU + aT) + '円</b> ／ 予算 ' + money + '円 の自動配分。' +
+  function line(kind, set, pay, amt){
+    if (!(amt > 0)) return;
+    out.push('<div class="buyline"><span class="bett">' + kind + '</span><span class="set">' + set +
+      '</span><span class="pay">' + pay + '</span><span class="amt">' + amt + '円</span></div>');
+  }
+  line('単勝', esc(t1.h.no + ' ' + (names[t1.h.no] || '')),
+    (t1.h.odds ? esc(t1.h.odds) + '倍・' : 'オッズ未入力・') + '1点×' + aS + '円', aS);
+  line('複勝', esc(top3no.slice(0, nP).join('・')),
+    nP + '点×' + (aP / nP) + '円 の抑え', aP);
+  line('馬連(軸)', esc(t1.h.no) + '−' + esc(opps.join('・')),
+    nU + '点×' + (aU / nU) + '円 の流し', aU);
+  line('3連複Box', esc(top3no.join('・')), 'AI上位3頭の1点×' + aT + '円', aT);
+  out.push('<div class="small" style="margin-top:5px">合計 <b>' + (aS + aP + aU + aT) + '円</b> ／ 予算 ' + moneyIn + '円' +
+    (money !== moneyIn ? '（<b>100円単位に切り下げて ' + money + '円</b>）' : '') + ' の自動配分。' +
+    '<b>すべて100円単位</b>（1点あたり100円の倍数）なので、そのまま馬券を買えます。' +
+    '点数で割り切れない端数は単勝にまとめました' + (!nT ? '（3頭未満のため3連複は外しました）' : '') + '。' +
     (ev1 != null ? '◎単勝の回収率期待は <b>' + Math.round(ev1 * 100) + '%</b>（AI勝率' + pct(p1) + '%×オッズ' + (o1 ? o1 : '') + '倍）。' : '') +
     '単勝・複勝は実オッズで判断できますが、馬連・3連複は払戻オッズが発走前は未確定のため「的中重視」の目安配分です。あくまで参考で、購入は自己責任でお願いします。</div>');
   return out.join('');
@@ -3987,7 +4107,7 @@ function simPlanU(pl, real){
 /* 出遅れ率(slow%)から「この1走でスタートに出遅れるか」を抽選。
    不利になったら実力(勝率)を下げて着順へ反映(0.5〜1.0倍)。不利なし=1 */
 function simSlowRate(p){
-  var sl = parseFloat(String((p && p.slow) || '0').replace(/[^0-9.]/g, ''));
+  var sl = slowPctOf(p && p.slow);        // 出遅れ率は0〜100%（#2026-09-12 第15弾）
   if (!(sl >= 6)) return 1;
   return (Math.random() * 100 < Math.min(90, sl)) ? (0.5 + Math.random() * 0.5) : 1;
 }
@@ -4425,7 +4545,7 @@ function simAggRender(){
   });
   var html = rows.map(function(h){
     var r1 = h.w / h.runs, r2 = h.t2 / h.runs, r3 = h.t3 / h.runs, avg = h.sum / h.runs;
-    var slow = parseFloat(String(h.slow || '0').replace(/[^0-9.]/g, '')) || 0;
+    var slow = slowPctOf(h.slow);
     var sv = (h.sv && (h.sv.bad || (h.sv.sd != null && h.sv.sd >= 0.22))) ? h.sv : null;
     return '<tr' + (r1 >= 0.2 ? ' class="leadcol"' : '') + '>' +
       '<td>' + esc(h.no) + '</td><td style="text-align:left;font-weight:700">' + esc(h.name) + '</td>' +
@@ -4480,7 +4600,7 @@ function simSetHint(){
   var n = parts ? parts.length : 0;
   var slowN = 0;
   if (parts) parts.forEach(function(p){
-    var sl = parseFloat(String(p.slow || '0').replace(/[^0-9.]/g, '')) || 0;
+    var sl = slowPctOf(p.slow);
     if (sl >= 6) slowN++;
   });
   el.innerHTML = '💡 出走馬 <b>' + n + '</b>頭を、AI印の勝率（全馬の和=100%）を実力差として1走ずつ再現します。' +
@@ -4823,7 +4943,8 @@ function applyNkHorses(list, logLines){
     var h = mkHorse({
       frame: p.frame, no: p.no, name: p.name, sexAge: p.sexAge, weight: p.weight, jockey: p.jockey,
       odds: old && old.odds ? old.odds : '', style: old ? (old.style||'') : '', mark: old ? (old.mark||'') : '',
-      slow: old ? (old.slow||'') : '', last3f: old ? (old.last3f||'') : '', last3raw: old ? (old.last3raw||'') : '', prevD: old ? (old.prevD||'') : '',
+      slow: slowValTxt(old ? (old.slow||'') : ''),   // 出遅れ率は0〜100%（#2026-09-12 第15弾）
+      last3f: old ? (old.last3f||'') : '', last3raw: old ? (old.last3raw||'') : '', prevD: old ? (old.prevD||'') : '',
       yobi: old ? (old.yobi||'') : '', time: old ? (old.time||'') : '', nk: p.nk || (old && old.nk) || '',
       ped: (old && Array.isArray(old.ped)) ? old.ped.slice() : ((Array.isArray(p.ped) ? p.ped.slice() : []))
     });
@@ -11480,9 +11601,30 @@ function apCurYm(){
   try { mm = apMetaCur(); } catch(e){ mm = { date8: '' }; }
   var ym = apYmSurf(mm.date8, state && state.raceId || '', mm.surface, mm.name);
   if (ym) return ym;
+  return apNowYm();
+}
+/* 今日の年月(yyyymm)。レースの開催日ではなく「実際のカレンダー」で見る。 */
+function apNowYm(){
   var d = new Date();
   return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2);
 }
+/* バケットの年月部分（'#障' の区分を除いた6桁） */
+function apYmNum(ym){
+  var s = String(ym || '').replace(/#.*$/, '');
+  return /^\d{6}$/.test(s) ? s : '';
+}
+/* 結果が確定している月かどうか。
+   - future : 今日はまだ来ていない月（例: 9月なのに10月ぶんがある）＝結果が確定していない
+   - cur    : 今月（開催途中＝結果が確定していない）
+   - past   : 先月以前（結果確定）
+   2026-09-12 第15弾: 月別の回収率表に「結果が確定していない月」を出さないための判定。 */
+function apYmState(ym){
+  var s = apYmNum(ym);
+  if (!s) return 'past';
+  var now = apNowYm();
+  return (s > now) ? 'future' : (s === now ? 'cur' : 'past');
+}
+function apYmIsFinal(ym){ return apYmState(ym) === 'past'; }
 
 /* ================= IndexedDB ラッパー(p32と同方式) ================= */
 function apIdbAvail(){
@@ -11817,12 +11959,18 @@ function apEV(feats){
 /* 出遅れ率(slow %)を「勝率ペナルティ」へ換算。
    出遅れはどの脚質でもスタート後の不利で、勝率・複勝率を下げる(先行型だけの話ではない)。
    - 率3%未満: ほぼ無視(実際のばらつき)
-   - 率3%以上: 1 - (率-3%)^0.7 × 0.85 を勝率倍率に(10%で約0.88、25%で約0.72)
-   - オッズ不明馬・未入力(0%)はそのまま */
+   - 率3%以上: 1 - ((率-3)/100)^0.7 × 0.85 を勝率倍率に(10%で約0.87、25%で約0.71、50%で約0.55)
+   - オッズ不明馬・未入力(0%)はそのまま
+   ※ 出遅れ率は「割合」なので 0〜100% の範囲で扱う（#2026-09-12 第15弾・旧0〜999を廃止）。
+     slowPctOf() で 100% 超を 100% に丸めてから評価するため、999 のような値が
+     過大なペナルティ（＝ファクターの下限0.45への張り付き）を起こしません。
+   ※ 第15弾で式も修正: 以前は Math.pow(x - 3, 0.7) だったため「率を小数(0〜1)で渡した式」に
+     なっていて、出遅れ率3.6%以上がすべて下限0.45へ張り付いていました（0〜100%の
+     扱いになっていなかった）。率を 0〜1 に直してから累乗します。 */
 function apSlowWinMul(slowPct){
-  var x = parseFloat(String(slowPct == null ? '' : slowPct).replace(/[^0-9.]/g, '')) || 0;
+  var x = slowPctOf(slowPct);
   if (x < 3) return 1;
-  return Math.max(0.45, 1 - Math.pow(x - 3, 0.7) * 0.85);
+  return Math.max(0.45, 1 - Math.pow((x - 3) / 100, 0.7) * 0.85);
 }
 /* S → 各馬のモデルU。mode: 'hit'|'roi'|'hyb'
    3モデルの「考え方」は意図的に異なるスコア式にする:
@@ -12049,7 +12197,9 @@ function apTrans(b, S){
 function apParamsFor(ym){
   var S = { hitTm: 1, roiRho: 1, hybLam: 0.55, totalR: 0, src: [], lastYm: '' };
   /* 第14弾: 障害の予想には障害の学習だけを、平地の予想には平地の学習だけを時系列で適用する */
-  var yms = apYms().filter(function(y){ return apYmIsSho(y) === apYmIsSho(ym) && y < ym; }).sort();
+  var yms = apYms().filter(function(y){
+    return apYmIsSho(y) === apYmIsSho(ym) && y < ym && apYmState(y) !== 'future';   // 結果が確定していない未来月は学習に使わない
+  }).sort();
   yms.forEach(function(y){
     var b = apMB(y); if (!b) return;
     apTrans(b, S);
@@ -12397,12 +12547,15 @@ function apMonthTableHTML(ym, label){
   return h.join('');
 }
 function apStatsHTML(){
-  var yms = apYms().sort();
+  var ymsAll0 = apYms().sort();
+  // 第15弾: 結果が確定していない「未来の月」は集計・表示・学習のどれも対象外にする
+  var ymsFuture0 = ymsAll0.filter(function(y){ return apYmState(y) === 'future'; });
+  var yms = ymsAll0.filter(function(y){ return apYmState(y) !== 'future'; });
   var totalR = 0;
   yms.forEach(function(y){ var b = apMB(y); if (b) totalR += (b.c.hit.n || 0); });
   var mir = apMirrorRaw();
   var n = (mir && mir.races) || totalR || 0;
-  if (!n && !totalR){
+  if (!n && !totalR && !ymsFuture0.length){
     return '<div class="small muted">まだ自己検証の記録がありません。過去データ（日付指定・「年指定の一括取得」で年月ごとに取込）でレースを取込むと、そのレースを<b>3つのモデル（🎯的中率重視 / 💰回収率重視 / 🔰ハイブリッド）</b>それぞれで予想し直し、実際の着順・払戻（単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単を保存）と照合して<b>開催年月ごとに</b>学習します（結果メモの📥取込でも同様）。学習は保存領域（IndexedDB大容量モードではDB内）に蓄積され、翌月以降の予想へ自動反映されます。</div>';
   }
   var h = [];
@@ -12422,14 +12575,21 @@ function apStatsHTML(){
   }
   // 現在レースの3モデル印は「各予想モデルの印」カード(modelBox)の表で表示
   // 月履歴テーブル
-  var ymsR = yms.slice().reverse();
+  // 2026-09-12 第15弾: 「結果が確定していない月」は回収率の表へ出さない。
+  //   - 今日はまだ来ていない月（例: 9月なのに 202610 の集計がある）＝未来月 → 表示しない
+  //   - 今月（開催中）＝結果が確定途中 → 表示するが「今月・結果は確定途中」の印を付ける
+  var ymsAll = ymsAll0.slice().reverse();
+  var ymsFuture = ymsAll.filter(function(y){ return apYmState(y) === 'future'; });
+  var ymsR = ymsAll.filter(function(y){ return apYmState(y) !== 'future'; });
   if (ymsR.length){
     h.push('<table class="lr-tbl" style="margin-top:6px"><thead><tr><th>開催月</th>');
     AP_CONCEPTS.forEach(function(cn){ h.push('<th>' + cn.emoji + (cn.id === 'hyb' ? 'HYB' : cn.id === 'hit' ? '的中' : '回収') + ' 3着内率</th><th>回収率</th>'); });
     h.push('</tr></thead><tbody>');
     ymsR.slice(0, 24).forEach(function(y){
       var agg = apConceptsAgg(apMB(y));
-      h.push('<tr><td>' + esc(apYmTxt(y)) + '</td>');
+      var cur = (apYmState(y) === 'cur');
+      h.push('<tr' + (cur ? ' style="opacity:.82"' : '') + '><td style="white-space:nowrap">' + esc(apYmTxt(y)) +
+        (cur ? '<br><span class="small" style="color:var(--warn-ink);font-weight:700">今月・結果は確定途中</span>' : '') + '</td>');
       AP_CONCEPTS.forEach(function(cn){
         var a = agg[cn.id] || {};
         h.push('<td>' + (a.top3Pct === '−' ? '−' : a.top3Pct + '%') + '</td><td>' + (a.roiPct === '−' ? '−' : a.roiPct + '%') + '</td>');
@@ -12437,11 +12597,18 @@ function apStatsHTML(){
       h.push('</tr>');
     });
     h.push('</tbody></table>');
-    if (ymsR.length > 24) h.push('<div class="small muted">直近24か月を表示（全 ' + ymsR.length + ' か月分がDBに保存されています）</div>');
+    if (ymsR.length > 24) h.push('<div class="small muted">直近24か月を表示（結果が確定した ' + ymsR.length + ' か月分がDBに保存されています）</div>');
   }
-  // 直近の月の詳細(モデル別の印成績)
+  if (ymsFuture.length){
+    var fN = 0;
+    ymsFuture.forEach(function(y){ var b = apMB(y); if (b && b.c && b.c.hit) fN += (b.c.hit.n || 0); });
+    h.push('<div class="small" style="margin-top:4px;color:var(--warn-ink)">🚫 <b>結果が確定していない月</b>（' +
+      esc(ymsFuture.map(apYmTxt).join('・')) + '）の ' + fN + ' レースぶんは回収率の表へ表示していません' +
+      '（今日は ' + esc(apYmTxt(apNowYm())) + ' のため、それより後の月はまだ結果が出ていません）。学習にも使いません。</div>');
+  }
+  // 直近の月の詳細(モデル別の印成績) — 未来月は対象にしない
   if (ymsR.length){
-    h.push(apMonthTableHTML(ymsR[0], '📅 ' + apYmTxt(ymsR[0])));
+    h.push(apMonthTableHTML(ymsR[0], '📅 ' + apYmTxt(ymsR[0]) + (apYmState(ymsR[0]) === 'cur' ? '（今月・結果は確定途中）' : '')));
   }
   // 全体サマリ(旧互換: 印ごとの的中)
   var L = apLs();
@@ -12459,7 +12626,8 @@ function apStatsHTML(){
     h.push('<div class="small muted" style="margin-top:3px">🔄 直近の再学習: ' + esc(rd) + ' ／ ' + rr2.ok + ' レースを再評価' +
       (rr2.err ? '（失敗 ' + rr2.err + '）' : '') + '（現在のモデルで再構築済み）</div>');
   }
-  h.push('<div class="small muted" style="margin-top:4px">保存先: ' + (apMode === 'idb' ? '📀 IndexedDB(大容量) ' + AP_DB : '🗂 従来の保存領域') + ' ／ 検証レース ' + n + ' 件・集計 ' + totalR + ' レース分' + (yms.length ? '・' + yms.length + 'か月分' : '') + '</div>');
+  h.push('<div class="small muted" style="margin-top:4px">保存先: ' + (apMode === 'idb' ? '📀 IndexedDB(大容量) ' + AP_DB : '🗂 従来の保存領域') + ' ／ 検証レース ' + n + ' 件・集計 ' + totalR + ' レース分' + (yms.length ? '・' + yms.length + 'か月分（結果確定）' : '') +
+      (ymsFuture0.length ? '　※結果が確定していない ' + ymsFuture0.length + ' か月分（' + esc(ymsFuture0.map(apYmTxt).join('・')) + '）は表示・学習の対象外' : '') + '</div>');
   return h.join('');
 }
 function apLearnMsg(act){
@@ -12484,11 +12652,36 @@ function apRender(){
   apSyncUi();
   var el = $('apOut'); if (!el) return;
   el.innerHTML = apStatsHTML();
-  var cnt = $('apCount'); if (cnt){
-    var totalR = 0;
-    apYms().forEach(function(y){ var b = apMB(y); if (b) totalR += (b.c.hit.n || 0); });
-    cnt.textContent = totalR ? ('学習 ' + totalR + ' レース') : '未学習';
+  // 第15弾: 結果が確定していない「未来の月」は chip の集計にも入れない
+  var totalR = 0, nYm = 0, nFut = 0;
+  apYms().forEach(function(y){
+    if (apYmState(y) === 'future'){ nFut++; return; }
+    var b = apMB(y); if (b){ totalR += (b.c.hit.n || 0); nYm++; }
+  });
+  var cnt = $('apCount'); if (cnt) cnt.textContent = totalR ? ('学習 ' + totalR + ' レース') : '未学習';
+  try { apPaintPick(totalR, nYm, nFut); } catch(e){}
+}
+/* 2026-09-12 第15弾: 🔁自己学習カードは折り込みになったので、
+   折り込んだままでも「何をどれだけ学習して、いま何がAI印に効いているか」が
+   1行で分かるように summary 内（#apPick）へ要点を書き出します。 */
+function apPaintPick(totalR, nYm, nFut){
+  var el = $('apPick'); if (!el) return;
+  var curYm = '';
+  try { curYm = apCurYm(); } catch(e){}
+  var S = apParamsFor(curYm || '999912');
+  var futTxt = nFut ? '<span class="pickwarn">　🚫 結果が確定していない ' + nFut + ' か月ぶんは表示・学習の対象外</span>' : '';
+  if (!(totalR > 0) && !(S.totalR > 0)){
+    el.innerHTML = '📚 まだ自己検証の記録がありません。過去データ（日付指定・年指定の一括取得・結果メモの📥取込）でレースを取り込むと、' +
+      '3モデル（🎯的中率重視／💰回収率重視／🔰ハイブリッド）で予想し直し、<b>開催年月ごとに</b>学習します。' + futTxt;
+    return;
   }
+  var use = (typeof state !== 'undefined' && state && state.apLearnUse === false) ? '（いまはAI印へ<b>反映OFF</b>）' : '';
+  el.innerHTML = '📚 <b>結果が確定した ' + (nYm || 0) + ' か月・' + (totalR || 0) + ' レース</b>を学習ずみ' +
+    '　→ 今後の予想へ反映する補正: 🎯 展開/脚質の信頼度 <b>' + Math.round(clamp(S.hitTm == null ? 1 : S.hitTm, 0.4, 1) * 100) + '%</b>' +
+    '　・💰 妙味係数 <b>' + (S.roiRho == null ? 1 : S.roiRho).toFixed(2) + '</b>' +
+    '　・🔰 混合λ <b>' + (S.hybLam == null ? 0.55 : S.hybLam).toFixed(2) + '</b>' +
+    (S.lastYm ? '　（直近の学習月: <b>' + esc(apYmTxt(S.lastYm)) + '</b>）' : '') + use +
+    (S.totalR > 0 ? '' : '　<span class="muted">※「前の月まで」の実績が20レース以上になると補正が始まります</span>') + futTxt;
 }
 /* ================= 再学習(保存済み過去レースを現在のモデルで再評価) =================
    使いどころ: ① 予想モデル(判定式・スコア)を変更した ② 年指定一括取込や結果メモ📥・
@@ -21459,11 +21652,138 @@ function aihAutoRun(force){
   }, 400);
 }
 
+/* ===== 2026-09-12 第15弾: 折り込んだままでも狙い目が読める「文章の要約」 =====
+   🏇馬柱AI評価はカードごと折り込む代わりに、summary 内（#aihPick）へ
+   今回の条件（芝/ダ・開催場・距離帯・馬場）に合う馬をスコア順の文章で常時表示します。
+   スコアの内訳: ①今回の面の実績(55%) ②同じ開催場(25%) ③同じ距離帯(20%)
+                 ④同じ馬場状態(15%) ⑤全体の3着内率(10%)   ※実績なしは減点 */
+var AIH_VENUES = ['札幌', '函館', '福島', '新潟', '東京', '中山', '中京', '京都', '阪神', '小倉'];
+function aihVenueOf(txt){
+  var s2 = String(txt == null ? '' : txt);
+  for (var i = 0; i < AIH_VENUES.length; i++){ if (s2.indexOf(AIH_VENUES[i]) >= 0) return AIH_VENUES[i]; }
+  return '';
+}
+function aihBabaOf(v){
+  return { fast: '良', good: '稍重', yield: '重', soft: '不良', dirt_fast: '良', dirt_seal: '重' }[String(v || '')] || '';
+}
+function aihBandShort(b){ return String(b || '').replace(/[(（].*$/, ''); }
+function aihRaceCtx(){
+  var meta = {};
+  try { meta = readRaceMeta() || {}; } catch(e){}
+  var r = (typeof state !== 'undefined' && state && state.race) || {};
+  var dist = parseInt(meta.dist || r.dist || '', 10) || 0;
+  var bv = (meta.baba != null && meta.baba !== '') ? meta.baba : r.baba;
+  return {
+    surf: aihCurSurf(),
+    venue: aihVenueOf(meta.place || r.place || ''),
+    dist: dist,
+    band: dist ? hdBand(dist) : '',
+    baba: aihBabaOf(bv)
+  };
+}
+/* 1頭ぶんの「今回の条件との合い方」を採点する */
+function aihPickScore(x, ctx){
+  var a = aihAnalyze(x.rec);
+  var sc = 0, why = [], bad = [];
+  function rate(g){ return (g && g.n) ? aihPct(g.top3, g.n) : -1; }
+  // ① 今回の面（芝/ダ）
+  if (ctx.surf === '芝' || ctx.surf === 'ダ'){
+    var g = a.surface[ctx.surf] || { n: 0, win: 0, top3: 0 };
+    if (g.n >= 2){
+      var p = aihPct(g.top3, g.n);
+      sc += p * 0.55;
+      why.push(ctx.surf + (g.win ? g.win + '勝・' : '') + '複勝圏' + p + '%(' + g.n + '走)');
+    } else if (g.n === 1){
+      sc += (g.top3 ? 22 : 5);
+      why.push(ctx.surf + 'は1走のみ(' + (g.top3 ? '3着内' : '着外') + ')');
+    } else {
+      sc -= 22;
+      bad.push(ctx.surf + '実績なし' + (a.lastSurf ? '(前走' + a.lastSurf + '→替わり)' : '(初)'));
+    }
+  }
+  // ② 同じ開催場
+  if (ctx.venue){
+    var gv = a.venue[ctx.venue];
+    if (gv && gv.n >= 2){
+      sc += rate(gv) * 0.25;
+      why.push(ctx.venue + ' ' + gv.n + '走で3着内' + rate(gv) + '%');
+    } else if (gv && gv.n === 1){
+      sc += (gv.top3 ? 8 : 0);
+    } else {
+      var vb = aihBest(a.venue, 3);
+      if (vb) why.push('得意は' + vb + '(今回' + ctx.venue + 'は初)');
+    }
+  } else {
+    var vb2 = aihBest(a.venue, 3);
+    if (vb2) why.push(vb2 + 'が得意');
+  }
+  // ③ 同じ距離帯
+  if (ctx.band){
+    var gd = a.dist[ctx.band];
+    if (gd && gd.n >= 2){
+      sc += rate(gd) * 0.20;
+      why.push(aihBandShort(ctx.band) + ' ' + gd.n + '走で3着内' + rate(gd) + '%');
+    } else if (!gd){
+      var db = aihBest(a.dist, 3);
+      if (db && db !== ctx.band) why.push('得意距離は' + aihBandShort(db));
+    }
+  }
+  // ④ 同じ馬場状態
+  if (ctx.baba){
+    var gb = a.baba[ctx.baba];
+    if (gb && gb.n >= 2){
+      sc += rate(gb) * 0.15;
+      if (rate(gb) >= 40) why.push(ctx.baba + 'で3着内' + rate(gb) + '%');
+    }
+  }
+  // ⑤ 全体の3着内率（母数の多さも少し評価）
+  var tp = aihPct((a.surface.芝.top3 || 0) + (a.surface.ダ.top3 || 0), a.n);
+  if (a.n >= 3 && tp >= 0) sc += tp * 0.10;
+  return { sc: sc, why: why, bad: bad, n: a.n, tp: tp };
+}
+/* 狙い目の文章（summary 内へ入れるHTML） */
+function aihPickHTML(){
+  var ctx = aihRaceCtx();
+  var horses = aihHorses().filter(function(x){ return x.rec; });
+  if (!horses.length) return '';
+  var scored = horses.map(function(x){
+    var r = aihPickScore(x, ctx);
+    return { x: x, sc: r.sc, why: r.why, bad: r.bad };
+  }).sort(function(a, b){ return (b.sc - a.sc) || String(a.x.no).localeCompare(String(b.x.no)); });
+  var head = [];
+  if (ctx.surf) head.push('今回' + ctx.surf);
+  if (ctx.venue) head.push(ctx.venue);
+  if (ctx.dist) head.push(ctx.dist + 'm');
+  if (ctx.baba) head.push(ctx.baba);
+  var MARK = ['①', '②', '③', '④', '⑤'];
+  var picks = [], avoid = [];
+  scored.forEach(function(o){
+    var nm = esc(o.x.no) + '番' + esc(o.x.name);
+    if (o.bad.length){ avoid.push(nm + '（' + esc(o.bad[0]) + '）'); return; }
+    if (picks.length < 3 && o.sc > 0 && o.why.length){
+      picks.push(MARK[picks.length] + '<b>' + nm + '</b>（' + esc(o.why.slice(0, 3).join('／')) + '）');
+    }
+  });
+  var h = ['🎯 <b>狙い目</b>' + (head.length ? '<span class="muted">［' + esc(head.join('・')) + '］</span>' : '') + ': '];
+  if (picks.length) h.push(picks.join('　'));
+  else h.push('<span class="muted">今回の条件で強調できる馬はありません（馬柱の走数が少ない・条件が初めて）。</span>');
+  if (avoid.length) h.push('　<span class="pickwarn">⚠ 割引: ' + avoid.slice(0, 3).join('、') + (avoid.length > 3 ? ' ほか' + (avoid.length - 3) + '頭' : '') + '</span>');
+  h.push('<span class="muted">（馬柱の実績からの目安・表を開くと馬ごとの内訳が出ます）</span>');
+  return h.join('');
+}
+function aihPaintPick(){
+  var el = $('aihPick'); if (!el) return;
+  var html = '';
+  try { html = aihPickHTML(); } catch(e){ html = ''; }
+  el.innerHTML = html || '🎯 <b>狙い目</b>: 出馬表を取り込むと、芝・ダ替わりの適正／得意コース・距離・馬場から今回の狙い目馬をここに文章で要約します。';
+}
+
 function aihRender(){
   var box = $('aihOut'); if (!box) return;
   var horses = aihHorses();
   var curSurf = aihCurSurf();
   var have = horses.filter(function(x){ return x.rec; });
+  try { aihPaintPick(); } catch(e){}
   if (!have.length){
     box.innerHTML = '<div class="small muted">まだ馬柱データがありません。出馬表をnetkeibaから取り込むと<b>自動で馬柱を取得</b>し、芝・ダの実績と替わりの適正・得意コース/距離/馬場を馬ごとにAIが短評します（馬IDが必要なため、出馬表は「netkeiba URLから直接取込」で読込んでください）。</div>';
     var cc = $('aihChip'); if (cc) cc.textContent = '未取得';
@@ -22322,15 +22642,37 @@ function tlRender(){
       trs.push(tr.join(''));
     });
   });
-  h.push('<div class="small muted" style="margin-bottom:4px">出走馬 ' + hs.length + ' 頭のうち <b>' + groups.length + ' 頭</b>を評価' +
+  /* 2026-09-12 第15弾: 馬の一覧は縦長になるので折り込み。
+     折り込んだままでも「🎯/⚠️が何頭・どの馬か」が分かるように summary へ要約を出します。 */
+  var fNames = [], sNames = [];
+  groups.forEach(function(g){
+    var nm = (g.h.no || '') + ' ' + (g.h.name || '');
+    if (g.ev.badge === 'fast') fNames.push(nm);
+    else if (g.ev.badge === 'slow') sNames.push(nm);
+  });
+  function namesTxt(arr, lim){
+    if (!arr.length) return 'なし';
+    var t = arr.slice(0, lim).map(function(x){ return esc(x); }).join('・');
+    return t + (arr.length > lim ? ' ほか' + (arr.length - lim) + '頭' : '');
+  }
+  var sumTxt = '出走馬 ' + hs.length + ' 頭のうち <b>' + groups.length + ' 頭</b>を評価' +
     '（🎯 時計が速い <b>' + nFast + '</b> 頭／⚠️ 勝ち時計が遅い <b>' + nSlow + '</b> 頭／マークなし <b>' + nMid + '</b> 頭）' +
     '・表示した走り <b>' + nRows + '</b>（うち1着 ' + nWin + '）' +
-    (nodata ? '・馬柱未取得 ' + nodata + ' 頭' : '') + (noeval ? '・評価不能 ' + noeval + ' 頭' : '') + '</div>');
+    (nodata ? '・馬柱未取得 ' + nodata + ' 頭' : '') + (noeval ? '・評価不能 ' + noeval + ' 頭' : '');
+  h.push('<details style="border:1px solid var(--line2);border-radius:10px;background:var(--card2);margin-bottom:4px">' +
+    '<summary class="small" style="cursor:pointer;padding:6px 10px;line-height:1.7">' +
+    '<b style="color:var(--ok-ink)">🐎 評価した馬の一覧を開く／閉じる</b>　<span class="muted">' + sumTxt + '</span><br>' +
+    '<span class="muted">🎯 時計が速い: <b>' + namesTxt(fNames, 5) + '</b>　／　⚠️ 勝ち時計が遅い: <b>' + namesTxt(sNames, 5) + '</b></span>' +
+    '</summary><div style="padding:2px 10px 8px">');
+  h.push('<div class="small muted" style="margin-bottom:4px">' + sumTxt + '</div>');
   h.push('<div style="overflow-x:auto"><table class="ktbl sctbl"><thead><tr>' +
     '<th>馬番</th><th>馬名</th><th>出馬表マーク</th><th>対象の走り</th><th>着順</th><th>タイム（良換算）</th>' +
     '<th>どれほど速かったか</th><th>レースの勝ち時計レベル</th><th>着差</th><th>短評</th>' +
     '</tr></thead><tbody>' + trs.join('') + '</tbody></table></div>');
-  h.push('<div class="small muted" style="margin-top:4px;line-height:1.7">' +
+  h.push('</div></details>');   // 馬の一覧の折り込みを閉じる
+  h.push('<details style="border:1px dashed var(--line2);border-radius:10px;background:var(--card);margin-top:4px">' +
+    '<summary class="small" style="cursor:pointer;padding:5px 10px;font-weight:700;color:var(--ok-ink)">📖 判定のしかた（🎯/⚠️の付け方・比較のしかた・馬場換算）の説明を開く／閉じる</summary>' +
+    '<div class="small muted" style="margin:6px 10px 8px;line-height:1.7">' +
     '<b>※並びは「前走」のマーク順（🎯→⚠️→なし）。</b>1頭につき最大3行（前走／直近の対象クラスV／直近3走の好時計）を出します。<br>' +
     '<b>【1着じゃなくても追記する条件】</b>①自分の時計が同条件の過去の勝ち時計より速い（<b>馬券内かどうかは問いません</b>）' +
     '②勝ち時計が速い＝レース自体のレベルが高く、勝ち馬から1.0秒差以内。このどちらかなら同じ馬の行に<b>追記</b>します。<br>' +
@@ -22349,7 +22691,7 @@ function tlRender(){
     '<b>【障害戦】</b>は時計の土俵が違うため評価しません。<br>' +
     '<b>【着差】</b>1着以外は「勝ち馬からの差」をその馬の着差列から、1着の<b>2着差</b>は同じレースを走った他馬の馬柱（着差列）から復元します。' +
     '同じレースの他馬が未取得だと「不明」と出ます（①の「🐎 全馬プロフィール」で取得すると埋まります）。<br>' +
-    'トラックバイアスカードが当日開催ぶんしか出ないのに対し、こちらは過去開催の時計から「その馬がどれほど速い時計を持っているか」を見る補助です。</div>');
+    'トラックバイアスカードが当日開催ぶんしか出ないのに対し、こちらは過去開催の時計から「その馬がどれほど速い時計を持っているか」を見る補助です。</div></details>');
   box.innerHTML = h.join('');
   var b = $('tlScan');
   if (b){ b.onclick = function(){ b.disabled = true; b.textContent = '評価中…'; setTimeout(tlRunScan, 20); }; }
@@ -22877,6 +23219,17 @@ function tlLearnRender(){
     h.push('</table></div>');
   });
   function sec2(v){ return (v > 0 ? '+' : '') + v.toFixed(2) + '秒'; }
+  /* 2026-09-12 第15弾: 「補正」と「距離帯ごとのクラス差の上乗せ」の説明・一覧は
+     縦に長いので、まとめて折り込み（既定は閉じた状態）にしました。
+     学習した基準時計の表そのものは折り込まずに出したままです。 */
+  h.push('<details style="margin-top:8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card2)">' +
+    '<summary class="small" style="cursor:pointer;padding:5px 9px;font-weight:700;color:var(--ok-ink)">' +
+    '🔧 学習した<b>補正</b>の内訳と距離帯の<b>上乗せ</b>を開く／閉じる' +
+    '（クラス補正／距離帯ごとのクラス差の上乗せ／年齢・競馬場・年・馬場の補正）' +
+    '　<span class="muted" style="font-weight:500">※基準時計＝距離の基準 ＋ これらの補正の合計です</span></summary>' +
+    '<div style="padding:2px 9px 8px">');
+  h.push('<div class="small muted" style="margin:2px 0 4px">各補正は「秒」で表した<b>基準時計への上乗せ／差し引き</b>です。' +
+    '＋＝その条件では時計がかかる（基準が遅くなる）／−＝速い。件数がしきい値（n≥' + TL_LEARN_MIN + '）に満たないグループは補正していません。</div>');
   h.push('<div style="font-weight:700;margin:8px 0 2px">クラス補正（未勝利を0とした各クラスの差）</div><div class="small">');
   ['芝', 'ダ', '障'].forEach(function(sf){
     var ks = TL_LEARN_CLS.filter(function(c){ return (m.cls[sf + '|' + c] || { n: 0 }).n >= TL_LEARN_MIND; });
@@ -22914,6 +23267,7 @@ function tlLearnRender(){
     });
     h.push('</table>');
   }
+  h.push('</div></details>');   // 補正・上乗せの折り込みを閉じる
   if ((m.diffTop || []).length){
     h.push('<details style="margin-top:6px"><summary class="small">静的テーブルとの差が大きい条件 上位' + m.diffTop.length + '件（＝学習の効果が出るところ）</summary>' +
       '<table class="ktbl" style="font-size:.72rem;margin-top:4px"><tr><th>面</th><th>距離</th><th>クラス</th><th>学習値</th><th>静的</th><th>差</th></tr>');
