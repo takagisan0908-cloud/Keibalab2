@@ -1103,11 +1103,15 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div id="courseBox"><div class="small muted">「開催」欄に開催場（例: 東京・中山・阪神 など）が入ると表示します。</div></div>
   </div>
 
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-    <div class="cardhead">
-      <h2>🌐 うましるの調教評価から調教タイムを取込（重賞のみ）</h2>
+  <!-- 2026-09-11 第14弾: 重賞のときだけ使う機能なので、ふだんは折り込んで閉じています -->
+  <details class="card fold" id="umaFold" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+    <summary class="foldhead">
+      <span class="fmark"></span>
+      <h2 style="margin:0">🌐 うましるの調教評価から調教タイムを取込（重賞のみ）</h2>
       <span class="chip">G1〜G3</span>
-    </div>
+      <span class="sp"></span><span class="foldhint"></span>
+    </summary>
+    <div class="foldbody">
     <p class="small muted">調教評価サイト「うましる」の<b>追い切り評価・全頭診断</b>記事（<a href="https://umasiru.com/archives/tag/oikiri" target="_blank" rel="noreferrer">https://umasiru.com/archives/tag/oikiri</a>）から、現在のレースに該当する記事を探して最終追い切りの時計（例 4F54.2-3F37.9-1F11.5）を読み取り、馬名を割り当てて反映します。netkeiba取込より自動で記事も拾える取込方法です。</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn primary" id="btnUmaAuto">🔍 このレースの記事を自動検索して取込</button>
@@ -1120,7 +1124,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       </details>
     </div>
     <div id="umaLog" class="small" style="margin-top:8px"></div>
-  </div>
+    </div>
+  </details>
 
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
     <div class="cardhead">
@@ -5365,6 +5370,11 @@ var PAR_TIME = {
 function nkToSec(s){
   if (s == null) return null;
   var m = String(s).match(/(\d{1,2}):(\d{1,2})[.:](\d{1,2})/);
+  if (m) return parseInt(m[1],10)*60 + parseInt(m[2],10) + parseInt(m[3],10)/10;
+  /* 2026-09-11 第14弾: ドット区切り（1.12.4 / 3.11.2）も拾うようにしました。
+     netkeiba の DB ページや、障害戦の時計（3分台＝3.11.2 のような表記）でこの形式が出ます。
+     これを拾えないと parseFloat('3.11.2')=3.112 秒になってしまい、障害の時計が全部落ちていました。 */
+  m = String(s).match(/^\s*(\d{1,2})\.(\d{1,2})\.(\d{1,2})\s*$/);
   if (m) return parseInt(m[1],10)*60 + parseInt(m[2],10) + parseInt(m[3],10)/10;
   m = String(s).match(/(\d{1,2}):(\d{1,2})(?:[.:](\d{1,2}))?/);
   if (m && m[2] && parseInt(m[2],10) < 60){
@@ -11443,10 +11453,32 @@ function apYmOf(date8, rid){
   var m = String(rid || '').match(/^(\d{4})(\d{2})/);
   return m ? m[1] + m[2] : '';
 }
+/* 2026-09-11 第14弾: 障害レースは学習バケットを分けます。
+   平地と障害はオッズの付き方も人気側の信頼度もまったく違うので、
+   障害で学習したファクターは障害の予想にだけ、平地で学習したファクターは平地の予想にだけ使います。
+   キーは 平地＝'202501'（従来どおり＝既存データはそのまま平地として読めます）／障害＝'202501#障'。 */
+function apSurfOf(surface, name){
+  var sf = String(surface || ''), n = String(name || '');
+  if (/障害/.test(n)) return '障';
+  if (sf.indexOf('障') >= 0) return '障';
+  return '平地';
+}
+function apYmSurf(date8, rid, surface, name){
+  var ym = apYmOf(date8, rid);
+  if (!ym) return ym;
+  return apSurfOf(surface, name) === '障' ? (ym + '#障') : ym;
+}
+function apYmIsSho(ym){ return String(ym || '').indexOf('#障') >= 0; }
+function apYmTxt(ym){
+  var s = String(ym || '');
+  var d = s.replace(/#.*$/, '');
+  var t = (d.length >= 6 && /^\d{6}$/.test(d)) ? (d.substring(0, 4) + '年' + parseInt(d.substring(4, 6), 10) + '月') : s;
+  return apYmIsSho(s) ? (t + '（🚧障害）') : t;
+}
 function apCurYm(){
   var mm;
   try { mm = apMetaCur(); } catch(e){ mm = { date8: '' }; }
-  var ym = apYmOf(mm.date8, state && state.raceId || '');
+  var ym = apYmSurf(mm.date8, state && state.raceId || '', mm.surface, mm.name);
   if (ym) return ym;
   var d = new Date();
   return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2);
@@ -11650,7 +11682,8 @@ function apEnsureLive(rid){
   if (rec && rec.result) return rec;
   var mm = apMetaCur();
   if (!rec){
-    rec = { rid: rid, created: apNow(), auto: false, meta: mm, predHorses: apSnapHorses(), result: null, ym: apYmOf(mm.date8, rid) || apCurYm() };
+    rec = { rid: rid, created: apNow(), auto: false, meta: mm, predHorses: apSnapHorses(), result: null,
+            ym: apYmSurf(mm.date8, rid, mm.surface, mm.name) || apCurYm() };   /* 第14弾: 障害は別バケット */
   } else {
     rec.meta = rec.meta || mm;
     var snap = apSnapHorses();
@@ -11969,7 +12002,8 @@ function apConceptsAgg(b){
 function apPastAgg(ym){
   var sum = {};
   AP_CONCEPTS.forEach(function(cn){ sum[cn.id] = apCBInit(); });
-  var yms = apYms().filter(function(y){ return y < ym; });
+  /* 第14弾: 障害と平地は別土俵なので、同じ区分のバケットだけを「その月より前」から集める */
+  var yms = apYms().filter(function(y){ return apYmIsSho(y) === apYmIsSho(ym) && y < ym; });
   yms.forEach(function(y){
     var b = apMB(y); if (!b) return;
     AP_CONCEPTS.forEach(function(cn){
@@ -12014,7 +12048,8 @@ function apTrans(b, S){
 /* 指定の開催年月より前の月のバケットだけを時系列に適用したパラメータ */
 function apParamsFor(ym){
   var S = { hitTm: 1, roiRho: 1, hybLam: 0.55, totalR: 0, src: [], lastYm: '' };
-  var yms = apYms().filter(function(y){ return y < ym; }).sort();
+  /* 第14弾: 障害の予想には障害の学習だけを、平地の予想には平地の学習だけを時系列で適用する */
+  var yms = apYms().filter(function(y){ return apYmIsSho(y) === apYmIsSho(ym) && y < ym; }).sort();
   yms.forEach(function(y){
     var b = apMB(y); if (!b) return;
     apTrans(b, S);
@@ -12056,7 +12091,7 @@ function apEval(p, rid, nosess, force){
   }
   rows = rows.map(withSlow);
   var meta = apRaceMeta(p, rid);
-  var ym = apYmOf(meta.date8, rid);
+  var ym = apYmSurf(meta.date8, rid, meta.surface, meta.name);   /* 第14弾: 障害は障害の学習だけを使う */
   var S = ym ? apParamsFor(ym) : { hitTm: 1, roiRho: 1, hybLam: 0.55 };
   var rec = apGet(rid);
   var wasNew = !rec;
@@ -12238,7 +12273,7 @@ function apActive(){
     note: apActiveNote(S, model, ym) };
 }
 function apActiveNote(S, model, ym){
-  var srcLabel = S.lastYm ? S.lastYm.substring(0, 4) + '年' + parseInt(S.lastYm.substring(4, 6), 10) + '月' : '';
+  var srcLabel = S.lastYm ? apYmTxt(S.lastYm) : '';
   var mn = apModelName(model);
   var hitS = clamp(S.hitTm == null ? 1 : S.hitTm, 0.4, 1.0);
   var lam = S.hybLam == null ? 0.55 : clamp(S.hybLam, 0, 1);
@@ -12379,7 +12414,7 @@ function apStatsHTML(){
   if (sessHtml) h.push(sessHtml);
   // 直近の学習状況
   if (S.totalR > 0){
-    var srcLabel = S.lastYm ? S.lastYm.substring(0, 4) + '年' + parseInt(S.lastYm.substring(4, 6), 10) + '月' : '';
+    var srcLabel = S.lastYm ? apYmTxt(S.lastYm) : '';
     h.push('<div class="small" style="margin:4px 0;color:var(--ok-ink)">📚 今後の予想へ反映する学習: 前月以前の検証 <b>' + S.totalR + ' レース</b>' + (srcLabel ? '（直近の学習月: ' + srcLabel + '）' : '') + '<br>' +
       '　・🎯 的中率重視: 展開/脚質の信頼度 <b>' + Math.round(clamp(S.hitTm == null ? 1 : S.hitTm, 0.4, 1) * 100) + '%</b>' +
       '　・💰 回収率重視: 妙味係数 <b>' + (S.roiRho == null ? 1 : S.roiRho).toFixed(2) + '</b>' +
@@ -12394,7 +12429,7 @@ function apStatsHTML(){
     h.push('</tr></thead><tbody>');
     ymsR.slice(0, 24).forEach(function(y){
       var agg = apConceptsAgg(apMB(y));
-      h.push('<tr><td>' + esc(y.substring(0, 4) + '年' + parseInt(y.substring(4, 6), 10) + '月') + '</td>');
+      h.push('<tr><td>' + esc(apYmTxt(y)) + '</td>');
       AP_CONCEPTS.forEach(function(cn){
         var a = agg[cn.id] || {};
         h.push('<td>' + (a.top3Pct === '−' ? '−' : a.top3Pct + '%') + '</td><td>' + (a.roiPct === '−' ? '−' : a.roiPct + '%') + '</td>');
@@ -12406,7 +12441,7 @@ function apStatsHTML(){
   }
   // 直近の月の詳細(モデル別の印成績)
   if (ymsR.length){
-    h.push(apMonthTableHTML(ymsR[0], '📅 ' + ymsR[0].substring(0, 4) + '年' + parseInt(ymsR[0].substring(4, 6), 10) + '月'));
+    h.push(apMonthTableHTML(ymsR[0], '📅 ' + apYmTxt(ymsR[0])));
   }
   // 全体サマリ(旧互換: 印ごとの的中)
   var L = apLs();
@@ -15041,9 +15076,14 @@ function diImportFile(file){
         if (diGet(rid)){ exist++; return; }
         if (diSet(rid, rec)) add++;
       });
-      diStatus('📥 バックアップから復元: 追加 ' + add + ' / 既にあったのでスキップ ' + exist + ' 件。');
+      var tot = 0; try { tot = diCount(); } catch(e){}
+      diStatus('📥 <b>バックアップから復元しました</b>: 追加 <b>' + add + ' レース</b>／既にあったのでスキップ ' + exist + ' レース。' +
+        '　学習DBは合計 <b>' + tot + ' レース</b>になりました。' +
+        (add ? '<br>🎓 <b>タイム換算の学習を自動でやり直します</b>（数秒かかります。②の⏱評価と🎯/⚠️の基準が新しくなります）。' :
+               '<br>（新しいデータが無かったので、学習はやり直していません）') +
+        (typeof diMode !== 'undefined' && diMode === 'ls' ? '<br><span class="small">※ いまの保存先は localStorage（5MB制限）です。IndexedDB が使えるブラウザなら容量は実質無制限になります。</span>' : ''));
       diRenderStat();
-      if (typeof tlLearnSchedule === 'function'){ try { tlLearnSchedule(1500); } catch(e){} }   // 🎓タイム換算の学習
+      if (typeof tlLearnSchedule === 'function' && add){ try { tlLearnSchedule(1500); } catch(e){} }   // 🎓タイム換算の学習
     } catch(e){ diStatus('バックアップの読込に失敗しました: ' + (e && e.message || e), true); }
   };
   rd.onerror = function(){ diStatus('ファイルを読み込めませんでした', true); };
@@ -15275,8 +15315,8 @@ function diRenderStat(){
     '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">' +
       (n ? '<button type="button" class="btn ghost" id="diClr" style="font-size:.72rem;padding:1px 8px">🗑 全消去</button>' : '') +
       '<button type="button" class="btn ghost" id="diCap" style="font-size:.72rem;padding:1px 8px">📏 保存できる量を確認</button>' +
-      (n ? '<button type="button" class="btn ghost" id="diExp" style="font-size:.72rem;padding:1px 8px">💾 バックアップ保存(JSON)</button>' : '') +
-      '<button type="button" class="btn ghost" id="diImp" style="font-size:.72rem;padding:1px 8px">📥 バックアップから復元</button>' +
+      (n ? '<button type="button" class="btn ghost" id="diExp" style="font-size:.72rem;padding:1px 8px" title="学習DBの全レースを keiba_date_backup_YYYYMMDD.json としてダウンロードします。端末を変えたり保存領域が消えたときの保険です。">💾 バックアップ保存(JSON)</button>' : '') +
+      '<button type="button" class="btn ghost" id="diImp" style="font-size:.72rem;padding:1px 8px" title="「💾 バックアップ保存(JSON)」で下载した keiba_date_backup_YYYYMMDD.json を選ぶと、中身のレースを学習DBに戻します。既にあるレースはスキップされ、追加があったときは🎓タイム換算の学習を自動でやり直します。">📥 バックアップから復元(JSON)</button>' +
       '<input type="file" id="diFile" accept=".json" style="display:none">' +
     '</div>' +
     '<div style="margin-top:4px;font-size:10px;color:var(--mut);line-height:1.55">' +
@@ -21631,6 +21671,7 @@ function tlMedian(a){
 }
 /* その距離・そのクラス（レース名）の基準時計（秒）。距離は PAR_TIME を線形補間、クラスは tlParOff。 */
 function tlBaseSecStatic(surface, m, rname){
+  if (tlLearnSurf(surface, rname) === '障') return null;   // 第14弾: 障害に平地のパータイムを流用しない
   m = parseInt(m, 10);
   if (!m) return null;
   var key = String(surface || '').indexOf('ダ') >= 0 ? 'dirt' : 'turf';
@@ -21656,12 +21697,16 @@ function tlBaseSecStatic(surface, m, rname){
    学習データが薄いセルは上の静的テーブル（パータイム＋クラス補正）にそのままフォールバックします。
    venue / d8 は省略可（省略すると競馬場補正・年補正は掛けません）。 */
 function tlBaseSec(surface, m, rname, venue, d8){
+  var sf = tlLearnSurf(surface, rname);      // レース名も見て '障' を確実に拾う
   if (typeof tlLearnBase === 'function'){
-    var L = tlLearnBase(surface, m, (typeof tlLearnCls === 'function') ? tlLearnCls(rname) : '', venue, d8,
+    var L = tlLearnBase(sf, m, (typeof tlLearnCls === 'function') ? tlLearnCls(rname) : '', venue, d8,
                         (typeof tlLearnAge === 'function') ? tlLearnAge(rname) : '');
     if (L != null) return L;
   }
-  return tlBaseSecStatic(surface, m, rname);
+  /* 2026-09-11 第14弾: 障害は「障害だけの学習値」が無いときに芝/ダートの静的テーブルを流用しない。
+     流用すると 3.10.0 相当のレースを 1.58.0 の基準で評価してしまうため。 */
+  if (sf === '障') return null;
+  return tlBaseSecStatic(sf, m, rname);
 }
 /* クラス差は距離が伸びるほど「秒」で大きくなるので、1600m基準で0.7〜1.6倍に伸縮する */
 function tlClsScale(m){
@@ -22410,10 +22455,20 @@ function tlLearnCls(name, grade){
   if (c) return c;
   return '特別';
 }
-function tlLearnSurf(x){
-  var s = String(x || '');
-  return s.indexOf('ダ') >= 0 ? 'ダ' : (s.indexOf('障') >= 0 ? '障' : '芝');
+function tlLearnSurf(x, name){
+  var s = String(x || ''), n = String(name || '');
+  /* 2026-09-11 第14弾: 障害は平地とまったく時計の土俵が違うので、取り違えると平地の基準時計を大きく汚します。
+     レース名が最も確実なので先にそれで判定し、surface の表記（'障害'/'障'）でも拾います。
+     → 芝2860m のように「障害でしか存在しない距離」でも、障害と分かれば '障' に入り、
+        平地（芝/ダート）の学習・距離補間・評価には一切使われません。 */
+  if (/障害/.test(n)) return '障';
+  if (s.indexOf('障') >= 0) return '障';
+  if (s.indexOf('ダ') >= 0) return 'ダ';
+  if (/^\s*$/.test(s) && /障害/.test(n)) return '障';
+  return '芝';
 }
+/* 障害でしか使われない距離（平地の学習に紛れ込んでいないかの検査・表示用） */
+var TL_SHO_DIST = { 2750:1, 2850:1, 2860:1, 2880:1, 2900:1, 2970:1, 3050:1, 3100:1, 3170:1, 3250:1, 3290:1, 3330:1, 3350:1, 3380:1, 3390:1, 3800:1, 4100:1, 4250:1, 4400:1 };
 /* 距離帯（重賞は長距離ほど時計の差が大きいので、クラス補正を距離帯ごとにも持つ） */
 function tlLearnBand(m){
   m = parseInt(m, 10) || 0;
@@ -22431,15 +22486,23 @@ function tlLearnAge(name){
 
 /* ---------- サンプル集め: 学習DB（年指定の一括取込）＋馬柱キャッシュ ---------- */
 function tlLearnSamples(){
-  var out = [], seen = {}, nDb = 0, nHd = 0, bad = 0, drop = 0;
+  var out = [], seen = {}, nDb = 0, nHd = 0, bad = 0, drop = 0, nSho = 0, shoMis = 0;
   function push(o){
     if (!o) return;
-    var sf = tlLearnSurf(o.surface);
-    if (sf === '障') { drop++; return; }                       // 障害は時計の土俵が違う
+    var sf = tlLearnSurf(o.surface, o.name);
     var m = parseInt(o.m, 10);
-    if (!(m >= 800 && m <= 4000)) { drop++; return; }
+    /* 2026-09-11 第14弾: 障害は「平地と混ぜない」だけで、障害同士の比較には使います。
+       キーは '障|距離' になるので芝・ダートの学習には一切混ざりません。距離と時計の許容範囲だけ障害用に広げます。 */
+    if (sf === '障'){
+      nSho++;
+      if (!(m >= 2000 && m <= 4500)) { drop++; return; }
+    } else {
+      if (!(m >= 800 && m <= 4000)) { drop++; return; }
+      /* 芝2860m など「障害でしか存在しない距離」が平地として入ってきたら学習に使わない */
+      if (TL_SHO_DIST[m]) { shoMis++; drop++; return; }
+    }
     var sec = parseFloat(o.sec);
-    if (!(sec > 20 && sec < 500)) { drop++; return; }
+    if (!(sec > 20 && sec < (sf === '障' ? 600 : 500))) { drop++; return; }
     var d8 = tlD8(o.d8);
     if (!d8) { drop++; return; }
     var ven = String(o.venue || '');
@@ -22502,7 +22565,7 @@ function tlLearnSamples(){
       nHd++;
     });
   } catch(e){}
-  return { list: out, nDb: nDb, nHd: nHd, bad: bad, drop: drop };
+  return { list: out, nDb: nDb, nHd: nHd, bad: bad, drop: drop, nSho: nSho, shoMis: shoMis };
 }
 
 /* ---------- メディアンポリッシュ: グループごとの中央値を抜いて store に積む ----------
@@ -22541,9 +22604,11 @@ function tlLearnAdjUse(x, babaTbl){
 function tlLearnBuild(){
   var S = tlLearnSamples();
   var list = S.list || [];
-  if (list.length < TL_LEARN_MIN_TOTAL) return { err: 'サンプル不足', nS: list.length, nDb: S.nDb, nHd: S.nHd };
+  if (list.length < TL_LEARN_MIN_TOTAL) return { err: 'サンプル不足', nS: list.length, nDb: S.nDb, nHd: S.nHd,
+    drop: S.drop || 0, bad: S.bad || 0, nSho: S.nSho || 0, shoMis: S.shoMis || 0 };   // 第14弾: 学習できないときも障害の件数は出す
   var model = {
     v: 2, at: new Date().toISOString(), nS: list.length, nDb: S.nDb, nHd: S.nHd, drop: S.drop, bad: S.bad,
+    nSho: S.nSho || 0, shoMis: S.shoMis || 0,
     dist: {}, cls: {}, cls2: {}, age: {}, ven: {}, yr: {}, baba: {}, cell: {}, nbaba: 0
   };
   var it;
@@ -22585,7 +22650,7 @@ function tlLearnBuild(){
   var ab = used.map(function(x){ return Math.abs(x.r); });
   model.fitMae = ab.length ? +(ab.reduce(function(a, b){ return a + b; }, 0) / ab.length).toFixed(2) : 0;
   model.nThin = list.length - used.length;
-  model.dists = { '芝': [], 'ダ': [] };
+  model.dists = { '芝': [], 'ダ': [], '障': [] };   /* 第14弾: 障害も別枠で表に出す */
   Object.keys(model.dist).forEach(function(k){
     var p = k.split('|');
     if (model.dists[p[0]]) model.dists[p[0]].push(+p[1]);
@@ -22593,7 +22658,7 @@ function tlLearnBuild(){
   Object.keys(model.dists).forEach(function(sf){ model.dists[sf].sort(function(a, b){ return a - b; }); });
   model.years = Object.keys(model.yr).sort();
   var diffs = [];
-  model.dists['芝'].concat(model.dists['ダ']).forEach(function(){});
+  /* 第14弾: 距離の一覧は 芝・ダート・障害の3区分（障害は 2750〜4400m のような長い距離だけが入ります） */
   Object.keys(model.dist).forEach(function(kd){
     var sf = kd.split('|')[0], d = +kd.split('|')[1];
     TL_LEARN_CLS.forEach(function(c){
@@ -22615,7 +22680,8 @@ function tlLearnBuild(){
 function tlLearnBaseOf(M, surface, m, cls, venue, d8, age){
   if (!tlLearnReady(M)) return null;
   var S = tlLearnSurf(surface);
-  if (S === '障') return null;
+  /* 第14弾: 障害も「障害だけの学習値」で評価する（'障|距離' のセルだけを見るので平地とは混ざらない）。
+     学習値が無い場合は呼び出し元(tlBaseSec)が null にして、芝/ダートの基準時計を流用しません。 */
   m = parseInt(m, 10);
   if (!m) return null;
   cls = cls || '特別';
@@ -22743,6 +22809,22 @@ function tlLearnUseHTML(){
     ' レース／距離・クラス・年齢・競馬場・年・馬場を学習値で換算・学習 ' + tlLearnWhen(m) + '）' +
     '　<span class="muted">④で年を取り込むと自動で学習し直します。学習データが無い条件は従来の基準時計（パータイム＋クラス補正）を使います。</span></div>';
 }
+/* 2026-09-11 第14弾: 時計の絶対値は「トータルの秒」ではなく競馬新聞と同じ「分.秒」で出す
+   例: 70.1 → 1.10.1 ／ 9.5 → 0.09.5 ではなく 9.5（1分未満は秒だけ）／ 150.4 → 2.30.4
+   ※「+1.2秒」のような“差”は秒のままにします（差分を分表記にすると分かりにくいため）。 */
+function tlClockTxt(sec, digits){
+  var v = Number(sec);
+  if (!isFinite(v)) return '-';
+  var d = (digits == null ? 1 : digits);
+  var min = Math.floor(Math.abs(v) / 60);
+  var rest = Math.abs(v) - min * 60;
+  if (rest >= 60){ min += 1; rest -= 60; }              // 9.96 → 10.0 のような繰り上がり
+  var rs = rest.toFixed(d);
+  if (parseFloat(rs) >= 60){ min += 1; rs = (parseFloat(rs) - 60).toFixed(d); }
+  if (min > 0 && parseFloat(rs) < 10) rs = '0' + rs;     // 1分9.5秒 → 1.09.5
+  var out = min > 0 ? (min + '.' + rs) : rs;
+  return (v < 0 ? '-' : '') + out;
+}
 function tlLearnChips(tbl, minN, fmt){
   var ks = Object.keys(tbl || {}).filter(function(k){ return tbl[k].n >= minN; });
   ks.sort(function(a, b){ return tbl[a].o - tbl[b].o; });
@@ -22764,15 +22846,18 @@ function tlLearnRender(){
   stat.innerHTML = '学習: <b>' + tlLearnWhen(m) + '</b>　勝ち時計 <b>' + m.nS + '</b> 件（学習DB ' + m.nDb + ' レース／馬柱 ' + m.nHd + ' レース・使わなかった ' + (m.drop || 0) + ' 件）' +
     '　→ 距離 ' + Object.keys(m.dist).length + '・クラス ' + Object.keys(m.cls).length + '・距離帯×クラス ' + Object.keys(m.cls2 || {}).length +
     '・年齢 ' + Object.keys(m.age).length + '・競馬場 ' + Object.keys(m.ven).length + '・年 ' + Object.keys(m.yr).length + '・馬場 ' + m.nbaba + '・個別補正 ' + m.cells +
+    '<br><span class="small">🚧 <b>障害 ' + (m.nSho || 0) + ' レースは別枠</b>で学習しています（平地＝芝・ダートの基準時計には一切混ぜません。障害の評価も障害の学習値だけで行い、' +
+    '障害の学習値が取れないときは<b>芝/ダートのパータイムを流用せず「評価対象外」</b>にします）' +
+    (m.shoMis ? '　・<b>芝2860m のように障害でしか存在しない距離が平地側に混ざっていた ' + m.shoMis + ' 件は除外</b>しました' : '') + '</span>' +
     '<br><span class="muted">当てはまり: 平均絶対誤差 <b>' + m.fitMae + '秒</b>（1レースの勝ち時計をこの誤差で言い当てられる）。' +
     '静的テーブルとの平均差 ' + (m.diffAvg > 0 ? '+' : '') + m.diffAvg + ' 秒。件数が足りないグループは補正しません（n&lt;' + TL_LEARN_MIN + '）。</span>';
   var h = [];
-  ['芝', 'ダ'].forEach(function(sf){
+  ['芝', 'ダ', '障'].forEach(function(sf){
     var ds = (m.dists && m.dists[sf]) || [];
     if (!ds.length) return;
     var cls = TL_LEARN_CLS.filter(function(c){ return (m.cls[sf + '|' + c] || { n: 0 }).n >= TL_LEARN_MIND; });
-    h.push('<div style="font-weight:700;margin:8px 0 2px">' + (sf === '芝' ? '🌱 芝' : '🟤 ダート') +
-      '　学習した基準時計（良馬場・3歳以上相当・競馬場/年の補正なし・秒）</div>');
+    h.push('<div style="font-weight:700;margin:8px 0 2px">' + (sf === '芝' ? '🌱 芝' : (sf === 'ダ' ? '🟤 ダート' : '🚧 障害（平地とは別枠で学習・比較も障害のみ）')) +
+      '　学習した基準時計（良馬場・3歳以上相当・競馬場/年の補正なし・<b>分.秒</b>）</div>');
     h.push('<div style="overflow-x:auto"><table class="ktbl" style="font-size:.72rem;white-space:nowrap">');
     h.push('<tr><th>距離</th>' + (cls.length ? cls.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') : '<th>基準</th>') + '</tr>');
     ds.forEach(function(d){
@@ -22784,7 +22869,7 @@ function tlLearnRender(){
         var dd = (st != null) ? (L - st) : null;
         var ce = c ? m.cell[sf + '|' + d + '|' + c] : null;
         return '<td title="n=' + (dl ? dl.n : 0) + (ce ? '／個別補正 ' + (ce.o > 0 ? '+' : '') + ce.o.toFixed(2) + '秒(n=' + ce.n + ')' : '') +
-          (dd != null ? '／静的テーブル比 ' + (dd > 0 ? '+' : '') + dd.toFixed(1) + '秒' : '') + '"><b>' + L.toFixed(1) + '</b>' +
+          (dd != null ? '／静的テーブル比 ' + (dd > 0 ? '+' : '') + dd.toFixed(1) + '秒' : '') + '"><b>' + tlClockTxt(L) + '</b>' +
           (dd != null && Math.abs(dd) >= 0.5 ? ' <span class="muted" style="font-size:.9em">(' + (dd > 0 ? '+' : '') + dd.toFixed(1) + ')</span>' : '') + '</td>';
       });
       h.push('<tr><th>' + d + 'm</th>' + tds.join('') + '</tr>');
@@ -22793,10 +22878,10 @@ function tlLearnRender(){
   });
   function sec2(v){ return (v > 0 ? '+' : '') + v.toFixed(2) + '秒'; }
   h.push('<div style="font-weight:700;margin:8px 0 2px">クラス補正（未勝利を0とした各クラスの差）</div><div class="small">');
-  ['芝', 'ダ'].forEach(function(sf){
+  ['芝', 'ダ', '障'].forEach(function(sf){
     var ks = TL_LEARN_CLS.filter(function(c){ return (m.cls[sf + '|' + c] || { n: 0 }).n >= TL_LEARN_MIND; });
     if (!ks.length) return;
-    h.push('<div style="margin:2px 0">' + (sf === '芝' ? '🌱 芝' : '🟤 ダート') + ': ' + ks.map(function(c){
+    h.push('<div style="margin:2px 0">' + (sf === '芝' ? '🌱 芝' : (sf === 'ダ' ? '🟤 ダート' : '🚧 障害')) + ': ' + ks.map(function(c){
       var e = m.cls[sf + '|' + c];
       return '<span class="chip" style="font-size:.7rem">' + esc(c) + ' ' + sec2(e.o) + ' <span class="muted">n=' + e.n + '</span></span>';
     }).join(' ') + '</div>');
@@ -22834,8 +22919,8 @@ function tlLearnRender(){
       '<table class="ktbl" style="font-size:.72rem;margin-top:4px"><tr><th>面</th><th>距離</th><th>クラス</th><th>学習値</th><th>静的</th><th>差</th></tr>');
     m.diffTop.forEach(function(d){
       var p = d.k.split('|');
-      h.push('<tr><td>' + p[0] + '</td><td>' + p[1] + 'm</td><td>' + esc(p[2]) + '</td><td><b>' + d.learn.toFixed(1) + '</b></td>' +
-        '<td class="muted">' + d.stat.toFixed(1) + '</td><td style="color:' + (d.d > 0 ? 'var(--err-ink)' : 'var(--acc)') + '">' + sec2(d.d) + '</td></tr>');
+      h.push('<tr><td>' + p[0] + '</td><td>' + p[1] + 'm</td><td>' + esc(p[2]) + '</td><td><b>' + tlClockTxt(d.learn) + '</b></td>' +
+        '<td class="muted">' + tlClockTxt(d.stat) + '</td><td style="color:' + (d.d > 0 ? 'var(--err-ink)' : 'var(--acc)') + '">' + sec2(d.d) + '</td></tr>');
     });
     h.push('</table></details>');
   }
