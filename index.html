@@ -36,6 +36,9 @@
   --ok-ink:#4ade80; --warn-ink:#f2c46b; --err-ink:#ff7b72; --info-ink:#79c0ff; --acc-ink:#d2a8ff;
   --gold:#f2c46b; --goldbg:#2b2415;
   --red:#ff7b72; --blue:#79c0ff; --orange:#ffa657;
+  /* 重賞グレードの色（G1=青 / G2=赤 / G3=緑 / Jpn=紫）※2026-09-11にG1とG2を入れ替え */
+  --g1:#3b82f6; --g1-bd:#60a5fa; --g2:#e5484d; --g2-bd:#ff6b6f;
+  --g3:#22a45d; --g3-bd:#3ecf7a; --gpn:#a855d6; --gpn-bd:#c07ce8;
   --shadow:0 8px 24px rgba(0,0,0,.45);
   --sidebar:#000000; --topbar:rgba(18,18,18,.82); --topbar-ink:#ffffff;
   --hd-btn-bg:rgba(255,255,255,.10); --hd-btn-bd:rgba(255,255,255,.22); --hd-btn-hover:rgba(255,255,255,.20);
@@ -54,6 +57,8 @@ html[data-theme="light"]{
   --ok-ink:#0d6a3c; --warn-ink:#8a5a1a; --err-ink:#b3261e; --info-ink:#0f6fc2; --acc-ink:#6d45b8;
   --gold:#c8860a; --goldbg:#fdf3d7;
   --red:#c93c30; --blue:#0f6fc2; --orange:#e07a1f;
+  --g1:#1d4ed8; --g1-bd:#1d4ed8; --g2:#c2332b; --g2-bd:#c2332b;
+  --g3:#1d7a4a; --g3-bd:#1d7a4a; --gpn:#7b3fa0; --gpn-bd:#7b3fa0;
   --shadow:0 1px 2px rgba(20,40,24,.06),0 6px 18px rgba(20,40,24,.08);
   --sidebar:#ffffff; --topbar:linear-gradient(135deg,#0a7a40,#12a05c 55%,#0f8f4e); --topbar-ink:#ffffff;
   --hd-btn-bg:rgba(255,255,255,.16); --hd-btn-bd:rgba(255,255,255,.45); --hd-btn-hover:rgba(255,255,255,.30);
@@ -402,7 +407,10 @@ table.gc-tbl td.gc-cell.off{background:var(--card2);border-style:dashed}
 .gcr{display:block;text-align:left;width:100%;border:none;background:none;cursor:pointer;font-family:inherit;padding:1px 0;margin:1px 0;border-radius:6px;line-height:1.25}
 .gcr:hover{background:var(--card2)}
 .gcr .gb{display:inline-block;border-radius:4px;padding:0 4px;font-size:.64rem;font-weight:900;color:var(--on-accent);margin-right:3px}
-.gb.g1{background:#c2332b}.gb.g2{background:#2158a8}.gb.g3{background:#1d7a4a}.gb.jpn{background:#7b3fa0}
+.gb.g1,.gcb.g1{background:var(--g1);border:1px solid var(--g1-bd)}
+.gb.g2,.gcb.g2{background:var(--g2);border:1px solid var(--g2-bd)}
+.gb.g3,.gcb.g3{background:var(--g3);border:1px solid var(--g3-bd)}
+.gb.jpn,.gcb.jpn{background:var(--gpn);border:1px solid var(--gpn-bd)}
 .gcr .gn{color:var(--ink)}.gcr .gv{color:var(--warn-ink);font-size:.68rem;margin-left:2px}
 .gcr.done{cursor:default}
 .gcr.done .gn{color:var(--warn-ink)}
@@ -561,6 +569,56 @@ table.gc-tbl td.gc-cell.off{background:var(--card2);border-style:dashed}
 .nkr.r3{background:#ffaad4;border:1px solid #f47fb4}
 .l3plain{display:inline-block;color:var(--info-ink);font-weight:800;font-size:.76rem;line-height:1.6;white-space:nowrap}
 .lgb{display:inline-block;border-radius:5px;padding:0 5px;font-weight:800;font-size:.72rem;color:var(--ink);line-height:1.7;margin:0 1px}
+/* ⑥分析 表の「年別」内訳（行内に開く・表は横に広げない） */
+.drsub{border:1px solid var(--line2);background:var(--card2);color:var(--info-ink);border-radius:10px;
+  padding:0 6px;margin-left:5px;font-size:.66rem;font-weight:800;cursor:pointer;line-height:1.6;vertical-align:middle}
+.drsub:hover{border-color:var(--green);color:var(--ok-ink)}
+.drsub.open{background:var(--green3);border-color:var(--green);color:var(--ok-ink)}
+.drsub .ar{font-size:.9em}
+.drsubrow td{border-top:1px dashed var(--line2)}
+.dryr{display:inline-block;border:1px solid var(--line2);background:var(--card2);border-radius:9px;
+  padding:0 7px;margin:2px 3px 2px 0;font-size:.72rem;white-space:nowrap;line-height:1.7}
+.dryr b{color:var(--warn-ink);font-weight:800}
+.dryr i{font-style:normal;font-weight:800}
+.dryr i.w{color:var(--ok-ink)}
+.dryr i.t2,.dryr i.t3{color:var(--info-ink)}
+.dryr i.muted{color:var(--mut);font-weight:400}
+/* 血統ファクターの世代バッジ（列を増やさず名前セル内に収める） */
+.bfg{display:inline-block;margin-left:4px;padding:0 5px;border:1px solid var(--line2);border-radius:9px;
+  background:var(--card2);color:var(--mut);font-size:.68rem;font-weight:800;line-height:1.5;vertical-align:1px;white-space:nowrap}
+.bfg.d{border-color:rgba(155,110,255,.5);background:rgba(155,110,255,.16);color:var(--info-ink)}
+/* 10代血統の「共通点」ブロック（6代目以降・3〜4点だけ） */
+.bfdeep{border:1px solid rgba(155,110,255,.42);background:linear-gradient(180deg,rgba(155,110,255,.10),rgba(155,110,255,.03));
+  border-radius:12px;padding:8px 10px;margin:6px 0}
+.bfdeep .bfdh{font-weight:800;font-size:.98rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.bfdeep .bfdg{font-weight:800;margin:8px 0 2px;color:var(--ink);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.bfdeep .bfdg:first-of-type{margin-top:2px}
+.bfdeep .bfdn{font-weight:800;font-size:.78rem;color:var(--info-ink);border:1px solid var(--line2);
+  background:var(--card2);border-radius:9px;padding:0 6px}
+.bfdeep .bfdli{margin:2px 0 2px 10px;padding-left:2px;line-height:1.65}
+.bfdeep .bfdli b{color:var(--warn-ink)}
+.bfdeep .bfdln{margin-left:6px;font-size:.76rem;color:var(--mut);white-space:nowrap}
+/* 今回の出走馬 × 10代共通点 の該当表 */
+.bfhit{border:1px solid var(--line2);background:var(--card);border-radius:12px;padding:8px 10px;margin:6px 0}
+.bfhit .bfdh{font-weight:800;font-size:.98rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.bfhittbl{width:100%}
+.bfhittbl td,.bfhittbl th{padding:3px 5px}
+.bfhrow td{background:rgba(155,110,255,.07)}
+.bfhrow0 td{color:var(--mut)}
+.bfhg{display:inline-block;min-width:22px;text-align:center;border-radius:8px;padding:0 6px;font-weight:800;
+  border:1px solid var(--line2);background:var(--card2);color:var(--mut);font-size:.78rem}
+.bfhg.bfh3{border-color:rgba(255,123,114,.55);background:rgba(255,123,114,.18);color:var(--err-ink)}
+.bfhg.bfh2{border-color:rgba(255,193,94,.55);background:rgba(255,193,94,.16);color:var(--warn-ink)}
+.bfhg.bfh1{border-color:rgba(96,165,250,.5);background:rgba(96,165,250,.16);color:var(--info-ink)}
+.bfhitnm{display:inline-block;margin:1px 4px 1px 0;padding:1px 6px;border:1px solid var(--line2);
+  border-radius:9px;background:var(--card2);font-size:.78rem;white-space:nowrap}
+.bfhitnm.w{border-color:rgba(155,110,255,.5);background:rgba(155,110,255,.14)}
+.bfhitnm b{color:var(--warn-ink);font-weight:800}
+.bfhitnm i{font-style:normal;color:var(--mut);margin-left:4px;font-size:.72rem}
+.bfhitnm.all{opacity:.55;border-style:dashed;background:transparent}
+.bfhitnm.all b{color:var(--mut);font-weight:400}
+.bfwarn{display:inline-block;margin-left:4px;width:14px;text-align:center;border-radius:7px;
+  background:rgba(255,193,94,.22);color:var(--warn-ink);font-weight:800;font-size:.72rem}
 /* ⑥分析 の navi-keiba風 短評 */
 .drshort{margin:2px 0 8px;font-size:.8rem;line-height:1.75}
 .drshort .lab{font-weight:800;color:var(--ok-ink)}
@@ -1687,11 +1745,11 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <h2>📅 年度の重賞カレンダー（JRAレーシングカレンダー風・月別）</h2>
       <span class="chip">中央 G1〜G3 ＋ 地方交流 Jpn</span>
       <span class="sp"></span>
-      <span class="small muted">レースをクリックすると そのレースの「⑥ 重賞データ分析」をすぐ実行します</span>
+      <span class="small muted">レースをクリックすると 下の「📊 重賞データ分析」でそのレースをすぐ実行します</span>
     </div>
     <div class="small muted" style="margin-bottom:6px">
       年に開催された<b>中央G1〜G3</b>（JRAの開催日カレンダーから、芝・ダ・障害を含む）と、代表的な<b>地方交流ダートグレード（Jpn1〜3）</b>を月ごとに表示します。
-      日付の枠の中のレース名をタップ/クリックすると、その年のそのレースについて過去10年の共通点を自動分析します（⑥と同じエンジン）。
+      日付の枠の中のレース名をタップ/クリックすると、その年のそのレースについて過去10年の共通点を自動分析します（下の「📊 重賞データ分析」と同じ表示先・同じエンジン）。
       中央の重賞は netkeiba の開催日一覧から、地方交流は netkeiba DB のレース検索で補完しています。
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 6px">
@@ -1710,28 +1768,19 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div id="gcCal" class="small"></div>
     <div class="small muted" style="margin-top:6px">凡例:
       <span class="gcb g1">G1</span><span class="gcb g2">G2</span><span class="gcb g3">G3</span><span class="gcb jpn">Jpn(地方交流)</span>
-      ・カレンダー内のレース名をクリック → 下に「⑥分析結果」を表示（取得済み分析はキャッシュされ、2回目から速いです）。
+      ・カレンダー内のレース名をクリック → 下の「📊 重賞データ分析」に結果を表示（取得済み分析はキャッシュされ、2回目から速いです）。
       ・JRA中央の開催日は netkeiba の開催カレンダー掲載分（今年の開催確定前の週は表示されません）。
     </div>
   </div>
 
-  <div class="card hid" id="gcAnaCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
-    <div class="cardhead">
-      <h2>⑥ 分析結果（カレンダーから選択したレース）</h2>
-      <span class="chip" id="gcAnaChip"></span>
-      <span class="sp"></span>
-      <button type="button" class="btn ghost" id="gcAnaClose">閉じる</button>
-    </div>
-    <div id="gcAnaMsg" class="small" style="color:var(--ok-ink);margin:2px 0 4px"></div>
-    <div id="gcOut" class="small"></div>
-  </div>
-
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
+  <!-- 旧「⑥ 分析結果（カレンダーから選択したレース）」カードは、📊重賞データ分析と中身が同一だったため
+       2026-09-11 に統合しました。カレンダーから選んでも①から選んでも、結果はこのカードの #drOut だけに出ます。 -->
+  <div class="card" id="drCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
     <div class="cardhead">
       <h2>📊 重賞データ分析（過去10年・馬券内の共通点）</h2>
       <span class="chip">G1〜G3 同名レース</span>
       <span class="sp"></span>
-      <span class="small muted">navi-keiba風に各情報を表でまとめて表示</span>
+      <span class="small muted">navi-keiba風に各情報を表でまとめて表示・⑥の分析結果はここ1箇所に出ます</span>
     </div>
     <div class="small muted" style="margin-bottom:8px">
       いま読み込んでいる<b>重賞（G1〜G3）</b>と同じレース名の過去10回分の成績から、
@@ -1754,6 +1803,49 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div id="drStat" class="small muted" style="margin:2px 0"></div>
     <div id="drMsg" class="small" style="margin:4px 0;color:var(--ok-ink)"></div>
     <div id="drOut" class="small"></div>
+
+    <!-- ===== 🧬 血統ファクター（旧⑧血統タブ → 旧🧬カード → ここへ統合） ===== -->
+    <div id="bfBlock" style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--line2)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:1.06rem;font-weight:800">🧬 血統ファクター（同じ分析データから自動抽出）</div>
+        <span class="chip">非統計・参考</span>
+        <span class="sp"></span>
+        <span class="small muted">5代まで＝表／6〜10代＝共通点だけを3〜4点</span>
+      </div>
+      <div class="small muted" style="margin:4px 0 6px">
+        上の📊分析で実際に集計に使われた<b>過去10年の1〜3着馬（約30頭）</b>の血統を、
+        netkeiba の5代血統表から<b>親馬ページをたどって最深10代まで</b>解析します。
+        <b>5代まで</b>は従来通り「何年に馬券に絡んだか」の表に、
+        <b>6代目以降</b>は全部は出さずに<b>「勝ち馬の共通点」「3着内の共通点」を3〜4点ずつ</b>
+        （例: 母系に Grey Sovereign を内包・7/10頭に該当）まとめ、
+        続けて<b>今回の出馬表から「その共通点に当てはまる馬」を該当が多い順に検出</b>します。
+        検出はあくまで傾向・オカルトレベルなので、②のAI印への反映は下のスイッチと各行の☑で任意にON/OFFできます。
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <button type="button" class="btn primary" id="bfDrBtn" title="📊の分析で取得済みの過去レース(1〜3着馬)から血統ファクターと10代の共通点を抽出し、続けて今回の出走馬の該当まで検出します">🧬 血統を抽出して今回の出走馬を検出</button>
+        <button type="button" class="btn ghost" id="bfTodayBtn" title="今日の出走馬の血統を取得して、反映ON中のファクターに該当するか照合します">📥 今日の出走馬の血統を取得</button>
+        <button type="button" class="btn ghost" id="bfReset" title="ONにしたファクターを全部OFFに戻す">⏻ 反映OFFに戻す</button>
+        <button type="button" class="btn ghost" id="bfDelCache" title="血統・レース結果キャッシュを消去">🗑 キャッシュ消去</button>
+        <button type="button" class="btn ghost" id="bfBtn" title="予備の経路: 開催カレンダーを探して過去10年を独自に分析します（📊の分析が使えないとき用）">🔍 予備: 過去10年を独自分析</button>
+        <label style="font-size:.82rem;display:inline-flex;gap:4px;align-items:center;margin-left:6px"
+               title="ON: 5代目の祖先32頭の血統表も取得して10代まで集計し、6代目以降の共通点を出します（初回は数分・以後キャッシュで即時）／OFF: 5代まで（高速）">
+          <input type="checkbox" id="bfDeepCb" checked> 🧬 10代まで掘る（既定ON）
+        </label>
+        <label style="font-size:.82rem;display:inline-flex;gap:4px;align-items:center;margin-left:6px">
+          <input type="checkbox" id="bfApplyCb"> 全体スイッチ: 反映ON中のファクターを②のAI印に加点
+        </label>
+      </div>
+      <div class="small muted" style="margin-bottom:6px">
+        ※ <b>10代まで掘る</b>場合は初回だけ親馬ページをたどります。<b>実測: 過去5年(14頭)で252件・65秒／過去10年(約30頭)なら400〜500件・2〜4分</b>の目安です
+        （重複する祖先は自動で使い回すので頭数の割に通信は増えません。2回目以降はキャッシュで即時）。
+        急ぐときは「🧬 10代まで掘る」をOFFにすると5代まで（1〜2分）になります。
+      </div>
+      <div id="bfMsg" class="small" style="margin:4px 0"></div>
+      <div id="bfDeepOut" class="small" style="margin:6px 0"></div>
+      <div id="bfDeepHit" class="small" style="margin:6px 0;overflow-x:auto"></div>
+      <div id="bfList" class="small" style="overflow-x:auto"></div>
+      <div id="bfToday" class="small" style="margin-top:8px;background:var(--card);border-radius:8px;padding:6px 8px"></div>
+    </div>
   </div>
 <!-- ===== 旧④過去データタブの内容（⑥重賞データ分析へ統合） ===== -->
     <div class="card">
@@ -1787,55 +1879,9 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div id="histSeriesName" style="margin-top:8px;margin-bottom:2px;font-size:1.15rem;font-weight:700"></div>
     <div id="histOut" style="display:grid;gap:14px;margin-top:4px"></div>
 
-  <!-- ===== 旧⑧血統タブのオカルト血統ファクター（⑥へ移設） ===== -->
-<div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-    <div class="cardhead">
-      <h2>🧬 重賞オカルト血統ファクター（⑥の分析データから自動抽出）</h2>
-      <span class="chip">非統計・参考</span>
-      <span class="sp"></span>
-      <span class="small muted">旧⑧血統タブ → ⑥に移設</span>
-    </div>
-    <div class="small muted" style="margin-bottom:6px">
-      ⑥の<b>重賞データ分析</b>（「📥 この重賞の過去10年を分析」または重賞カレンダーから選んだレース）で
-      実際に集計に使われた<b>過去レースの1〜3着馬</b>をそのまま使い、その馬たちの血統(netkeiba 5代)から
-      「◯◯という祖先を持つ馬が何年に馬券に絡んだか」を自動抽出します。⑥の集計と<b>同じ母集団</b>から拾うため、
-      レースの取り違えが起きず、別途の過去レース探索も不要になりました。
-      検出はあくまで<b>傾向・オカルトレベル</b>なので、AI印への反映は下のスイッチと各行の☑で
-      任意にON/OFFできます（OFFなら印計算には一切影響しません）。
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-      <button type="button" class="btn primary" id="bfDrBtn" title="⑥重賞データ分析で取得済みの過去レース(1〜3着馬)から血統ファクターを抽出します">📊 ⑥の分析データから抽出</button>
-      <button type="button" class="btn ghost" id="bfTodayBtn">📥 今日の出走馬の血統を取得</button>
-      <button type="button" class="btn ghost" id="bfReset" title="ONにしたファクターを全部OFFに戻す">⏻ 反映OFFに戻す</button>
-      <button type="button" class="btn ghost" id="bfDelCache" title="血統・レース結果キャッシュを消去">🗑 キャッシュ消去</button>
-      <button type="button" class="btn ghost" id="bfBtn" title="予備の経路: 開催カレンダーを探して過去10年を独自に分析します（⑥の分析が使えないとき用）">🔍 予備: 過去10年を独自分析</button>
-      <label style="font-size:.82rem;display:inline-flex;gap:4px;align-items:center;margin-left:6px">
-        <input type="checkbox" id="bfApplyCb"> 全体スイッチ: 反映ON中のファクターを②のAI印に加点
-      </label>
-    </div>
-    <div class="small muted" style="margin-bottom:6px">
-      ※ 初回は血統ページの取得に1〜2分かかります（以後キャッシュで即時）。対象は netkeiba の5代血統表まで。Marguerite 等の
-      表外の超深い牝系名は検出できません。オッズ(単勝/複勝回収率)ではなく「馬券に絡んだ年数」の集計です。
-    </div>
-    <div id="bfMsg" class="small" style="margin:4px 0"></div>
-    <div id="bfList" class="small" style="overflow-x:auto"></div>
-    <div id="bfToday" class="small" style="margin-top:8px;background:var(--card);border-radius:8px;padding:6px 8px"></div>
-  </div>
-
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-    <div class="cardhead">
-      <h2>🏆 血統ファクター 上位5件 × 該当馬（別枠・表）</h2>
-      <span class="chip">今回の出走馬で照合</span>
-      <span class="sp"></span>
-      <button type="button" class="btn primary" id="bfTopBtn">📊 上位5件の該当馬を表で表示</button>
-    </div>
-    <div class="small muted" style="margin-bottom:6px">
-      上で分析したファクターの中から「<b>今回の出走馬に実際に当てはまる馬が多い</b>」順に上位5件を選び、
-      どの出走馬がその血統（netkeiba 5代表に内包）を持っているかを1つの表として表示します。
-      （まず上の「🔍 過去10年を分析」→ 必要なら「📥 今日の出走馬の血統を取得」の順で実行してください）
-    </div>
-    <div id="bfTopOut" class="small" style="overflow-x:auto"></div>
-  </div>
+  <!-- 旧「🧬 重賞オカルト血統ファクター」カードと「🏆 血統ファクター 上位5件 × 該当馬」カードは
+       中身が同じになるため 2026-09-11 に廃止し、📊重賞データ分析カード(#drCard)内の
+       #bfBlock へ統合しました（5代まで＝表／6〜10代＝共通点3〜4点）。 -->
 </section>
 
 <!-- ================= ⑦ 天気予報 ================= -->
@@ -13161,18 +13207,109 @@ function initAp(){
      深い牝系名は掲載外のため検出不可。これは仕様として明記）
    ========================================================= */
 var BF_LS = 'khl_bf_v1';
+/* ===== 深掘り(10代)設定 ===== */
+var BF_PED_V = 3;        // 血統キャッシュの形式(3=世代+系統つき)。古いものは取り直す
+var BF_DEEP_GEN = 10;    // 目標世代(5代目の祖先の5代血統表 = 10代目まで)
+var BF_DEEP_BUDGET = 1200;  // 1回の分析で新規取得する祖先ページの上限(暴走防止)
+var BF_DEEP_MAXLITE = 700;  // 保持する祖先キャッシュ件数の上限(1件2.5KB≒1.8MB。超えたら古いものから間引き)
+var BF_DEEP_MEM = {};    // 実行中のメモリキャッシュ(馬ID → 10代セット)
+var BF_DEEP_STAT = { req: 0, hit: 0, miss: 0 };
+var BF_SAVE_T = null;    // 保存デバウンス
 var BF_G1 = 'G1', BF_G2 = 'G2', BF_G3 = 'G3';
-function bfLs(){
-  try { var o = JSON.parse(localStorage.getItem(BF_LS) || '{}');
-    if (!o || typeof o !== 'object') return { ped:{}, race:{}, set:{ on:{}, apply:false }, last:{} };
-    if (!o.ped) o.ped = {}; if (!o.race) o.race = {}; if (!o.set) o.set = { on:{}, apply:false };
-    if (!o.set.on) o.set.on = {}; if (o.set.apply == null) o.set.apply = false;
-    if (!o.last) o.last = {}; return o; }
-  catch(e){ return { ped:{}, race:{}, set:{ on:{}, apply:false }, last:{} }; }
+/* 深掘り中(bfHold)は同じメモリ上オブジェクトを返す。
+   → 4並列で祖先ページを取得しても「読んで書いて保存」で互いに消さない。 */
+var BF_LS_MEM = null;
+var BF_HOLD_N = 0;
+function bfLsBlank(){ return { ped:{}, race:{}, set:{ on:{}, apply:false }, last:{} }; }
+function bfLsNorm(o){
+  if (!o || typeof o !== 'object') return bfLsBlank();
+  if (!o.ped) o.ped = {}; if (!o.race) o.race = {}; if (!o.set) o.set = { on:{}, apply:false };
+  if (!o.set.on) o.set.on = {}; if (o.set.apply == null) o.set.apply = false;
+  if (!o.last) o.last = {}; return o;
 }
-function bfSave(o){ try { localStorage.setItem(BF_LS, JSON.stringify(o)); } catch(e){} }
+function bfLs(){
+  if (BF_LS_MEM) return BF_LS_MEM;
+  try { return bfLsNorm(JSON.parse(localStorage.getItem(BF_LS) || '{}')); }
+  catch(e){ return bfLsBlank(); }
+}
+function bfHold(){
+  BF_HOLD_N++;
+  if (!BF_LS_MEM) BF_LS_MEM = bfLs();
+}
+function bfRelease(){
+  BF_HOLD_N = BF_HOLD_N > 0 ? BF_HOLD_N - 1 : 0;
+  if (!BF_HOLD_N && BF_LS_MEM){
+    var o = BF_LS_MEM; BF_LS_MEM = null;
+    try { if (BF_SAVE_T){ clearTimeout(BF_SAVE_T); BF_SAVE_T = null; } } catch(e){}
+    bfSave(o);
+  }
+}
+
+function bfSave(o){
+  try { localStorage.setItem(BF_LS, JSON.stringify(o)); return true; }
+  catch(e){
+    // 容量超過: 古い「祖先(深掘り用)」キャッシュから間引いて再試行
+    for (var t = 0; t < 8; t++){
+      if (!bfEvictLite(o, 80)) break;
+      try { localStorage.setItem(BF_LS, JSON.stringify(o)); return true; } catch(e2){}
+    }
+    return false;
+  }
+}
+/* 祖先(lite)キャッシュを古い順に n 件削除。削除したら true */
+function bfEvictLite(o, n){
+  try {
+    var ped = (o && o.ped) || {};
+    var ks = Object.keys(ped).filter(function(k){ return ped[k] && ped[k].lite; });
+    if (!ks.length) return 0;
+    ks.sort(function(a, b){ return String(ped[a].at || '').localeCompare(String(ped[b].at || '')); });
+    var cut = Math.min(n || 80, ks.length);
+    for (var i = 0; i < cut; i++) delete ped[ks[i]];
+    return cut;
+  } catch(e){ return 0; }
+}
+/* 深掘り中は保存をまとめ打ち(2MB級のJSONを毎回書くと重いので 2.5秒デバウンス) */
+function bfSaveSoon(o){
+  try {
+    if (BF_SAVE_T) return;
+    BF_SAVE_T = setTimeout(function(){ BF_SAVE_T = null; bfSave(o || bfLs()); }, 2500);
+  } catch(e){ bfSave(o || bfLs()); }
+}
+function bfSaveFlush(){
+  try {
+    if (BF_SAVE_T){ clearTimeout(BF_SAVE_T); BF_SAVE_T = null; }
+    bfSave(bfLs());          // hold 中なら BF_LS_MEM そのものが保存される
+  } catch(e){}
+}
+function bfPruneDeep(o){
+  try {
+    var ped = (o && o.ped) || {};
+    var ks = Object.keys(ped).filter(function(k){ return ped[k] && ped[k].lite; });
+    if (ks.length <= BF_DEEP_MAXLITE) return;
+    bfEvictLite(o, ks.length - BF_DEEP_MAXLITE);
+  } catch(e){}
+}
 
 /* ---------- 共通: 取得 ---------- */
+/* 深掘りは「本体3並列 × 祖先4並列」で最大12接続になってしまうので、
+   ネットワーク実接続はここで全体4本までに絞る（中継のレート制限対策）。 */
+var BF_GATE_MAX = 4, BF_GATE_N = 0, BF_GATE_Q = [];
+function bfGatePump(){
+  while (BF_GATE_N < BF_GATE_MAX && BF_GATE_Q.length){
+    var job = BF_GATE_Q.shift();
+    BF_GATE_N++;
+    try { job(); } catch(e){ BF_GATE_N--; }
+  }
+}
+function bfGate(fn){
+  return new Promise(function(res, rej){
+    BF_GATE_Q.push(function(){
+      Promise.resolve().then(fn).then(function(v){ BF_GATE_N--; bfGatePump(); res(v); },
+                                      function(e){ BF_GATE_N--; bfGatePump(); rej(e); });
+    });
+    bfGatePump();
+  });
+}
 function bfGet(url){
   if (typeof histFetchHtml === 'function') return histFetchHtml(url);
   return new Promise(function(res, rej){
@@ -13430,28 +13567,87 @@ function bfPayoutMap(payouts){
   return m;
 }
 
-/* ---------- 共通: 5代血統表 → 祖先名セット ---------- */
+/* ---------- 共通: 5代血統表 → 祖先名セット（世代つき） ----------
+   netkeiba の 5代血統表は「父系16行」＋「母系16行」の2ブロックで、本馬は表に含まれない。
+   各ブロックは rowspan が 16,8,8,4,4,4,4,2,… の完全2分木（深さ優先順にセルが並ぶ）なので、
+   セル順＋rowspan から「何代目の祖先か」を復元できる。ブロックの根 = 父 / 母 = 1代目。
+   → g5（5代目の祖先ID・最大32件）を控えておけば、その馬たちの5代血統表を辿るだけで
+     6〜10代目まで名前が手に入る（bfPedDeep）。 */
 function bfParsePed(html){
-  var o = { names: {}, disp: {}, males: {}, females: {}, count: 0 };
+  var o = { names: {}, disp: {}, males: {}, females: {}, gen: {}, ln: {}, g5: [], g5l: {}, count: 0, v: BF_PED_V };
   if (!html) return o;
   var m = html.match(/<table[^>]*summary="5代血統表"[^>]*>([\s\S]*?)<\/table>/);
   if (!m) return o;
   var seg = m[1];
   var cellRe = /<td[^>]*class="(b_ml|b_fml)"[^>]*>([\s\S]*?)<\/td>/gi, cm;
+  var cells = [];
   while ((cm = cellRe.exec(seg)) !== null){
-    var sex = cm[1], body = cm[2];
+    var rsm = cm[0].match(/rowspan="(\d+)"/);
+    cells.push({ sex: cm[1], body: cm[2], rs: (rsm ? (parseInt(rsm[1], 10) || 1) : 1) });
+  }
+  var stack = [], p = 0, blk = 0;   // p = ブロック内の行カーソル（rowspan=1 の葉が1行消費）
+  cells.forEach(function(c){
+    while (stack.length && stack[stack.length - 1].end <= p) stack.pop();
+    if (!stack.length && p > 0){ p = 0; blk++; }             // 新ブロック（母系）の開始
+    var par = stack.length ? stack[stack.length - 1] : null;
+    var gen = (par ? par.gen : 0) + 1;
+    // 経路: 先頭の子=父(s)・2番目の子=母(d)。ブロックの根は 父(s) / 母(d)
+    var path = par ? (par.path + (par.kids === 0 ? 's' : 'd')) : (blk === 0 ? 's' : 'd');
+    if (par) par.kids++;
+    stack.push({ gen: gen, end: p + c.rs, path: path, kids: 0 });
+    if (c.rs === 1) p++;
+    var body = c.body;
     var am = body.match(/href="https:\/\/db\.netkeiba\.com\/horse\/([0-9a-z]{8,})\/"[^>]*>\s*([^<]+?)\s*<\/a>/i);
     if (!am) am = body.match(/href="https:\/\/db\.netkeiba\.com\/horse\/([0-9a-z]{8,})\/">([\s\S]*?)<\/a>/i);
-    if (!am) continue;
+    if (!am) return;
     var id = am[1];
     var nm = bfNormName(am[2]);
-    if (!nm) continue;
+    if (!nm) return;
     var dp = bfDispName(am[2]);
-    if (o.names[nm] == null){ o.names[nm] = id; o.disp[nm] = dp; }
     o.count++;
-    if (sex === 'b_ml') o.males[nm] = id; else o.females[nm] = id;
-  }
+    var code = path.length >= 2 ? path.slice(0, 2) : path;   // 表示用の系統は最初の2手で足りる
+    if (o.names[nm] == null){ o.names[nm] = id; o.disp[nm] = dp; o.gen[nm] = gen; o.ln[nm] = code; }
+    else {
+      if (gen < (o.gen[nm] || 99)) o.gen[nm] = gen;
+      o.ln[nm] = bfMergeCodes(o.ln[nm], code);
+    }
+    if (gen === 5 && id){
+      if (o.g5.indexOf(id) < 0) o.g5.push(id);
+      if (o.g5l[id] == null) o.g5l[id] = code;
+      else o.g5l[id] = bfMergeCodes(o.g5l[id], code);
+    }
+    if (c.sex === 'b_ml') o.males[nm] = id; else o.females[nm] = id;
+  });
   return o;
+}
+
+/* 系統コード('ss'=父父 'sd'=父母 'ds'=母父 'dd'=母母)の集合を '|' 区切りで合并 */
+function bfMergeCodes(a, b){
+  if (!a) return b || '';
+  if (!b) return a;
+  var arr = String(a).split('|');
+  String(b).split('|').forEach(function(c){ if (c && arr.indexOf(c) < 0 && arr.length < 4) arr.push(c); });
+  return arr.join('|');
+}
+/* 系統コードの数（少ないほど「どの筋か」が特定できている。無情報は9扱いで最後） */
+function bfCodeN(code){
+  if (!code) return 9;
+  return String(code).split('|').filter(function(c){ return !!c; }).length || 9;
+}
+/* 系統コード → 表示用のことば（母系 / 母父系 / 父系 / 父母系 …） */
+var BF_LINE_MAP = { s:'父', d:'母', ss:'父父系', sd:'父母系', ds:'母父系', dd:'母母系' };
+function bfLineLabel(code){
+  if (!code) return '';
+  var set = {};
+  String(code).split('|').forEach(function(c){ if (c) set[c] = 1; });
+  var ks = Object.keys(set);
+  if (!ks.length) return '';
+  if (ks.length === 1) return BF_LINE_MAP[ks[0]] || '';
+  var allS = ks.every(function(c){ return c.charAt(0) === 's'; });
+  var allD = ks.every(function(c){ return c.charAt(0) === 'd'; });
+  if (allD) return (ks.indexOf('ds') >= 0 && ks.indexOf('dd') >= 0) ? '母系' : (BF_LINE_MAP[ks[0]] || '母系');
+  if (allS) return (ks.indexOf('ss') >= 0 && ks.indexOf('sd') >= 0) ? '父系' : (BF_LINE_MAP[ks[0]] || '父系');
+  return '父母両系';
 }
 
 /* ---------- 過去シリーズ（同じレース名の過去開催ridを発見） ---------- */
@@ -13653,17 +13849,152 @@ function bfYearTop(rid){
     return rec;
   });
 }
-/* 1頭分の5代血統（キャッシュ） */
-function bfPed(id){
+/* 1頭分の5代血統（キャッシュ）
+   opt.needGen : 世代情報(gen/g5)が無い古いキャッシュは取り直す
+   opt.lite    : 祖先用（males/females/g5 を落として省サイズ・保存はまとめ打ち） */
+function bfPed(id, opt){
+  opt = opt || {};
   var ls = bfLs();
-  if (ls.ped[id] && ls.ped[id].names) return Promise.resolve(ls.ped[id]);
-  return bfGet('https://db.netkeiba.com/horse/ped/' + id + '/').then(function(html){
+  var rec = ls.ped[id];
+  // lite(祖先用)で保存済みの馬を「本体」として使うときは完全版に取り直す
+  var usable = rec && (opt.lite ? (rec.names || rec.g) : rec.names);
+  if (usable && ((rec.v === BF_PED_V) || !opt.needGen)) return Promise.resolve(rec);
+  return bfGate(function(){ return bfGet('https://db.netkeiba.com/horse/ped/' + id + '/'); }).then(function(html){
     var p = bfParsePed(html);
     if (!p.count) throw new Error('血統表を解析できませんでした(' + id + ')');
-    var rec = { names: p.names, disp: p.disp || {}, males: p.males, females: p.females, count: p.count, at: new Date().toISOString() };
-    ls.ped[id] = rec; bfSave(ls);
-    return rec;
+    var r2;
+    if (opt.lite){
+      // 祖先は「名前→世代」だけで十分（表示名 disp は残す）
+      r2 = { g: p.gen, disp: p.disp || {}, count: p.count, v: BF_PED_V, lite: 1, at: new Date().toISOString() };
+    } else {
+      r2 = { names: p.names, disp: p.disp || {}, males: p.males, females: p.females,
+             gen: p.gen || {}, ln: p.ln || {}, g5: p.g5 || [], g5l: p.g5l || {},
+             count: p.count, v: BF_PED_V, at: new Date().toISOString() };
+    }
+    var ls2 = bfLs();
+    ls2.ped[id] = r2;
+    bfPruneDeep(ls2);
+    if (opt.lite) bfSaveSoon(ls2); else bfSave(ls2);
+    return r2;
+  }, function(err){
+    // 取り直し(古いキャッシュの世代補完)が失敗したら、手持ちのキャッシュで妥協する
+    if (rec && (rec.names || rec.g)) return rec;
+    throw err;
   });
+}
+
+/* ===== 深掘り: 5代目の祖先を辿って 6〜10代目まで名前を集める ===== */
+function bfDeepOn(){
+  try { var c = $('bfDeepCb'); if (c && typeof c.checked === 'boolean') return !!c.checked; } catch(e){}
+  try { var ls = bfLs(); return !(ls.set && ls.set.deep === false); } catch(e2){ return true; }
+}
+function bfAncGenMap(rec){
+  if (!rec) return null;
+  return rec.g || rec.gen || null;
+}
+/* キャッシュ(ls.ped)だけから 10代セットを同期的に作る。未取得の祖先は無視(=浅くなるだけ) */
+function bfBuildDeep(base){
+  if (!base || !base.names) return null;
+  var ls = bfLs();
+  var names = {}, gen = {}, n5 = {}, ln = {}, k;
+  for (k in base.names){
+    names[k] = base.names[k];
+    gen[k] = (base.gen && base.gen[k]) || 5;
+    n5[k] = 1;
+    if (base.ln && base.ln[k]) ln[k] = base.ln[k];
+  }
+  var deep = 0;
+  (base.g5 || []).forEach(function(aid){
+    var gm = bfAncGenMap(ls.ped[aid]);
+    if (!gm) return;
+    deep++;
+    // 6代目以降の系統は「その5代目祖先へ至る経路」で決まる（例: 母父系経由なら全部 母父系）
+    var code = (base.g5l && base.g5l[aid]) || '';
+    for (var nm in gm){
+      var g2 = 5 + (gm[nm] || 5);
+      if (g2 > BF_DEEP_GEN) continue;
+      if (names[nm] == null) names[nm] = 1;
+      if (gen[nm] == null || g2 < gen[nm]) gen[nm] = g2;
+      if (code) ln[nm] = ln[nm] ? bfMergeCodes(ln[nm], code) : code;
+    }
+  });
+  return { names: names, gen: gen, n5: n5, ln: ln, disp: base.disp || {}, count: base.count, deep: deep };
+}
+/* 同期版（表示・照合用。取得はしない） */
+function bfDeepSet(nk){
+  if (!nk) return null;
+  try {
+    if (!bfDeepOn()){ var b0 = bfLs().ped[nk]; return (b0 && b0.names) ? b0 : null; }
+    if (BF_DEEP_MEM[nk]) return BF_DEEP_MEM[nk];
+    var base = bfLs().ped[nk];
+    if (!base || !base.names) return null;
+    var out = bfBuildDeep(base);
+    if (out) BF_DEEP_MEM[nk] = out;
+    return out;
+  } catch(e){ return null; }
+}
+/* 非同期版（分析用。未取得の5代目祖先を取りに行く） */
+function bfPedDeep(id, opt){
+  opt = opt || {};
+  var progress = opt.progress || function(){};
+  var deep = (opt.deep == null) ? bfDeepOn() : !!opt.deep;
+  if (!deep){
+    return bfPed(id, { needGen: false }).then(function(rec){
+      return { names: rec.names, gen: rec.gen || {}, n5: rec.names, disp: rec.disp || {}, count: rec.count, deep: 0 };
+    });
+  }
+  if (BF_DEEP_MEM[id]) return Promise.resolve(BF_DEEP_MEM[id]);
+  bfHold();
+  return bfPedDeepBody(id, opt, progress).then(function(r){
+    bfRelease(); return r;
+  }, function(e){ bfRelease(); throw e; });
+}
+function bfPedDeepBody(id, opt, progress){
+  return bfPed(id, { needGen: true }).then(function(base){
+    if (!base || !base.names) return base;
+    var g5 = (base.g5 || []).slice(0, 32);
+    if (!g5.length) return bfBuildDeep(base) || base;   // 5代目が分からない=浅いまま集計
+    var ls = bfLs();
+    var missing = g5.filter(function(a){ return !bfAncGenMap(ls.ped[a]); });
+    BF_DEEP_STAT.hit += (g5.length - missing.length);
+    if (!missing.length){
+      var cached = bfBuildDeep(base);
+      if (cached) BF_DEEP_MEM[id] = cached;
+      return cached || base;
+    }
+    var room = Math.max(0, BF_DEEP_BUDGET - BF_DEEP_STAT.req);
+    if (!room){
+      progress('⚠ 深掘り予算(' + BF_DEEP_BUDGET + '件)に達したため、この馬は取得済み世代までで集計します');
+      var part = bfBuildDeep(base);
+      if (part) BF_DEEP_MEM[id] = part;
+      return part || base;
+    }
+    var queue = missing.slice(0, room);
+    var done = 0;
+    var work = function(aid){
+      BF_DEEP_STAT.req++;
+      return bfPed(aid, { lite: true }).then(function(){
+        done++;
+        if (done % 4 === 0 || done === queue.length){
+          progress('🧬 10代血統を掘り込み中: ' + (BF_DEEP_STAT.hit + done) + '頭分／新規取得 ' + BF_DEEP_STAT.req + '件…');
+        }
+      }).catch(function(){ BF_DEEP_STAT.miss++; });
+    };
+    var runner = (typeof drPool === 'function')
+      ? drPool(queue, work, 4)
+      : queue.reduce(function(acc, aid){ return acc.then(function(){ return work(aid); }); }, Promise.resolve());
+    return runner.then(function(){
+      bfSaveFlush();
+      var out = bfBuildDeep(base);
+      if (out) BF_DEEP_MEM[id] = out;
+      return out || base;
+    });
+  });
+}
+/* 深掘りの統計（進捗表示用） */
+function bfDeepStatText(){
+  return '新規取得 ' + BF_DEEP_STAT.req + '件・キャッシュ ' + BF_DEEP_STAT.hit + '件' +
+    (BF_DEEP_STAT.miss ? '・失敗 ' + BF_DEEP_STAT.miss + '件' : '');
 }
 
 /* ---------- 分析 ---------- */
@@ -13691,7 +14022,7 @@ function bfYearsBuild(rows){
   return seq.then(function(){ years.sort(function(a,b){ return a.year - b.year; }); return years; });
 }
 /* 集計用: 年ごと・着別(1着/複勝圏)に「祖先名セットの持ち主リスト」を作る */
-function bfAncData(years){
+function bfAncData(years, progress){
   // years: [{year, top:[{order,name,id}]}] → {yearTop:[{year,winnerPed?,boardPeds:[ped…]}]}
   var seq = Promise.resolve();
   var entries = [];
@@ -13700,7 +14031,7 @@ function bfAncData(years){
       var win = null, board = [];
       var q = Promise.resolve();
       yr.top.forEach(function(h){
-        q = q.then(function(){ return bfPed(h.id).catch(function(){ return null; }); })
+        q = q.then(function(){ return bfPedDeep(h.id, { progress: progress }).catch(function(){ return null; }); })
           .then(function(ped){
             if (ped){ board.push(ped); if (h.order === 1) win = ped; }
           });
@@ -13712,10 +14043,67 @@ function bfAncData(years){
   });
   return seq.then(function(){ return entries; });
 }
+/* ===== 6〜10代目の「共通点」だけを3〜4点に絞って出す =====
+   entries: [{year, win:ped, board:[ped…]}]
+   → { win:{total, items:[{name,n,total,gen,line}]}, board:{…} }
+   ・5代までは下の表（bfMine/bfRender）に出るので、ここでは 6代目以降だけを対象にする
+   ・全頭が持つ基礎血統(100%)は差別化できないので、他に候補があれば除く */
+function bfDeepCommon(entries){
+  var wins = [], boards = [];
+  (entries || []).forEach(function(en){
+    if (en.win) wins.push(en.win);
+    (en.board || []).forEach(function(p){ boards.push(p); });
+  });
+  function collect(list){
+    var cnt = {}, gen = {}, ln = {};
+    list.forEach(function(ped){
+      if (!ped || !ped.names) return;
+      var seen = {};
+      Object.keys(ped.names).forEach(function(nm){
+        var g = (ped.gen && ped.gen[nm]) || 5;
+        if (g < 6 || g > BF_DEEP_GEN) return;      // 6代目以降だけ
+        if (seen[nm]) return;
+        seen[nm] = 1;
+        cnt[nm] = (cnt[nm] || 0) + 1;
+        if (gen[nm] == null || g < gen[nm]) gen[nm] = g;
+        var c = (ped.ln && ped.ln[nm]) || '';
+        if (c) ln[nm] = ln[nm] ? bfMergeCodes(ln[nm], c) : c;
+      });
+    });
+    return { cnt: cnt, gen: gen, ln: ln, total: list.length };
+  }
+  function pick(st, ratio, minHit, max){
+    var total = st.total || 0;
+    if (!total) return [];
+    var need = Math.max(minHit, Math.ceil(total * ratio));
+    var ks = Object.keys(st.cnt).filter(function(nm){ return st.cnt[nm] >= need; });
+    ks.sort(function(a, b){
+      var d = st.cnt[b] - st.cnt[a];                       // 1) 該当頭数が多い順
+      if (d) return d;
+      d = bfCodeN(st.ln[a]) - bfCodeN(st.ln[b]);            // 2) 系統が特定できる順（父母両系より母父系）
+      if (d) return d;
+      d = (st.gen[a] || 99) - (st.gen[b] || 99);            // 3) 浅い世代（情報として近い）順
+      if (d) return d;
+      return a < b ? -1 : 1;
+    });
+    // 9割以上が持つ「基礎血統」は差別化できないので、他に3件以上候補があれば除く
+    var nonAll = ks.filter(function(nm){ return (st.cnt[nm] / total) < 0.9; });
+    var use = (nonAll.length >= 3) ? nonAll : ks;
+    return use.slice(0, max).map(function(nm){
+      return { name: nm, n: st.cnt[nm], total: total, gen: st.gen[nm],
+               line: bfLineLabel(st.ln[nm]), all: (st.cnt[nm] / total) >= 0.9 };
+    });
+  }
+  return {
+    win: { total: wins.length, items: pick(collect(wins), 0.3, 2, 4) },
+    board: { total: boards.length, items: pick(collect(boards), 0.25, 3, 4) },
+    deep: bfDeepOn(), at: new Date().toISOString()
+  };
+}
 /* 単一祖先ファクターと2祖先ペアの候補づくり */
 function bfMine(entries){
   // entries: [{year, win(ped|null), board:[ped]}]
-  var singleCnt = {}, pairCnt = {};
+  var singleCnt = {}, pairCnt = {}, genOf = {};
   var winNames = {}, boardNames = {};   // name -> 出現年set(単勝/複勝圏)
   var pairWin = {}, pairBoard = {};     // 'a|b' -> yearSet(win/board)
   var allWinners = [];
@@ -13723,28 +14111,34 @@ function bfMine(entries){
     var yr = en.year;
     if (en.win) allWinners.push(en.win);
     (en.board).forEach(function(ped){
-      var nms = Object.keys(ped.names);
+      var nms = ped.n5 ? Object.keys(ped.n5) : Object.keys(ped.names);   // 表は5代まで
+      var n5 = nms;                                       // 6代目以降は bfDeepCommon 側で集計
       for (var i = 0; i < nms.length; i++){
         var n = nms[i];
         singleCnt[n] = (singleCnt[n] || 0) + 1;
         boardNames[n] = boardNames[n] || {}; boardNames[n][yr] = 1;
+        var gv = (ped.gen && ped.gen[n]) || 5;
+        if (genOf[n] == null || gv < genOf[n]) genOf[n] = gv;
       }
-      for (var a = 0; a < nms.length; a++){
-        for (var b = a + 1; b < nms.length; b++){
-          var key = nms[a] < nms[b] ? nms[a] + '\u0001' + nms[b] : nms[b] + '\u0001' + nms[a];
+      for (var a = 0; a < n5.length; a++){
+        for (var b = a + 1; b < n5.length; b++){
+          var key = n5[a] < n5[b] ? n5[a] + '\u0001' + n5[b] : n5[b] + '\u0001' + n5[a];
           pairCnt[key] = (pairCnt[key] || 0) + 1;
           pairBoard[key] = pairBoard[key] || {}; pairBoard[key][yr] = 1;
         }
       }
     });
     if (en.win){
-      var wn = Object.keys(en.win.names);
+      var wn = en.win.n5 ? Object.keys(en.win.n5) : Object.keys(en.win.names);   // 表は5代まで
+      var wn5 = wn;
       for (var j = 0; j < wn.length; j++){
         winNames[wn[j]] = winNames[wn[j]] || {}; winNames[wn[j]][yr] = 1;
+        var gw = (en.win.gen && en.win.gen[wn[j]]) || 5;
+        if (genOf[wn[j]] == null || gw < genOf[wn[j]]) genOf[wn[j]] = gw;
       }
-      for (var c = 0; c < wn.length; c++){
-        for (var d = c + 1; d < wn.length; d++){
-          var k2 = wn[c] < wn[d] ? wn[c] + '\u0001' + wn[d] : wn[d] + '\u0001' + wn[c];
+      for (var c = 0; c < wn5.length; c++){
+        for (var d = c + 1; d < wn5.length; d++){
+          var k2 = wn5[c] < wn5[d] ? wn5[c] + '\u0001' + wn5[d] : wn5[d] + '\u0001' + wn5[c];
           pairWin[k2] = pairWin[k2] || {}; pairWin[k2][yr] = 1;
         }
       }
@@ -13762,8 +14156,11 @@ function bfMine(entries){
   }
   function mk(key, names, type){
     var wY = winNames[key] || {}, bY = boardNames[key] || {};
+    var g = 0;
+    if (type === 'S') g = genOf[key] || 0;
+    else (names || []).forEach(function(n){ var q = genOf[n] || 0; if (q > g) g = q; });
     var factor = {
-      key: type + '\u0001' + key, type: type, names: names,
+      key: type + '\u0001' + key, type: type, names: names, gen: g,
       wN: Object.keys(wY).length, bN: Object.keys(bY).length,
       wYears: Object.keys(wY).map(Number).sort(function(a,b){ return a-b; }),
       bYears: Object.keys(bY).map(Number).sort(function(a,b){ return a-b; }),
@@ -13822,11 +14219,13 @@ function bfEntriesFromDr(res, progress){
   samples.forEach(function(s){ if (ids.indexOf(s.id) < 0) ids.push(s.id); });
   var byId = {};
   var done = 0;
+  var deep = bfDeepOn();
+  BF_DEEP_STAT = { req: 0, hit: 0, miss: 0 };
   var run = function(id){
-    return bfPed(id).catch(function(){ return null; });
+    return bfPedDeep(id, { progress: progress, deep: deep }).catch(function(){ return null; });
   };
   var runner = (typeof drPool === 'function')
-    ? drPool(ids, function(id){ return run(id).then(function(p){ byId[id] = p; done++; progress('血統(5代)を取得中 ' + done + '/' + ids.length + '…'); }); }, 4)
+    ? drPool(ids, function(id){ return run(id).then(function(p){ byId[id] = p; done++; progress((deep ? '🧬 血統(10代)を集計中 ' : '血統(5代)を取得中 ') + done + '/' + ids.length + '頭…'); }); }, 3)
     : ids.reduce(function(acc, id){ return acc.then(function(){ return run(id).then(function(p){ byId[id] = p; }); }); }, Promise.resolve());
   return runner.then(function(){
     var byYear = {};
@@ -13852,15 +14251,17 @@ function bfAnalyzeFromDr(progress){
   var ns = (res.samples || []).filter(function(s){ return s && s.id && parseInt(s.o, 10) >= 1 && parseInt(s.o, 10) <= 3; }).length;
   progress('⑥の分析データ（' + (res.name || '') + '・過去' + (res.racesUsed ? res.racesUsed.length : res.yearsUsed || 0) + '回／1〜3着 ' + ns + '頭）を読み込み中…');
   return bfEntriesFromDr(res, progress).then(function(entries){
-    if (!entries.length) throw new Error('分析データから血統(5代)を取得できませんでした（netkeibaの血統ページ取得に失敗した可能性があります）');
+    if (!entries.length) throw new Error('分析データから血統を取得できませんでした（netkeibaの血統ページ取得に失敗した可能性があります）');
     progress('祖先名の共通点をマイニング中…');
     var factors = bfMine(entries);
+    var deepCommon = bfDeepCommon(entries);
+    var nDeep = (deepCommon.win.items.length + deepCommon.board.items.length);
     var ls = bfLs();
     ls.last = {
       rid: res.rid || (state && state.raceId) || '', grade: bfGrade(), name: res.name || bfRaceName(),
       at: new Date().toISOString(), src: 'dr',
       years: entries.map(function(e){ return { year: e.year, rid: e.rid || '' }; }),
-      factors: factors
+      factors: factors, deepCommon: deepCommon
     };
     var on2 = {};
     Object.keys(ls.set.on || {}).forEach(function(k){
@@ -13869,9 +14270,24 @@ function bfAnalyzeFromDr(progress){
     });
     ls.set.on = on2;
     bfSave(ls);
-    bfRender(); bfRenderToday(); bfTopTable();
-    progress('✅ 分析データから抽出完了: ' + entries.length + '年分・ファクター候補 ' + factors.length + ' 件');
-    return factors;
+    bfRender(); bfRenderDeep(); bfRenderToday(); bfRenderDeepHit();
+    var msg = '✅ 抽出完了: ' + entries.length + '年分・5代ファクター ' + factors.length + ' 件' +
+      (bfDeepOn() ? '・10代の共通点 ' + nDeep + ' 点（' + bfDeepStatText() + '）' : '（5代まで）');
+    var ths = bfTodayHorses();
+    if (!ths.length){ progress(msg + '。出走馬が読み込まれていないため該当検出はスキップしました。'); return factors; }
+    progress(msg + ' → 🐎 今回の出走馬 ' + ths.length + ' 頭の血統' + (bfDeepOn() ? '（10代）' : '（5代）') + 'を取得して該当を検出します…');
+    return bfEnsureToday(function(m){ progress(m); }).then(function(){
+      BF_DEEP_MEM = {};                       // 取得後の最新状態で照合し直す
+      bfRenderDeepHit(); bfRenderToday();
+      var sc = bfDeepHitScan();
+      progress(msg + '／🐎 出走馬 ' + (sc ? sc.have : 0) + ' 頭を照合 → 該当 ' + (sc ? sc.hitN : 0) + ' 頭' +
+        (sc && sc.rows.length ? '（1番目: ' + ((sc.rows[0].h.no || '') + '番 ' + (sc.rows[0].h.name || '')) + '）' : ''));
+      return factors;
+    }).catch(function(e){
+      bfRenderDeepHit();
+      progress(msg + '（出走馬の照合で失敗: ' + ((e && e.message) || e) + '）');
+      return factors;
+    });
   });
 }
 
@@ -13887,12 +14303,15 @@ function bfAnalyze(progress){
     progress('過去 ' + Math.min(rows.length, 11) + ' 年分のレースを取得中（db.netkeiba・1年ずつ）…');
     return bfYearsBuild(rows).then(function(years){
       if (!years.length) throw new Error('直近10年の1〜3着馬を取得できませんでした（通信エラーまたは開催未定の年）');
-      progress('各年の1〜3着馬の血統(5代)を取得中（初回は1頭数秒・キャッシュされます）…');
-      return bfAncData(years).then(function(entries){
+      progress(bfDeepOn()
+        ? '各年の1〜3着馬の血統を10代まで取得中（初回は親馬ページを辿るため数分かかります・キャッシュされます）…'
+        : '各年の1〜3着馬の血統(5代)を取得中（初回は1頭数秒・キャッシュされます）…');
+      return bfAncData(years, progress).then(function(entries){
         progress('祖先名の共通点をマイニング中…');
         var factors = bfMine(entries);
+        var deepCommon = bfDeepCommon(entries);
         var ls = bfLs();
-        ls.last = { rid: rid, grade: grade, name: bfRaceName(), at: new Date().toISOString(), years: years.map(function(y){ return { year: y.year, rid: y.rid }; }), factors: factors };
+        ls.last = { rid: rid, grade: grade, name: bfRaceName(), at: new Date().toISOString(), years: years.map(function(y){ return { year: y.year, rid: y.rid }; }), factors: factors, deepCommon: deepCommon };
         // 反映中ファクターは無効化しない（name欠落時のみ除去）
         var on2 = {};
         Object.keys(ls.set.on || {}).forEach(function(k){
@@ -13901,8 +14320,9 @@ function bfAnalyze(progress){
         });
         ls.set.on = on2;
         bfSave(ls);
-        progress('✅ 分析完了: ' + years.length + '年分・ファクター候補 ' + factors.length + ' 件');
-        bfRender();
+        progress('✅ 分析完了: ' + years.length + '年分・5代ファクター ' + factors.length + ' 件・10代の共通点 ' +
+          (deepCommon.win.items.length + deepCommon.board.items.length) + ' 点');
+        bfRender(); bfRenderDeep(); bfRenderDeepHit();
         return factors;
       });
     });
@@ -13917,16 +14337,24 @@ function bfEnsureToday(progress){
   progress = progress || function(){};
   var hs = bfTodayHorses();
   if (!hs.length) return Promise.resolve(0);
+  bfHold();
   var done = 0;
   var seq = Promise.resolve();
-  hs.forEach(function(h){
+  hs.forEach(function(h, ix){
     seq = seq.then(function(){
-      if (bfLs().ped[h.nk] && bfLs().ped[h.nk].names){ return; }
-      progress('今日の出走馬の血統を取得中: ' + (h.name || h.nk) + '…');
-      return bfPed(h.nk).then(function(){ done++; }).catch(function(){});
+      var ls0 = bfLs();
+      var rec = ls0.ped[h.nk];
+      if (rec && rec.names && !bfDeepOn()) return;                 // 5代まででよい→取得済み
+      if (rec && rec.names && rec.v === BF_PED_V){
+        // 10代まで揃っているか（5代目の祖先が全部キャッシュにあるか）を見る
+        var miss = (rec.g5 || []).filter(function(a){ return !bfAncGenMap(ls0.ped[a]); });
+        if (!miss.length && (rec.g5 || []).length) return;
+      }
+      progress('今日の出走馬の血統を取得中' + (bfDeepOn() ? '(10代)' : '(5代)') + ' ' + (ix + 1) + '/' + hs.length + ': ' + (h.name || h.nk) + '…');
+      return bfPedDeep(h.nk, { progress: progress }).then(function(){ done++; }).catch(function(){});
     });
   });
-  return seq.then(function(){ return done; });
+  return seq.then(function(){ bfRelease(); return done; }, function(e){ bfRelease(); throw e; });
 }
 /* AI印に反映する加算ベクタ（ONにしたファクターの該当馬に加点） */
 function bfActiveVector(hs){
@@ -13940,7 +14368,7 @@ function bfActiveVector(hs){
     var facts = (ls.last.factors || []).filter(function(f){ return keys.indexOf(f.key) >= 0; });
     if (!facts.length) return null;
     var peds = {};
-    (bfTodayHorses()).forEach(function(h){ var p = ls.ped[h.nk]; if (p) peds[h.nk] = p; });
+    (bfTodayHorses()).forEach(function(h){ var p = bfDeepSet(h.nk); if (p) peds[h.nk] = p; });
     return hs.map(function(h){
       if (!h || !h.nk || !peds[h.nk]) return 0;
       var ped = peds[h.nk];
@@ -13965,7 +14393,7 @@ function bfAppliedNote(){
   var hit = [];
   (state.horses || []).forEach(function(h){
     if (!h || !h.nk) return;
-    var ped = ls.ped[h.nk];
+    var ped = bfDeepSet(h.nk);
     if (!ped) return;
     for (var i = 0; i < facts.length; i++){
       var names = facts[i].names, ok = true;
@@ -13986,6 +14414,191 @@ function bfDispFor(nm){
     if (ls.ped) for (var k2 in ls.ped){ if (ls.ped[k2].names && ls.ped[k2].names[nm]) return nm; }
   } catch(e){}
   return nm;
+}
+/* ===== 今回の出走馬 × 10代共通点 の該当検出 =====
+   6〜10代目の共通点（勝ち馬/3着内 それぞれ3〜4点）に、出走馬の10代血統が
+   いくつ当てはまるかを数えて「該当が多い順」に並べる。通信はしない（キャッシュから）。 */
+function bfDeepHitScan(){
+  var ls = bfLs();
+  var dc = (ls.last && ls.last.deepCommon) || null;
+  if (!dc || !dc.deep) return null;
+  var wItems = (dc.win && dc.win.items) || [], bItems = (dc.board && dc.board.items) || [];
+  var hs = bfTodayHorses();
+  var out = { rows: [], wN: wItems.length, bN: bItems.length, have: 0, total: hs.length,
+              hitN: 0, deepReady: 0, dc: dc, wU: [], bU: [], univ: [] };
+  if (!wItems.length && !bItems.length) return out;
+  var fieldCnt = {};                                  // 項目ごとに「今日の出走馬のうち何頭が持つか」
+  hs.forEach(function(h){
+    var ped = bfDeepSet(h.nk);
+    if (!ped) return;
+    out.have++;
+    var w = [], b = [], seen = {};
+    function bump(it){ if (!seen[it.name]){ seen[it.name] = 1; fieldCnt[it.name] = (fieldCnt[it.name] || 0) + 1; } }
+    wItems.forEach(function(it){ if (ped.names[it.name]){ w.push(it); bump(it); } });
+    bItems.forEach(function(it){ if (ped.names[it.name]){ b.push(it); bump(it); } });
+    if (bfDeepOn() && (ped.deep || 0) > 0) out.deepReady++;
+    if (w.length + b.length > 0) out.hitN++;
+    out.rows.push({ h: h, w: w, b: b, n: w.length + b.length, deep: ped.deep || 0,
+                    full: !bfDeepOn() || (ped.deep || 0) > 0 });
+  });
+  // 今日の出走馬の9割以上が持つ項目は「差がつかない」ので判定から外す（表示は残す）
+  var lim = Math.max(2, Math.ceil(out.have * 0.9));
+  function isDiff(it){ return (fieldCnt[it.name] || 0) < lim; }
+  out.wU = wItems.filter(isDiff);
+  out.bU = bItems.filter(isDiff);
+  out.univ = wItems.concat(bItems).filter(function(it){ return !isDiff(it); });
+  out.fieldCnt = fieldCnt;
+  var den = out.wU.length + out.bU.length;
+  out.den = den;
+  out.rows.forEach(function(r){
+    r.wu = r.w.filter(function(it){ return out.wU.indexOf(it) >= 0; });
+    r.bu = r.b.filter(function(it){ return out.bU.indexOf(it) >= 0; });
+    r.den = den;
+    r.rate = den ? (r.wu.length + r.bu.length) / den
+                 : (r.n / Math.max(1, wItems.length + bItems.length));   // 全て全員持ちなら素の該当率
+  });
+  function oddsOf(r){ var v = parseFloat(r.h && r.h.odds); return (isFinite(v) && v > 0) ? v : 9999; }
+  out.rows.sort(function(x, y){
+    return (y.rate - x.rate) || (y.w.length - x.w.length) || (y.b.length - x.b.length) ||
+      (oddsOf(x) - oddsOf(y)) || (String(x.h.no) < String(y.h.no) ? -1 : 1);
+  });
+  return out;
+}
+/* 該当の強さ（“今日の出馬表で差がつく共通点”の該当率で判定） */
+function bfHitRank(r, wN){
+  var p = (r && r.rate != null) ? r.rate : 0;
+  if (p >= 0.9) return { cls: 'bfh3', txt: '強' };
+  if (p >= 0.6) return { cls: 'bfh2', txt: '中' };
+  if (p > 0) return { cls: 'bfh1', txt: '弱' };
+  return { cls: '', txt: '−' };
+}
+function bfHitItemsHtml(r, sc){
+  var byName = {}, order = [];
+  function add(it, tag){
+    if (!byName[it.name]){ byName[it.name] = { it: it, tags: [tag] }; order.push(it.name); }
+    else if (byName[it.name].tags.indexOf(tag) < 0) byName[it.name].tags.push(tag);
+  }
+  (r.w || []).forEach(function(it){ add(it, '勝ち馬'); });
+  (r.b || []).forEach(function(it){ add(it, '3着内'); });
+  if (!order.length) return '<span class="muted">該当なし</span>';
+  var diffNames = {};
+  (sc ? (sc.wU || []).concat(sc.bU || []) : []).forEach(function(it){ diffNames[it.name] = 1; });
+  function isDiff(k){ return !sc || !!diffNames[k]; }
+  // 差がつく項目を先頭に
+  order.sort(function(a, b){
+    var d = (isDiff(a) ? 0 : 1) - (isDiff(b) ? 0 : 1);
+    return d || (byName[a].it.gen - byName[b].it.gen);
+  });
+  return order.map(function(k){
+    var o = byName[k], diff = isDiff(k);
+    var fc = (sc && sc.fieldCnt && sc.fieldCnt[k]) || 0;
+    return '<span class="bfhitnm' + (o.tags.indexOf('勝ち馬') >= 0 ? ' w' : '') + (diff ? '' : ' all') + '"' +
+      (diff ? '' : ' title="今日の出走馬の9割以上が持つため判定からは除外"') + '>' +
+      (o.it.line ? esc(o.it.line) + 'に ' : '') + '<b>' + esc(bfDispFor(k)) + '</b>' +
+      '<i>' + o.it.gen + '代目・' + o.tags.join('・') + (diff ? '・' + fc + '/' + sc.have + '頭' : '・全員') + '</i></span>';
+  }).join(' ');
+}
+function bfRenderDeepHit(){
+  var box = $('bfDeepHit'); if (!box) return;
+  var sc = bfDeepHitScan();
+  if (!sc){ box.innerHTML = ''; return; }
+  if (!sc.wN && !sc.bN){
+    box.innerHTML = '<div class="small muted">🐎 今回の出走馬の該当検出: 10代の共通点が見つからなかったため照合できません。</div>';
+    return;
+  }
+  if (!sc.have){
+    box.innerHTML = '<div class="small muted">🐎 <b>今回の出走馬の該当検出</b>: 出走馬（' + sc.total + '頭）の血統がまだありません。' +
+      '「📥 今日の出走馬の血統を取得」を押すと、10代まで辿って該当馬を出します。</div>';
+    return;
+  }
+  var h = [];
+  h.push('<div class="bfhit">');
+  h.push('<div class="bfdh">🐎 今回の出走馬の該当検出（10代共通点 ' + (sc.wN + sc.bN) + '点で照合）' +
+    '<span class="chip">血統取得 ' + sc.have + '/' + sc.total + '頭</span>' +
+    (sc.den ? '<span class="chip">差がつく項目 ' + sc.den + '点</span>' : '<span class="chip warn">全頭が持つ項目だけ＝差がつきません</span>') +
+    (sc.hitN ? '<span class="chip">該当 ' + sc.hitN + '頭</span>' : '') + '</div>');
+  h.push('<table class="lr-tbl bfhittbl"><thead><tr>' +
+    '<th style="min-width:34px">馬番</th><th style="text-align:left">馬名</th><th>単勝</th>' +
+    '<th>勝ち馬<br>共通点</th><th>3着内<br>共通点</th><th>差がつく<br>項目</th><th>判定</th>' +
+    '<th style="text-align:left">内包している深い血統（6代目以降）</th></tr></thead><tbody>');
+  sc.rows.forEach(function(r){
+    var rk = bfHitRank(r, sc.wN);
+    var od = (r.h.odds !== '' && r.h.odds != null) ? r.h.odds : '−';
+    h.push('<tr class="' + (r.n ? 'bfhrow' : 'bfhrow0') + '">' +
+      '<td>' + esc(r.h.no || '?') + '</td>' +
+      '<td style="text-align:left">' + esc(r.h.name || '') + (r.full ? '' : '<span class="bfwarn" title="10代まで取得できていません（5代まで）">!</span>') + '</td>' +
+      '<td>' + esc(String(od)) + '</td>' +
+      '<td>' + (sc.wN ? '<b>' + r.w.length + '</b>/' + sc.wN : '<span class="muted">−</span>') + '</td>' +
+      '<td>' + (sc.bN ? '<b>' + r.b.length + '</b>/' + sc.bN : '<span class="muted">−</span>') + '</td>' +
+      '<td>' + (sc.den ? '<b>' + (r.wu.length + r.bu.length) + '</b>/' + sc.den : '<span class="muted">−</span>') + '</td>' +
+      '<td>' + (rk.cls ? '<span class="bfhg ' + rk.cls + '">' + rk.txt + '</span>' : '<span class="muted">−</span>') + '</td>' +
+      '<td style="text-align:left">' + bfHitItemsHtml(r, sc) + '</td></tr>');
+  });
+  h.push('</tbody></table>');
+  var rest = sc.total - sc.have;
+  h.push('<div class="small muted" style="margin-top:4px">※ <b>判定</b>は「<b>今日の出馬表で差がつく共通点</b>」の該当率です' +
+    '（強=90%以上／中=60%以上／弱=1点以上）。今日の出走馬の<b>9割以上が持つ項目</b>' +
+    (sc.univ.length ? '（' + sc.univ.map(function(it){ return bfDispFor(it.name); })
+        .filter(function(v, i, a){ return a.indexOf(v) === i; }).slice(0, 4).map(esc).join('・') + '）' : '') +
+    'は全員が持っていて差がつかないため、判定からは除いて薄いチップ（全員）で表示します。' +
+    'チップの「N/M頭」はその項目を持つ今日の出走馬数です。' +
+    '上の共通点と同じく6代目以降だけが対象で、5代までは下の表の☑（AI印への加点）で使います。' +
+    (rest > 0 ? ' 未取得 ' + rest + '頭は「📥 今日の出走馬の血統を取得」で追加できます。' : '') +
+    (sc.deepReady < sc.have && bfDeepOn() ? ' 「!」は10代まで辿れていない馬（該当数が実際より少なく出ます）。' : '') + '</div>');
+  h.push('</div>');
+  box.innerHTML = h.join('');
+}
+/* 6〜10代目の共通点ブロック（📊カード内 #bfDeepOut） */
+function bfDeepItemHtml(it){
+  var disp = bfDispFor(it.name);
+  var line = it.line ? (it.line + 'に ') : '';
+  return '<div class="bfdli">・' + line + '<b>' + esc(disp) + '</b> を内包' +
+    '<span class="bfdln">' + it.n + '/' + it.total + '頭に該当・' + it.gen + '代目' +
+    (it.all ? '・全頭' : '') + '</span></div>';
+}
+function bfRenderDeep(){
+  var box = $('bfDeepOut'); if (!box) return;
+  var ls = bfLs();
+  var dc = (ls.last && ls.last.deepCommon) || null;
+  var name = (ls.last && (ls.last.name || ls.last.rid)) || '';
+  if (!dc || !dc.deep){
+    box.innerHTML = '<div class="small muted">🧬 <b>10代血統の共通点</b>: まだありません。' +
+      '上の「📥 この重賞の過去10年を分析」（または重賞カレンダー）を実行してから、' +
+      '<b>「🧬 この分析データから血統を抽出」</b>を押してください。' +
+      '6代目以降の共通点を<b>3〜4点だけ</b>ここに、5代までは下の表に出します' +
+      '（10代まで掘る初回は数分・以後キャッシュで即時）。</div>';
+    return;
+  }
+  var wItems = (dc.win && dc.win.items) || [], bItems = (dc.board && dc.board.items) || [];
+  if (!wItems.length && !bItems.length){
+    box.innerHTML = '<div class="small muted">🧬 10代血統の共通点: <b>6代目以降に明確な共通点は見つかりませんでした</b>' +
+      (name ? '（対象: ' + esc(name) + '）' : '') + '。5代までは下の表をご覧ください。</div>';
+    return;
+  }
+  var h = [];
+  h.push('<div class="bfdeep">');
+  h.push('<div class="bfdh">🧬 10代血統の共通点（6代目以降・' + esc(name || 'この重賞') + '）' +
+    '<span class="chip">非統計・参考</span></div>');
+  if (wItems.length){
+    h.push('<div class="bfdg">勝ち馬の共通点（過去' + (dc.win.total) + '年・' + dc.win.total + '頭中）' +
+      '<span class="bfdn">' + wItems[0].n + '/' + wItems[0].total + '頭に該当</span></div>');
+    wItems.forEach(function(it){ h.push(bfDeepItemHtml(it)); });
+  }
+  if (bItems.length){
+    h.push('<div class="bfdg">3着内の共通点（' + dc.board.total + '頭中）' +
+      '<span class="bfdn">' + bItems[0].n + '/' + bItems[0].total + '頭に該当</span></div>');
+    bItems.forEach(function(it){ h.push(bfDeepItemHtml(it)); });
+  }
+  h.push('<div class="small muted" style="margin-top:4px">※ 6代目以降（10代まで）から「該当頭数が多い順」に3〜4点だけ抜粋しています。' +
+    '9割以上の馬が持つ基礎血統（Hyperion 等）は差別化できないため、他に候補があれば除外しています。5代までは下の表に表示します。</div>');
+  h.push('</div>');
+  box.innerHTML = h.join('');
+}
+/* 世代バッジ（表の列は増やさず、名前の右に小さく出すだけ） */
+function bfGenBadge(f){
+  var g = parseInt(f && f.gen, 10) || 0;
+  if (!g) return '';
+  return ' <span class="bfg' + (g > 5 ? ' d' : '') + '" title="' + g + '代目の祖先">' + g + '代</span>';
 }
 function bfFactorLabel(f){
   if (f.type === 'S') return bfDispFor(f.names[0]);
@@ -14008,12 +14621,12 @@ function bfRender(){
     var apply = !!(ls.set && ls.set.apply);
     h.push('<div class="small" style="font-weight:bold;margin:2px 0 6px">分析: ' + esc(last.name || last.rid || '') + '（過去 ' + (last.years || []).length + '年分）' +
       ' <span class="muted">' + (last.at ? ' ' + String(last.at).slice(0, 10) : '') + '</span></div>');
-    h.push('<table class="lr-tbl"><thead><tr><th style="text-align:left">ファクター（血統表5代に内包する祖先）</th><th>単勝(1着)を取った年</th><th>複勝圏(3着内)の年</th><th>単勝の連続</th><th>印に反映</th></tr></thead><tbody>');
+    h.push('<table class="lr-tbl"><thead><tr><th style="text-align:left">ファクター（血統表5代に内包する祖先・名の右は何代目か）</th><th>単勝(1着)を取った年</th><th>複勝圏(3着内)の年</th><th>単勝の連続</th><th>印に反映</th></tr></thead><tbody>');
     factors.forEach(function(f){
       var on = !!(ls.set && ls.set.on && ls.set.on[f.key]);
       var dis = apply ? '' : ' disabled';
       var nm = bfFactorLabel(f);
-      h.push('<tr><td style="text-align:left">' + (f.type === 'P' ? '🤝 組: ' : '🧬 ') + esc(nm) +
+      h.push('<tr><td style="text-align:left">' + (f.type === 'P' ? '🤝 組: ' : '🧬 ') + esc(nm) + bfGenBadge(f) +
         (f.type === 'P' ? '<br><span class="small muted">' + f.names.length + '祖先の両方を持つ馬</span>' : '') + '</td>' +
         '<td>' + esc(bfYearsTxt(f.wYears)) + '</td><td>' + esc(bfYearsTxt(f.bYears)) + '</td>' +
         '<td>' + esc(f.streak || '−') + (f.streak ? '<br><span class="small muted">複勝圏: ' + esc(f.bStreak || '−') + '</span>' : '') + '</td>' +
@@ -14022,7 +14635,8 @@ function bfRender(){
     h.push('</tbody></table>');
     var onCount = Object.keys(ls.set.on || {}).filter(function(k){ return ls.set.on[k]; }).length;
     h.push('<div class="small" style="margin-top:6px">☑ 単勝の年 = そのファクターを持つ馬が優勝した開催年。複勝圏 = 3着以内に入った開催年。<br>' +
-      '※ 検出は netkeiba の5代血統表まで。極端に深い牝系名（Marguerite 等）は表外のため検出できません。' +
+      '※ この表は<b>5代まで</b>（従来通り）。<b>6〜' + BF_DEEP_GEN + '代目</b>の深い血統は全部は出さず、' +
+      '上の「🧬 10代血統の共通点」に<b>3〜4点だけ</b>まとめます。11代目以降や表外の超深い牝系名（Marguerite 等）は検出できません。' +
       (onCount ? ' ／ 反映中ファクター: ' + onCount + '件' : '') + '</div>');
   }
   box.innerHTML = h.join('');
@@ -14039,7 +14653,7 @@ function bfRenderToday(){
   h.push('<div class="small" style="font-weight:bold">今日の出走馬の該当チェック（反映ONファクター）</div>');
   (state.horses || []).forEach(function(hh){
     if (!hh || !hh.nk || !ls.ped[hh.nk]) return;
-    var ped = ls.ped[hh.nk];
+    var ped = bfDeepSet(hh.nk) || ls.ped[hh.nk];
     var hit = facts.filter(function(f){
       for (var j = 0; j < f.names.length; j++) if (!ped.names[f.names[j]]) return false;
       return true;
@@ -14049,79 +14663,6 @@ function bfRenderToday(){
       hit.map(function(f){ return esc(bfFactorLabel(f)); }).join(' ／ ') + '</div>');
   });
   box.innerHTML = h.join('');
-}
-/* ===== 別枠: 血統ファクター「上位5件 × 今回の出走馬の該当表」 ===== */
-function bfTopHits(f, hs, ls){
-  var out = [];
-  (hs || []).forEach(function(h){
-    var ped = h && h.nk && ls.ped[h.nk];
-    if (!ped) return;
-    var ok = true;
-    for (var j = 0; j < f.names.length; j++){ if (!ped.names[f.names[j]]){ ok = false; break; } }
-    if (ok) out.push(h);
-  });
-  return out;
-}
-function bfTopTable(){
-  var box = $('bfTopOut'); if (!box) return;
-  var ls = bfLs();
-  var last = ls.last || {};
-  var factors = (last.factors || []).slice();
-  if (!factors.length){
-    box.innerHTML = '<div class="small muted">まだ分析結果がありません。上の「🔍 過去10年を分析（netkeiba取得）」を実行してください（G1〜G3のレースを読み込んだ状態で）。</div>';
-    return;
-  }
-  var hs = (state.horses || []).filter(function(h){ return h && h.nk && ls.ped[h.nk]; });
-  if (!hs.length){
-    box.innerHTML = '<div class="small muted">今回の出走馬の血統がまだ取得されていません。上の「📥 今日の出走馬の血統を取得」→ このボタンの順で実行してください。</div>';
-    return;
-  }
-  var ranked = factors.map(function(f){
-    return { f: f, hits: bfTopHits(f, hs, ls) };
-  });
-  // 「今回のレースで当てはまる馬が多い順」→ 単勝年数 → 複勝圏年数
-  ranked.sort(function(a, b){
-    return (b.hits.length - a.hits.length) || (b.f.wN - a.f.wN) || (b.f.bN - a.f.bN);
-  });
-  var top = ranked.slice(0, 5);
-  var set = ls.set || { on: {}, apply: false };
-  var h = [];
-  h.push('<div class="small muted" style="margin:2px 0 6px">検出ファクター ' + factors.length +
-    ' 件のうち、「今回の出走馬（血統を取得済み ' + hs.length + '/' + (state.horses || []).length + '頭）に実際に当てはまる」ものを優先し、上位5件を表にしました。</div>');
-  h.push('<table class="lr-tbl"><thead><tr>' +
-    '<th style="min-width:30px">順位</th><th style="text-align:left">ファクター（血統5代に内包）</th>' +
-    '<th>単勝を取った年</th><th>複勝圏の年</th><th style="text-align:left">該当する今回の出走馬</th></tr></thead><tbody>');
-  top.forEach(function(o, i){
-    var f = o.f;
-    var on = !!(set.on && set.on[f.key]);
-    var nm = bfFactorLabel(f);
-    var disp = f.type === 'P'
-      ? '🤝 ' + esc(nm) + '<br><span class="small muted">' + f.names.length + '祖先すべてを持つ馬</span>'
-      : '🧬 ' + esc(nm);
-    var hitsTxt = o.hits.length
-      ? o.hits.map(function(x){
-          return '<span class="mk" style="margin:1px 3px 1px 0">' + esc(x.no || '?') + '番 ' + esc(x.name || '') + '</span>';
-        }).join('')
-      : '<span class="muted">該当なし</span>';
-    h.push('<tr><td><b>' + (i + 1) + '</b>' + (on ? '<br><span class="rec-ok" title="印に反映ON">☑印</span>' : '') + '</td>' +
-      '<td style="text-align:left">' + disp + '</td>' +
-      '<td>' + esc(bfYearsTxt(f.wYears)) + (f.streak ? '<br><span class="small muted">' + esc(f.streak) + '</span>' : '') + '</td>' +
-      '<td>' + esc(bfYearsTxt(f.bYears)) + '</td>' +
-      '<td style="text-align:left;min-width:180px">' + hitsTxt + '</td></tr>');
-  });
-  h.push('</tbody></table>');
-  box.innerHTML = h.join('');
-}
-function bfTopRun(){
-  var b = $('bfTopBtn'); if (b) b.disabled = true;
-  var need = (state.horses || []).filter(function(x){ return x.nk && !bfLs().ped[x.nk]; }).length;
-  bfStatus(need ? ('📥 今回の出走馬の血統を取得中（残り ' + need + '頭）…') : '該当馬を照合しています…');
-  bfEnsureToday(function(m){ bfStatus(m); }).then(function(){
-    bfTopTable();
-    bfStatus('✅ 上位5件 × 該当馬の表を表示しました。');
-  }).catch(function(e){
-    bfStatus((e && e.message) || String(e), true);
-  }).finally(function(){ if (b) b.disabled = false; });
 }
 function bfStatus(msg, isErr){
   var el = $('bfMsg'); if (!el) return;
@@ -14159,6 +14700,21 @@ function bfBindToggle(){
 }
 function initBf(){
   bfBindToggle();
+  var dc = $('bfDeepCb');
+  if (dc){
+    try { dc.checked = bfDeepOn(); } catch(e){}
+    dc.addEventListener('change', function(){
+      var ls = bfLs();
+      if (!ls.set) ls.set = { on: {}, apply: false };
+      ls.set.deep = !!dc.checked;
+      BF_DEEP_MEM = {};
+      bfSave(ls);
+      bfStatus(dc.checked
+        ? '🧬 深掘りON: 次回から血統を10代まで辿ります（初回は数分かかります）'
+        : '深掘りOFF: 5代まで（高速）で集計します', false);
+      bfRender(); bfRenderDeep(); bfRenderDeepHit(); bfRenderToday();
+    });
+  }
   var bd = $('bfDrBtn');
   if (bd) bd.addEventListener('click', function(){
     bd.disabled = true;
@@ -14182,12 +14738,14 @@ function initBf(){
     t.disabled = true;
     bfEnsureToday(function(msg){ bfStatus(msg, false); })
       .then(function(n){
-        bfStatus('✅ 今日の出走馬の血統を ' + n + ' 頭分 取得しました。');
-        bfRenderToday();
+        BF_DEEP_MEM = {};
+        bfStatus('✅ 今日の出走馬の血統を ' + n + ' 頭分 取得しました。該当を検出します…');
+        bfRenderToday(); bfRenderDeepHit();
+        var sc = bfDeepHitScan();
+        if (sc && sc.have) bfStatus('✅ 出走馬 ' + sc.have + ' 頭を照合 → 10代共通点に該当 ' + sc.hitN + ' 頭' +
+          (sc.rows.length && sc.rows[0].n ? '（トップ: ' + (sc.rows[0].h.no || '') + '番 ' + (sc.rows[0].h.name || '') + '）' : ''));
       }).finally(function(){ t.disabled = false; });
   });
-  var tb = $('bfTopBtn');
-  if (tb) tb.addEventListener('click', bfTopRun);
   var c = $('bfApplyCb');
   if (c) c.addEventListener('change', bfMasterToggle);
   var x = $('bfReset');
@@ -14196,20 +14754,23 @@ function initBf(){
     ls.set = { on: {}, apply: false };
     if (c) c.checked = false;
     bfSave(ls);
-    bfRender(); bfRenderToday();
+    bfRender(); bfRenderDeep(); bfRenderDeepHit(); bfRenderToday();
     try { if (typeof renderKentaiFull === 'function') renderKentaiFull(); } catch(e){}
   });
   var aa = $('bfDelCache');
   if (aa) aa.addEventListener('click', function(){
     try {
       var ls = bfLs();
-      ls.ped = {}; ls.race = {}; ls.last = {};
+      ls.ped = {}; ls.race = {}; ls.last = {}; BF_DEEP_MEM = {}; BF_DEEP_STAT = { req: 0, hit: 0, miss: 0 };
       ls.cal = {}; ls.day = {}; ls.seek = {};   // 開催カレンダー・探索キャッシュも消去
       bfSave(ls);
+      bfRender(); bfRenderDeep(); bfRenderDeepHit(); bfRenderToday();
       bfStatus('血統・開催探索キャッシュを消去しました。');
     } catch(e){}
   });
   bfRender();
+  bfRenderDeep();
+  bfRenderDeepHit();
   bfRenderToday();
 }
 
@@ -16167,6 +16728,41 @@ function drBuild(samples, labelFn){
   Object.keys(m).forEach(function(k){ out.push({ k: k, label: m[k].label, g: m[k].g, sub: m[k].sub, sys: m[k].sys }); });
   return out;
 }
+/* 前走レース別: 同じレース名を年をまたいで1行に合算する。
+   年ごとの内訳は yearRows に入れておき、表では行内の「年別」ボタンで開く（行も列も増やさない）。 */
+function drBuildPrevRace(samples){
+  var m = {};
+  (samples || []).forEach(function(s){
+    var pr = s.prev;
+    if (!pr || !pr.nm) return;
+    var base = drPrevRaceBase(pr.nm);
+    var yr = String(pr.d || '').slice(0, 4);
+    var k = 'rn' + base + '|' + (pr.vname || '') + '|' + (pr.dist || '');
+    var o = m[k] || (m[k] = {
+      k: k,
+      label: base + (pr.vname ? '（' + pr.vname + (pr.dist ? ' ' + pr.dist : '') + '）' : ''),
+      g: drNew(), sub: '', sys: '', _y: {}
+    });
+    drAdd(o.g, s);
+    if (yr){
+      if (!o._y[yr]) o._y[yr] = drNew();
+      drAdd(o._y[yr], s);
+    }
+  });
+  var out = [];
+  Object.keys(m).forEach(function(k){
+    var o = m[k];
+    var ys = Object.keys(o._y).sort();
+    o.years = ys;                                     // 出現した年（古い順）
+    o.yearRows = ys.slice().reverse().map(function(y){  // 表示は新しい順
+      var g = o._y[y];
+      return { y: y, n: g.n, w: g.w, t2: g.t2, t3: g.t3, oth: g.oth };
+    });
+    delete o._y;
+    out.push(o);
+  });
+  return out;
+}
 function drIsHot(g, base){
   if (!g || base == null || !g.n) return false;
   var in3 = g.w + g.t2 + g.t3;
@@ -16178,6 +16774,7 @@ function drIsHot(g, base){
 }
 function drHtmlTable(title, note, rows, opts){
   opts = opts || {};
+  drHtmlTable._seq = (drHtmlTable._seq || 0);
   var h = [];
   h.push('<div style="border:1px solid var(--line2);border-radius:12px;margin:10px 0;overflow:hidden">');
   h.push('<div style="padding:7px 11px;background:var(--card2);border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
@@ -16187,20 +16784,41 @@ function drHtmlTable(title, note, rows, opts){
     h.push('<div class="small muted" style="padding:8px 11px">データなし</div></div>');
     return h.join('');
   }
+  var ncol = 9 + (opts.subcol ? 1 : 0);
   h.push('<div style="overflow-x:auto"><table class="lr-tbl" style="font-size:.76rem"><thead><tr>' +
     '<th style="text-align:left">区分</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>4着以下</th>' +
     '<th>勝率</th><th>複勝率</th><th>単回収率</th>' + (opts.subcol ? '<th style=\"text-align:left\">' + opts.subcol + '</th>' : '') + '</tr></thead><tbody>');
   rows.forEach(function(r){
     var g = r.g;
     var hot = drIsHot(g, opts.base);
+    // 年別の内訳（2年以上あるときだけ開閉ボタンを付ける）
+    var yr = (opts.expand && r.yearRows && r.yearRows.length > 1) ? r.yearRows : null;
+    var sid = '', tog = '';
+    if (yr){
+      sid = 'drsub' + (++drHtmlTable._seq);
+      tog = ' <button type="button" class="drsub" data-drsub="' + sid + '" title="年ごとの内訳を開く/閉じる">年別' +
+        yr.length + ' <span class="ar">▸</span></button>';
+    }
     h.push('<tr' + (hot ? ' style="background:var(--card2)"' : '') + '>' +
       '<td style="text-align:left;white-space:nowrap"><b>' + esc(r.label) + '</b>' +
-      (hot ? ' <span title="傾向候補" style="color:var(--warn-ink)">★</span>' : '') + '</td>' +
+      (hot ? ' <span title="傾向候補" style="color:var(--warn-ink)">★</span>' : '') + tog + '</td>' +
       '<td>' + g.n + '</td><td>' + g.w + '</td><td>' + g.t2 + '</td><td>' + g.t3 + '</td><td>' + g.oth + '</td>' +
       '<td>' + (g.n ? drRate(g.w, g.n).toFixed(0) + '%' : '−') + '</td>' +
       '<td>' + (g.n ? drRate(g.w + g.t2 + g.t3, g.n).toFixed(0) + '%' : '−') + '</td>' +
       '<td>' + (g.n && g.roiW > 0 ? (g.roiW / g.n * 100).toFixed(0) + '%' : '−') + '</td>' +
       (opts.subcol ? '<td class="muted">' + esc(drSubOf(r)) + '</td>' : '') + '</tr>');
+    if (sid){
+      // 内訳は同じ表の中の隠し行（列を増やさないので表は横に広がらない）
+      var chips = yr.map(function(y){
+        return '<span class="dryr"><b>' + esc(y.y) + '年</b> ' + y.n + '走' +
+          (y.w ? ' <i class="w">1着' + y.w + '</i>' : '') + (y.t2 ? ' <i class="t2">2着' + y.t2 + '</i>' : '') +
+          (y.t3 ? ' <i class="t3">3着' + y.t3 + '</i>' : '') +
+          ((!y.w && !y.t2 && !y.t3) ? ' <i class="muted">馬券内なし</i>' : '') + '</span>';
+      }).join('');
+      h.push('<tr id="' + sid + '" class="drsubrow" style="display:none"><td colspan="' + ncol + '" ' +
+        'style="text-align:left;background:var(--card);padding:5px 10px">' +
+        '<span class="small muted">年別の内訳（新しい順）: </span>' + chips + '</td></tr>');
+    }
   });
   h.push('</tbody></table></div></div>');
   return h.join('');
@@ -17097,21 +17715,12 @@ function drComputeTables(samples){
   tb('前走クラス別成績', drBuild(samples, function(s){
     var nm = s.prev ? s.prev.nm : ''; return nm ? [{ k: drPrevClass(nm), label: drPrevClass(nm) }] : null;
   }));
-  // 前走レース別: キーは「日付＋R＋レース名」。表記が同じでも年が違えば別レースなので、
-  // ラベルに年を必ず出して「同じレースが複数行ある」ように見える誤解をなくす（#2026-09-10修正）
-  tb('主な前走レース別成績（2頭以上・年ごと）', drBuild(samples, function(s){
-    var pr = s.prev; if (!pr || !pr.nm) return null;
-    var yr = String(pr.d || '').slice(0, 4);
-    var lab = (yr ? yr + '年 ' : '') + pr.nm;
-    if (pr.vname) lab += '（' + pr.vname + (pr.r ? pr.r + 'R' : '') + (pr.dist ? ' ' + pr.dist : '') + '）';
-    return [{ k: pr.d + pr.r + pr.nm, label: lab }];
-  }), { kind: 'prevrace', note: '前走のレースごと（同じ名前でも年が違えば別の行になります）。' });
-  // 年をまたいだ合算（同じレース名を前走に使った馬の傾向）
-  tb('主な前走レース別成績（年まとめ・2頭以上）', drBuild(samples, function(s){
-    var pr = s.prev; if (!pr || !pr.nm) return null;
-    var lab = drPrevRaceBase(pr.nm) + (pr.vname ? '（' + pr.vname + (pr.dist ? ' ' + pr.dist : '') + '）' : '');
-    return [{ k: 'rn' + drPrevRaceBase(pr.nm) + '|' + (pr.vname || '') + '|' + (pr.dist || ''), label: lab }];
-  }), { kind: 'prevrace', subcol: '前走レース(年まとめ)', note: '同じレース名を年ごとに合算したもの（前走でそのレースを使われた馬の傾向）。' });
+  // 前走レース別: 以前は〔年ごと〕〔年まとめ〕の2枚を出していたが、
+  // 〔年ごと〕は同じレース名が年のぶんだけ何行も出て分かりにくかったため 2026-09-11 に1枚へ統合。
+  // 同じレース名は年をまたいで合算し、年別の内訳は行内の「年別」ボタンで開く。
+  tb('主な前走レース別成績（2頭以上・年をまたいで合算）', drBuildPrevRace(samples),
+    { kind: 'prevrace', expand: true,
+      note: '同じレース名は年をまたいで1行にまとめています。「年別」を押すと年ごとの内訳が開きます。' });
   tb('前走の人気帯別成績', drBuild(samples, function(s){
     var p = s.prev ? s.prev.pop : 0; if (!(p >= 1)) return null;
     var lb;
@@ -17193,8 +17802,8 @@ function drSireLine(nm){
 /* ====== 表示・UI（⑥タブ） ====== */
 function drMsgSet(m, isErr){
   var el = $('drMsg'); if (!el) return;
-  el.innerHTML = (isErr ? '⚠ ' : '') + esc(m);
-  el.style.color = isErr ? '#b3261e' : '';
+  el.innerHTML = (isErr ? '<span style="color:var(--err-ink)">⚠ ' + esc(m) + '</span>' : esc(m));
+  el.style.color = isErr ? 'var(--err-ink)' : '';
 }
 function drBusy(b){
   var a = $('drBtn'); if (a) a.disabled = b;
@@ -17295,8 +17904,9 @@ function drRenderTableOne(t, base){
       return b.g.n - a.g.n || drRate(b.g.w + b.g.t2 + b.g.t3, b.g.n) - drRate(a.g.w + a.g.t2 + a.g.t3, a.g.n);
     });
   }
-  var subcol = opts.subcol ? opts.subcol : (t.kind === 'prevrace' ? '主な前走レース' : '');
-  return drHtmlTable(t.title, opts.note || '', rows, { base: base, subcol: subcol }) +
+  // prevrace は区分列にレース名が出るので subcol（空列）は付けない＝表を横に広げない
+  var subcol = opts.subcol ? opts.subcol : '';
+  return drHtmlTable(t.title, opts.note || '', rows, { base: base, subcol: subcol, expand: !!opts.expand }) +
     drShortNote({ title: t.title, kind: t.kind }, rows, base);
 }
 /* ===== 血統(父・母父)まとめ: 1枚に集約した表 ===== */
@@ -17648,20 +18258,8 @@ function drRunForRid(rid, name){
     if (b) b.disabled = false;
   });
 }
-/* 📅カレンダー側の分析結果を📊側にも写す（同じ res を使うので追加通信はゼロ） */
-function drMirror(res, via){
-  if (!res) return;
-  var box = $('drOut'); if (!box) return;
-  try { drRenderAll(res, box); } catch(e){}
-  try {
-    if (res.rid) drSetTarget(res.rid, res.name || '');
-    drRenderPick();
-    var all = (res.tables && res.tables.all) || { n: 0 };
-    drMsgSet('✅ 「' + (res.name || '') + '」の分析結果をここにも表示しました（' + (via || '📅カレンダー') +
-      'と同一データ・過去 ' + ((res.racesUsed || []).length || res.yearsUsed || 0) + ' 回・出走延べ ' + all.n + '頭）。', false);
-    drStat('最終更新: ' + new Date().toLocaleString('ja-JP') + '　対象: ' + esc(res.name || ''));
-  } catch(e){}
-}
+/* 旧 drMirror（📅カレンダーの結果を📊にも写す）は、表示先を📊カード1枚に統合したため廃止しました。
+   カレンダー側のクリックは gcAnalyzeRid → drFinishRun で直接ここに描画されます。 */
 function drRun(force){
   // 対象レース: ①で読み込んだレース → 📅カレンダーで選んだレース → 直近の分析（の順）
   var hasRace = !!((state && state.race && state.race.name) || (state && state.raceId));
@@ -17677,7 +18275,7 @@ function drRun(force){
     drMsgSet('分析するレースがまだありません。上の📅重賞カレンダーのレース名をクリックするか、' +
       'このカードのプルダウンで重賞を選ぶか、①「データ入力」でレースURLを取り込んでください。', true);
     drRenderPick();
-    var cv = $('gcAnaCard'); if (cv) cv.classList.remove('hid');
+    var cv = $('drCard'); if (cv) cv.classList.remove('hid');
     return;
   }
   var b = $('drBtn'); if (b) b.disabled = true;
@@ -17715,6 +18313,20 @@ function initDr(){
     initDr._bound = true;
     document.addEventListener('click', function(e){
       var t = e && e.target;
+      // 表の「年別」内訳の開閉（前走レース別など）
+      var sb = (t && t.closest) ? t.closest('[data-drsub]') : null;
+      if (sb){
+        e.preventDefault();
+        var tr = document.getElementById(sb.getAttribute('data-drsub'));
+        if (tr){
+          var open = tr.style.display !== 'none';
+          tr.style.display = open ? 'none' : '';
+          var ar = sb.querySelector ? sb.querySelector('.ar') : null;
+          if (ar) ar.textContent = open ? '▸' : '▾';
+          sb.classList[open ? 'remove' : 'add']('open');
+        }
+        return;
+      }
       var btn = (t && t.closest) ? t.closest('[data-dract]') : null;
       if (!btn) return;
       if (btn.getAttribute('data-dract') === 'pick'){ e.preventDefault(); drRunPick(); }
@@ -18839,62 +19451,52 @@ function gcReloadYear(){
   gcLoadMonth(y, gcUI.m);
 }
 
-/* ================= クリックで⑥分析 ================= */
+/* ================= クリックで分析（表示先は「📊 重賞データ分析」カード1枚に統合） =================
+   2026-09-11: 旧「⑥ 分析結果（カレンダーから選択したレース）」カードは📊と中身が完全に同一だったため統合。
+   カレンダーから選んでも①で読み込んでも、結果は #drOut の1箇所だけに表示します（二重表示・二重通信なし）。 */
+function gcDrCard(){
+  var c = $('drCard');
+  if (c){
+    c.classList.remove('hid');
+    try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
+  }
+  return c;
+}
 function gcAnalyzeRid(rid, name, venue, date8){
-  var card = $('gcAnaCard');
-  var msg = $('gcAnaMsg'); var chip = $('gcAnaChip');
-  if (!card) return;
-  card.classList.remove('hid');
-  if (chip) chip.textContent = name || rid || '';
-  if (msg) msg.innerHTML = '分析を準備しています…（' + esc(name ? (name + ' / ') : '') + esc(rid || '') + '）';
-  var out = $('gcOut'); if (out) out.innerHTML = '';
-  var b = $('gcAnaClose');
-  // 📊重賞データ分析側の「対象レース」もこのレースに切り替える（①を読み込んでいなくても📊が動くように）
+  gcDrCard();
+  // 📊側の「対象レース」もこのレースに切り替える（①を読み込んでいなくても📊が動くように）
   try {
     if (typeof drSetTarget === 'function'){ drSetTarget(rid, name || '', { venue: venue || '', date: date8 || '' }); }
     if (typeof drRenderPick === 'function') drRenderPick();
   } catch(e){}
-  drAnalyzeRid(rid, {}, function(m){ if (msg) msg.textContent = m; }).then(function(res){
-    gcShowAnalyzed(res, (res && res.name) || name, msg, out, card);
+  var out = $('drOut'); if (out) out.innerHTML = '';
+  drStat('読み込み中…');
+  drMsgSet('分析を準備しています…（' + (name ? name + ' / ' : '') + rid + '）');
+  drBusy(true);
+  drAnalyzeRid(rid, {}, function(m){ drMsgSet(m); }).then(function(res){
+    drFinishRun(res, (res && res.name) || name, rid, false);
   }).catch(function(e){
-    if (msg) msg.innerHTML = '<span style="color:var(--err-ink)">⚠ 分析できませんでした: ' + esc((e && e.message) || e) + '</span>';
-  });
+    drMsgSet('分析できませんでした: ' + ((e && e.message) || e), true);
+    drStat('');
+  }).finally(function(){ drBusy(false); });
 }
-/* 分析結果の表示（rid経路・レース名経路の共通処理） */
-function gcShowAnalyzed(res, name, msg, out, card){
-  res = res || {};
-  msg = msg || $('gcAnaMsg'); out = out || $('gcOut'); card = card || $('gcAnaCard');
-  if (msg){
-    var all = (res.tables && res.tables.all) || { n: 0 };
-    var nR = (res.racesUsed || []).length;
-    msg.textContent = '✅ 完了: 「' + (res.name || name || '') + '」の過去 ' + (nR || res.yearsUsed || 0) + ' 回・' + all.n + ' 頭を集計' +
-      ((res.excluded && res.excluded.length) ? '（名前・開催場が不一致の ' + res.excluded.length + ' 件は除外）' : '') +
-      (res.byName ? '　※このレースはまだ race_id が無い（開催前）ため、レース名から過去の同名レースを集計しました' : '') +
-      '。参照したレースは下の「🗂 この分析が参照した過去レース」で確認できます。';
-  }
-  drRenderAll(res, out);
-  // 同じ結果を📊重賞データ分析（過去10年・馬券内の共通点）にも表示（追加通信なし）
-  try { if (typeof drMirror === 'function') drMirror(res, '📅カレンダー'); } catch(e){}
-  try { if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){}
-}
-/* 日程テーブルの行（日付＋レース名）から rid を解決して⑥分析を実行 */
+/* 日程テーブルの行（日付＋レース名）から rid を解決して分析を実行 */
 function gcAnalyzeByDate(date8, name, venue){
-  var card = $('gcAnaCard'), msg = $('gcAnaMsg'), chip = $('gcAnaChip'), out = $('gcOut');
-  if (card) card.classList.remove('hid');
-  if (chip) chip.textContent = name;
-  if (out) out.innerHTML = '';
-  if (msg) msg.textContent = 'レースIDを照合しています…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）';
-  gcResolveRid(date8, name, function(m2){ if (msg) msg.textContent = m2; }, venue).then(function(rid){
+  gcDrCard();
+  var out = $('drOut'); if (out) out.innerHTML = '';
+  drStat('読み込み中…');
+  drMsgSet('レースIDを照合しています…（' + String(date8).slice(4, 6) + '/' + String(date8).slice(6, 8) + ' ' + name + '）');
+  gcResolveRid(date8, name, function(m2){ drMsgSet(m2); }, venue).then(function(rid){
     if (!rid){
       // race_id がまだ無いレース（今年の後半など開催前・netkeiba未掲載）。
       // 過去10年の集計に今年の race_id は不要なので、レース名から過去の同名レースを集計する。
-      gcAnalyzeByName(date8, name, venue, function(m3){ if (msg) msg.textContent = m3; },
-        function(res){ gcShowAnalyzed(res, name, msg, out, card); });
+      gcAnalyzeByName(date8, name, venue);
       return;
     }
     gcAnalyzeRid(rid, name, venue, date8);
   }).catch(function(e){
-    if (msg) msg.innerHTML = '<span style="color:var(--err-ink)">⚠ ' + esc((e && e.message) || e) + '</span>';
+    drMsgSet(String((e && e.message) || e), true);
+    drStat('');
   });
 }
 /* race_id が無いレースを「レース名」から分析する（開催前の重賞も過去の同名レースで集計できる） */
@@ -18902,21 +19504,24 @@ function gcAnalyzeByName(date8, name, venue, progress, done){
   var row = gcFindRow(date8, name);
   var v = venue || (row && row.venue) || '';
   var dist = (row && row.dist) || '';
+  // 📊側の「名前だけ」経路にそのまま渡す（表示・対象レースの記憶も📊側でやる）
+  if (typeof drRunForName === 'function'){
+    drRunForName(name, v, date8, dist);
+    if (done) done(null);
+    return;
+  }
   try {
     if (typeof drSetTarget === 'function') drSetTarget('', name, { venue: v, date: String(date8 || '') });
     if (typeof drRenderPick === 'function') drRenderPick();
   } catch(e){}
-  if (typeof drAnalyzeByName !== 'function'){
-    var m0 = $('gcAnaMsg');
-    if (m0) m0.innerHTML = '<span style="color:var(--err-ink)">⚠ レース名からの分析が使えません。</span>';
-    return;
-  }
-  drAnalyzeByName(name, v, date8, dist, progress || function(){}).then(function(res){
+  if (typeof drAnalyzeByName !== 'function'){ drMsgSet('レース名からの分析が使えません。', true); return; }
+  drAnalyzeByName(name, v, date8, dist, progress || function(m){ drMsgSet(m); }).then(function(res){
+    drFinishRun(res, name, '', true);
     if (done) done(res);
   }).catch(function(e){
-    var m1 = $('gcAnaMsg');
-    if (m1) m1.innerHTML = '<span style="color:var(--err-ink)">⚠ レース名からも過去の開催を見つけられませんでした（' +
-      esc((e && e.message) || e) + '）。①で出馬表を読み込んでから「📥 この重賞の過去10年を分析」をお試しください。</span>';
+    drMsgSet('レース名からも過去の開催を見つけられませんでした（' + ((e && e.message) || e) +
+      '）。①で出馬表を読み込んでから「📥 この重賞の過去10年を分析」をお試しください。', true);
+    drStat('');
   });
 }
 /* 日程（キャッシュ）からその日・その名前の行を探す（開催場・距離を取るため） */
@@ -18975,9 +19580,6 @@ function gcEvent(){
     }
     gcAnalyzeByDate(date8, name, ven);
   });
-  // 閉じる
-  var cl = $('gcAnaClose');
-  if (cl) cl.addEventListener('click', function(){ $('gcAnaCard').classList.add('hid'); });
 }
 function initGc(){
   gcYearOptions();
@@ -21228,7 +21830,7 @@ function goTab(id){
     if (typeof histRefreshHeader === 'function') histRefreshHeader();
     if (typeof bfRender === 'function'){ try { bfRender(); } catch(e){} }
     if (typeof bfRenderToday === 'function'){ try { bfRenderToday(); } catch(e){} }
-    if (typeof bfTopTable === 'function'){ try { bfTopTable(); } catch(e){} }
+    if (typeof bfRenderDeep === 'function'){ try { bfRenderDeep(); bfRenderDeepHit(); } catch(e){} }
   }
   window.scrollTo({ top:0, behavior:'smooth' });
 }
