@@ -468,6 +468,20 @@ table.gc-tbl td.gc-cell.off{background:var(--card2);border-style:dashed}
 .kai-log{background:#0f2417;color:var(--mut);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-top:10px;line-height:1.9}
 .kai-hist .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line2);border-radius:10px;padding:6px 10px;margin:6px 0;background:var(--card)}
 .kai-hist .hd{flex:1 1 260px;min-width:200px}
+/* ★2026-09-13 第24弾③: トラックバイアスの説明文を折り込む（常時4段落ぶんの高さを取らない） */
+.tbhelp summary{cursor:pointer;list-style:none;user-select:none}
+.tbhelp summary::-webkit-details-marker{display:none}
+.tbhelp summary::before{content:'▶ ';color:var(--muted);font-size:10px}
+.tbhelp[open] summary::before{content:'▼ '}
+.tbhelp summary .muted{margin-left:6px}
+.tbhelp[open] summary .muted{display:none}
+/* ★2026-09-13 第24弾②: 一括取得した出馬表の一覧は「1レース=1行・折り返しなし」の最小表示。
+   .kai-hist は⑤の読込履歴と共用なので、ここは #preList だけに効かせて履歴側の見た目を変えません。 */
+#preList .row{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:2px 0;margin:0;background:transparent;font-size:12px;line-height:1.35}
+#preList .hd{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#preList .meta{flex:0 0 auto;white-space:nowrap;font-size:11px}
+#preList .kai-mini{flex:0 0 auto;padding:1px 5px;font-size:11px}
+#preList .chip,#preList .badge{font-size:10px;padding:0 4px;margin-left:3px}
 .kai-mini{background:none;border:none;color:var(--err-ink);cursor:pointer;font-size:.8rem;padding:3px 6px;border-radius:6px;font-family:inherit}
 .kai-mini:hover{background:var(--card2)}
 </style>
@@ -917,7 +931,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第23弾（①オッズ: ②AI予想タブを開いたとき・履歴から復元したときに必ず最新の単勝オッズを取り直して AI印/軸・妙味・穴/買い目まで自動で描き直す＋「🔄 今すぐ最新オッズ」ボタン新設／②ペース診断と重み設定の横はみ出しを解消（grid の子に min-width:0・自動補正バーの固定幅118px+nowrap を撤廃・ペース見出しを clamp 化）／③回収率チューナーを軽量化：総当たりを2.8倍高速化＋出馬表束の作り直しを廃止＋8分割チャンク実行で画面が固まらない（計算結果は従来と完全一致）／④出馬表キャッシュを40件→80件・当日30分→その日の終わりまでに拡張し、結果確定済みでスキップされるレースも出馬表だけは必ず端末へ保存（その日の全レースが通信ゼロで即表示）／⑤「🗂 一括取得した出馬表」一覧を新設し取得済みレースを日付ごとに表示・レース選択画面に ⚡マーク／⑥学習DBの全読込をメモ化し diLs() 17〜22倍・apScan() 20倍・apStoredRaceList() 14倍高速化）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第24弾（①予想ファクターに「🎯 枠順(重賞のみ)」を追加：⑥重賞データ分析が集めた【この重賞の過去10年】の歴代結果から有利枠を判定。頭数が違う年を混ぜても公平になるよう「その頭数での3着内期待確率」で補正し、有利度=実際の3着内数÷期待3着内数（1.00=平均／≥1.18で有利／≤0.82で不利）。重賞でない・⑥データが無い・対象レースが不一致のときは自動的に不使用（重みが sumW にも入らない）。学習DBの場×距離統計は不使用／②「🗂 一括取得した出馬表」一覧を1レース=1行の最小表示に変更：折り返しなし・はみ出しは省略記号・race_id と長文ステータスを title(ホバー) へ移動・削除ボタンを✕に。CSSは #preList だけに絞り⑤読込履歴の見た目は不変／③トラックバイアスの説明文（前日の決めかた・測りかた・そのまま100%は使いません・手動指定が最優先）を <details> で折り込み（内容は削除せず温存）／④a 持ちタイム表記を修正：yoBestFromRecs に bandOk・gapM を追加し、何mの時計かを必ず表示。今回距離±200mを外れた時計は薄色＋「距離外」明示（tier4が距離不問のため芝1200mのレースに1800mの時計が出ていた）。前走タイム側にも距離ラベルを追加。⏱持ちタイム列と🏔洋芝・コース適性列が同じ値を二度出していた重複を解消（洋芝列はスコア%表示に）／④b 軸・妙味・穴の重複バグを修正：_mi=(1/オッズ)÷inv・invはレース内定数のため _edge=_ev×inv で順位が完全に同一だった（実測2000レース中100%が妙味馬==穴馬）。穴馬候補から axis に加えて val も除外し、並び替えを「市場の人気順位とAI評価順位のズレ」に変更→3頭が必ず別々に（100%）／⑤血統ファクターがカレンダーの選択レースと違うレースを分析していたバグを修正：bfEnsureDrSamples の分岐優先順位が hasRace＞pick だったため①の出馬表のレースを drRunAll が分析していた。pick＞hasRace に反転し、bfDrSamples は DR_LAST.rid と drPickRid().rid を照合（不一致なら取り直し）。枠順ファクターにも同じ照合を実装）／★追加修正: 第23弾⑥で入れた学習DBのメモ化(diLs/apScan)が【他タブからの書き込み】を検知できなかった退行を修正。別タブで④の取込やバックアップ復元をすると、こちらのタブでは diLs() が古い件数(最悪0件)を返し続け、⏱タイム換算学習・📚学習DB過去実績・③回収率チューナーが「データが無い」ように振る舞っていました（第23弾以前は毎回読み直していたので発生せず）。ブラウザ標準の storage イベントでメモを破棄するようにし、自分のタブの書き込みでは発火しないため第23弾⑥の高速化(17〜22倍)はそのまま維持。これにより timelv テストが 36件失敗→255件全成功に復旧）／★追加修正2: §53-8 で「表示だけ直して予想ロジック側は保留」としていた残件を解消。p47_timelv.js の ⏱タイム換算学習が学習DBレコードの日付を取る際、meta.date8 が空だと race_id の先頭8桁を日付として使っていました（race_id=202609040311 は 2026年09月・4回・3日目・11R なので先頭8桁は YYYYMM+回 であり日付ではありません）。さらに JRA経路の rid は "JRA"+日付+… と先頭が文字のため slice(0,8)="JRA20260" となり、日付検証を全部落ちてサンプルが黙って捨てられていました。tlRecD8() を新設し meta.date8 → rec.date8 → meta.date → (12桁数字ridのみ)先頭8桁 の順に確定日付を探すように修正。旧バックアップJSON復元時に JRA由来レースが学習から除外されていたのが解消し、重複排除キーの日付も正しくなります。通常運用（現行版での取込）は meta.date8 が入っているため挙動は変わりません</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1566,6 +1580,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <span class="small muted">学習DBから検出・<b>netkeibaへの通信ゼロ</b></span>
         </div>
         <div id="pbBox"></div>
+        <details class="tbhelp">
+        <summary class="small">📖 <b>前日の馬場をどう使うか</b>（決めかた・測りかた・縮小のしかた）<span class="muted">クリックで開く</span></summary>
         <div class="small muted" style="margin-top:2px;line-height:1.7">
           トラックバイアスは「その日の馬場」の話なので、上の当日判定は<b>同じ日の記録だけ</b>で見ています（この制約は変えていません）。
           ただ<b>レース前・朝イチはまだ当日の記録が無い</b>ので、判定が出せず補正がかかりませんでした。
@@ -1580,6 +1596,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           朝イチは前日寄り・終盤は当日の実測が主役になるようにしています。
           <br>　✋ <b>手動指定が最優先</b>: 下の「トラックバイアス手動指定」で選んだ場合はそちらを使い、この想定は適用しません（「OFF」なら補正なし）。
         </div>
+        </details>
       </div>
       <div id="biasManualRow" style="border-top:1px dashed var(--line2);margin:8px 0 4px;padding-top:2px"></div>
       <div id="biasBox"></div>
@@ -2534,7 +2551,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第23弾（①オッズ: ②AI予想タブを開いたとき・履歴から復元したときに必ず最新の単勝オッズを取り直して AI印/軸・妙味・穴/買い目まで自動で描き直す＋「🔄 今すぐ最新オッズ」ボタン新設／②ペース診断と重み設定の横はみ出しを解消（grid の子に min-width:0・自動補正バーの固定幅118px+nowrap を撤廃・ペース見出しを clamp 化）／③回収率チューナーを軽量化：総当たりを2.8倍高速化＋出馬表束の作り直しを廃止＋8分割チャンク実行で画面が固まらない（計算結果は従来と完全一致）／④出馬表キャッシュを40件→80件・当日30分→その日の終わりまでに拡張し、結果確定済みでスキップされるレースも出馬表だけは必ず端末へ保存（その日の全レースが通信ゼロで即表示）／⑤「🗂 一括取得した出馬表」一覧を新設し取得済みレースを日付ごとに表示・レース選択画面に ⚡マーク／⑥学習DBの全読込をメモ化し diLs() 17〜22倍・apScan() 20倍・apStoredRaceList() 14倍高速化）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第24弾（①予想ファクターに「🎯 枠順(重賞のみ)」を追加：⑥重賞データ分析が集めた【この重賞の過去10年】の歴代結果から有利枠を判定。頭数が違う年を混ぜても公平になるよう「その頭数での3着内期待確率」で補正し、有利度=実際の3着内数÷期待3着内数（1.00=平均／≥1.18で有利／≤0.82で不利）。重賞でない・⑥データが無い・対象レースが不一致のときは自動的に不使用（重みが sumW にも入らない）。学習DBの場×距離統計は不使用／②「🗂 一括取得した出馬表」一覧を1レース=1行の最小表示に変更：折り返しなし・はみ出しは省略記号・race_id と長文ステータスを title(ホバー) へ移動・削除ボタンを✕に。CSSは #preList だけに絞り⑤読込履歴の見た目は不変／③トラックバイアスの説明文（前日の決めかた・測りかた・そのまま100%は使いません・手動指定が最優先）を <details> で折り込み（内容は削除せず温存）／④a 持ちタイム表記を修正：yoBestFromRecs に bandOk・gapM を追加し、何mの時計かを必ず表示。今回距離±200mを外れた時計は薄色＋「距離外」明示（tier4が距離不問のため芝1200mのレースに1800mの時計が出ていた）。前走タイム側にも距離ラベルを追加。⏱持ちタイム列と🏔洋芝・コース適性列が同じ値を二度出していた重複を解消（洋芝列はスコア%表示に）／④b 軸・妙味・穴の重複バグを修正：_mi=(1/オッズ)÷inv・invはレース内定数のため _edge=_ev×inv で順位が完全に同一だった（実測2000レース中100%が妙味馬==穴馬）。穴馬候補から axis に加えて val も除外し、並び替えを「市場の人気順位とAI評価順位のズレ」に変更→3頭が必ず別々に（100%）／⑤血統ファクターがカレンダーの選択レースと違うレースを分析していたバグを修正：bfEnsureDrSamples の分岐優先順位が hasRace＞pick だったため①の出馬表のレースを drRunAll が分析していた。pick＞hasRace に反転し、bfDrSamples は DR_LAST.rid と drPickRid().rid を照合（不一致なら取り直し）。枠順ファクターにも同じ照合を実装）／★追加修正: 第23弾⑥で入れた学習DBのメモ化(diLs/apScan)が【他タブからの書き込み】を検知できなかった退行を修正。別タブで④の取込やバックアップ復元をすると、こちらのタブでは diLs() が古い件数(最悪0件)を返し続け、⏱タイム換算学習・📚学習DB過去実績・③回収率チューナーが「データが無い」ように振る舞っていました（第23弾以前は毎回読み直していたので発生せず）。ブラウザ標準の storage イベントでメモを破棄するようにし、自分のタブの書き込みでは発火しないため第23弾⑥の高速化(17〜22倍)はそのまま維持。これにより timelv テストが 36件失敗→255件全成功に復旧）／★追加修正2: §53-8 で「表示だけ直して予想ロジック側は保留」としていた残件を解消。p47_timelv.js の ⏱タイム換算学習が学習DBレコードの日付を取る際、meta.date8 が空だと race_id の先頭8桁を日付として使っていました（race_id=202609040311 は 2026年09月・4回・3日目・11R なので先頭8桁は YYYYMM+回 であり日付ではありません）。さらに JRA経路の rid は "JRA"+日付+… と先頭が文字のため slice(0,8)="JRA20260" となり、日付検証を全部落ちてサンプルが黙って捨てられていました。tlRecD8() を新設し meta.date8 → rec.date8 → meta.date → (12桁数字ridのみ)先頭8桁 の順に確定日付を探すように修正。旧バックアップJSON復元時に JRA由来レースが学習から除外されていたのが解消し、重複排除キーの日付も正しくなります。通常運用（現行版での取込）は meta.date8 が入っているため挙動は変わりません</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -2778,7 +2795,9 @@ var LS_KEY = 'keiba-lab-v1';
    AI印の計算には一切使いません ＝ 自分の予想がAIの答えに影響して自己強化するのを止めます。
    古い保存データに mark>0 が残っていても loadFromLS で 0 に落とします。 */
 function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:0, baba:4, yoso:5,
-  abl:6   /* ★2026-09-12 第17弾・提案3: 学習DB履歴の総合能力(過去戦の3着内率・上り順位・同距離・騎手) */ }; }
+  abl:6,  /* ★2026-09-12 第17弾・提案3: 学習DB履歴の総合能力(過去戦の3着内率・上り順位・同距離・騎手) */
+  waku:3  /* ★2026-09-13 第24弾①: 枠順（重賞のみ・⑥過去10年の歴代結果から有利枠を判定）。
+             重賞以外のレースや⑥の分析データが無いときは、この重みは自動的に使われません */ }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'' };
 }
@@ -3631,6 +3650,24 @@ function analyzeRace(){
     colY2 = normCol(yoInfo.items.map(function(v){ return v.rate; }), false, 0.5);
   }
   var yosoOn = !!colY2;
+  /* ★2026-09-13 第24弾①: 🎯 枠順ファクター（重賞のみ）
+     ⑥重賞データ分析の samples（対象重賞の過去10年ぶん・1〜3着が照合済み）の歴代結果から
+     「有利な枠順」を判定した結果を使い、各馬の枠番を 0〜1（0.5=中立）のスコアにします。
+     重賞以外／⑥の分析データが無い／対象レースが食い違う 場合は wakuStatForRace() が null を返すので
+     自動的に OFF になり、重み waku は sumW にも入りません（他の材料のバランスを崩しません）。 */
+  var wakuSt = null, colW = null;
+  if ((w.waku||0) > 0 && typeof wakuStatForRace === 'function'){
+    try { wakuSt = wakuStatForRace(); } catch(e){ wakuSt = null; }
+    if (wakuSt){
+      var cw = hs.map(function(h){
+        try { return (typeof wakuScoreOf === 'function') ? wakuScoreOf(h && h.frame, wakuSt) : null; } catch(e){ return null; }
+      });
+      var anyW = false;
+      for (var wi = 0; wi < cw.length; wi++){ if (cw[wi] != null){ anyW = true; break; } }
+      if (anyW) colW = cw;
+    }
+  }
+  var wakuOn = !!colW;
   /* 📚 学習DB履歴の総合能力ファクター（★2026-09-12 第17弾・提案3の残件＝①のAI印にも入れた）
      過去戦の3着内率・上り3Fの相対順位・同距離帯の実績・騎手の勝率を p52_histfeat.js が
      「そのレースの日付より前の出走だけ」から作る（いかさま防止）。
@@ -3679,13 +3716,15 @@ function analyzeRace(){
     }
   } catch(e){}
   wK = Math.max(0, (w.tenkai || 0) * apPen);   // 補正後の tenkai 重みに掛け直す
-  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0)) || 1;
+  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0)) || 1;
   var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   var U = hs.map(function(h, i){
     var score = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
     if (babaOn) score += (w.baba||0) * colB[i];
     if (yosoOn) score += (w.yoso||0) * colY2[i];
     if (ablOn) score += (w.abl||0) * colA[i];   // 📚 学習DB履歴の総合能力
+    // 🎯 枠順（重賞のみ）。判定できない枠の馬は中立(0.5)にして不利にも有利にもしない
+    if (wakuOn) score += (w.waku||0) * (colW[i] != null ? colW[i] : 0.5);
     var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑥でON)の僅かな加点（オカルト反映）
     // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
@@ -3738,6 +3777,8 @@ function analyzeRace(){
       fA: colA ? colA[idx] : null, ablHit: (ablInfo && ablInfo.map) ? (ablInfo.map[String(h.no)] || null) : null,
       babaHit: (babaInfo && babaInfo.items) ? babaInfo.items[idx] : null,
       fY2: colY2 ? colY2[idx] : null,
+      fW: colW ? colW[idx] : null,
+      wakuHit: (wakuSt && typeof wakuInfoOf === 'function') ? wakuInfoOf(h.frame, wakuSt) : null,
       yosoHit: (yoInfo && yoInfo.items) ? yoInfo.items[idx] : null,
       U: U[idx],
       ev: infos[idx].ev, timeSec: infos[idx].timeSec,
@@ -3784,6 +3825,20 @@ function analyzeRace(){
   res.colsAvail = { odds: colO.some(function(v){return v!==0.25 && v!==0.5;}), yobi: colY.some(function(v){return v!==0.25&&v!==0.5;}), time: timeUsable, baba: babaOn, yoso: yosoOn };
   res.yosoOn = yosoOn;
   res.yosoTimeBased = yoUsable;   // 持ちタイム列が「馬柱の最速持ちタイム」基準になったか
+  res.wakuStat = wakuOn ? wakuSt : null;   // ★第24弾①: 枠順ファクターで使用した統計（重賞のみ・nullなら不使用）
+  res.wakuOn = wakuOn;
+  /* 枠順ファクターを「使った/使わなかった」を必ず画面に出す（黙って効かせる・黙って無視しない） */
+  try {
+    if (wakuOn){
+      var nJudged = 0;
+      for (var wj = 0; wj < hs.length; wj++){ if (colW[wj] != null) nJudged++; }
+      res.wakuAppliedNote = '🎯 枠順ファクターを適用（重賞のみ）: ⑥で集めた<b>この重賞の過去10年 ' + wakuSt.n + ' 走</b>の歴代結果から有利枠を判定／' +
+        (typeof wakuSummaryText === 'function' ? esc(wakuSummaryText(wakuSt)) : '') +
+        '　<span style="font-weight:400">（' + nJudged + '/' + hs.length + '頭に適用・判定できない枠は中立。有利度=実際の3着内数÷その頭数での期待3着内数、1.00=平均）</span>';
+    } else if ((w.waku||0) > 0){
+      res.wakuAppliedNote = '🎯 枠順ファクターは<b>今回は不使用</b>（重賞でない、または⑥重賞データ分析の過去10年データが無い／対象レースが一致しません）。重賞で⑥の分析をすると自動で使われます';
+    }
+  } catch(e){}
   res.babaOn = babaOn;
   if ((w.baba||0) > 0){
     if (babaOn && babaInfo){
@@ -4281,6 +4336,7 @@ var WEIGHT_DEFS = [
   { k:'tenkai',label:'🧭 展開・脚質',        hint:'ペース適性・ポジション' },
   { k:'baba',  label:'🏟 バ場好走率',        hint:'同開催場×同馬場(良/稍重/重/不良)での過去3着内率。馬柱データを取得すると自動で使えます' },
   { k:'yoso',  label:'🏔 洋芝・コース適性',  hint:'今回と同じコース種別(洋芝=札幌・函館/野芝=他場)・同じ距離±200mでの最速持ちタイムと最速上がり3Fを比較。洋芝開催では洋芝での持ちタイムが最重要材料。馬柱データが必要です' },
+  { k:'waku',  label:'🎯 枠順(重賞のみ)',   hint:'⑥重賞データ分析で集めた【この重賞の過去10年】の歴代結果から、有利な枠順を判定して使います。頭数が違う年を混ぜても公平になるよう「その頭数での3着内期待確率」で補正し、有利度=実際の3着内数÷期待3着内数（1.00=平均）で評価します。重賞以外、または⑥の分析データが無いときは自動的に使われません（学習DBの場×距離統計は使いません）' },
   { k:'abl',   label:'📚 学習DBの過去実績',   hint:'学習DBに取り込んだ過去レースから、この馬の「レース前の成績」を作って評価します（過去戦の3着内率・上り3Fの相対順位・同距離の実績・騎手の勝率）。そのレースの日付より前の出走だけを使うので、結果を見てから予想するいかさまになりません。学習DBに過去戦が無い馬は評価しません' }
   /* ★2026-09-13 第21弾⑤: 「🧠 あなたの印」スライダーを削除しました。
      印の入力欄は①に残ります（メモ・買い目の照合・自己学習の記録用）が、AI印の計算には使いません。
@@ -4289,6 +4345,50 @@ var WEIGHT_DEFS = [
 
 function currentAnalysis(){ return analyzeRace(); }
 
+/* ★2026-09-13 第24弾④a: ⏱持ちタイム セルの表示ヘルパ
+   以前は (1) 馬柱ベースのとき「時計(距離)」を出すが、距離が今回と大きく違っていても
+   普通の見た目だった (2) 前走タイムベースのときは距離を一切出さず時計だけ でした。
+   そのため「その馬が走っていないであろう距離のタイムが持ちタイムとして出る」ように見えました。
+   ここでは どの距離の時計なのかを必ず表示し、今回距離±200m を外れていたら
+   薄色＋「距離外」を付けて、そのまま比較できないことを分かるようにします。 */
+function yoTimeCell(r, res){
+  if (res && res.yosoTimeBased){
+    var it = r.yosoHit;
+    if (!it || it.sec == null) return '<span class="muted">−</span>';
+    var txt = esc(yoFmt(it.sec));
+    var d = parseInt(it.dist, 10) || 0;
+    if (!d) return txt + '<span class="muted" style="font-size:.9em">(距離不明)</span>';
+    var gap = (it.gapM != null) ? it.gapM : 0;
+    if (it.bandOk) return txt + '<span class="muted" style="font-size:.9em">(' + d + 'm)</span>';
+    return '<span class="muted">' + txt + '(' + d + 'm' + (gap ? (gap > 0 ? '・+' : '・') + gap + 'm' : '') + ' 距離外)</span>';
+  }
+  if (r.timeSec == null) return '−';
+  var pd = parseInt((r.h && r.h.prevD) || 0, 10) || 0;
+  var t = esc(fmtTime(r.timeSec));
+  if (!pd) return t + '<span class="muted" style="font-size:.9em">(前走)</span>';
+  var cd = 0;
+  /* 今回距離は readRaceMeta()（①の入力欄）が正。空のときは yoCourse() と同じく
+     state.race.dist へフォールバックします（片方だけ見て「距離外」判定を取りこぼさないため） */
+  try { cd = parseInt(readRaceMeta().dist, 10) || 0; } catch(e){}
+  if (!cd){ try { cd = parseInt(String((state.race && state.race.dist) || '').replace(/[^0-9]/g, ''), 10) || 0; } catch(e){} }
+  var far = !!(cd && Math.abs(pd - cd) > 200);
+  return (far ? '<span class="muted">' : '') + t + '<span class="muted" style="font-size:.9em">(' + pd + 'm・前走' +
+    (far ? ' 距離外' : '') + ')</span>' + (far ? '</span>' : '');
+}
+function yoTimeCellTip(r, res){
+  if (res && res.yosoTimeBased){
+    var it = r.yosoHit;
+    if (!it || it.sec == null) return '今回と同じコース種別(洋芝/野芝)での持ちタイムが見つかりません（馬柱データ未取得の可能性）';
+    var base = '馬柱の戦績から、今回と同じコース種別(洋芝/野芝)で最も条件が近い走りの時計。';
+    var tier = (it.tier === 1) ? '同じ競馬場' : (it.tier === 2) ? '同コース種別の他場・同距離帯' : (it.tier === 3) ? '同距離帯(コース種別は不問)' : '距離不問の参考値';
+    var s = base + '出どころ: ' + tier + '／' + (it.dist || '?') + 'm・' + (it.venue || '?') + '・' + (it.date || '?') + '（' + (it.n || 0) + '走から選定）';
+    if (it.bandOk) return s + '。今回距離±' + 200 + 'm に入っているのでそのまま比較できます';
+    return s + '。⚠ 今回距離と ' + (it.gapM != null ? Math.abs(it.gapM) + 'm' : '大きく') + ' 違うため、時計の単純比較はできません（参考表示）';
+  }
+  var pd = parseInt((r.h && r.h.prevD) || 0, 10) || 0;
+  if (!pd) return '前走タイム（距離が特定できていないため参考値）';
+  return '前走 ' + pd + 'm のタイム' + (r.h && r.h.timeSrc ? '（出どころ: ' + r.h.timeSrc + '）' : '');
+}
 /* 🏔 洋芝・コース適性セルの表示ヘルパ */
 function yosoSub(r, res){
   var it = r.yosoHit;
@@ -4309,6 +4409,28 @@ function yosoTip(r, res){
   }
   return '今回のコース種別(洋芝/野芝)での出走が無く未証明のため控えめ評価。参考値: ' +
     (it.sec != null ? yoFmt(it.sec) + '（' + (it.dist || '') + 'm・' + (it.venue || '') + '／' + (it.tier === 3 ? '同距離' : '距離不問') + '）' : '−');
+}
+/* ★2026-09-13 第24弾①: 🎯枠順ファクター の表示ヘルパ
+   列を増やすと表が横に広がるので、既存の「枠色」セルに小さな有利度マークを添えます。
+   ▲=有利(1.18倍以上) / ▼=不利(0.82倍以下) / 無印=平均的。数字は 有利度(倍) です。 */
+function wakuCell(r, res){
+  if (!res || !res.wakuStat || !r.wakuHit || r.wakuHit.ratio == null) return '';
+  if (!(r.wakuHit.n >= 8)) return '';
+  var j = r.wakuHit.judge;
+  if (!j) return '<span class="muted" style="font-size:.85em;margin-left:2px">' + r.wakuHit.ratio.toFixed(2) + '</span>';
+  var col = j > 0 ? 'var(--ok-ink)' : 'var(--err-ink)';
+  return '<b style="font-size:.85em;margin-left:2px;color:' + col + '">' + (j > 0 ? '▲' : '▼') + r.wakuHit.ratio.toFixed(2) + '</b>';
+}
+function wakuCellTip(r, res){
+  var base = (r.h && r.h.frame ? (r.h.frame + '枠') : '枠');
+  if (!res || !res.wakuStat) return base + '（枠順ファクターは今回使っていません。重賞で⑥の過去10年データがあるときだけ有効）';
+  var g = r.wakuHit;
+  if (!g || g.ratio == null || !(g.n >= 8)) return base + '（この枠は過去10年の出走数が少なく判定できません）';
+  var lbl = g.judge > 0 ? '有利' : (g.judge < 0 ? '不利' : '平均的');
+  return base + 'の過去10年成績（この重賞）: ' + g.n + '走 / 1着 ' + g.w + ' / 3着内 ' + g.t3 +
+    '（3着内率 ' + g.pct3.toFixed(1) + '%・勝率 ' + g.pctW.toFixed(1) + '%）\n' +
+    '有利度 ' + g.ratio.toFixed(2) + '倍 ＝ ' + lbl + '（1.00=平均。頭数補正済み: 実際の3着内数÷その頭数での期待3着内数）\n' +
+    (typeof wakuSummaryText === 'function' ? '全体: ' + wakuSummaryText(res.wakuStat) : '');
 }
 function pct(p){ return (p*100).toFixed(1); }
 function probBar(p){ var w = Math.max(1, Math.round(p*100)); return '<div class="barbg"><i style="width:' + w + '%;background:linear-gradient(90deg,#39a96d,#0e5e39)"></i></div>'; }
@@ -4411,6 +4533,7 @@ function renderTables(res){
     if (res.paceManualNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + esc(res.paceManualNote) + '</div>');
     if (res.bfAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + res.bfAppliedNote + '</div>');
     if (res.babaAppliedNote) parts.push('<div style="background:' + (res.babaOn ? 'var(--card2)' : 'var(--card2)') + ';border:1px solid ' + (res.babaOn ? 'var(--line2)' : 'var(--line2)') + ';border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.babaOn ? 'var(--info-ink)' : 'var(--warn-ink)') + ';font-weight:600">' + res.babaAppliedNote + '</div>');
+    if (res.wakuAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.wakuOn ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' + res.wakuAppliedNote + '</div>');
     if (res.yosoAppliedNote) parts.push('<div style="background:' + (res.yosoOn ? 'var(--card2)' : 'var(--card2)') + ';border:1px solid ' + (res.yosoOn ? 'var(--line2)' : 'var(--line2)') + ';border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.yosoOn ? 'var(--ok-ink)' : 'var(--warn-ink)') + ';font-weight:600">' + res.yosoAppliedNote + '</div>');
     if (res.selfLearnNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + esc(res.selfLearnNote) + '</div>');
     if (res.note) parts.push('<div class="warnbox">' + esc(res.note) + '</div>');
@@ -4437,19 +4560,16 @@ function renderTables(res){
     html += '<tr' + (r.rank===1 ? ' class="leadcol"' : '') + '>' +
       '<td class="vm"><span class="mk0 ' + (r.markCls||'') + '">' + esc(r.mark||'') + '</span></td>' +
       '<td class="vm">' + r.rank + '</td>' +
-      '<td class="vm"><span class="fc" style="background:' + fc + '"></span></td>' +
+      '<td class="vm" title="' + esc(wakuCellTip(r, res)) + '"><span class="fc" style="background:' + fc + '"></span>' + wakuCell(r, res) + '</td>' +
       '<td class="vm"><b>' + esc(h.no || '') + '</b></td>' +
       '<td class="vm" style="text-align:left">' + nameCell + '</td>' +
       '<td class="small vm">' + esc(h.odds || '−') + '</td>' +
       '<td class="vm"><b class="kt-p">' + pct(r.prob) + '%</b></td>' +
       '<td class="small vm" title="' + lapTxt + '">' + (r.ev && r.ev.per != null ? '<b>' + esc(r.ev.per) + '</b><span class="muted">s/F</span>' : '−') + '</td>' +
-      '<td class="small vm" title="' + esc(res.yosoTimeBased ? '今回と同じコース種別(洋芝/野芝)・同距離±200mでの最速持ちタイムで比較' : '前走タイム(同距離±200m)で比較') + '">' +
-        (r.yosoHit && r.yosoHit.sec != null && res.yosoTimeBased
-          ? esc(yoFmt(r.yosoHit.sec)) + '<span class="muted" style="font-size:.9em">(' + esc(String(r.yosoHit.dist || '')) + ')</span>'
-          : (r.timeSec != null ? esc(fmtTime(r.timeSec)) : '−')) + '</td>' +
+      '<td class="small vm" title="' + esc(yoTimeCellTip(r, res)) + '">' + yoTimeCell(r, res) + '</td>' +
       '<td class="vm" title="' + esc(mkName) + 'の展開適性">' + (mkName !== '−' ? '<span class="nowrap">' + mkName + '</span>' + ktMinibar(r.fK*100, 'linear-gradient(90deg,#f2c14e,#c78f1f)') : '−') + '</td>' +
       '<td class="small vm" title="同開催場×同馬場(良/稍重/重/不良)の過去3着内率（馬柱データから）">' + (bH ? '<b style="color:var(--info-ink)">' + r.babaHit.pct + '%</b>' + ktMinibar(r.babaHit.pct, 'linear-gradient(90deg,#8fc2e3,#14608a)') + '<span class="muted">' + r.babaHit.n + '走</span>' : '−') + '</td>' +
-      '<td class="small vm" title="' + esc(yosoTip(r, res)) + '">' + (yH ? '<b style="color:var(--ok-ink)">' + (r.yosoHit.sec != null ? esc(yoFmt(r.yosoHit.sec)) : r.yosoHit.pct + '%') + '</b>' + ktMinibar((r.fY2 || 0) * 100, 'linear-gradient(90deg,#a8d5a2,#0d6a3c)') + '<span class="muted">' + esc(yosoSub(r, res)) + '</span>' : '−') + '</td>' +
+      '<td class="small vm" title="' + esc(yosoTip(r, res)) + '">' + (yH ? '<b style="color:var(--ok-ink)">' + (((r.fY2 || 0) * 100).toFixed(0)) + '%</b>' + ktMinibar((r.fY2 || 0) * 100, 'linear-gradient(90deg,#a8d5a2,#0d6a3c)') + '<span class="muted">' + esc(yosoSub(r, res)) + '</span>' : '−') + '</td>' +
       '<td class="scorecell vm">' + (r.U*100).toFixed(0) + '</td>' +
       '</tr>';
   });
@@ -16043,8 +16163,25 @@ function bfDrSamples(){
   var res = null;
   try { res = (typeof DR_LAST !== 'undefined' && DR_LAST) ? DR_LAST : null; } catch(e){ res = null; }
   if (!res || !res.samples || !res.samples.length) return null;
+  /* ★2026-09-13 第24弾⑤: DR_LAST が「今選ばれているレース」の結果なのかを照合する。
+     以前は無条件で DR_LAST を返していたため、⑦重賞カレンダーで別のレースを選んだあとも
+     前に分析したレース（多くの場合は①で出馬表を開いていたレース）の血統が使われ続けていました。
+     drPickRid() は ①の出馬表読込時刻(state.raceAt) と カレンダー選択時刻(sel.at) を比べて
+     「今どちらが選ばれているか」を1箇所で決める共通関数なので、これを唯一の正とします。 */
+  var pick = null;
+  try { pick = (typeof drPickRid === 'function') ? drPickRid() : null; } catch(e){}
+  if (pick && pick.rid && /^\d{12}$/.test(String(pick.rid))){
+    var have = String(res.rid || '');
+    if (have && have !== String(pick.rid)){
+      try { BF_LASTRID_MISS = have + '≠' + pick.rid; } catch(e){}
+      return null;   // 別レースの分析結果 → 使わず取り直す
+    }
+  }
+  try { BF_LASTRID_MISS = ''; } catch(e){}
   return res;
 }
+/* 照合が外れた理由（デバッグ・表示用） */
+var BF_LASTRID_MISS = '';
 /* 集計用に「年・馬名・着順」を血統データにくっ付ける（キャッシュ本体は汚さない浅いコピー） */
 function bfPedMeta(ped, s, y){
   if (!ped) return ped;
@@ -16135,15 +16272,31 @@ function bfEnsureDrSamples(progress){
   try { nmOnly = (typeof drTargetName === 'function') ? (drTargetName() || '') : ''; } catch(e){}
   try { sel = (state && state.gradeSel) || {}; } catch(e){}
   progress('🧬 ⑥の分析データがまだ無いので、<b>自動で「📥 過去10年の分析」を実行します</b>…（初回は1〜3分／2回目以降はキャッシュで高速）');
+  /* ★2026-09-13 第24弾⑤: 判定の優先順位を「hasRace ＞ pick」から「pick ＞ hasRace」に直しました。
+     drRunAll() は state.race.name（＝①で開いている出馬表のレース）を見て分析するため、
+     ⑦カレンダーで別レースを選んでいる最中に hasRace を先に見ると
+     「カレンダーの選択を無視して①のレースの血統を分析する」ことになります（今回のご指摘の症状）。
+     drPickRid() は ①とカレンダーのどちらが最新かを時刻で解決済みなので、その from を尊重します。
+       ・from='①データ入力' … drRunAll()（state.race.name が正しい対象）
+       ・それ以外 … drAnalyzeRid(pick.rid)（race_id で対象を固定して分析） */
+  var pickFrom = (pick && pick.from) || '';
+  var pickRid = (pick && pick.rid) ? String(pick.rid) : '';
+  var useRid = !!(pickRid && /^\d{12}$/.test(pickRid) && pickFrom !== '①データ入力' && typeof drAnalyzeRid === 'function');
   var p;
-  if (hasRace) p = drRunAll(progress);
-  else if (pick && pick.rid && typeof drAnalyzeRid === 'function') p = drAnalyzeRid(String(pick.rid), {}, progress);
+  if (useRid){
+    try { progress('🎯 対象レース: <b>' + esc(drTargetName ? (drTargetName() || '') : '') + '</b>（race_id ' + esc(pickRid) + '・' + esc(pickFrom) + 'で選択中）の過去10年を分析します'); } catch(e){}
+    p = drAnalyzeRid(pickRid, {}, progress);
+  }
+  else if (hasRace) p = drRunAll(progress);
   else if (nmOnly && typeof drAnalyzeByName === 'function') p = drAnalyzeByName(nmOnly, sel.venue || '', sel.date || '', '', progress);
   else return Promise.reject(new Error('分析するレースが決まっていません。①で出馬表を取り込むか、📅重賞カレンダーでレース名をクリックしてから、もう一度押してください。'));
   return p.then(function(res){
     try {
       if (res && typeof res === 'object'){
-        if (!res.rid && pick && pick.rid) res.rid = String(pick.rid);
+        /* rid が返ってこない実装もあるので、選んでいた race_id を必ず入れておく
+           （これが入っていないと (A) の照合が「不明」扱いになり、毎回やり直しになります） */
+        if (pick && pick.rid && (!res.rid || String(res.rid) !== String(pick.rid)) && useRid) res.rid = String(pick.rid);
+        else if (!res.rid && pick && pick.rid) res.rid = String(pick.rid);
         if (typeof DR_LAST !== 'undefined') DR_LAST = res;
       }
     } catch(e){}
@@ -19013,6 +19166,135 @@ function drAdd(g, s){
   else g.oth++;
 }
 function drRate(a, b){ return b > 0 ? (a / b * 100) : 0; }
+
+/* =========================================================
+   ★2026-09-13 第24弾①: 枠順ファクター（重賞のみ）
+   ---------------------------------------------------------
+   ご指定どおり【⑥重賞データ分析の samples（対象重賞の過去10年ぶん・1〜3着が照合済み）】
+   の歴代結果から「有利な枠順」を判定し、AI予想のファクター判定に使います。
+   学習DBの「場×距離」統計は使いません。
+   --- 頭数ぶんの補正 ---
+   枠の有利不利は頭数で意味が変わります（8頭立ての8枠と18頭立ての8枠は別物）。
+   そこで各出走に「その頭数で3着内に入る期待確率 = min(3,頭数) ÷ 頭数」を積み上げて期待値とし、
+     有利度 ratio = 実際の3着内数 ÷ 期待3着内数
+   とします。1.00=平均 / 1より大きい=有利 / 小さい=不利。頭数が違う年を混ぜても公平です。
+   ========================================================= */
+var WAKU_MIN_TOTAL = 40;   // 判定に使う最低サンプル数（これ未満なら枠順ファクターは使わない）
+var WAKU_MIN_N = 8;        // 1つの枠についての最低出走数（これ未満の枠は判定しない）
+var WAKU_GAIN = 0.5;       // 有利度(ratio) → 0〜1スコア の傾き（ratio1.4→0.70 / ratio0.6→0.30）
+function wakuStatFrom(samples){
+  var m = {}, total = 0, totalExp = 0, total3 = 0;
+  (samples || []).forEach(function(s){
+    if (!s) return;
+    var f = parseInt(s.frame, 10);
+    var o = parseInt(s.o, 10);
+    var rn = parseInt(s.raceN, 10);
+    if (!(f >= 1 && f <= 8)) return;
+    if (!(o >= 1)) return;
+    if (!(rn >= 4)) return;                       // 極端な少頭数は期待確率が歪むので除外
+    var exp = Math.min(3, rn) / rn;               // この頭数での3着内期待確率
+    var g = m[f] || (m[f] = { f: f, n: 0, w: 0, t3: 0, exp3: 0 });
+    g.n++; g.exp3 += exp;
+    if (o === 1) g.w++;
+    if (o <= 3) g.t3++;
+    total++; totalExp += exp; total3 += (o <= 3 ? 1 : 0);
+  });
+  var frames = [];
+  for (var f2 = 1; f2 <= 8; f2++){
+    var g2 = m[f2];
+    if (!g2 || !g2.n){ frames.push({ f: f2, n: 0, w: 0, t3: 0, exp3: 0, ratio: null, pct3: 0, pctW: 0, judge: 0 }); continue; }
+    var ratio = g2.exp3 > 0 ? (g2.t3 / g2.exp3) : null;
+    frames.push({ f: f2, n: g2.n, w: g2.w, t3: g2.t3, exp3: g2.exp3, ratio: ratio,
+      pct3: g2.n ? (g2.t3 / g2.n * 100) : 0, pctW: g2.n ? (g2.w / g2.n * 100) : 0,
+      judge: wakuJudge(ratio, g2.n) });
+  }
+  return { frames: frames, n: total, exp3: totalExp, t3: total3,
+           baseRatio: totalExp > 0 ? (total3 / totalExp) : null };
+}
+/* ratio → 3段階の判定（1=有利 / 0=ふつう / -1=不利）。サンプル不足は 0 */
+function wakuJudge(ratio, n){
+  if (ratio == null || !(n >= WAKU_MIN_N)) return 0;
+  if (ratio >= 1.18) return 1;
+  if (ratio <= 0.82) return -1;
+  return 0;
+}
+/* 枠番 → 0〜1 の評価スコア（0.5=中立）。判定できない枠は null */
+function wakuScoreOf(frame, st){
+  if (!st || !st.frames) return null;
+  var f = parseInt(frame, 10);
+  if (!(f >= 1 && f <= 8)) return null;
+  var g = null;
+  for (var i = 0; i < st.frames.length; i++){ if (st.frames[i].f === f){ g = st.frames[i]; break; } }
+  if (!g || !g.n || g.ratio == null || g.n < WAKU_MIN_N) return null;
+  var v = 0.5 + (g.ratio - 1) * WAKU_GAIN;
+  return Math.max(0, Math.min(1, v));
+}
+/* 枠番 → 判定の詳細（表示用） */
+function wakuInfoOf(frame, st){
+  if (!st || !st.frames) return null;
+  var f = parseInt(frame, 10);
+  if (!(f >= 1 && f <= 8)) return null;
+  for (var i = 0; i < st.frames.length; i++){ if (st.frames[i].f === f) return st.frames[i]; }
+  return null;
+}
+/* いま①で開いているレースについて使える枠順統計を返す（重賞のみ・対象レース一致のみ） */
+var WAKU_MEMO = { key: '', done: false, val: null };
+function wakuStatForRace(){
+  var key = '';
+  try {
+    key = String((typeof DR_LAST !== 'undefined' && DR_LAST && DR_LAST.rid) || '') + '|' +
+          String((typeof DR_LAST !== 'undefined' && DR_LAST && DR_LAST.samples) ? DR_LAST.samples.length : 0) + '|' +
+          String((typeof state !== 'undefined' && state && state.raceId) || '');
+  } catch(e){}
+  if (WAKU_MEMO.done && WAKU_MEMO.key === key) return WAKU_MEMO.val;
+  var val = null;
+  try {
+    var last = (typeof DR_LAST !== 'undefined' && DR_LAST) ? DR_LAST : null;
+    if (last && last.samples && last.samples.length){
+      /* ⑥の分析対象と「今選ばれているレース」が同じでなければ使わない。
+         （第24弾⑤で直した血統ファクターと同じ食い違いを、こちらでも起こさないため） */
+      var cur = String((state && state.raceId) || '');
+      var pick = (typeof drPickRid === 'function') ? drPickRid() : null;
+      var want = (pick && pick.rid) ? String(pick.rid) : cur;
+      var have = String(last.rid || '');
+      var sameRace = !have || !want || have === want;
+      /* 重賞のみ（ユーザー指定）。grade が取れないときはレース名の重賞表記で判定 */
+      var g = '';
+      try { g = String((typeof drGrade === 'function' ? drGrade() : '') || ''); } catch(e){}
+      if (!g){ try { g = String((typeof drTargetGrade === 'function' ? drTargetGrade() : '') || ''); } catch(e){} }
+      var isGrade = /^(G[123]|Jpn[123]?)/i.test(g);
+      if (!isGrade){
+        try { isGrade = !!(last.name && drGradeMark(last.name)); } catch(e){}
+      }
+      if (sameRace && isGrade){
+        var st = wakuStatFrom(last.samples);
+        if (st && st.n >= WAKU_MIN_TOTAL) val = st;
+      }
+    }
+  } catch(e){ val = null; }
+  WAKU_MEMO = { key: key, done: true, val: val };
+  return val;
+}
+/* 有利/不利な枠を文章にする（表示・説明用） */
+function wakuSummaryText(st){
+  if (!st || !st.frames) return '';
+  var good = [], bad = [];
+  st.frames.forEach(function(g){
+    if (!g || g.ratio == null || g.n < WAKU_MIN_N) return;
+    if (g.judge > 0) good.push(g);
+    else if (g.judge < 0) bad.push(g);
+  });
+  function fmt(a){
+    return a.map(function(g){
+      return g.f + '枠(' + g.ratio.toFixed(2) + '倍・3着内' + g.pct3.toFixed(1) + '%/' + g.n + '走)';
+    }).join('、');
+  }
+  var t = [];
+  if (good.length) t.push('有利: ' + fmt(good));
+  if (bad.length) t.push('不利: ' + fmt(bad));
+  if (!t.length) t.push('枠順による明確な差は見つかりませんでした（すべて平均的）');
+  return t.join('　／　');
+}
 /* 汎用ビルダ: labelFn(sample) -> [{k,label}] or null */
 function drBuild(samples, labelFn){
   var m = {};
@@ -23103,7 +23385,13 @@ function yoBestFor(h, ctx){ return yoBestFromRecs(yoRecs(h), ctx); }
 /* recs(馬柱戦績の配列)から直接計算する版(取得直後=キャッシュ前でも使える) */
 function yoBestFromRecs(recs, ctx){
   recs = recs || [];
-  var out = { tier: 0, sec: null, dist: 0, venue: '', date: '', l3: null, l3dist: 0, n: 0, type: ctx.isYoso ? '洋芝' : '野芝' };
+  /* ★2026-09-13 第24弾④a: bandOk / gapM を追加。
+     tier4 は「コース種別が同じなら距離は問わない」段なので、今回が芝1200mなのに
+     芝2600mの時計が最速として拾われることがあります（＝その馬が走っていない距離の時計が
+     持ちタイム欄に出る、というご指摘の症状）。計算の材料には使いつつ、
+     表示側で「今回距離とどれだけ離れているか」を必ず分かるようにします。 */
+  var out = { tier: 0, sec: null, dist: 0, venue: '', date: '', l3: null, l3dist: 0, n: 0, type: ctx.isYoso ? '洋芝' : '野芝',
+              bandOk: false, gapM: null };
   if (!recs.length || ctx.surf !== '芝') return out;
   var rows = [];
   recs.forEach(function(r){
@@ -23138,6 +23426,8 @@ function yoBestFromRecs(recs, ctx){
     out.tier = trials[i].tier;
     out.sec = best.sec; out.dist = best.m; out.venue = best.v; out.date = best.r.date || '';
     out.spd = best.m ? (best.m / best.sec) : null;   // 距離差を吸収した比較用の速度
+    out.gapM = (ctx.dist && best.m) ? (best.m - ctx.dist) : null;   // 今回距離との差(m) 正＝長い
+    out.bandOk = !!(ctx.dist && best.m && Math.abs(best.m - ctx.dist) <= YO_BAND);
     out.l3 = withL3.length ? withL3[0].l3 : null;
     out.l3dist = withL3.length ? withL3[0].m : 0;
     out.n = hit.length;
@@ -24438,6 +24728,36 @@ function tlD8(x){
   var n = t.replace(/[^0-9]/g, '');
   return n.length >= 8 ? n.slice(0, 8) : '';
 }
+/* ★2026-09-13 第24弾・追加修正2: 学習DBレコードから「確定している日付」を取る。
+   以前は 1041行で `rec.meta.date8 || String(rid).slice(0, 8)` としていました。ところが
+     race_id = 202609040311 = 2026年・09月・【4回】・3日目・11R
+   なので **先頭8桁は YYYYMM＋回 であり日付ではありません**（§53-8 の表示バグと同じ誤り）。
+   さらに JRA 経路の rid は `'JRA' + date8 + …` と先頭が文字なので
+   slice(0,8) = 'JRA20260' → tlD8() の検証を全部落ちて '' になり、
+   `if (!d8) { drop++; return; }` で **サンプルが黙って捨てられていました**。
+
+   ここでは確定している日付を次の順で探します（上ほど確実）:
+     1) rec.meta.date8 … 取込時に必ず入る（p32:540 / p32:656）。第一優先
+     2) rec.date8      … レコード直下。これも取込時に必ず入る（p32:539 / p32:654）。
+                         ★旧バックアップJSONからの復元（diImportFile は中身をそのまま保存）でも
+                           残っていることが多く、今回の穴はほぼここで塞がります
+     3) rec.meta.date  … '2026-09-12' 形式。tlD8() が YYYYMMDD に正規化
+     4) rid が 12桁数字（netkeiba形式）のときだけ先頭8桁を最後の手段として使う。
+        「日」は復元できませんが **年・月は正しい**ので年補正には使え、
+        捨ててしまうより母数を保てます（重複排除キーの日付だけが不正確になる）
+     5) それ以外（JRA形式など）は '' → 呼び出し側で drop。
+        誤った日付で学習するより、サンプルを落とすほうが安全です。
+   ※ 通常運用（現行版での取込）では 1) だけで決まるため、挙動は変わりません。 */
+function tlRecD8(rec, rid){
+  var c = [ (rec && rec.meta && rec.meta.date8) || '', (rec && rec.date8) || '', (rec && rec.meta && rec.meta.date) || '' ];
+  for (var i = 0; i < c.length; i++){
+    var d = tlD8(c[i]);
+    if (/^\d{8}$/.test(d)) return d;
+  }
+  var r = String(rid || '');
+  if (/^\d{12}$/.test(r)) return r.slice(0, 8);   // 4) 年・月は正しい（日は「回」なので不正確）
+  return '';                                       // 5) 日付を確定できない → drop させる
+}
 function tlDoy(d8){
   if (!/^\d{8}$/.test(d8)) return null;
   var y = parseInt(d8.slice(0, 4), 10), mo = parseInt(d8.slice(4, 6), 10), da = parseInt(d8.slice(6, 8), 10);
@@ -25439,7 +25759,7 @@ function tlLearnSamples(){
       if (!w) w = rows[0];
       var sec = (typeof nkToSec === 'function') ? nkToSec(w.time) : null;
       if (!sec){ bad++; return; }
-      push({ d8: rec.meta.date8 || String(rid).slice(0, 8), venue: rec.meta.place, surface: rec.meta.surface,
+      push({ d8: tlRecD8(rec, rid), venue: rec.meta.place, surface: rec.meta.surface,
              m: rec.meta.m, baba: rec.meta.baba, name: rec.meta.name, grade: rec.meta.grade, sec: sec, src: 'db' });
       nDb++;
     });
@@ -28509,24 +28829,25 @@ function preListRender(){
       var has = preHasCard(it.rid);
       var isCur = it.rid === curRid;
       var ttl = esc((it.place || '') + ' ' + (it.rnum || '') + 'R ' + (it.name || ''));
+      /* ★2026-09-13 第24弾②: 最小表示（1レース=1行）。
+         以前は race_id・頭数・オッズ件数・取得時刻・「端末に出馬表あり（通信せず開けます）」等の
+         長文を2行目に並べていたため一覧が横に広がっていました。
+         長文はやめて「頭数｜取得時刻」だけ残し、詳しい内容は title(ホバー) とボタン表記に寄せます。
+         出馬表の有無はボタン（⚡表示 = 端末にある / 🌐取得 = 期限切れ）で分かるので説明文は削除。 */
       return '<div class="row">' +
-        '<button type="button" class="btn ' + (has ? 'primary' : 'ghost') + '" style="padding:4px 12px;font-size:.8rem;white-space:nowrap" data-pshow="' + esc(it.rid) + '" data-pd8="' + esc(it.d8 || '') + '">' +
-          (has ? '⚡ 表示' : '🌐 取得して表示') + '</button>' +
-        '<div class="hd">' + ttl +
-          (isCur ? ' <span class="chip" style="background:var(--card2);color:var(--ok-ink)">表示中</span>' : '') +
-          (it.pre ? ' <span class="badge" title="出走前のAI予想を学習DBに保存済み">事前予想</span>' : '') +
-          '<div class="small muted" style="margin-top:2px">' + esc(it.rid) +
-            (it.n ? '｜' + it.n + '頭' : '') +
-            (it.odds ? '｜オッズ' + it.odds + '件' : '') +
-            '｜取得 ' + esc(preTimeText(it.at)) +
-            '｜' + (has ? '<b style="color:var(--ok-ink)">端末に出馬表あり（通信せず開けます）</b>' : '<span style="color:var(--warn-ink)">出馬表は期限切れ（開くときに取得します）</span>') +
-          '</div>' +
+        '<button type="button" class="btn ' + (has ? 'primary' : 'ghost') + '" style="padding:2px 8px;font-size:11px;white-space:nowrap" data-pshow="' + esc(it.rid) + '" data-pd8="' + esc(it.d8 || '') + '"' +
+          ' title="' + (has ? '端末に出馬表があるので通信せず開けます' : '出馬表は期限切れなので開くときに取得します') + '\n' + ttl + '\nrace_id: ' + esc(it.rid) + '">' +
+          (has ? '⚡表示' : '🌐取得') + '</button>' +
+        '<div class="hd" title="' + ttl + '\nrace_id: ' + esc(it.rid) + (it.odds ? '\nオッズ ' + it.odds + '件' : '') + '">' + ttl +
+          (isCur ? '<span class="chip" style="background:var(--card2);color:var(--ok-ink)">表示中</span>' : '') +
+          (it.pre ? '<span class="badge" title="出走前のAI予想を学習DBに保存済み">事前</span>' : '') +
         '</div>' +
-        '<button type="button" class="kai-mini" data-pdel="' + esc(it.rid) + '" title="一覧から外すだけ（出馬表キャッシュ・学習DBは消えません）">削除</button>' +
+        '<span class="muted meta">' + (it.n ? esc(String(it.n)) + '頭｜' : '') + esc(preTimeText(it.at)) + '</span>' +
+        '<button type="button" class="kai-mini" data-pdel="' + esc(it.rid) + '" title="一覧から外すだけ（出馬表キャッシュ・学習DBは消えません）">✕</button>' +
       '</div>';
     }).join('');
-    return '<div style="margin:10px 0 4px"><b>' + esc(k === '不明' ? '日付不明' : preD8Label(k)) + '</b>' +
-      ' <span class="small muted">' + list.length + 'レース / 端末に出馬表 ' + nCard + ' / 事前予想 ' + nPre + '</span></div>' + rows;
+    return '<div class="small muted" style="margin:6px 0 1px"><b style="color:var(--ink)">' + esc(k === '不明' ? '日付不明' : preD8Label(k)) + '</b>' +
+      ' ' + list.length + 'R・端末' + nCard + '・事前' + nPre + '</div>' + rows;
   }).join('');
   box.querySelectorAll('[data-pshow]').forEach(function(b){
     b.onclick = function(){
@@ -30119,6 +30440,8 @@ function pkPicks(res){
 
     // 🎯 軸に最適馬: AI勝率の最大（＝analyzeRace の1位。念のため prob で選び直す）
     var byProb = rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0); });
+    /* ★2026-09-13 第24弾④b: AI評価の「順位」も持つ（穴馬の判定に使う） */
+    byProb.forEach(function(r, i){ r._probRank = i + 1; });
     var axis = byProb[0] || null;
     out.axis = pack(axis, axis ? ('AI勝率 ' + pkPct(axis.prob) + (axis._oddsRank ? '・' + axis._oddsRank + '番人気' : '')) : '', 'axis');
 
@@ -30134,22 +30457,49 @@ function pkPicks(res){
       '（AI勝率 ' + pkPct(val.prob) + ' × オッズ ' + (val.oddsRaw || '?') + '倍）' +
       (val._ev >= 1 ? ' ＝ 1.0以上なのでオッズが実力より甘い' : ' ＝ 1.0未満なので単勝では長期マイナス側')) : '', 'value');
 
-    // 🕳 穴馬: 人気薄の中で edge（AI勝率÷市場期待勝率）が最大の馬
+    /* 🕳 穴馬
+       ★2026-09-13 第24弾④b: 「妙味馬と穴馬が毎回同じ馬になる」バグの修正。
+       --- 原因（数学的に必ず一致していた） ---
+         _mi   = (1/オッズ) ÷ inv      … inv = Σ(1/オッズ) は【レース内で全馬共通の定数】
+         _edge = AI勝率 ÷ _mi = AI勝率 × オッズ × inv = _ev × inv
+       つまり edge の順位は ev の順位と【完全に同一】で、別の指標になっていませんでした。
+       さらに穴馬の絞り込みが axis しか除外していなかったため、
+       ev 1位の馬が人気薄（6番人気以下 or 12倍以上）だと 妙味馬＝穴馬 になります。
+       実測でも 2000レース中 2000回（100%）同一でした。
+       --- 修正 ---
+       (1) 穴馬の候補から axis に加えて val（妙味馬）も除外 → 軸・妙味・穴は必ず別々の馬になる
+       (2) 並び替えの指標を edge（≡ev）から「市場の人気順位とAI評価順位のズレ」に変更。
+           穴馬は「市場が見捨てているのにAIは上位評価している馬」なので、
+           期待値の大きさ（妙味馬の指標）ではなく 順位の上がり幅 で選ぶのが本来の意味です。
+           同率のときは edge の大きい順。 */
+    var holeGap = function(r){
+      if (!r._oddsRank || !r._probRank) return -999;
+      return r._oddsRank - r._probRank;   // 正＝市場よりAIが高く評価している
+    };
+    var holeSort = function(a, b){
+      var d = holeGap(b) - holeGap(a);
+      if (d) return d;
+      return (b._edge || 0) - (a._edge || 0);
+    };
+    var taken = function(r){ return (axis && r === axis) || (val && r === val); };
     var cand = rows.filter(function(r){
       if (!r._edge) return false;
-      if (axis && r === axis) return false;
+      if (taken(r)) return false;
       var o = num(r.h.odds);
       return (r._oddsRank >= PK_HOLE_MIN_RANK) || (o && o >= PK_HOLE_MIN_ODDS);
-    }).sort(function(a, b){ return b._edge - a._edge; });
+    }).sort(holeSort);
     var hole = cand[0] || null;
     if (!hole){
-      // 人気薄が居ない（少頭数・上位人気しかない）ときは edge 最大の馬を穴馬扱いにする
-      var alt = rows.filter(function(r){ return r._edge && r !== axis; })
-        .sort(function(a, b){ return b._edge - a._edge; });
+      // 人気薄が居ない（少頭数・上位人気しかない）ときも、軸と妙味馬は除いて選ぶ
+      var alt = rows.filter(function(r){ return r._edge && !taken(r); }).sort(holeSort);
       hole = alt[0] || null;
     }
-    out.hole = pack(hole, hole ? ('AI評価が市場の ' + hole._edge.toFixed(2) + ' 倍' +
-      (hole._oddsRank ? '・' + hole._oddsRank + '番人気' : '') + '（市場期待 ' + pkPct(hole._mi) + ' に対し AI ' + pkPct(hole.prob) + '）') : '', 'hole');
+    out.hole = pack(hole, hole ? (
+      (hole._oddsRank && hole._probRank
+        ? (hole._oddsRank + '番人気 → AI評価 ' + hole._probRank + '番（' + (holeGap(hole) > 0 ? '+' : '') + holeGap(hole) + '）')
+        : 'AI評価が市場の ' + (hole._edge != null ? hole._edge.toFixed(2) : '—') + ' 倍') +
+      '・AI評価が市場の ' + (hole._edge != null ? hole._edge.toFixed(2) : '—') + ' 倍' +
+      '（市場期待 ' + pkPct(hole._mi) + ' に対し AI ' + pkPct(hole.prob) + '）') : '', 'hole');
     out.ok = !!(out.axis || out.value || out.hole);
     return out;
   } catch(e){ return out; }
@@ -33263,6 +33613,32 @@ function doImport(file){
 
 /* ---------- 初期化 ---------- */
 function boot(){
+  /* ★2026-09-13 第24弾・追加修正: 学習DB/学習実績のメモ化（第23弾⑥）は
+     「同じタブ内の書き込み」しか検知できません（diLsSet/apLsSet… が内部で drop するため）。
+     別のタブで④の取込やバックアップ復元をすると、こちらのタブのメモが古いまま残り、
+     diLs() が「0件」を返し続けて ⏱タイム換算学習・📚学習DB過去実績・③回収率チューナー が
+     まるでデータが無いように振る舞うことがあります（第23弾以前は毎回読み直していたので起きませんでした）。
+     → ブラウザ標準の storage イベント（他タブの localStorage 書き込みで発火）でメモを破棄します。
+        自分のタブの書き込みでは発火しないので、第23弾⑥の高速化（17〜22倍）はそのまま活きます。 */
+  try {
+    window.addEventListener('storage', function(ev){
+      try {
+        var k = (ev && ev.key) || '';
+        // 学習DB(khl_di_*)・学習実績・旧形式の集約キー のときだけ破棄（無関係なキーで捨てない）
+        /* 実在するキー（src/p32_dateimport.js・src/p30_learnrec.js で定義）:
+             khl_di_*      … 学習DB（1レース1キー）        khl_date_v1 … 学習DB 旧集約キー
+             khl_ap_*      … 学習実績の記録本体             khl_apm_*   … 年月ごとの学習集計
+             khl_aplearn_v1… 学習実績 旧集約キー
+           key が null（= clear() や容量超過での一括削除）のときも必ず破棄します。 */
+        var hit = !k || k.indexOf('khl_di_') === 0 || k.indexOf('khl_ap_') === 0 ||
+                  k.indexOf('khl_apm_') === 0 || k === 'khl_date_v1' || k === 'khl_aplearn_v1';
+        if (!hit) return;
+        if (typeof diLsDrop === 'function') diLsDrop();
+        if (typeof apScanDrop === 'function') apScanDrop();
+        if (typeof vtDropRCache === 'function') vtDropRCache();
+      } catch(e){}
+    });
+  } catch(e){}
   /* 2026-09-11 第12弾: 📊シミュレーションの合計集計は「③のタブを開いている間だけのメモリ保持」に
      変更したので、旧バージョンが localStorage に残した khl_simagg_v1 を削除して保存領域を空ける。 */
   try {
