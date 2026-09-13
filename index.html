@@ -146,6 +146,16 @@ main{max-width:1180px;margin:0 auto;padding:14px 18px 40px}
 .card h3{font-size:.95rem;color:var(--ok-ink);margin-top:10px}
 .row2{display:grid;grid-template-columns:1fr 1.15fr;gap:0 18px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 18px}
+/* ★2026-09-13 第23弾②: grid の子は既定で min-width:auto なので、中に white-space:nowrap の要素
+   （重みスライダーの自動補正バー .wtbar / 重み自動調整の6列テーブル）があると、
+   列が「1fr」より広く押し広げられて ペース診断・重み設定のカードごと横にはみ出していました。
+   min-width:0 を与えて「与えられた列幅の中で縮む」ようにします（はみ出さず折り返す）。 */
+.row2>*,.row3>*{min-width:0}
+.row2 .card,.row3 .card{min-width:0;max-width:100%;overflow-wrap:anywhere}
+/* 重み自動調整の6列テーブルは「横スクロールの箱」に入っていますが、
+   箱自体に min-width:0 が無いと中身の nowrap 幅でカードを押し広げてしまいます。 */
+#wtAutoBox,#wtAutoBox>div{min-width:0;max-width:100%}
+#wtAutoBox table{max-width:100%}
 @media(max-width:900px){.row2,.row3{grid-template-columns:1fr}}
 .cardhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .cardhead h2{margin:0}
@@ -208,7 +218,7 @@ td input.sm{min-width:46px}
 .rowdel:hover{color:var(--red)}
 .badge{display:inline-block;background:#2aa56b;color:var(--on-accent);border-radius:6px;padding:0 5px;font-weight:800;font-size:.78rem}
 /* pace */
-.pacebig{font-size:1.9rem;font-weight:900;color:var(--ok-ink);text-align:center;letter-spacing:.03em;padding:4px 0 2px}
+.pacebig{font-size:clamp(1.15rem,4.6vw,1.9rem);font-weight:900;color:var(--ok-ink);text-align:center;letter-spacing:.03em;padding:4px 0 2px;overflow-wrap:anywhere;line-height:1.25}
 .pacesub{text-align:center;font-size:.8rem;color:var(--mut)}
 .pacebar{height:16px;border-radius:9px;background:linear-gradient(90deg,#4a9ae0,#37b56c 45%,#e5ab2f 78%,#e0523f);margin:10px 0 4px;position:relative;overflow:hidden}
 .pacebar i{position:absolute;top:-4px;width:4px;height:24px;background:var(--card);border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.4)}
@@ -217,12 +227,14 @@ td input.sm{min-width:46px}
 .slist{font-size:.84rem}
 .slist b{color:var(--ok-ink)}
 /* sliders */
-.slider{display:flex;align-items:center;gap:10px;margin:7px 0}
-.slider label{flex:0 0 130px;font-size:.82rem;font-weight:600;color:var(--mut)}
-.slider input[type=range]{flex:1;accent-color:#16a05c}
+.slider{display:flex;align-items:center;gap:10px;margin:7px 0;flex-wrap:wrap;min-width:0}
+.slider label{flex:0 1 130px;min-width:0;font-size:.82rem;font-weight:600;color:var(--mut);overflow-wrap:anywhere}
+.slider input[type=range]{flex:1 1 120px;min-width:90px;accent-color:#16a05c}
 .slider output{flex:0 0 46px;text-align:right;font-weight:800;color:var(--ok-ink);font-size:.85rem}
 /* ★2026-09-13 第21弾⑤: 重みスライダーの右に出す「レースごとの自動補正 → 実効値」 */
-.slider .wtbar{flex:0 0 auto;min-width:118px;font-size:.74rem;white-space:nowrap;color:var(--mut)}
+/* ★2026-09-13 第23弾②: min-width:118px + nowrap が列を押し広げて横はみ出しの原因になっていたため、
+   固定幅をやめて「狭いときは折り返す」ようにしました（表示内容は同じ） */
+.slider .wtbar{flex:1 1 118px;min-width:0;font-size:.74rem;white-space:normal;overflow-wrap:anywhere;color:var(--mut)}
 .slider .wtbar .wtmul{font-weight:800}
 /* marks table */
 .mk-1{color:var(--on-accent);background:linear-gradient(135deg,#e05656,#a01f16)}
@@ -370,6 +382,8 @@ table{max-width:100%}
   select,input,textarea{padding:6px 6px}
   .slider{flex-wrap:wrap}
   .slider label{flex-basis:100%}
+  /* ★第23弾②: 狭い画面では自動補正バーを独立した行に落として、スライダー本体の幅を確保する */
+  .slider .wtbar{flex-basis:100%;text-align:left}
   .simplaybtn{width:56px;height:56px;font-size:19px}
   .marks-line{font-size:.85rem}
 }
@@ -903,7 +917,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第22弾（📰 記事URL抽出でレース名を自動検出し、出馬表キャッシュ・学習DB・馬ノートを横断して該当馬を参照／今開いている出馬表と違うレースの記事でも短評を書き込めるように／1記事の複数レースをグループ化／見つからないレースだけnetkeibaから出馬表を取得／該当データが無い馬は記事の馬名＋競走馬IDで新規登録／📋読み込み履歴の開催日誤表示を修正）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第23弾（①オッズ: ②AI予想タブを開いたとき・履歴から復元したときに必ず最新の単勝オッズを取り直して AI印/軸・妙味・穴/買い目まで自動で描き直す＋「🔄 今すぐ最新オッズ」ボタン新設／②ペース診断と重み設定の横はみ出しを解消（grid の子に min-width:0・自動補正バーの固定幅118px+nowrap を撤廃・ペース見出しを clamp 化）／③回収率チューナーを軽量化：総当たりを2.8倍高速化＋出馬表束の作り直しを廃止＋8分割チャンク実行で画面が固まらない（計算結果は従来と完全一致）／④出馬表キャッシュを40件→80件・当日30分→その日の終わりまでに拡張し、結果確定済みでスキップされるレースも出馬表だけは必ず端末へ保存（その日の全レースが通信ゼロで即表示）／⑤「🗂 一括取得した出馬表」一覧を新設し取得済みレースを日付ごとに表示・レース選択画面に ⚡マーク／⑥学習DBの全読込をメモ化し diLs() 17〜22倍・apScan() 20倍・apStoredRaceList() 14倍高速化）</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1351,6 +1365,24 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div id="kaiHist" class="kai-hist"></div>
     <div class="small muted" style="margin-top:8px">履歴はこの端末内（localStorage）に自動保存されます。出馬表＋レース情報のスナップショットなので、開催ページが更新されてもそのまま復元できます。</div>
   </div>
+
+  <!-- ★2026-09-13 第23弾④⑤: 「📥 一括取得」で取ったレースの一覧。
+       従来は 一括取得 しても ここ（読み込み履歴）に何も残らず、
+       「取得できたのか／どれが取れたのか」が分かりませんでした。
+       1件ごとに全馬のスナップショットを持つと localStorage を食い潰すので、
+       ここは **レース情報だけの軽い一覧**（1件 約60バイト）にして、
+       「表示」を押すと ④ で端末に入れた出馬表キャッシュから **通信せず即座に** 開きます。 -->
+  <div class="card">
+    <div class="cardhead">
+      <h2 style="margin:0">🗂 一括取得した出馬表（その日の全レース）</h2>
+      <span class="chip" id="preListChip">0件</span>
+      <span class="sp" style="flex:1"></span>
+      <button type="button" class="kai-mini" id="preListClear" title="この一覧だけ消します（出馬表キャッシュ・学習DB・読み込み履歴は消えません）">一覧を消去</button>
+    </div>
+    <div id="preListEmpty" class="small muted">まだありません。「📅 日付を選んで出馬表を取込」の <b>📥 一括取得して事前予想を保存</b> を押すと、その日の全レースの出馬表を端末に取り込み、ここに一覧が出ます。<br>以降はその日のどのレースを選んでも <b>netkeiba に取りに行かずパッと表示</b>されます。</div>
+    <div id="preList" class="kai-hist"></div>
+    <div class="small muted" style="margin-top:8px">出馬表は端末内に圧縮保存（最大80レース・当日はその日の終わりまで有効）。<b>出走取消や馬場変更があったとき</b>は、開いた画面の「🔄 取り直す（再取得）」で最新を取り直せます。</div>
+  </div>
   </div>
 
   <div class="card">
@@ -1479,6 +1511,17 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   </div>
 
   <div class="hid" id="kentaiBody">
+    <!-- ★2026-09-13 第23弾①: オッズの「最終取得時刻」を必ず見えるようにした。
+         このタブを開くたびに最新の単勝オッズを取り直し（定期ポーリングはしない）、
+         変わっていれば AI印・軸/妙味/穴・買い目提案まで自動で描き直します。 -->
+    <div class="card" style="padding:8px 14px" id="oddsFreshCard">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="chip" id="oddsFreshChip">オッズ未取得</span>
+        <span class="small muted" id="oddsFreshTxt">このタブを開くと最新の単勝オッズを自動で取り直します。</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn ghost" id="oddsFreshBtn" style="padding:3px 10px;font-size:.78rem">🔄 今すぐ最新オッズ</button>
+      </div>
+    </div>
     <div class="card" id="biasCardWrap">
       <div class="cardhead">
         <h2>📈 当日トラックバイアス（馬場傾向）</h2>
@@ -2491,7 +2534,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第22弾（📰 記事URL抽出でレース名を自動検出し、出馬表キャッシュ・学習DB・馬ノートを横断して該当馬を参照／今開いている出馬表と違うレースの記事でも短評を書き込めるように／1記事の複数レースをグループ化／見つからないレースだけnetkeibaから出馬表を取得／該当データが無い馬は記事の馬名＋競走馬IDで新規登録／📋読み込み履歴の開催日誤表示を修正）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第23弾（①オッズ: ②AI予想タブを開いたとき・履歴から復元したときに必ず最新の単勝オッズを取り直して AI印/軸・妙味・穴/買い目まで自動で描き直す＋「🔄 今すぐ最新オッズ」ボタン新設／②ペース診断と重み設定の横はみ出しを解消（grid の子に min-width:0・自動補正バーの固定幅118px+nowrap を撤廃・ペース見出しを clamp 化）／③回収率チューナーを軽量化：総当たりを2.8倍高速化＋出馬表束の作り直しを廃止＋8分割チャンク実行で画面が固まらない（計算結果は従来と完全一致）／④出馬表キャッシュを40件→80件・当日30分→その日の終わりまでに拡張し、結果確定済みでスキップされるレースも出馬表だけは必ず端末へ保存（その日の全レースが通信ゼロで即表示）／⑤「🗂 一括取得した出馬表」一覧を新設し取得済みレースを日付ごとに表示・レース選択画面に ⚡マーク／⑥学習DBの全読込をメモ化し diLs() 17〜22倍・apScan() 20倍・apStoredRaceList() 14倍高速化）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -5375,14 +5418,41 @@ function nkFetchTimeout(url, ms){
          （学習DB・AI予想の保存が第一優先なので、そちらは絶対に削りません）。
    ========================================================= */
 var NK_CARD_LS = 'khl_card_v1';
-var NK_CARD_MAX = 40;                            // 出馬表 約40レースぶん（圧縮後で数百KB程度）
-var NK_CARD_TTL_NOW = 30 * 60 * 1000;            // 当日・未来: 30分
+/* ★2026-09-13 第23弾④: 「その日の出馬表を一括取得したら、どのレースを選んでも
+   再取得せずパッと表示される」ようにするため、保持量と有効期間を見直しました。
+     ・40件 → 80件（JRAは1日 3場×12R=36レース なので、**2日ぶん**まるごと持てます）
+     ・当日 30分 → **その日の終わり(23:59:59)まで**
+       従来は朝に一括取得しても30分で期限切れになり、午後には全レース取り直しになっていました。
+       出走取消・馬場変更を追いたいときは「🔄 取り直す（再取得）」ボタンでいつでも強制取得できます。
+     ・さらに「合計 2.5MB」の byte 上限も追加（localStorage 5MB を圧迫して
+       学習DB・AI予想の保存を邪魔しないための安全弁。古いものから落とします）
+   実測: 出馬表1レースぶんは圧縮後 約8KB（生HTML 48KB → deflate 13KB → 保存 7.8KB）。
+        80件でも 約0.6MB なので余裕があります。 */
+var NK_CARD_MAX = 80;                            // 出馬表 約80レースぶん（2日ぶん）
+var NK_CARD_BYTES_MAX = 2.5 * 1024 * 1024;       // 出馬表キャッシュの合計上限（超えたら古い順に落とす）
+var NK_CARD_TTL_NOW = 30 * 60 * 1000;            // （廃止・下参考）当日: 30分
+var NK_CARD_TTL_MIN = 30 * 60 * 1000;            // 当日・未来でも最低これだけは持つ
 var NK_CARD_TTL_PAST = 7 * 24 * 3600 * 1000;     // 過去: 7日
 var NK_CARD_STAT = { hit: 0, miss: 0, set: 0, drop: 0 };
 
 function nkCardToday8(){
   var d = new Date();
   return '' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+}
+function nkCardEndOfDay(){ var d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); }
+/* 1件の有効期間（ms）。過去=7日 / 当日・未来=その日の終わりまで（最低30分） */
+function nkCardTtlMs(it){
+  var t = (it && it.t) || 0;
+  if (!t) return 0;
+  if (it && it.d8 && it.d8 < nkCardToday8()) return NK_CARD_TTL_PAST;
+  var ms = nkCardEndOfDay() - t;
+  return ms > NK_CARD_TTL_MIN ? ms : NK_CARD_TTL_MIN;
+}
+/* 保存済みデータの合計バイト数（localStorage に載る JSON 文字列ベースの概算） */
+function nkCardBytes(o){
+  var n = 0, h = (o && o.h) || {};
+  for (var k in h){ if (h[k] && h[k].s) n += k.length + String(h[k].s).length + 40; }
+  return n * 2;   // JS文字列は UTF-16 なので ×2
 }
 function nkCardLs(){
   try {
@@ -5405,15 +5475,20 @@ function nkCardSave(o){
 }
 /* 期限切れ・件数超過の掃除（保存のたびについでにやる） */
 function nkCardPrune(o){
-  var t8 = nkCardToday8(), ks = Object.keys(o.h || {}), dropped = 0;
+  var ks = Object.keys(o.h || {}), dropped = 0;
   ks.forEach(function(k){
     var it = o.h[k];
     if (!it || !it.s){ delete o.h[k]; dropped++; return; }
-    var ttl = (it.d8 && it.d8 < t8) ? NK_CARD_TTL_PAST : NK_CARD_TTL_NOW;
-    if (!it.t || (Date.now() - it.t) > ttl){ delete o.h[k]; dropped++; }
+    if (!it.t || (Date.now() - it.t) > nkCardTtlMs(it)){ delete o.h[k]; dropped++; }
   });
   var rest = Object.keys(o.h).sort(function(a, b){ return (o.h[a].t || 0) - (o.h[b].t || 0); });
   while (rest.length > NK_CARD_MAX){ delete o.h[rest.shift()]; dropped++; }
+  /* ★第23弾④: 件数だけでなく合計バイトでも抑える（学習DB・AI予想の保存が第一優先） */
+  var guard = 0;
+  while (rest.length > 1 && nkCardBytes(o) > NK_CARD_BYTES_MAX && guard++ < 500){
+    var k2 = rest.shift(); if (k2 == null) break;
+    delete o.h[k2]; dropped++;
+  }
   NK_CARD_STAT.drop += dropped;
   return dropped;
 }
@@ -5423,8 +5498,7 @@ function nkCardGet(rid){
   if (!rid) return null;
   var o = nkCardLs(), it = o.h[rid];
   if (!it || !it.s) return null;
-  var ttl = (it.d8 && it.d8 < nkCardToday8()) ? NK_CARD_TTL_PAST : NK_CARD_TTL_NOW;
-  if (!it.t || (Date.now() - it.t) > ttl){
+  if (!it.t || (Date.now() - it.t) > nkCardTtlMs(it)){
     delete o.h[rid]; nkCardSave(o);
     return null;
   }
@@ -6104,6 +6178,127 @@ function nkOddsApplyById(rid){
     return { ok:false, cnt:0, fav:null, msg:'オッズ取得失敗: ' + ((e && e.message) || e) };
   });
 }
+/* ★2026-09-13 第23弾①: 「オッズがリアルタイムではない」への対応。
+   ------------------------------------------------------------------
+   定期ポーリング（30秒ごと等）は **しません**。netkeiba への通信を増やさないためです。
+   代わりに、ユーザーが「見る・更新する」動きをしたときに必ず最新を取り直します。
+     ・レースを読み込んだとき          （kaiImportByRaceId → 従来から取得済み）
+     ・②AI予想タブを開いたとき          （goTab('t-kentai') → ★ここで追加）
+     ・オッズのサブタブを開いたとき      （lvSwitch('odds') → 従来から取得済み）
+     ・読み込み履歴から復元したとき      （kaiRestoreHist → ★ここで追加）
+     ・「🔄 今すぐ最新オッズ」を押したとき（force → 間引きを無視）
+   nkFetchOddsAny は cache:'no-store' なので、呼べば必ずサーバの最新が返ります。
+   同じレースを短時間に何度も開いても通信が膨らまないよう、20秒は間を空けます。 */
+var NK_ODDS_VIEW = { rid:'', at:0, busy:false, last:null };
+var NK_ODDS_VIEW_MIN = 20 * 1000;
+function nkOddsViewNote(html, isErr){
+  var t = $('oddsFreshTxt'); if (t) t.innerHTML = html || '';
+  var c = $('oddsFreshChip');
+  if (c){
+    c.textContent = NK_ODDS_VIEW.last && NK_ODDS_VIEW.last.ok
+      ? 'オッズ更新 ' + new Date(NK_ODDS_VIEW.at).toLocaleTimeString('ja-JP')
+      : 'オッズ未取得';
+    c.style.background = NK_ODDS_VIEW.last && NK_ODDS_VIEW.last.ok ? '' : 'var(--card2)';
+  }
+  // 出馬表タブ側のライブ表示にも同じ時刻を出す（開いていれば見える）
+  try { var ch = $('lvOddsChip'); if (ch && NK_ODDS_VIEW.last && NK_ODDS_VIEW.last.ok) ch.textContent = '更新 ' + new Date(NK_ODDS_VIEW.at).toLocaleTimeString('ja-JP'); } catch(e){}
+}
+function nkOddsRefreshForView(reason, opt){
+  opt = opt || {};
+  var rid = '';
+  try { rid = String((typeof state !== 'undefined' && state && state.raceId) || ''); } catch(e){ rid = ''; }
+  if (!rid) return Promise.resolve({ ok:false, skipped:'no-rid' });
+  if (NK_ODDS_VIEW.busy) return Promise.resolve({ ok:false, skipped:'busy' });
+  var now = Date.now();
+  if (!opt.force && NK_ODDS_VIEW.rid === rid && NK_ODDS_VIEW.at && (now - NK_ODDS_VIEW.at) < NK_ODDS_VIEW_MIN){
+    return Promise.resolve({ ok:false, skipped:'throttle' });
+  }
+  if (typeof nkOddsApplyById !== 'function') return Promise.resolve({ ok:false, skipped:'no-fn' });
+  NK_ODDS_VIEW.busy = true; NK_ODDS_VIEW.rid = rid;
+  /* 変わった頭数だけを数えるため、取得前のオッズを控えておく（★第23弾⑥） */
+  var before = {};
+  try { (state.horses || []).forEach(function(h){ before[String(h.no)] = String(h.odds == null ? '' : h.odds); }); } catch(e){}
+  if (!opt.silent) nkOddsViewNote('<span class="muted">🔄 最新の単勝オッズを取得中…（' + esc(reason || '') + '）</span>');
+  return nkOddsApplyById(rid).then(function(r){
+    NK_ODDS_VIEW.busy = false; NK_ODDS_VIEW.last = r;
+    // レースが切り替わっていたら（取得中に別のレースを読んだ）古い結果を反映しない
+    var cur = ''; try { cur = String(state.raceId || ''); } catch(e){}
+    if (cur !== rid){ NK_ODDS_VIEW.at = 0; return r; }
+    NK_ODDS_VIEW.at = Date.now();
+    if (!r || !r.ok){
+      if (!opt.silent) nkOddsViewNote('⚠ ' + esc((r && r.msg) || 'オッズを取得できませんでした') +
+        '（発売前・発走後しばらくは netkeiba が空を返します。出馬表の「単勝」欄に手入力しても②に反映されます）');
+      return r;
+    }
+    /* ★2026-09-13 第23弾⑥: ここで rebuildHorseTable() を呼ぶと「全行のDOM再構築＋馬柱の自動入力＋
+       上3F/持ちタイムの補完＋タイムレベル評価」まで走ってしまい、タブを開くたびに重くなります。
+       オッズが変わったぶんだけセルを差し替え、**実際に値が変わったときだけ** ②を描き直します。 */
+    var changed = 0;
+    try {
+      (state.horses || []).forEach(function(h){
+        var k = String(h.no);
+        if (before[k] !== String(h.odds == null ? '' : h.odds)) changed++;
+      });
+    } catch(e){}
+    if (changed){
+      try { nkOddsSyncCells(); } catch(e){}
+      try { if (typeof saveNow === 'function') saveNow(); } catch(e){}
+      try { if (typeof renderKentaiFull === 'function') renderKentaiFull(); } catch(e){}
+      if (!opt.silent) nkOddsViewNote('✅ <b>' + esc(r.msg || '') + '</b> を取得し、<b>' + changed + ' 頭ぶんオッズが動いた</b>ので ②AI予想・軸/妙味/穴・買い目提案を描き直しました。' +
+        '　<span class="muted">（' + esc(reason || '') + '／このタブを開くたびに自動で取り直します）</span>');
+    } else if (!opt.silent){
+      nkOddsViewNote('✅ ' + esc(r.msg || '') + ' を確認しました。<b>オッズは前回から変わっていません</b>（描き直しは不要なので行っていません）。' +
+        '　<span class="muted">（' + esc(reason || '') + '）</span>');
+    }
+    r.changed = changed;
+    return r;
+  }).catch(function(e){
+    NK_ODDS_VIEW.busy = false; NK_ODDS_VIEW.at = 0;
+    if (!opt.silent) nkOddsViewNote('⚠ オッズ取得でエラー: ' + esc(String((e && e.message) || e)));
+    return { ok:false, msg:String((e && e.message) || e) };
+  });
+}
+/* ★2026-09-13 第23弾⑥: 出馬表の「単勝オッズ」セルだけを差し替える（行は再構築しない）。
+   rebuildHorseTable() は全行のDOM再構築に加えて 馬柱の自動入力・上3F/持ちタイムの補完・
+   タイムレベル評価 まで走るので、オッズ更新のたびに呼ぶと②のタブ開閉が重くなります。
+   編集中のセルも壊さないよう、値が違うときだけ書き換えます。 */
+function nkOddsSyncCells(){
+  var tb = $('horseBody');
+  if (!tb || !tb.querySelectorAll) return 0;
+  var rows = tb.querySelectorAll('tr[data-uid]');
+  var n = 0;
+  for (var i = 0; i < rows.length; i++){
+    var tr = rows[i];
+    if (!tr.querySelector) continue;
+    var noEl = tr.querySelector('input[data-f="no"]');
+    var odEl = tr.querySelector('input[data-f="odds"]');
+    if (!noEl || !odEl) continue;
+    var no = String(noEl.value || '').trim();
+    var h = null;
+    try {
+      (state.horses || []).forEach(function(x){ if (String(x.no) === no && !h) h = x; });
+    } catch(e){}
+    if (!h) continue;
+    var val = String(h.odds == null ? '' : h.odds);
+    if (String(odEl.value || '').trim() !== val){ odEl.value = val; n++; }
+  }
+  return n;
+}
+/* 出馬表を取り込んだ直後に呼ぶ（間引きを無視して必ず最新を取る） */
+function nkOddsMarkFresh(rid){ NK_ODDS_VIEW.rid = String(rid || ''); NK_ODDS_VIEW.at = Date.now(); }
+
+/* ★2026-09-13 第23弾①: ②AI予想タブの「🔄 今すぐ最新オッズ」ボタン。
+   間引き（20秒）を無視して必ず取りに行きます。 */
+function initOddsFresh(){
+  var b = $('oddsFreshBtn');
+  if (b && b.addEventListener){
+    b.addEventListener('click', function(){
+      if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('手動で更新しました', { force: true });
+    });
+  }
+  nkOddsViewNote('このタブを開くと最新の単勝オッズを自動で取り直します（定期ポーリングはしません）。');
+}
+
 /* ★2026-09-13 第19弾①: レース日(YYYYMMDD)を state.raceDate8 に確定させる。
    これが入っていないと jlRaceD8() が「今日」を返し、
    ・前走（上3F・持ちタイム）の絞り込み日がずれる
@@ -11967,6 +12162,10 @@ function kaiImportByRaceId(rid, opt){
       if (r && r.ok){
         l2.push('✅ ' + r.msg);
         l2.push('📈 オッズを反映して ②AI予想タブを描き直しました。');
+        /* ★2026-09-13 第23弾①: いま最新を取ったばかりなので、直後に②予想タブを開いても
+           同じオッズをもう一度取りに行かないように基準時刻を合わせておきます。
+           （20秒以上たってから開けば、改めて最新を取り直します） */
+        try { if (typeof nkOddsMarkFresh === 'function') nkOddsMarkFresh(rid); } catch(e4){}
       } else {
         l2.push('⚠ オッズを取得できませんでした: ' + esc((r && r.msg) || '不明な理由'));
         l2.push('💡 発売前（前日以前）は netkeiba のオッズAPIが空を返します。発走当日にもう一度「オッズ取得」を押してください。');
@@ -12114,6 +12313,11 @@ function kaiRestoreHist(rid){
   rebuildHorseTable();
   saveNow();
   if (typeof goTab === 'function') goTab('t-input');
+  /* ★2026-09-13 第23弾①: 履歴からの復元は「保存したときのオッズ」に戻るので、
+     必ず最新の単勝オッズを取り直してから出馬表・②のAI予想に反映します。 */
+  try {
+    if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('読み込み履歴から復元しました', { force: true });
+  } catch(e){}
 }
 function kaiDeleteHist(rid){
   var ls = kaiLs();
@@ -13092,13 +13296,22 @@ function apLsRaw(rid){
   try { var raw = localStorage.getItem(AP_PREFIX + rid); if (raw){ var r = JSON.parse(raw); if (r && r.rid === rid) return r; } } catch(e){}
   return null;
 }
+/* ★2026-09-13 第23弾⑥: apScan()（＝localStorageモードの apLsAllRec）は
+   呼ぶたびに localStorage 全体を走査して 自己検証レコードを全部 JSON.parse していました。
+   apScan は11箇所・apCompleted は8箇所から呼ばれ、apStoredRaceList の中でも走るので、
+   学習DBが育つほどサイト全体が重くなります（diLs() と同じ問題）。
+   → パース済みの結果を覚えておき、**書き込みがあったときだけ**捨てます。 */
+var apScanMem = null;
+function apScanDrop(){ apScanMem = null; }
 function apLsAllRec(){
+  if (apScanMem) return apScanMem;             // ★第23弾⑥: 前回パースした結果を使い回す
   var out = {};
   try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (k && k.indexOf(AP_PREFIX) === 0){ try { var o = JSON.parse(localStorage.getItem(k)); if (o && o.rid) out[o.rid] = o; } catch(e){} } } } catch(e){}
+  apScanMem = out;
   return out;
 }
-function apLsSetRec(rid, rec){ try { safeSetItem(AP_PREFIX + rid, JSON.stringify(rec))   /* 🥇AI印の学習＝第一優先 */; return true; } catch(e){ return false; } }
-function apLsDelRec(rid){ try { localStorage.removeItem(AP_PREFIX + rid); } catch(e){} }
+function apLsSetRec(rid, rec){ apScanDrop(); try { safeSetItem(AP_PREFIX + rid, JSON.stringify(rec))   /* 🥇AI印の学習＝第一優先 */; return true; } catch(e){ return false; } }
+function apLsDelRec(rid){ apScanDrop(); try { localStorage.removeItem(AP_PREFIX + rid); } catch(e){} }
 /* 年月ごとの学習集計(localStorage 側) */
 function apMBLs(ym){ try { var o = JSON.parse(localStorage.getItem(AP_YM_PREFIX + ym) || 'null'); return (o && o.ym) ? o : null; } catch(e){ return null; } }
 function apMBSaveLs(b){ try { safeSetItem(AP_YM_PREFIX + b.ym, JSON.stringify(b))   /* 🥇AI印の学習＝第一優先 */; return true; } catch(e){ return false; } }
@@ -13161,6 +13374,7 @@ function apBoot(){
   return apBootP;
 }
 function apLsClearRec(){
+  apScanDrop();
   try {
     var n = localStorage.length, ks = [];
     for (var i = 0; i < n; i++){ var k = localStorage.key(i); if (k && k.indexOf(AP_PREFIX) === 0) ks.push(k); }
@@ -13175,6 +13389,9 @@ function apGet(rid){
 }
 function apPut(rec){
   if (!rec || !rec.rid) return false;
+  /* ★2026-09-13 第23弾③: 学習DBに書き込んだら回収率チューナーのレース束キャッシュを捨てる
+     （捨てないと「事前予想を保存したのに回収率チューナーが古い束を使い回す」ことになります） */
+  try { if (typeof vtDropRCache === 'function') vtDropRCache(); } catch(e){}
   if (apMode === 'idb' && apRecMem){
     apRecMem[rec.rid] = rec;
     apIdbPutS(AP_REC_STORE, rec).then(function(){ apLsDelRec(rec.rid); }).catch(function(){ apLsSetRec(rec.rid, rec); });
@@ -13188,6 +13405,7 @@ function apPut(rec){
 function apDelRec(rid){
   rid = String(rid || '');
   if (!rid) return false;
+  try { if (typeof vtDropRCache === 'function') vtDropRCache(); } catch(e){}   /* ★第23弾③ */
   try {
     if (apMode === 'idb' && apRecMem){
       delete apRecMem[rid];
@@ -16749,12 +16967,22 @@ function diLsAll(){
   try { for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (k && k.indexOf(DI_PREFIX) === 0){ try { var rec = JSON.parse(localStorage.getItem(k)); if (rec && rec.rid) races[rec.rid] = rec; } catch(e){} } } } catch(e){}
   return races;
 }
+/* ★2026-09-13 第23弾⑥: diLs() は呼ぶたびに localStorage 全体を走査して
+   学習DBの全レコードを JSON.parse していました（diLsAll + diLegacy）。
+   学習DBは apStoredRaceList / hfBuildIndex / tl* / pf* / vt* などあちこちから読まれるので、
+   ここが効いてくるとサイト全体が重くなります。
+   → パース済みの結果を覚えておき、**書き込みがあったときだけ**捨てて作り直します。
+   呼び出し側はすべて読み取り専用（filter / map / JSON.stringify）なので使い回して安全です。 */
+var diLsMem = null;
+function diLsDrop(){ diLsMem = null; }
 function diLsSet(rid, rec){
+  diLsDrop();
   try { return safeSetItem(DI_PREFIX + rid, JSON.stringify(rec));   /* 🥇学習DB＝第一優先 */ }
   catch(e){ return false; }
 }
-function diLsDel(rid){ try { localStorage.removeItem(DI_PREFIX + rid); } catch(e){} }
+function diLsDel(rid){ diLsDrop(); try { localStorage.removeItem(DI_PREFIX + rid); } catch(e){} }
 function diLsClear(){
+  diLsDrop();
   try { var n = localStorage.length, ks = []; for (var i = 0; i < n; i++){ var k = localStorage.key(i); if (k && k.indexOf(DI_PREFIX) === 0) ks.push(k); } ks.forEach(function(k){ try { localStorage.removeItem(k); } catch(e){} }); } catch(e){}
 }
 function diLegacy(){
@@ -16849,6 +17077,7 @@ function diRaceSort(db){
 }
 /* 指定ridを localStorage キー・旧形式・IndexedDB・メモリから削除 */
 function diRemoveRace(rid){
+  diLsDrop();   // 旧索引(DI_LS)側も書き換えるので必ず捨てる
   diLsDel(rid);
   var leg = diLegacy();
   if (leg && leg.races && leg.races[rid]){
@@ -16942,11 +17171,13 @@ function diBoot(){
 /* ---------- 同期読み書き API（内部は diMode で分岐） ---------- */
 function diLs(){
   if (diMode === 'idb' && diMem) return { races: diMem, at: diAt };
+  if (diLsMem) return diLsMem;              // ★第23弾⑥: 前回パースした結果を使い回す
   var races = diLsAll();
   var leg = diLegacy(), at = 0;
   if (leg){ for (var rid in leg.races){ if (!races[rid]) races[rid] = leg.races[rid]; } }
   for (var k in races){ if ((races[k].at || 0) > at) at = races[k].at; }
-  return { races: races, at: at };
+  diLsMem = { races: races, at: at };
+  return diLsMem;
 }
 function diGet(rid){
   if (diMode === 'idb' && diMem && diMem[rid]) return diMem[rid];
@@ -16970,7 +17201,7 @@ function diSet(rid, rec){
 }
 function diSave(o){ return diStorageOK(); }
 function diRemoveAll(){
-  diMem = null; diAt = 0; diBytesDirty = true;
+  diMem = null; diAt = 0; diBytesDirty = true; diLsDrop();
   if (diDb){ try { diIdbClear(); } catch(e){} }
   diLsClear();
   try { localStorage.removeItem(DI_LS); } catch(e){}
@@ -17771,11 +18002,23 @@ function rkRender(){
     var ls = (typeof kaiLs === 'function') ? kaiLs() : { hist: [] };
     (ls.hist || []).forEach(function(h){ if (h.raceId) doneSet[h.raceId] = 1; });
   } catch(e){}
+  /* ★2026-09-13 第23弾④: 「端末に出馬表が入っている＝選んでも通信せず即表示」の印を付ける。
+     📥一括取得 した日は全部に ⚡ が付くので、どれがパッと開けるか一目で分かります。 */
+  var cardSet = {};
+  try {
+    var pl = (typeof preListAll === 'function') ? (preListAll() || []) : [];
+    pl.forEach(function(it){ if (it && it.rid && (typeof preHasCard === 'function') && preHasCard(it.rid)) cardSet[it.rid] = 1; });
+  } catch(e){}
+  var nCard = 0;
   var html = rk.cache.venues.map(function(v){
     var btns = v.races.map(function(r){
       var on = (rk.sel && rk.sel.raceId === r.raceId) ? ' on' : '';
       var dn = doneSet[r.raceId] ? ' done' : '';
-      return '<button type="button" class="kai-rbtn' + on + dn + '" data-rid="' + esc(r.raceId) + '" title="' + esc(r.name) + '｜' + esc((r.cond || '') + ' ' + (r.count || '')) + '">' + r.r + 'R</button>';
+      var hc = !!cardSet[r.raceId];
+      if (hc) nCard++;
+      return '<button type="button" class="kai-rbtn' + on + dn + '" data-rid="' + esc(r.raceId) + '" title="' +
+        (hc ? '⚡ 出馬表は端末に保存済み（通信せず即表示されます）｜' : '') +
+        esc(r.name) + '｜' + esc((r.cond || '') + ' ' + (r.count || '')) + '">' + (hc ? '⚡' : '') + r.r + 'R</button>';
     }).join('');
     return '<div class="kai-venue"><div class="vh"><span class="vt">' + esc(v.venue) + '</span>' +
       (v.kaisai ? '<span class="vk">' + esc(v.kaisai) + '</span>' : '') +
@@ -17783,7 +18026,15 @@ function rkRender(){
       '<span class="vk">' + v.races.length + 'レース</span></div>' +
       '<div class="kai-tabs">' + btns + '</div></div>';
   }).join('');
-  box.innerHTML = html;
+  /* ★2026-09-13 第23弾④: 「この日の出馬表がどれだけ端末に入っているか」を先頭に出す */
+  var total = 0;
+  rk.cache.venues.forEach(function(v){ total += (v.races || []).length; });
+  var head = nCard
+    ? '<div class="small" style="margin:0 0 6px;color:var(--ok-ink)">⚡ <b>' + nCard + ' / ' + total +
+      ' レースの出馬表が端末に保存済み</b> ― ⚡の付いたRは netkeiba に取りに行かず<b>パッと表示</b>されます（出走取消などがあったときだけ「🔄 取り直す」）。</div>'
+    : '<div class="small muted" style="margin:0 0 6px">まだ端末に出馬表がありません。レースを選ぶと取得します（一度取得したレースは次回から即表示）。' +
+      'その日の全レースを先にまとめて入れておくには <b>📥 一括取得して事前予想を保存</b> を押してください。</div>';
+  box.innerHTML = head + html;
 }
 function rkSelect(rid){
   var f = rkFindRace(rid);
@@ -28127,6 +28378,178 @@ var PRE_DETAIL_DELAY = 120;   // 馬柱1頭あとの待ち時間(ms)
 function preSleep(ms){
   return new Promise(function(r){ setTimeout(r, ms || 0); });
 }
+/* =========================================================
+   ★2026-09-13 第23弾④⑤: 一括取得したレースの記録（軽い一覧）と出馬表キャッシュの確保
+   ---------------------------------------------------------
+   ④「その日の出馬表を一括取込で全データを取得しておき、その日のどの出馬表を選択しても
+      再取得せずパッと表示される」
+      → 事前予想を保存しないレース（結果確定済み・保存済みでスキップ）でも、
+        **出馬表HTMLだけは必ず端末に入れる** ようにしました。これで全レースが即表示になります。
+   ⑤「出馬表の自動保存はされず、読み込み履歴にも取得されたレースの一覧がない」
+      → 取得したレースの一覧をここに記録して ①の画面に出します。
+        読み込み履歴(kaiAddHist)は1件ごとに全馬のスナップショットを持つので、
+        36レースぶん入れると localStorage を食い潰します。そこでここは
+        **レース情報だけの軽い記録（1件 約60バイト・最大300件）** にしています。
+        「表示」を押すと ④ の出馬表キャッシュから通信ゼロで開きます。
+   ========================================================= */
+var PRE_LIST_LS = 'khl_pre_list_v1';
+var PRE_LIST_MAX = 300;
+function preListLs(){
+  try {
+    var o = JSON.parse(localStorage.getItem(PRE_LIST_LS) || 'null');
+    if (!o || !Array.isArray(o.items)) o = { items: [] };
+    return o;
+  } catch(e){ return { items: [] }; }
+}
+function preListSet(o){
+  try { localStorage.setItem(PRE_LIST_LS, JSON.stringify(o)); return true; } catch(e){ return false; }
+}
+/* 一括取得で触ったレースを1件記録する（同じ race_id なら上書き＝重複しない） */
+function preNoteFetched(rid, d8, info){
+  rid = String(rid || '');
+  if (!rid) return;
+  info = info || {};
+  try {
+    var o = preListLs();
+    var it = {
+      rid: rid,
+      d8: /^\d{8}$/.test(String(d8 || '')) ? String(d8) : '',
+      place: String(info.place || ''),
+      rnum: String(info.rnum || ''),
+      name: String(info.name || ''),
+      n: info.n || 0,
+      at: Date.now(),
+      pre: !!info.pre,          // 事前予想を保存できたか（false=結果確定済み等でスキップ）
+      odds: info.oddsN || 0
+    };
+    var i = -1;
+    for (var k = 0; k < o.items.length; k++){ if (o.items[k] && o.items[k].rid === rid){ i = k; break; } }
+    if (i >= 0) o.items[i] = it; else o.items.unshift(it);
+    if (o.items.length > PRE_LIST_MAX) o.items.length = PRE_LIST_MAX;
+    // 新しい日付のものが上に来るように（同じ日付なら取得順）
+    o.items.sort(function(a, b){
+      if (a.d8 !== b.d8) return a.d8 < b.d8 ? 1 : -1;
+      return (b.at || 0) - (a.at || 0);
+    });
+    preListSet(o);
+    preListRender();
+  } catch(e){}
+}
+function preListAll(){ return preListLs().items || []; }
+function preListClear(){
+  try { localStorage.removeItem(PRE_LIST_LS); } catch(e){}
+  preListRender();
+}
+/* 出馬表HTMLが端末に入っているか（＝通信せず開けるか） */
+function preHasCard(rid){
+  try { return (typeof nkCardHas === 'function') && nkCardHas(rid); } catch(e){ return false; }
+}
+/* 事前予想を保存しないレースでも、出馬表だけは必ず端末に入れておく */
+function preEnsureCard(rid, d8, force){
+  try {
+    if (!force && preHasCard(rid)) return Promise.resolve(false);
+    if (typeof nkFetchCardText !== 'function') return Promise.resolve(false);
+    return nkFetchCardText(rid, { d8: d8 || '', force: !!force })
+      .then(function(){ return true; }).catch(function(){ return false; });
+  } catch(e){ return Promise.resolve(false); }
+}
+/* ★2026-09-13 第23弾⑤: レース一覧ページ(diParseDateList)は {rid, rnum, name} しか持たないので、
+   ①の「📅 日付を選んで出馬表を取込」で取得済みの開催キャッシュ（場ごとのレース一覧）から
+   場名を引きます。取れなければ空のまま（一覧は race_id と R番だけでも表示できます）。 */
+function preVenueOf(rid, d8){
+  try {
+    var caches = [];
+    if (typeof kaiLs === 'function'){ var l1 = kaiLs(); if (l1 && l1.cache) caches.push(l1.cache); }
+    if (typeof rk !== 'undefined' && rk && rk.cache) caches.push(rk.cache);
+    for (var i = 0; i < caches.length; i++){
+      var c = caches[i];
+      if (!c || String(c.date || '') !== String(d8 || '') || !c.venues) continue;
+      for (var v = 0; v < c.venues.length; v++){
+        var ve = c.venues[v] || {};
+        var rs = ve.races || [];
+        for (var k = 0; k < rs.length; k++){
+          if (String(rs[k].raceId || '') === String(rid)){
+            return { place: ve.venue || '', rnum: String(rs[k].r || ''), name: rs[k].name || '' };
+          }
+        }
+      }
+    }
+  } catch(e){}
+  return { place: '', rnum: '', name: '' };
+}
+function preD8Label(d8){
+  d8 = String(d8 || '');
+  if (!/^\d{8}$/.test(d8)) return '';
+  var y = d8.slice(0, 4), m = d8.slice(4, 6), d = d8.slice(6, 8);
+  var wd = '';
+  try { wd = '日月火水木金土'.charAt(new Date(parseInt(y,10), parseInt(m,10)-1, parseInt(d,10)).getDay()); } catch(e){}
+  return y + '年' + parseInt(m,10) + '月' + parseInt(d,10) + '日' + (wd ? '(' + wd + ')' : '');
+}
+/* 一覧の描画（日付ごとにグループ化） */
+function preListRender(){
+  var box = $('preList'), empty = $('preListEmpty'), chip = $('preListChip');
+  if (!box) return;
+  var items = preListAll();
+  if (chip) chip.textContent = items.length + '件';
+  if (empty) empty.style.display = items.length ? 'none' : '';
+  if (!items.length){ box.innerHTML = ''; return; }
+  var byDate = {}, order = [];
+  items.forEach(function(it){
+    var k = it.d8 || '不明';
+    if (!byDate[k]){ byDate[k] = []; order.push(k); }
+    byDate[k].push(it);
+  });
+  var curRid = '';
+  try { curRid = String((typeof state !== 'undefined' && state && state.raceId) || ''); } catch(e){}
+  box.innerHTML = order.map(function(k){
+    var list = byDate[k];
+    var nCard = 0, nPre = 0;
+    list.forEach(function(it){ if (preHasCard(it.rid)) nCard++; if (it.pre) nPre++; });
+    var rows = list.map(function(it){
+      var has = preHasCard(it.rid);
+      var isCur = it.rid === curRid;
+      var ttl = esc((it.place || '') + ' ' + (it.rnum || '') + 'R ' + (it.name || ''));
+      return '<div class="row">' +
+        '<button type="button" class="btn ' + (has ? 'primary' : 'ghost') + '" style="padding:4px 12px;font-size:.8rem;white-space:nowrap" data-pshow="' + esc(it.rid) + '" data-pd8="' + esc(it.d8 || '') + '">' +
+          (has ? '⚡ 表示' : '🌐 取得して表示') + '</button>' +
+        '<div class="hd">' + ttl +
+          (isCur ? ' <span class="chip" style="background:var(--card2);color:var(--ok-ink)">表示中</span>' : '') +
+          (it.pre ? ' <span class="badge" title="出走前のAI予想を学習DBに保存済み">事前予想</span>' : '') +
+          '<div class="small muted" style="margin-top:2px">' + esc(it.rid) +
+            (it.n ? '｜' + it.n + '頭' : '') +
+            (it.odds ? '｜オッズ' + it.odds + '件' : '') +
+            '｜取得 ' + esc(preTimeText(it.at)) +
+            '｜' + (has ? '<b style="color:var(--ok-ink)">端末に出馬表あり（通信せず開けます）</b>' : '<span style="color:var(--warn-ink)">出馬表は期限切れ（開くときに取得します）</span>') +
+          '</div>' +
+        '</div>' +
+        '<button type="button" class="kai-mini" data-pdel="' + esc(it.rid) + '" title="一覧から外すだけ（出馬表キャッシュ・学習DBは消えません）">削除</button>' +
+      '</div>';
+    }).join('');
+    return '<div style="margin:10px 0 4px"><b>' + esc(k === '不明' ? '日付不明' : preD8Label(k)) + '</b>' +
+      ' <span class="small muted">' + list.length + 'レース / 端末に出馬表 ' + nCard + ' / 事前予想 ' + nPre + '</span></div>' + rows;
+  }).join('');
+  box.querySelectorAll('[data-pshow]').forEach(function(b){
+    b.onclick = function(){
+      var rid = b.getAttribute('data-pshow'), d8 = b.getAttribute('data-pd8') || '';
+      if (typeof kaiImportByRaceId === 'function') kaiImportByRaceId(rid, { d8: d8 });
+    };
+  });
+  box.querySelectorAll('[data-pdel]').forEach(function(b){
+    b.onclick = function(){
+      var rid = b.getAttribute('data-pdel');
+      var o = preListLs();
+      o.items = (o.items || []).filter(function(x){ return x && x.rid !== rid; });
+      preListSet(o); preListRender();
+    };
+  });
+}
+function preTimeText(ms){
+  try {
+    var d = new Date(ms);
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  } catch(e){ return ''; }
+}
+
 function preLog(progress, msg, isErr){
   try { if (typeof progress === 'function') progress(msg, !!isErr); } catch(e){}
 }
@@ -28242,7 +28665,9 @@ function preOneRace(rid, d8, opt){
         var rec = (typeof apSnapPred === 'function') ? apSnapPred(rid, res, mm) : null;
         if (!rec || !rec.pre) throw new Error('事前予想を保存できませんでした（すでに結果が確定している可能性があります）');
         return { rid: rid, n: hs.length, oddsN: Object.keys(oddsMap).length, detailN: detN || 0,
-                 styleN: hs._styleFilled || 0, honmei: (res.rows && res.rows[0]) ? (res.rows[0].h.name + res.rows[0].mark) : '' };
+                 styleN: hs._styleFilled || 0, honmei: (res.rows && res.rows[0]) ? (res.rows[0].h.name + res.rows[0].mark) : '',
+                 /* ★2026-09-13 第23弾⑤: 一覧に「何場 何R 何レース」を出せるように引き渡す */
+                 place: meta.place || '', rnum: String(meta.rnum || '').replace(/[^0-9]/g, ''), raceName: raceName || '' };
       });
     });
   });
@@ -28252,7 +28677,7 @@ function preOneRace(rid, d8, opt){
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
-  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, errors: [] };
+  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, errors: [] };
   var d8 = String(date8 || '').replace(/[^0-9]/g, '');
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
@@ -28266,14 +28691,45 @@ function preDayFetch(date8, opt, progress){
       seq = seq.then(function(){
         var rid = String(it.rid || it.id || '');
         if (!rid) return;
+        /* ★2026-09-13 第23弾④: レース一覧(diNetkeibaRaces)が持っている情報をそのまま
+           ⑤の一覧表示に使うので、ここで拾っておきます。 */
+        var meta0 = { place: it.venue || it.place || '', rnum: (String(it.r || it.rnum || '').replace(/[^0-9]/g, '')), name: it.name || '' };
+        try {
+          var ve0 = preVenueOf(rid, d8);
+          if (!meta0.place && ve0.place) meta0.place = ve0.place;
+          if (!meta0.rnum && ve0.rnum) meta0.rnum = ve0.rnum;
+          if (!meta0.name && ve0.name) meta0.name = ve0.name;
+        } catch(e){}
         // すでに結果を知っているレースは「事前予想」にならないので必ず飛ばす
         var done = false;
         try { done = (typeof apPreAllowed === 'function') ? !apPreAllowed(rid) : false; } catch(e){}
-        if (done){ result.skipDone++; preLog(progress, rid + ' → 結果確定済みなのでスキップ（事前予想になりません）'); return; }
+        if (done){
+          result.skipDone++;
+          /* ★第23弾④: 事前予想にはならなくても、**出馬表だけは必ず端末に入れる**。
+             これがないと「結果確定済みのレースを選んだときだけ毎回取り直し」になります。 */
+          return preEnsureCard(rid, d8, !!opt.forceCard).then(function(got){
+            if (got) result.cardN++;
+            try { preNoteFetched(rid, d8, { place: meta0.place, rnum: meta0.rnum, name: meta0.name, n: 0, pre: false }); } catch(e){}
+            preLog(progress, rid + ' → 結果確定済みなので事前予想はスキップ' +
+              (got ? '（📄 出馬表は端末に保存したので、選ぶときは通信せず即表示されます）' : '（📄 出馬表は保存済み）'));
+          }).then(function(){ return preSleep(opt.delay || PRE_DELAY); });
+        }
         if (!opt.force){
           try {
             var r0 = (typeof apGet === 'function') ? apGet(rid) : null;
-            if (r0 && r0.pre && r0.pre.rows && r0.pre.rows.length){ result.skipHave++; return; }
+            if (r0 && r0.pre && r0.pre.rows && r0.pre.rows.length){
+              result.skipHave++;
+              /* ★第23弾④⑤: 事前予想が保存済みでも、出馬表キャッシュが期限切れなら入れ直し、
+                 一覧には必ず載せます（「取得されたレースの一覧」が欠けないように） */
+              return preEnsureCard(rid, d8, false).then(function(got){
+                if (got) result.cardN++;
+                try {
+                  preNoteFetched(rid, d8, { place: meta0.place, rnum: meta0.rnum, name: meta0.name,
+                    n: (r0.pre.rows || []).length, pre: true });
+                } catch(e){}
+                preLog(progress, rid + ' → 事前予想は保存済み' + (got ? '（📄 出馬表を端末に保存しました）' : ''));
+              }).then(function(){ return preSleep(opt.delay || PRE_DELAY); });
+            }
           } catch(e){}
         }
         return preOneRace(rid, d8, opt).then(function(info){
@@ -28281,6 +28737,14 @@ function preDayFetch(date8, opt, progress){
           result.detailN += info.detailN || 0;
           if (info.oddsN) result.oddsN++;
           result.styleN += info.styleN || 0;
+          result.cardN++;
+          /* ★第23弾⑤: 取得できたレースを一覧に記録する（読み込み履歴に載らなかった問題の対応） */
+          try {
+            preNoteFetched(rid, d8, {
+              place: meta0.place || (info.place || ''), rnum: meta0.rnum || (info.rnum || ''),
+              name: (info.raceName || meta0.name || ''), n: info.n || 0, pre: true, oddsN: info.oddsN || 0
+            });
+          } catch(e){}
           preLog(progress, '✅ ' + rid + '（' + info.n + '頭・オッズ' + info.oddsN + '件・脚質補完' + info.styleN +
             '頭' + (info.detailN ? '・馬柱' + info.detailN + '頭' : '') + '） 本命: ' + info.honmei);
         }).catch(function(e){
@@ -28296,6 +28760,7 @@ function preDayFetch(date8, opt, progress){
       try { if (typeof pfSchedule === 'function') pfSchedule(); } catch(e){}
       preLog(progress, '完了: 事前予想を保存 ' + result.ok + ' レース / 保存済みでスキップ ' + result.skipHave +
         ' / 結果確定済みでスキップ ' + result.skipDone + ' / 失敗 ' + result.fail +
+        ' ／📄 出馬表は ' + result.total + ' レースぶん端末に保存済み（この日のレースはどれを選んでも通信せず即表示されます）' +
         (result.oddsN ? '（オッズ取得 ' + result.oddsN + ' レース）' : '（※オッズは発売前だと取得できないことがあります）') +
         (result.detailN ? '（馬柱 ' + result.detailN + ' 頭）' : ''));
       return result;
@@ -28363,6 +28828,15 @@ function initPre(){
   } catch(e){}
   // 事前予想が何レース保存済みかを出す
   try { preRenderCount(); } catch(e){}
+  /* ★2026-09-13 第23弾⑤: 一括取得したレースの一覧を描画＋消去ボタンを配線 */
+  try { preListRender(); } catch(e){}
+  try {
+    var cb = $('preListClear');
+    if (cb && cb.addEventListener) cb.addEventListener('click', function(){
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm('一括取得したレースの一覧だけ消します。\n出馬表キャッシュ・学習DB・読み込み履歴は消えません。よろしいですか？')) return;
+      preListClear();
+    });
+  } catch(e){}
 }
 function preRenderCount(){
   var el = $('preCount');
@@ -30417,31 +30891,60 @@ function vtRaces(limit){
 }
 
 /* ---------- 1レース × 1設定 の精算 ---------- */
-function vtEvalRace(race, st){
-  var picked = [], i, c;
-  var kinds = st.kinds;
-  for (i = 0; i < race.cand.length; i++){
-    c = race.cand[i];
-    if (kinds.indexOf(c.kind) < 0) continue;
-    if (c.qmax >= st.pool) continue;
-    if (c.edge < st.minEdge) continue;
-    picked.push(c);
-  }
-  if (!picked.length) return { invest:0, ret:0, pts:0, hitPts:0, raceBet:0, raceHit:0, est:0 };
-  picked.sort(function(a, b){ return b.ev - a.ev; });
-  if (picked.length > st.cap) picked = picked.slice(0, st.cap);
+/* ★2026-09-13 第23弾③: 回収率チューナーを押すと重かった原因は、
+   総当たり 1,440通り × 全レース × 1レースあたり最大520候補 の
+   「絞り込み＋EV順ソート」を毎回ぜんぶやり直していたことでした。
+   ここを
+     (1) 券種セットごとの候補を EV順に並べ替えて、レースごとに1回だけ持つ
+     (2) 「何を買うか」は掛け金の配分方法(均等/ケリー/集中)に依存しないので、
+         480通りぶんだけ買い目を決めて 3通りの配分で使い回す（＝3倍速）
+   の2点で作り直しました。**計算結果は今までと完全に同じ**で、速さだけ変わります。 */
 
+/* 券種セット(kinds)ごとの候補を「EVの高い順」に並べ替えて race ごとに1回だけ持つ。
+   V8 の Array#sort は安定ソートなので、同EVの並び順は cand の生成順のまま＝従来の結果と一致します。 */
+function vtBucketFor(race, kinds){
+  var key = kinds.join('+');
+  var b = race._bkt || (race._bkt = {});
+  if (b[key]) return b[key];
+  var set = {}, i;
+  for (i = 0; i < kinds.length; i++) set[kinds[i]] = 1;
+  var arr = [];
+  for (i = 0; i < race.cand.length; i++){ if (set[race.cand[i].kind]) arr.push(race.cand[i]); }
+  arr.sort(function(x, y){ return y.ev - x.ev; });
+  b[key] = arr;
+  return arr;
+}
+
+/* 「このレースで何を買うか」を決める（掛け金の配分方法には依存しない） */
+function vtPickRace(race, kinds, pool, minEdge, cap){
+  var arr = vtBucketFor(race, kinds);
+  var picked = null;
+  for (var i = 0; i < arr.length; i++){
+    var c = arr[i];
+    if (c.qmax >= pool) continue;
+    if (c.edge < minEdge) continue;
+    if (!picked) picked = [];
+    picked.push(c);
+    if (picked.length >= cap) break;   // EV順に並んでいるので cap 点取ったら以降は見なくてよい
+  }
+  return picked;
+}
+
+/* 決まった買い目に「掛け金を配って」精算する */
+function vtSettleRace(race, picked, stake){
+  if (!picked || !picked.length) return { invest:0, ret:0, pts:0, hitPts:0, raceBet:0, raceHit:0, est:0 };
+  var k;
   // 金額の配分（どの方式でも投資額は「点数×100円」で揃える＝回収率を公平に比べられる）
   var budget = picked.length * VT_BUDGET_PER_PT;
-  var yen = [], k;
-  if (st.stake === 'kelly'){
+  var yen = [];
+  if (stake === 'kelly'){
     var fs = 0; picked.forEach(function(x){ fs += x.kelly; });
     if (fs > 0){
       // 分数ケリー（f = (P×O − 1)/(O − 1)）の「比」で配る。
       // 合計は均等張りと同じ投資額になるよう正規化するので、回収率の比較は公平になります。
       for (k = 0; k < picked.length; k++) yen.push(picked[k].kelly / fs * budget);
     } else { for (k = 0; k < picked.length; k++) yen.push(VT_BUDGET_PER_PT); }
-  } else if (st.stake === 'top'){
+  } else if (stake === 'top'){
     var topN = Math.min(3, picked.length), wsum = 0, ws = [];
     for (k = 0; k < picked.length; k++){
       var w = (k < topN) ? Math.max(0.0001, picked[k].ev - 1 + 0.05) : 0;
@@ -30493,6 +30996,13 @@ function vtEvalRace(race, st){
            raceBet:(invest > 0 ? 1 : 0), raceHit:(ret > 0 ? 1 : 0), est:est };
 }
 
+/* 従来の入口（vtByPoints / vtByKind / vtByEdge / vtAccFor から呼ばれる）。
+   st.kinds が無いとき（＝今の③の設定）は単勝だけを見る、というのも従来どおりです。 */
+function vtEvalRace(race, st){
+  var kinds = (st.kinds && st.kinds.length) ? st.kinds : ['tan'];
+  return vtSettleRace(race, vtPickRace(race, kinds, st.pool, st.minEdge, st.cap), st.stake);
+}
+
 /* ---------- 集計器 ---------- */
 function vtAcc(){
   return { invest:0, ret:0, pts:0, hitPts:0, raceBet:0, raceHit:0, est:0, races:0, kindHit:{}, kindPts:{} };
@@ -30513,19 +31023,33 @@ function vtRates(a){
 }
 
 /* 全設定の総当たり */
-function vtSweep(races){
-  var res = [];
-  VT_KINDSETS.forEach(function(ks){
+/* ★2026-09-13 第23弾③: 「何を買うか」は掛け金の配分方法に依存しないので、
+   (券種セット × 頭数 × 妙味 × 点数) = 480通り だけ買い目を決めて、
+   3通りの配分方法（均等 / 分数ケリー / EV上位集中）で使い回します。
+   いちばん重かった「絞り込み」の回数が 1/3 になり、しかも事前ソート済みなので
+   並び替えも発生しません（結果は従来と完全一致）。 */
+function vtSweepKs(races, ks, res){
+  var n = races.length;
+  (function(){
     VT_POOLS.forEach(function(pool){
       VT_EDGES.forEach(function(edge){
         VT_CAPS.forEach(function(cap){
+          // ① この(券種セット,頭数,妙味下限,最大点数)の買い目を レースごとに1回だけ決める
+          var picks = new Array(n), anyPick = false, i;
+          for (i = 0; i < n; i++){
+            var p = vtPickRace(races[i], ks.kinds, pool, edge, cap);
+            picks[i] = p;
+            if (p) anyPick = true;
+          }
+          if (!anyPick) return;   // どのレースでも1点も買わない → 3通りとも a.races=0 で捨てられる
+          // ② 同じ買い目を 3通りの掛け金配分で精算する
           VT_STAKES.forEach(function(sk){
             var st = { id:[ks.id, pool, edge.toFixed(2), cap, sk.id].join('/'),
                        ks:ks.id, ksName:ks.n, kinds:ks.kinds, pool:pool, minEdge:edge, cap:cap,
                        stake:sk.id, stakeName:sk.n };
             var a = vtAcc();
-            for (var i = 0; i < races.length; i++){
-              var r = vtEvalRace(races[i], st);
+            for (i = 0; i < n; i++){
+              var r = vtSettleRace(races[i], picks[i], sk.id);
               if (r.raceBet){ a.races++; vtMerge(a, r); }
             }
             if (!a.races) return;
@@ -30533,11 +31057,33 @@ function vtSweep(races){
             st.rate = vtRates(a);
             res.push(st);
           });
+          picks = null;
         });
       });
     });
-  });
+  })();
   return res;
+}
+function vtSweep(races){
+  var res = [];
+  VT_KINDSETS.forEach(function(ks){ vtSweepKs(races, ks, res); });
+  return res;
+}
+/* ★2026-09-13 第23弾③: 総当たりを「券種セット1つ」ずつ setTimeout で区切って回す。
+   同期で全部やると 60レースで 0.4秒・300レースなら数秒 画面が すっかり固まるので、
+   合間にブラウザへ制御を返して進捗を出しながら進めます（計算結果は vtSweep と同じ）。 */
+function vtSweepAsync(races, onProgress){
+  return new Promise(function(resolve){
+    var res = [], i = 0;
+    function step(){
+      try { vtSweepKs(races, VT_KINDSETS[i], res); } catch(e){}
+      i++;
+      if (onProgress){ try { onProgress(i / VT_KINDSETS.length, i, VT_KINDSETS.length); } catch(e){} }
+      if (i < VT_KINDSETS.length) setTimeout(step, 0);
+      else resolve(res);
+    }
+    setTimeout(step, 0);
+  });
 }
 
 /* 点数別の回収率（＝「絞り込み」の効果を一番分かりやすく出す表） */
@@ -30658,6 +31204,31 @@ function vtAnalyze(races){
   out.byEdge = vtByEdge(races);
   out.advice = vtAdvice(out);
   return out;
+}
+/* ★2026-09-13 第23弾③: vtAnalyze のチャンク版。中身（集計・最良設定の選び方・表）は
+   vtAnalyze と完全に同じで、総当たりを 8回に分けて回すあいだにブラウザへ制御を返すだけです。 */
+function vtAnalyzeAsync(races, onProgress){
+  return vtSweepAsync(races, function(f){ if (onProgress) onProgress(f * 0.8); }).then(function(sweep){
+    var out = { races: races.length, nLive: 0, nBt: 0, nPay: 0, sweep: sweep, best: null, cur: null,
+                byPoints: [], byKind: [], byEdge: [], advice: [] };
+    races.forEach(function(r){ if (r.src === 'live') out.nLive++; else out.nBt++; if (r.hasPay) out.nPay++; });
+    if (onProgress) onProgress(0.85);
+    out.cur = vtAccFor(races, vtCurrentStrategy());
+    // 一番回収率が高い設定（レース数が少なすぎるものは除外）
+    var minRaces = Math.max(1, Math.round(races.length * 0.3));
+    var ok = out.sweep.filter(function(s){ return s.acc.races >= minRaces && s.acc.invest >= 1000; });
+    ok.sort(function(a, b){ return b.rate.roi - a.rate.roi; });
+    out.best = ok[0] || null;
+    out.top = ok.slice(0, 12);
+    if (onProgress) onProgress(0.92);
+    out.byPoints = vtByPoints(races);
+    out.byKind = vtByKind(races);
+    out.byEdge = vtByEdge(races);
+    if (onProgress) onProgress(0.97);
+    out.advice = vtAdvice(out);
+    if (onProgress) onProgress(1);
+    return out;
+  });
 }
 function vtPct(x, d){ return (x == null || !isFinite(x)) ? '—' : (x * 100).toFixed(d == null ? 1 : d) + '%'; }
 function vtYen(x){ return (x == null || !isFinite(x)) ? '—' : Math.round(x).toLocaleString('ja-JP') + '円'; }
@@ -30822,6 +31393,34 @@ function vtHTML(A){
   return h.join('');
 }
 
+/* ★2026-09-13 第23弾③: vtRaces() は「1レースあたり最大520候補（3連単336通りを含む）」を
+   作り直す重い処理なのに、従来は **描画キャッシュが効いているときでも毎回** 走っていました
+   （カードを開くたび・自動マクロのたび）。
+   → 学習DBの中身を表す署名が変わったときだけ作り直すようにしました。
+   署名は「レース数＋rid＋着順行数＋払戻の有無」なので、結果が確定したり払戻が入ったりすれば
+   必ず変わります。加えて 学習DBへの書き込み(apPut)・削除(apDelRec) でも明示的に捨てます。 */
+var VT_RCACHE = { sig:'\u0001', races:null };
+function vtDropRCache(){ VT_RCACHE.sig = '\u0001'; VT_RCACHE.races = null; }
+function vtListSig(){
+  try {
+    var list = (typeof apStoredRaceList === 'function') ? (apStoredRaceList() || []) : [];
+    var s = list.length + '|';
+    for (var i = 0; i < list.length; i++){
+      var it = list[i] || {}, p = it.p || {};
+      s += (it.rid || '') + ':' + ((p.rows || []).length) + ':' + (p.payout ? 1 : 0) + (p.payouts ? 1 : 0) + ',';
+    }
+    return s;
+  } catch(e){ return ''; }
+}
+function vtRacesCached(limit){
+  if (limit) return vtRaces(limit);            // 件数を絞る呼び出しは従来どおり（キャッシュしない）
+  var sig = vtListSig();
+  if (sig && VT_RCACHE.races && VT_RCACHE.sig === sig) return VT_RCACHE.races;
+  var races = [];
+  try { races = vtRaces(0); } catch(e){ races = []; }
+  if (sig){ VT_RCACHE.sig = sig; VT_RCACHE.races = races; }
+  return races;
+}
 function vtSig(races){
   var s = races.length + '|';
   for (var i = 0; i < races.length && i < 400; i++){
@@ -30832,34 +31431,64 @@ function vtSig(races){
 }
 function vtRender(force){
   var box = $('vtBox'); if (!box) return;
-  var races = [];
-  try { races = vtRaces(0); } catch(e){ races = []; }
-  var sig = vtSig(races);
-  if (!force && VT_CACHE.sig === sig && VT_CACHE.data){
-    box.innerHTML = vtHTML(VT_CACHE.data);
-    vtWire(box);
-    return;
-  }
-  box.innerHTML = '<div class="small muted">🔁 ' + races.length + ' レースぶんを総当たりしています…（数秒）</div>';
-  setTimeout(function(){
-    var A = null;
-    try { A = vtAnalyze(races); } catch(e){ A = null; }
-    VT_CACHE.sig = sig; VT_CACHE.data = A;
-    try {
-      box.innerHTML = A ? vtHTML(A) : ('<div class="warnbox">計算中にエラーが出ました: ' + esc(String((window.event && window.event.message) || '不明')) + '</div>');
-    } catch(e2){ box.innerHTML = '<div class="warnbox">表示中にエラー: ' + esc(String(e2 && e2.message || e2)) + '</div>'; }
-    vtWire(box);
-    var c = $('vtChip');
-    if (c) c.textContent = A ? (A.races + 'レース / ' + (A.sweep ? A.sweep.length : 0) + '通り') : '—';
-    var p = $('vtPick');
-    if (p && A && A.best){
-      p.innerHTML = '💰 <b>回収率の最良設定</b>: ' + esc(vtStLabel(A.best)) + ' → 回収率 <b>' + vtPct(A.best.rate.roi) +
-        '</b>（的中率 ' + vtPct(A.best.rate.hitRace) + '）' +
-        (A.cur && A.cur.rate ? '／今の③の設定は ' + vtPct(A.cur.rate.roi) : '');
-    } else if (p && A){
-      p.innerHTML = '💰 <b>回収率チューナー</b>: 対象レースは ' + A.races + ' 件。条件を満たす買い方が見つかりませんでした（レース数を増やしてもう一度）。';
+  /* ★2026-09-13 第23弾③: 従来は ここ で vtRaces(0)（1レースあたり最大520候補の作り直し）が
+     同期的に走ってからキャッシュを判定していたので、**キャッシュが効くときでさえ**
+     カードを開くたびに数秒 画面が固まっていました。
+     → 「学習DBの署名だけ見て」済みの結果をすぐ描画する速い経路を先に通します。 */
+  if (force) vtDropRCache();
+  var lsig = '';
+  try { lsig = vtListSig(); } catch(e){ lsig = ''; }
+  if (!force && lsig && VT_RCACHE.races && VT_RCACHE.sig === lsig){
+    var sig0 = '';
+    try { sig0 = vtSig(VT_RCACHE.races); } catch(e){ sig0 = ''; }
+    if (sig0 && VT_CACHE.sig === sig0 && VT_CACHE.data){
+      try { box.innerHTML = vtHTML(VT_CACHE.data); vtWire(box); vtPaintSummary(VT_CACHE.data); } catch(e){}
+      return;   // ⚡ 重い処理ゼロで即描画
     }
+  }
+  box.innerHTML = '<div class="small muted">🔁 学習DBを読み直しています…</div>';
+  setTimeout(function(){
+    var races = [];
+    try { races = vtRacesCached(0); } catch(e){ races = []; }
+    var sig = vtSig(races);
+    if (!force && VT_CACHE.sig === sig && VT_CACHE.data){
+      try { box.innerHTML = vtHTML(VT_CACHE.data); vtWire(box); vtPaintSummary(VT_CACHE.data); } catch(e){}
+      return;
+    }
+    vtProg(box, 0, races.length, '準備');
+    vtAnalyzeAsync(races, function(f){ vtProg(box, f, races.length, '総当たり'); }).then(function(A){
+      VT_CACHE.sig = sig; VT_CACHE.data = A;
+      try { box.innerHTML = A ? vtHTML(A) : '<div class="warnbox">計算中にエラーが出ました</div>'; }
+      catch(e2){ box.innerHTML = '<div class="warnbox">表示中にエラー: ' + esc(String(e2 && e2.message || e2)) + '</div>'; }
+      vtWire(box);
+      vtPaintSummary(A);
+    }).catch(function(e3){
+      box.innerHTML = '<div class="warnbox">計算中にエラーが出ました: ' + esc(String(e3 && e3.message || e3)) + '</div>';
+    });
   }, 30);
+}
+/* 進捗バー（総当たりを分割実行しているあいだに出す） */
+function vtProg(box, f, n, label){
+  if (!box) return;
+  var pct = Math.max(0, Math.min(1, f || 0));
+  box.innerHTML = '<div class="small muted">🔁 ' + esc(label || '') + '中… ' + n + ' レース / ' +
+    Math.round(pct * 100) + '%</div>' +
+    '<div style="height:8px;border-radius:5px;background:var(--card2,#eef2ee);border:1px solid var(--line2,#d8e0d8);overflow:hidden;margin-top:5px">' +
+    '<div style="height:100%;width:' + (pct * 100).toFixed(1) + '%;background:linear-gradient(90deg,#2aa56b,#1c6e42);transition:width .12s"></div></div>' +
+    '<div class="small muted" style="margin-top:4px">※画面は固まりません。他の操作もできます。</div>';
+}
+/* カードの外（チップと要約行）への反映 ― 同期版・チャンク版で共通 */
+function vtPaintSummary(A){
+  var c = $('vtChip');
+  if (c) c.textContent = A ? (A.races + 'レース / ' + (A.sweep ? A.sweep.length : 0) + '通り') : '—';
+  var p = $('vtPick');
+  if (p && A && A.best){
+    p.innerHTML = '💰 <b>回収率の最良設定</b>: ' + esc(vtStLabel(A.best)) + ' → 回収率 <b>' + vtPct(A.best.rate.roi) +
+      '</b>（的中率 ' + vtPct(A.best.rate.hitRace) + '）' +
+      (A.cur && A.cur.rate ? '／今の③の設定は ' + vtPct(A.cur.rate.roi) : '');
+  } else if (p && A){
+    p.innerHTML = '💰 <b>回収率チューナー</b>: 対象レースは ' + A.races + ' 件。条件を満たす買い方が見つかりませんでした（レース数を増やしてもう一度）。';
+  }
 }
 function vtWire(box){
   if (!box || !box.querySelectorAll) return;
@@ -32534,7 +33163,12 @@ function goTab(id){
   }
   _curTab = id;
   setNav();
-  if (id === 't-kentai'){ renderKentaiFull(); if (typeof rnRefresh === 'function') rnRefresh(); try { if (typeof pfPaint === 'function') pfPaint(); } catch(e){} }   // ★第16弾: 展開学習のカードも描き直す
+  if (id === 't-kentai'){ renderKentaiFull(); if (typeof rnRefresh === 'function') rnRefresh(); try { if (typeof pfPaint === 'function') pfPaint(); } catch(e){}
+    /* ★2026-09-13 第23弾①: ②予想タブを開くたびに最新の単勝オッズを取り直す。
+       取れたときだけ nkOddsRefreshForView の中で AI印・軸/妙味/穴・買い目まで描き直します。
+       定期ポーリングはしないので、タブを開いたとき以外に通信は発生しません。 */
+    try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('②AI予想タブを開きました'); } catch(e){}
+  }
   if (id === 't-sim'){
     buildSimPanel();
     try { if (typeof simAggEnter === 'function') simAggEnter(); } catch(e){}
@@ -32546,7 +33180,10 @@ function goTab(id){
     } catch(e){}
   }
   if (id === 't-horse' && typeof hbRefresh === 'function') hbRefresh();
-  if (id === 't-input'){ if (typeof hbSyncInputBadges === 'function') hbSyncInputBadges(); if (typeof kaiHistRender === 'function') kaiHistRender(); if (typeof rkRender === 'function') rkRender(); }
+  if (id === 't-input'){ if (typeof hbSyncInputBadges === 'function') hbSyncInputBadges(); if (typeof kaiHistRender === 'function') kaiHistRender(); if (typeof rkRender === 'function') rkRender();
+    /* ★2026-09-13 第23弾⑤: 一括取得したレースの一覧を描き直す（出馬表キャッシュの有無もここで判定） */
+    try { if (typeof preListRender === 'function') preListRender(); } catch(e){}
+  }
   if (id === 't-jravideo' && typeof jvRefresh === 'function') jvRefresh();
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   if (id === 't-tenki' && typeof tkRenderVenueBar === 'function'){
@@ -32712,6 +33349,7 @@ function boot(){
   if (typeof initVt === 'function') safeInit('initVt', initVt);   // ★第19弾②: 回収率チューナー（実測バックテスト）
   if (typeof amInit === 'function') safeInit('amInit', amInit);   // ★第20弾: 🤖自動マクロ（設定☑の復元＋未確定週の水曜自動削除）
   if (typeof wtInit === 'function') safeInit('wtInit', wtInit);   // ★第21弾⑤: 🎛重みの自動補正（☑復元・補正バー描画）
+  if (typeof initOddsFresh === 'function') safeInit('initOddsFresh', initOddsFresh);   // ★第23弾①: ②予想タブの「今すぐ最新オッズ」
   if (typeof baInit === 'function') safeInit('baInit', baInit);   // ★第21弾④: 🌊トラックバイアスの自動取得（発走+12分ごとにチェック）＋水曜削除
   reportInitErrors();
   if (typeof initTheme === 'function') safeInit('initTheme', initTheme);
