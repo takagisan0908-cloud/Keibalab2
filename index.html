@@ -931,7 +931,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第27弾（⑤前走の「相手の強さ＝レースレベル」を⏱評価へ組み込み／③騎手×調教師の相性を学習DBから自前集計＋エンジン配線／②学習DB取込時に騎手・調教師を自動取得）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第28弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2564,6 +2564,11 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <button id="jdbBuild" class="btn ghost" title="リーディング一覧を全ページ取得して「名前→ID」の登録簿を作ります">📥 一覧を取得して登録簿を作る</button>
       <span id="jdbStat" class="muted small"></span>
     </div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <b class="small">名前で即表示:</b>
+      <select id="jdbSel" class="inp" style="max-width:300px"><option value="">— 登録簿から選択 —</option></select>
+      <label class="small"><input type="checkbox" id="jdbFetchAll" checked> 一覧取得時に全員の詳細も取得・保存</label>
+    </div>
     <div class="muted small" style="margin-top:6px">
       取得元: <code>keibalab.jp/db/</code>（同一配信の <code>/api/race</code> 中継経由・ホスト制限なし）。
       <b>一度取得したものはキャッシュされ、次回以降は通信せず即表示</b>されます（成績12時間・登録簿7日）。
@@ -2623,7 +2628,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第27弾（⑤前走の「相手の強さ＝レースレベル」を⏱評価へ組み込み／③騎手×調教師の相性を学習DBから自前集計＋エンジン配線／②学習DB取込時に騎手・調教師を自動取得）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第28弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -2868,7 +2873,7 @@ var LS_KEY = 'keiba-lab-v1';
    古い保存データに mark>0 が残っていても loadFromLS で 0 に落とします。 */
 function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:0, baba:4, yoso:5,
   abl:6,  /* ★2026-09-12 第17弾・提案3: 学習DB履歴の総合能力(過去戦の3着内率・上り順位・同距離・騎手) */
-  waku:3, jockey:2  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */ }; }
+  waku:3, jockey:2, fieldLv:2  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */ }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'' };
 }
@@ -3782,6 +3787,16 @@ function analyzeRace(){
     }
   }
   var jockeyOn = !!colJ;
+  /* ★第28弾: ⑤前走レースレベル（fieldLv）を予想ファクターに（学習DBが無い馬は中立）。 */
+  var flSt = null, colF = null;
+  if ((w.fieldLv||0) > 0 && typeof fieldLvForRace === 'function'){
+    try { flSt = fieldLvForRace(); } catch(e){ flSt = null; }
+    if (flSt && flSt.muls){
+      var anyF = flSt.muls.some(function(x){ return x != null; });
+      if (anyF) colF = flSt.muls;
+    }
+  }
+  var fieldLvOn = !!colF;
   /* 📚 学習DB履歴の総合能力ファクター（★2026-09-12 第17弾・提案3の残件＝①のAI印にも入れた）
      過去戦の3着内率・上り3Fの相対順位・同距離帯の実績・騎手の勝率を p52_histfeat.js が
      「そのレースの日付より前の出走だけ」から作る（いかさま防止）。
@@ -3830,7 +3845,7 @@ function analyzeRace(){
     }
   } catch(e){}
   wK = Math.max(0, (w.tenkai || 0) * apPen);   // 補正後の tenkai 重みに掛け直す
-  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0)) || 1;
+  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0)) || 1;
   var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   var U = hs.map(function(h, i){
     var score = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
@@ -3840,6 +3855,7 @@ function analyzeRace(){
     // 🎯 枠順（重賞のみ）。判定できない枠の馬は中立(0.5)にして不利にも有利にもしない
     if (wakuOn) score += (w.waku||0) * (colW[i] != null ? colW[i] : 0.5);
     if (jockeyOn) score += (w.jockey||0) * (colJ[i] != null ? colJ[i] : 0.5);
+    if (fieldLvOn) score += (w.fieldLv||0) * (colF[i] != null ? colF[i] : 0.5);
     var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑥でON)の僅かな加点（オカルト反映）
     // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
@@ -3894,6 +3910,7 @@ function analyzeRace(){
       fY2: colY2 ? colY2[idx] : null,
       fW: colW ? colW[idx] : null,
       fJ: colJ ? colJ[idx] : null,
+      fF: colF ? colF[idx] : null,
       wakuHit: (wakuSt && typeof wakuInfoOf === 'function') ? wakuInfoOf(h.frame, wakuSt) : null,
       yosoHit: (yoInfo && yoInfo.items) ? yoInfo.items[idx] : null,
       U: U[idx],
@@ -3973,6 +3990,15 @@ function analyzeRace(){
   /* ★第26弾③: 騎手×調教師相性の適用状況を必ず画面に出す */
   res.comboStat = jockeyOn ? comboSt : null;
   res.jockeyOn = jockeyOn;
+  res.fieldLvStat = fieldLvOn ? flSt : null;
+  res.fieldLvOn = fieldLvOn;
+  try {
+    if (fieldLvOn){
+      res.fieldLvAppliedNote = '📊 前走レースレベルを反映: 学習DBから「前走で一緒に走った他馬のその後」を集計した相手レベルで倍率／' + flSt.n + '/' + hs.length + '頭に適用。学習DBが無い馬は中立。';
+    } else if ((w.fieldLv||0) > 0){
+      res.fieldLvAppliedNote = '📊 前走レースレベルは<b>今回は不使用</b>（学習DBに前走の戦績が無い馬が多い、または未取込）。学習DBを貯めると自動で使われます';
+    }
+  } catch(e){}
   try {
     if (jockeyOn){
       res.jockeyAppliedNote = '🏇 騎手×調教師の相性を反映: 学習DBから組み合わせ成績を自前集計／' + comboSt.n + '/' + hs.length + '頭に適用（単勝回収率で倍率）。サンプル5戦未満の組みは中立。';
@@ -4523,6 +4549,7 @@ var WEIGHT_DEFS = [
   { k:'waku',  label:'🎯 枠順(重賞のみ)',   hint:'⑥重賞データ分析で集めた【この重賞の過去10年】の歴代結果から、有利な枠順を判定して使います。頭数が違う年を混ぜても公平になるよう「その頭数での3着内期待確率」で補正し、有利度=実際の3着内数÷期待3着内数（1.00=平均）で評価します。重賞以外、または⑥の分析データが無いときは自動的に使われません（学習DBの場×距離統計は使いません）' },
   { k:'abl',   label:'📚 学習DBの過去実績',   hint:'学習DBに取り込んだ過去レースから、この馬の「レース前の成績」を作って評価します（過去戦の3着内率・上り3Fの相対順位・同距離の実績・騎手の勝率）。そのレースの日付より前の出走だけを使うので、結果を見てから予想するいかさまになりません。学習DBに過去戦が無い馬は評価しません' },
   { k:'jockey', label:'🏇 騎手×調教師相性', hint:'学習DBから騎手×調教師の組み合わせ成績（単勝回収率・馬券内率）を自前集計して掛け合わせます。サンプルが5戦未満の組みは使いません' },
+  { k:'fieldLv', label:'📊 前走レースレベル', hint:'学習DBから「前走で一緒に走った他馬のその後の成績」を集計し、相手の強さ＝レースレベルを判定して掛け合わせます。前走データが無い馬は使いません' },
   /* ★2026-09-13 第21弾⑤: 「🧠 あなたの印」スライダーを削除しました。
      印の入力欄は①に残ります（メモ・買い目の照合・自己学習の記録用）が、AI印の計算には使いません。
      p5_engine の中で mark の重みを常に 0 にしています。 */
@@ -4738,6 +4765,7 @@ function renderTables(res){
     }
     if (res.wakuAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.wakuOn ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' + res.wakuAppliedNote + '</div>');
     if (res.jockeyAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.jockeyOn ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' + res.jockeyAppliedNote + '</div>');
+    if (res.fieldLvAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.fieldLvOn ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' + res.fieldLvAppliedNote + '</div>');
     if (res.yosoAppliedNote) parts.push('<div style="background:' + (res.yosoOn ? 'var(--card2)' : 'var(--card2)') + ';border:1px solid ' + (res.yosoOn ? 'var(--line2)' : 'var(--line2)') + ';border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.yosoOn ? 'var(--ok-ink)' : 'var(--warn-ink)') + ';font-weight:600">' + res.yosoAppliedNote + '</div>');
     if (res.selfLearnNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + esc(res.selfLearnNote) + '</div>');
     if (res.note) parts.push('<div class="warnbox">' + esc(res.note) + '</div>');
@@ -15225,10 +15253,33 @@ function apSyncUi(){
     if (uc) uc.checked = !(state && state.apLearnUse === false);
   } catch(e){}
 }
+/* ★第28弾: 学習DB取込時に自動生成した「レースレベル短評」(rec.short) を一覧表示 */
+function apShortNotesHTML(){
+  try {
+    if (typeof diLs !== 'function') return '';
+    var db = diLs();
+    var ks = Object.keys(db.races || {});
+    if (!ks.length) return '';
+    ks.sort(function(a, b){ return a < b ? 1 : -1; });   // rid 降順（新しい順）
+    var head = '<div style="margin-top:10px"><b>📝 取込レースの自動短評</b>（学習DB取込時に自動生成・レースレベル判定）</div>';
+    var rows = [];
+    for (var i = 0; i < Math.min(ks.length, 12); i++){
+      var r = db.races[ks[i]];
+      var short = (r && r.short) || '';
+      if (!short) continue;
+      var meta = (r && r.meta) || {};
+      var label = (meta.name || '') + ' ' + (meta.date8 || '').slice(4) + 'R' + (meta.rnum || '');
+      rows.push('<div class="small muted" style="margin-top:4px">・' + esc(label) + '：' + esc(short) + '</div>');
+    }
+    if (!rows.length) return '';
+    return head + rows.join('');
+  } catch(e){ return ''; }
+}
 function apRender(){
   apSyncUi();
   var el = $('apOut'); if (!el) return;
   el.innerHTML = apStatsHTML();
+  try { el.innerHTML += apShortNotesHTML(); } catch(e){}
   // 第15弾: 結果が確定していない「未来の月」は chip の集計にも入れない
   var totalR = 0, nYm = 0, nFut = 0;
   apYms().forEach(function(y){
@@ -17943,6 +17994,31 @@ function diExtractXD(html, pr){
 }
 
 /* 1レースぶんの保存（diImportDate のループから呼ばれる） */
+/* ★第28弾: 学習DB取込時に「レースレベル」を判定し、短評を自動で付与（手書きの膨大な時間を削減）
+   勝ち馬の時計＋（学習DBがあれば）相手レベル(fieldLv) から1行コメントを作り rec.short に保存。 */
+function diAutoRaceNote(rec){
+  try {
+    var rows = rec && rec.rows; if (!rows || !rows.length) return '';
+    var meta = rec.meta || {};
+    var win = null;
+    for (var i = 0; i < rows.length; i++){
+      var o = parseInt((rows[i] && (rows[i].order != null ? rows[i].order : rows[i][1])) || 0, 10);
+      if (o === 1){ win = rows[i]; break; }
+    }
+    if (!win) return '';
+    var wname = klStr((win.name != null ? win.name : win[2]) || '');
+    var wsec = (win.time != null ? win.time : win[7]);
+    var parts = ['1着 ' + wname + (wsec != null ? ' ' + klStr(wsec) + '秒' : '')];
+    try {
+      var f = (typeof fieldLvOf === 'function') ? fieldLvOf(wname, meta.date8, meta.place, meta.rnum) : null;
+      if (f && !f.err && f.enough){
+        var lv = (typeof fieldLvLabel === 'function') ? fieldLvLabel(f) : '';
+        if (lv) parts.push('相手レベル ' + lv + '（3着内率 ' + (f.rate * 100).toFixed(0) + '%）');
+      }
+    } catch(e){}
+    return '〔自動短評〕' + parts.join('・');
+  } catch(e){ return ''; }
+}
 function diSaveOne(it, date8, pr, xd, result, progress){
   var h = diHash(pr);
   var old = diGet(it.rid);   // 既存の保存レコード（旧形式なら更新して払戻＋追加情報を付ける）
@@ -17962,7 +18038,8 @@ function diSaveOne(it, date8, pr, xd, result, progress){
     payout: pr.payout || null, payouts: pr.payouts || null,
     payv: 1,  // 全券種払戻対応版で保存したバージョン印(1=対応済み)
     // 第16弾: コーナー通過順・ペース(S/M/H)・200mごとのラップタイム（展開学習とバイアス判別用）
-    xd: xd || null, xdv: xd ? 1 : 0
+    xd: xd || null, xdv: xd ? 1 : 0,
+    short: diAutoRaceNote(rec) || ''
   };
   if (diSet(it.rid, rec)){
     if (old){ result.upg++; }   // 旧保存レコードを払戻つきへ更新
@@ -25349,6 +25426,25 @@ function comboStatForRace(){
         var s = comboStatOf(jn, tn);
         if (!s || s.err || !s.enough) return null;
         return comboMul(s);
+      } catch(e){ return null; }
+    });
+    if (!muls.some(function(x){ return x != null; })) return null;
+    return { muls: muls, n: muls.filter(function(x){ return x != null; }).length };
+  } catch(e){ return null; }
+}
+
+/* ★第28弾: ⑤前走レースレベル（fieldLv）を予想ファクターにするための列取得
+   各馬について tlScanHorse が評価した前走の fieldMul（相手レベル倍率）を列にする。
+   学習DB（hdLs）が無い馬は null → 0.5 の中立。1頭も引けなければファクターOFF。 */
+function fieldLvForRace(){
+  try {
+    var hs = (typeof state !== 'undefined' && state.horses) ? state.horses.filter(function(h){ return h && h.no && (h.name || h.odds); }) : [];
+    if (!hs.length) return null;
+    var muls = hs.map(function(h){
+      try {
+        var res = (typeof tlScanHorse === 'function') ? tlScanHorse(h) : null;
+        if (res && res.ev && res.ev.fieldMul != null) return res.ev.fieldMul;
+        return null;
       } catch(e){ return null; }
     });
     if (!muls.some(function(x){ return x != null; })) return null;
@@ -34648,6 +34744,32 @@ function klDetailByName(name, kind, force){
   return klFetchDetail(kind, id, force);
 }
 
+/* ★第28弾: 一覧取得時に全員分の詳細を取得・保存する（ドロップダウン即表示用）
+   登録簿の全IDを直列で klFetchDetail(force) してキャッシュします。
+   途中の失敗はスキップして続行（1件失敗で全停止しない）。 */
+function klFetchAllDetails(kind, onProgress){
+  kind = klKind(kind);
+  var reg = klRegLoad();
+  var bag = (reg && reg[kind]) || {};
+  var ids = [];
+  Object.keys(bag).forEach(function(k){ var id = bag[k] && bag[k].id; if (klValidId(id) && ids.indexOf(id) < 0) ids.push(id); });
+  var total = ids.length, done = 0, fail = 0;
+  function step(i){
+    if (i >= ids.length) return Promise.resolve({ kind: kind, total: total, done: done, fail: fail });
+    var id = ids[i];
+    return klFetchDetail(kind, id, true).then(function(){
+      done++;
+      if (typeof onProgress === 'function') onProgress(done, total, id);
+      return new Promise(function(res){ setTimeout(function(){ res(step(i + 1)); }, 150); });
+    }).catch(function(){
+      fail++; done++;
+      if (typeof onProgress === 'function') onProgress(done, total, id);
+      return new Promise(function(res){ setTimeout(function(){ res(step(i + 1)); }, 150); });
+    });
+  }
+  return step(0);
+}
+
 /* ============================================================
    p64_jockeyui.js — ★2026-09-13 第25弾②: 🏇 騎手・調教師DB タブのUI
    ------------------------------------------------------------
@@ -34680,9 +34802,22 @@ function jdbBuildRegistry(){
   klBuildRegistry(kind, JDB_MAX_PAGE, function(done, pages, got){
     jdbProg('⏳ ' + done + ' / ' + pages + ' ページ目…（' + got + '件登録）');
   }).then(function(r){
-    jdbProg('✅ 完了: ' + (r.added || 0) + '件を追加登録（合計 ' + (r.total || 0) + '件）');
+    jdbProg('✅ 一覧完了: ' + (r.added || 0) + '件追加（合計 ' + (r.total || 0) + '件）');
     jdbRefreshStat();
+    jdbBuildDropdown(kind);
     jdbSearch();
+    var doAll = (typeof $ === 'function' && $('jdbFetchAll')) ? $('jdbFetchAll').checked : true;
+    if (doAll){
+      jdbProg('⏳ 全' + (r.total || 0) + '名の詳細を取得・保存中…');
+      return klFetchAllDetails(kind, function(done2, total2, id){
+        jdbProg('⏳ 詳細 ' + done2 + '/' + total2 + '（' + id + '）');
+      }).then(function(s2){
+        jdbBuildDropdown(kind);
+        jdbProg('✅ 完了: 一覧 ' + (r.total || 0) + '名＋詳細 ' + (s2.done || 0) + '名を保存' + (s2.fail ? '（失敗 ' + s2.fail + '）' : ''));
+      }).catch(function(e){
+        jdbProg('<span class="warn">❌ 詳細取得失敗: ' + esc(String(e && e.message || e)) + '</span>');
+      });
+    }
   }).catch(function(e){
     jdbProg('<span class="warn">❌ 取得失敗: ' + esc(String(e && e.message || e)) + '</span>');
   });
@@ -34784,6 +34919,31 @@ function jdbOpenByName(name, kind){
   /* キャッシュがあれば即表示（通信しない）／無ければ取得 */
   var cached = klEntGet(kind, id);
   jdbOpenDetail(id, kind, !cached);
+}
+
+/* ★第28弾: 名前選択ドロップダウン（一覧取得後に構築。選んだ瞬間にキャッシュから即表示） */
+function jdbBuildDropdown(kind){
+  var sel = $('jdbSel'); if (!sel) return;
+  var reg = klRegLoad(); var bag = (reg && reg[kind]) || {};
+  var arr = Object.keys(bag).map(function(k){ return bag[k]; }).filter(Boolean);
+  arr.sort(function(a, b){
+    if (a.rank && b.rank) return a.rank - b.rank;
+    if (a.rank) return -1; if (b.rank) return 1;
+    return klStr(a.name || '').localeCompare(klStr(b.name || ''), 'ja');
+  });
+  var html = '<option value="">— ' + (kind === 'trainer' ? '調教師' : '騎手') + 'を選択 —</option>';
+  html += arr.map(function(e){ return '<option value="' + esc(klNameKey(e.name)) + '">' + esc(e.name || '') + '　' + klId(e.id) + '</option>'; }).join('');
+  sel.innerHTML = html;
+}
+function jdbOnSelect(){
+  var sel = $('jdbSel'); if (!sel || !sel.value) return;
+  var kind = jdbKind();
+  var reg = klRegLoad(); var bag = (reg && reg[kind]) || {};
+  var e = bag[sel.value];
+  if (!e){ return; }
+  var d = klEntGet(kind, e.id);
+  if (d){ jdbShowDetail(d, kind); }        // キャッシュから即表示（通信なし）
+  else { jdbOpenDetail(e.id, kind, true); } // 未取得なら取得
 }
 
 /* ---- 詳細表示 ---- */
@@ -34969,6 +35129,7 @@ function jockeyDbInit(){
   });
   var q = $('jdbQuery');
   if (q) q.addEventListener('keydown', function(e){ if (e.key === 'Enter') jdbSearch(); });
+  if ((btn = $('jdbSel'))) btn.addEventListener('change', jdbOnSelect);
   var kd = $('jdbKind');
   if (kd) kd.addEventListener('change', function(){ jdbRefreshStat(); jdbSearch(); });
   var t3 = $('jdbTop3Only');
