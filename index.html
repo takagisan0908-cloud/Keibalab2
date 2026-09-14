@@ -17509,8 +17509,13 @@ function nowHM(){ var d = new Date(), p = function(n){ return (n < 10 ? '0' : ''
 function topInfoEl(){ return document.getElementById('topInfo'); }
 function topInfoParse(html){
   if (!html) return [];
+  /* スクリプト/スタイル/コメントを先に除去（race_common_js の JS コード等のゴミ混入防止） */
+  var h = String(html).replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+  /* 明示的な「変更情報はありません」は非開催日等の「なし」状態 */
+  if (/変更情報はありません/.test(h)) return [];
   var items = [];
-  var m = html.match(/当日の変更情報[\s\S]*?<\/h\d>([\s\S]*?)(?=<h\d|<\/section|<!--)/i);
+  /* 「変更情報」セクション（当日の変更情報 も含む）を探す */
+  var m = h.match(/変更情報[\s\S]*?(?:<\/h\d>|<br\s*\/?>|<\/div>|<\/p>)([\s\S]*?)(?=<h\d|メモ馬|$)/i);
   var seg = m ? m[1] : '';
   if (seg){
     var lis = seg.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
@@ -17521,8 +17526,9 @@ function topInfoParse(html){
     }
   }
   if (!items.length){
-    var all = html.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
-    all.forEach(function(li){ var t = bfStrip(li.replace(/<[^>]*>/g, ' ')); if (t && /変更|発表|取消|中止|枠順|馬体重|気象|天候|出走|除外|発走/.test(t)) items.push(t); });
+    /* フォールバック: キーワードを含む短い行を抽出（スクリプト除去済なのでゴミは混入しにくい） */
+    var parts = h.split(/<br\s*\/?>|<\/p>|<\/div>|<li>|<\/li>/i);
+    parts.forEach(function(p){ var t = bfStrip(p); if (t && t.length < 120 && /変更|発表|取消|中止|枠順|馬体重|気象|天候|出走|除外|発走/.test(t)) items.push(t); });
   }
   return items.slice(0, 40);
 }
