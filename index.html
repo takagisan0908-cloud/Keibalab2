@@ -931,7 +931,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第28弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2574,6 +2574,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <b>一度取得したものはキャッシュされ、次回以降は通信せず即表示</b>されます（成績12時間・登録簿7日）。
     </div>
     <div id="jdbProg" class="muted small" style="margin-top:4px"></div>
+    <div class="progbar" style="margin-top:6px;height:8px;background:var(--line2);border-radius:4px;overflow:hidden;display:none" id="jdbProgBar"><div id="jdbProgFill" style="height:100%;width:0;background:var(--ok-ink);transition:width .2s"></div></div>
   </div>
 
   <div class="card" id="jdbListCard" style="display:none">
@@ -2628,7 +2629,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第28弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -5369,7 +5370,44 @@ function simRenderOutcome(parts, order, D){
   var sx = $('simExp'); if (sx) sx.innerHTML = simExpHTML(parts, order, D);
 }
 /* N回まとめて実行（合計集計にも自動で積み上がる） */
+/* ★第28弾: 複数回実行をチャンク分割してメインスレッドを固めない（重い→軽く） */
 function simRunInstant(times){
+  times = Math.max(1, Math.min(500, parseInt(times, 10) || 1));
+  if (times <= 1) return simRunInstantSync(1);   // 1回実行は従来どおり同期（即座に結果表示）
+  // 複数回は20回ずつ刻んで setTimeout で譲る（UIがフリーズしない）
+  var parts = getParticipants();
+  if (!parts){ buildSimPanel(); return; }
+  var D = parseFloat(readRaceMeta().dist) || 2000;
+  var meta = readRaceMeta();
+  var key = [meta.name, meta.dist, parts.length, parts[0] && parts[0].name].join('|');
+  if (sim._rsKey !== key){ sim._rsKey = key; sim._rs = null; }
+  if (!sim._rs){ sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} }; }
+  var orders = [], last = null, done = 0;
+  var CHUNK = 20;
+  function step(){
+    var end = Math.min(done + CHUNK, times);
+    for (; done < end; done++){
+      var one = simInstantOnce(done === times - 1);   // 道中ログは最後の1回だけ作る
+      if (!one) return;
+      last = one;
+      orders.push(one.order);
+      sim._rs.runs++;
+      one.order.forEach(function(pi, rank){
+        sim._rs.sumPos[pi] = (sim._rs.sumPos[pi] || 0) + (rank + 1);
+        if (rank === 0) sim._rs.first[pi] = (sim._rs.first[pi] || 0) + 1;
+        if (rank <= 2) sim._rs.top3[pi] = (sim._rs.top3[pi] || 0) + 1;
+      });
+    }
+    if (done < times){
+      var sp = $('simMsg'); if (sp) sp.innerHTML = '⏳ シミュレーション中… ' + done + '/' + times;
+      setTimeout(step, 0);
+    } else {
+      simFinishRun(parts, last, orders, times);
+    }
+  }
+  step();
+}
+function simRunInstantSync(times){
   var parts = getParticipants();
   if (!parts){ buildSimPanel(); return; }
   times = Math.max(1, Math.min(500, parseInt(times, 10) || 1));
@@ -5377,12 +5415,10 @@ function simRunInstant(times){
   var meta = readRaceMeta();
   var key = [meta.name, meta.dist, parts.length, parts[0] && parts[0].name].join('|');
   if (sim._rsKey !== key){ sim._rsKey = key; sim._rs = null; }
-  if (!sim._rs){
-    sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} };
-  }
+  if (!sim._rs){ sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} }; }
   var last = null, orders = [];
   for (var k = 0; k < times; k++){
-    var one = simInstantOnce(k === times - 1);   // 道中ログは最後の1回だけ作る
+    var one = simInstantOnce(k === times - 1);
     if (!one) return;
     last = one;
     orders.push(one.order);
@@ -5393,12 +5429,16 @@ function simRunInstant(times){
       if (rank <= 2) sim._rs.top3[pi] = (sim._rs.top3[pi] || 0) + 1;
     });
   }
+  simFinishRun(parts, last, orders, times);
+  return last;
+}
+function simFinishRun(parts, last, orders, times){
+  if (!last) return;
   sim._log = sim._log || [];
   simRenderOutcome(last.parts, last.order, last.D);
   simRenderRunState(last.parts);
-  var agg = null, aggErr = '';                      // 📊 合計集計に積み上げ（実行した回数ぶん全部）
-  try { orders.forEach(function(o){ agg = simAggAdd(parts, o); }); }
-  catch(e){ aggErr = String((e && e.message) || e); }
+  var agg = null, aggErr = '';
+  try { orders.forEach(function(o){ agg = simAggAdd(parts, o); }); } catch(e){ aggErr = String((e && e.message) || e); }
   try { simAggRender(); } catch(e){ if (!aggErr) aggErr = String((e && e.message) || e); }
   var sx = $('simMsg');
   if (sx){
@@ -19303,6 +19343,7 @@ var NAV_ITEMS = [
   { t:'t-kentai',   icon:'🧠', name:'展開予想・AI印',        sub:'ペース診断・AI印・買い目・トラックバイアス・自己学習' },
   { t:'t-sim',      icon:'🏇', name:'レースシミュレーター',  sub:'着順サンプル・📊合計集計（出遅れ率・脚質のブレを反映）' },
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
+  { t:'t-jockeydb', icon:'🏇', name:'騎手・調教師DB',        sub:'名前検索・一覧取得・相性・調子・組み合わせ成績' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
   { t:'t-tenki',    icon:'☀️', name:'天気予報',                sub:'当日開催場の1時間ごと天気（気温・湿度・降水・風）' }
@@ -34501,6 +34542,16 @@ function klParseDetail(html, kind, id){
     var tm = h.match(/(騎手|調教師)\s*[:：]\s*([^<\n]{1,30})/);
     if (tm) o.name = klStripTags(tm[2]);
   }
+  if (!o.name){
+    /* ★第28弾: <title> からの最終フォールバック（例: 「松山 弘平のプロフィール - keibalab.jp」） */
+    var ttl = h.match(/<title>([\s\S]*?)<\/title>/i);
+    if (ttl){
+      var tt = klStripTags(ttl[1]);
+      var mm = tt.match(/(.+?)(?:のプロフィール|の年間成績|の通算成績|のレース成績| \| | - keibalab)/);
+      if (mm) o.name = klStr(mm[1]);
+      else if (/keibalab/.test(tt)){ var sp = tt.split(/\s+/); if (sp[0]) o.name = klStr(sp[0]); }
+    }
+  }
   /* 基本情報（2列テーブル） */
   var kv = klParseKvTables(h);
   ['生年月日','初免許年','所属','所属厩舎','平地初騎乗','平地初勝利','障害初騎乗','障害初勝利'].forEach(function(k){
@@ -34732,7 +34783,7 @@ function klFetchDetail(kind, id, force){
   }
   return klGet(klDetailUrl(kind, id)).then(function(html){
     var d = klParseDetail(html, kind, id);
-    if (d && d.name && !d.err) klEntSet(kind, id, d);
+    if (d && !d.err) klEntSet(kind, id, d);   // ★第28弾: 名前が取れなくてもID単位で保存（調教師等で名前抽出が外れても消えない）
     return d;
   });
 }
@@ -34782,7 +34833,7 @@ var JDB_MAX_PAGE = 12;          // リーディング一覧の取得ページ数
 
 function jdbKind(){ var e = $('jdbKind'); return (e && e.value === 'trainer') ? 'trainer' : 'jockey'; }
 function jdbStat(html){ var e = $('jdbStat'); if (e) e.innerHTML = html || ''; }
-function jdbProg(html){ var e = $('jdbProg'); if (e) e.innerHTML = html || ''; }
+function jdbProg(html){ var e = $('jdbProg'); if (e) e.innerHTML = html || ''; var m = /(\d+)\s*\/\s*(\d+)/.exec(html || ''); var bar = $('jdbProgBar'), fill = $('jdbProgFill'); if (bar && fill){ if (m){ bar.style.display = ''; fill.style.width = Math.round(parseInt(m[1], 10) / parseInt(m[2], 10) * 100) + '%'; } else { bar.style.display = 'none'; fill.style.width = '0'; } } }
 
 /* 登録簿・キャッシュの状況を表示 */
 function jdbRefreshStat(){
