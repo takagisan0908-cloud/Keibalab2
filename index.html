@@ -943,7 +943,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <button class="tab" data-t="t-jravideo">⑤ JRA映像</button>
   <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
   <button class="tab" data-t="t-tenki">⑦ 天気予報</button>
-  <button class="tab" data-t="t-jockeydb">🏇 騎手・調教師DB</button>
+  <button class="tab" data-t="t-database">🗄 データベース</button>
 </nav>
 
 <main>
@@ -2050,63 +2050,6 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     </div>
   </div>
 
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-    <div class="cardhead">
-      <h2>🗓 年指定で過去データを自動取込（学習DB用・JRA全レース）</h2>
-      <span class="chip">重複なし保存</span>
-      <span class="sp"></span>
-      <span class="small muted">中断・再開OK</span>
-    </div>
-    <div class="small muted" style="margin-bottom:8px">
-      年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとの
-      <b>JRA全レース（場ごとに1〜12R）</b>を1レースずつ自動で取得します。各レースから
-      <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>
-      を自動で検出して<b>学習DBへ保存</b>し、自己学習（3モデル・年月ごと）にも反映します（1年＝約100開催日・約3,600レース、1レース1〜2秒かかります）。
-      同じレース・同じ内容（全項目一致）は重複保存しません。<b>途中で中断しても、同じ年を再実行すれば続きから</b>取り込めます。
-      <br>保存領域が満杯になった場合は<b>最も古いレースから順に自動削除</b>され、新しい分に置き換わります（古い順に上書き）。保存はブラウザの大容量領域（IndexedDB）へ自動で行われます。
-      <br>データ源は netkeiba（過去開催日も可・全項目あり）。netkeiba に開催日一覧が無い日のみ JRA公式を補助で使用します（その場合は上り3Fなど一部項目が空欄になります）。
-    </div>
-    <div id="diStat" class="small" style="margin-top:8px"></div>
-    <div id="diMsg" class="small" style="margin-top:4px"></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
-      <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得・学習DBへ保存</button>
-      <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
-      <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
-    </div>
-    <div id="diYearMsg" class="small" style="margin-top:6px"></div>
-    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <b>🎓 タイム換算の学習（⏱前走タイムのレベルの判定基準を自動アップデート）</b>
-        <span class="chip" id="tlLearnChip">未学習</span>
-        <span class="sp" style="flex:1"></span>
-        <button type="button" class="btn primary" id="tlLearnBtn" title="学習DB（このカードで取り込んだ全レース）と馬柱キャッシュから基準時計を学び直します">🎓 学習DBから基準時計を学習し直す</button>
-        <button type="button" class="btn ghost" id="tlLearnClear" title="学習した基準時計を消して、もとの静的テーブル（パータイム＋クラス補正）に戻します">学習値を消す</button>
-      </div>
-      <!-- 2026-09-12 第15弾: 補正・上乗せの仕組みの説明は長いので折り込み -->
-      <details style="margin:6px 0 0;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
-        <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 タイム換算の学習のしかた（基準時計・各種<b>補正</b>と距離帯の<b>上乗せ</b>の説明）を開く／閉じる</summary>
-        <p class="small muted" style="margin:6px 8px 8px">
-        取り込んだ<b>JRA全レースの勝ち時計</b>（と①で取得した<b>馬柱</b>の勝ち時計）から、
-        <b>「距離 × クラス × 競馬場 × 年 × 馬場」の基準時計そのもの</b>を学習します。
-        学習すると②の<b>⏱前走タイムのレベル</b>（早い🎯/遅い⚠️）の判定基準が自動的に切り替わり、
-        <b>取込が終わるたび自動で学習し直す</b>ので、次走評価の基準がいつも最新になります。<br>
-        馬柱だけでは母集団が薄くなりがちです（例: 未勝利クラスの馬は1着が少ない）。
-        <b>年を1つ取り込むだけで約3,600レースの勝ち時計</b>が基準に使えるようになります。
-        学習は<b>中央値</b>で外れ値（新馬戦・少頭数・極端な馬場）に引っ張られないようにし、
-        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。<br>
-        <b>【学習している補正の内訳】</b>①<b>距離の基準時計</b>（面×距離）②<b>クラス補正</b>（未勝利を0とした各クラスの差）
-        ③<b>距離帯ごとのクラス差の上乗せ</b>（短=〜1400m／中=1500〜2000m／長=2100m〜。距離が伸びるほどクラス差も広がるため、②に<b>上乗せ</b>します）
-        ④<b>年齢区分の補正</b>（2歳・3歳は時計がかかります）⑤<b>競馬場補正</b>（コースごとの時計の出方）
-        ⑥<b>年補正</b>（コース改修や馬場の年差）⑦<b>馬場補正</b>（良へ換算するために引く秒数）⑧<b>距離×クラスの個別補正</b>（件数がある組合せだけ）。
-        <b>件数が足りないグループ（n&lt;しきい値）は補正をかけずに捨てる</b>ので、珍しい条件の外れ値が競馬場補正や年補正を壊しません。
-        🚧 <b>障害は平地（芝・ダート）とは別枠</b>で学習し、障害の基準には障害の学習値だけを使います。
-        </p>
-      </details>
-      <div id="tlLearnMsg" class="small" style="margin-top:6px"></div>
-      <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
-      <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
-    </div>
     <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:var(--card2);border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
   </div>
 </section>
@@ -2551,18 +2494,18 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
      keibalab.jp のDBから騎手・調教師の成績を取得してキャッシュし、
      検索・参照できるようにします（③でAI予想のファクターに使用）。
      ============================================================ -->
-<section class="page" id="t-jockeydb">
-  <h2>🏇 騎手・調教師DB</h2>
+<section class="page" id="t-database">
+  <h2>🗄 データベース</h2>
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <select id="jdbKind" class="inp" style="max-width:130px">
         <option value="jockey">騎手</option>
         <option value="trainer">調教師</option>
       </select>
-      <input id="jdbQuery" class="inp" placeholder="名前を入力（例: 松山弘平 / ルメール）" style="flex:1;min-width:180px">
+      <select id="jdbTarget" class="inp" style="max-width:110px"><option value="jockey">騎手</option><option value="trainer">調教師</option><option value="horse">競走馬</option><option value="race">レース</option></select>
+      <input id="jdbQuery" class="inp" placeholder="名前を入力（例: 松山弘平 / ルメール / コントレイル）" style="flex:1;min-width:180px">
       <button id="jdbSearch" class="btn">🔍 検索</button>
-      <button id="jdbBuild" class="btn ghost" title="リーディング一覧を全ページ取得して「名前→ID」の登録簿を作ります">📥 一覧を取得して登録簿を作る</button>
-      <button id="jdbDebug" class="btn ghost" title="取得した生HTMLを確認（パーサ修正用・クリップボードにコピー）">🐞 取得HTML確認</button>
+      <button id="jdbBuild" class="btn ghost" title="学習DBから騎手・調教師の成績を集計します">📊 学習DBから集計</button>
       <span id="jdbStat" class="muted small"></span>
     </div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
@@ -2571,12 +2514,11 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <label class="small"><input type="checkbox" id="jdbFetchAll" checked> 一覧取得時に全員の詳細も取得・保存</label>
     </div>
     <div class="muted small" style="margin-top:6px">
-      取得元: <code>keibalab.jp/db/</code>（同一配信の <code>/api/race</code> 中継経由・ホスト制限なし）。
-      <b>一度取得したものはキャッシュされ、次回以降は通信せず即表示</b>されます（成績12時間・登録簿7日）。
+      集計元: ご自身が取込んだ<code>学習DB（過去レース結果）</code>から自前計算（外部サイト不要）。
+      <b>「📊 学習DBから集計」を押すと、取込済み全レースの着順・騎手・調教師・展開から統計を算出</b>し、検索・ランキング・勝率・直近フォームが使えます。
     </div>
     <div id="jdbProg" class="muted small" style="margin-top:4px"></div>
     <div class="progbar" style="margin-top:6px;height:8px;background:var(--line2);border-radius:4px;overflow:hidden;display:none" id="jdbProgBar"><div id="jdbProgFill" style="height:100%;width:0;background:var(--ok-ink);transition:width .2s"></div></div>
-    <textarea id="jdbDebugOut" readonly style="display:none;width:100%;height:120px;margin-top:6px;font-size:11px"></textarea>
   </div>
 
   <div class="card" id="jdbListCard" style="display:none">
@@ -2623,6 +2565,63 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       （例: 田辺裕信=騎手01075 / 矢作芳=調教師01075）。そのためキャッシュは必ず「騎手/調教師」を分けて保存しています。</p>
     </div>
   </details>
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>🗓 年指定で過去データを自動取込（学習DB用・JRA全レース）</h2>
+      <span class="chip">重複なし保存</span>
+      <span class="sp"></span>
+      <span class="small muted">中断・再開OK</span>
+    </div>
+    <div class="small muted" style="margin-bottom:8px">
+      年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとの
+      <b>JRA全レース（場ごとに1〜12R）</b>を1レースずつ自動で取得します。各レースから
+      <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>
+      を自動で検出して<b>学習DBへ保存</b>し、自己学習（3モデル・年月ごと）にも反映します（1年＝約100開催日・約3,600レース、1レース1〜2秒かかります）。
+      同じレース・同じ内容（全項目一致）は重複保存しません。<b>途中で中断しても、同じ年を再実行すれば続きから</b>取り込めます。
+      <br>保存領域が満杯になった場合は<b>最も古いレースから順に自動削除</b>され、新しい分に置き換わります（古い順に上書き）。保存はブラウザの大容量領域（IndexedDB）へ自動で行われます。
+      <br>データ源は netkeiba（過去開催日も可・全項目あり）。netkeiba に開催日一覧が無い日のみ JRA公式を補助で使用します（その場合は上り3Fなど一部項目が空欄になります）。
+    </div>
+    <div id="diStat" class="small" style="margin-top:8px"></div>
+    <div id="diMsg" class="small" style="margin-top:4px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
+      <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得・学習DBへ保存</button>
+      <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
+      <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
+    </div>
+    <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b>🎓 タイム換算の学習（⏱前走タイムのレベルの判定基準を自動アップデート）</b>
+        <span class="chip" id="tlLearnChip">未学習</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn primary" id="tlLearnBtn" title="学習DB（このカードで取り込んだ全レース）と馬柱キャッシュから基準時計を学び直します">🎓 学習DBから基準時計を学習し直す</button>
+        <button type="button" class="btn ghost" id="tlLearnClear" title="学習した基準時計を消して、もとの静的テーブル（パータイム＋クラス補正）に戻します">学習値を消す</button>
+      </div>
+      <!-- 2026-09-12 第15弾: 補正・上乗せの仕組みの説明は長いので折り込み -->
+      <details style="margin:6px 0 0;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+        <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 タイム換算の学習のしかた（基準時計・各種<b>補正</b>と距離帯の<b>上乗せ</b>の説明）を開く／閉じる</summary>
+        <p class="small muted" style="margin:6px 8px 8px">
+        取り込んだ<b>JRA全レースの勝ち時計</b>（と①で取得した<b>馬柱</b>の勝ち時計）から、
+        <b>「距離 × クラス × 競馬場 × 年 × 馬場」の基準時計そのもの</b>を学習します。
+        学習すると②の<b>⏱前走タイムのレベル</b>（早い🎯/遅い⚠️）の判定基準が自動的に切り替わり、
+        <b>取込が終わるたび自動で学習し直す</b>ので、次走評価の基準がいつも最新になります。<br>
+        馬柱だけでは母集団が薄くなりがちです（例: 未勝利クラスの馬は1着が少ない）。
+        <b>年を1つ取り込むだけで約3,600レースの勝ち時計</b>が基準に使えるようになります。
+        学習は<b>中央値</b>で外れ値（新馬戦・少頭数・極端な馬場）に引っ張られないようにし、
+        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。<br>
+        <b>【学習している補正の内訳】</b>①<b>距離の基準時計</b>（面×距離）②<b>クラス補正</b>（未勝利を0とした各クラスの差）
+        ③<b>距離帯ごとのクラス差の上乗せ</b>（短=〜1400m／中=1500〜2000m／長=2100m〜。距離が伸びるほどクラス差も広がるため、②に<b>上乗せ</b>します）
+        ④<b>年齢区分の補正</b>（2歳・3歳は時計がかかります）⑤<b>競馬場補正</b>（コースごとの時計の出方）
+        ⑥<b>年補正</b>（コース改修や馬場の年差）⑦<b>馬場補正</b>（良へ換算するために引く秒数）⑧<b>距離×クラスの個別補正</b>（件数がある組合せだけ）。
+        <b>件数が足りないグループ（n&lt;しきい値）は補正をかけずに捨てる</b>ので、珍しい条件の外れ値が競馬場補正や年補正を壊しません。
+        🚧 <b>障害は平地（芝・ダート）とは別枠</b>で学習し、障害の基準には障害の学習値だけを使います。
+        </p>
+      </details>
+      <div id="tlLearnMsg" class="small" style="margin-top:6px"></div>
+      <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
+      <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
+    </div>
 </section>
 
 </main>
@@ -4306,7 +4305,7 @@ function initInputTab(){
       if (!nm) return;
       try {
         if (typeof jdbOpenByName === 'function') jdbOpenByName(nm, kd);
-        else if (typeof goTab === 'function') goTab('t-jockeydb');
+        else if (typeof goTab === 'function') goTab('t-database');
       } catch(err){}
       return;
     }
@@ -18334,6 +18333,7 @@ function diYearBuild(){
       if (typeof tlLearnRun === 'function'){
         try { tlLearnRun(false); } catch(e){ diYearMsgSet('⚠ タイム換算の学習でエラー: ' + (e && e.message || e), true); }
       }
+      if (typeof dbMacroRun === 'function'){ try { dbMacroRun(); } catch(e){ diYearMsgSet('⚠ 自動検証・学習マクロでエラー: ' + (e && e.message || e), true); } }
       if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / 旧データを全券種払戻つきへ更新 ' + tot.upg + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
     });
   });
@@ -19345,7 +19345,7 @@ var NAV_ITEMS = [
   { t:'t-kentai',   icon:'🧠', name:'展開予想・AI印',        sub:'ペース診断・AI印・買い目・トラックバイアス・自己学習' },
   { t:'t-sim',      icon:'🏇', name:'レースシミュレーター',  sub:'着順サンプル・📊合計集計（出遅れ率・脚質のブレを反映）' },
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
-  { t:'t-jockeydb', icon:'🏇', name:'騎手・調教師DB',        sub:'名前検索・一覧取得・相性・調子・組み合わせ成績' },
+  { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・年指定自動取込' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
   { t:'t-tenki',    icon:'☀️', name:'天気予報',                sub:'当日開催場の1時間ごと天気（気温・湿度・降水・風）' }
@@ -34837,6 +34837,72 @@ function klFetchAllDetails(kind, onProgress){
   return step(0);
 }
 
+/* ===== 第30弾: 学習DB（取込済み過去レース）から騎手・調教師・馬・ペアの統計を自前集計 =====
+   外部サイト(keibalab/netkeiba)を経由せず、diLs() のレース行(r.jockey/r.trainer/r.order/meta 等)から集計する。
+   集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
+var klDbCache = null;
+function klDistBand(d){ var n = parseInt(d, 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
+function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, recent: [], popSum: 0, popN: 0, pace: {} }; }
+function klStatAdd(s, order, surf, track, distB, pop, prize, pace){
+  s.rides++;
+  if (order === 1) s.win++;
+  if (order <= 2) s.place++;
+  if (order <= 3) s.show++;
+  var sm = (surf === 'ダ' || surf === 'ダート') ? 'dirt' : (surf === '障害') ? 'jump' : 'turf';
+  if (!s.bySurf[sm]) s.bySurf[sm] = { rides: 0, win: 0 };
+  s.bySurf[sm].rides++; if (order === 1) s.bySurf[sm].win++;
+  if (track){ if (!s.byTrack[track]) s.byTrack[track] = { rides: 0, win: 0 }; s.byTrack[track].rides++; if (order === 1) s.byTrack[track].win++; }
+  if (distB){ if (!s.byDist[distB]) s.byDist[distB] = { rides: 0, win: 0 }; s.byDist[distB].rides++; if (order === 1) s.byDist[distB].win++; }
+  s.recent.push(order); if (s.recent.length > 30) s.recent.shift();
+  if (pop){ s.popSum += pop; s.popN++; }
+  if (prize) s.winPrize += prize;
+  if (pace){ if (!s.pace[sm]) s.pace[sm] = { S: 0, M: 0, H: 0 }; if (s.pace[sm][pace] != null) s.pace[sm][pace]++; }
+}
+function klBuildFromDb(){
+  var db = (typeof diLs === 'function') ? diLs() : null;
+  var races = (db && db.races) || {};
+  var J = {}, T = {}, H = {}, P = {};
+  function get(map, n){ return map[n] || (map[n] = klStatNew(n)); }
+  Object.keys(races).forEach(function(rid){
+    var rec = races[rid], rows = (rec && rec.rows) || [], meta = rec.meta || {};
+    var surf = /障害/.test(meta.surface || '') ? '障害' : (/ダ/.test(meta.surface || '') ? 'ダ' : '芝');
+    var track = meta.place || '';
+    var distB = klDistBand(meta.dist);
+    var prizeOf = {};
+    var po = (rec.payout && rec.payout.tan) || null;
+    if (po && po.nos && po.pays){ for (var i = 0; i < po.nos.length; i++){ prizeOf[String(po.nos[i])] = po.pays[i]; } }
+    rows.forEach(function(r){
+      var o = parseInt((r.order != null ? r.order : r[1]), 10);
+      if (isNaN(o)) return;
+      var no = String(r.no != null ? r.no : r[0]);
+      var prize = (o === 1 && prizeOf[no] != null) ? Number(prizeOf[no]) : 0;
+      var pace = (rec.xd && rec.xd.pace) ? rec.xd.pace : '';
+      var jn = r.jockey, tn = r.trainer, hn = r.name;
+      if (jn) klStatAdd(get(J, jn), o, surf, track, distB, parseInt(r.pop, 10) || 0, prize, pace);
+      if (tn) klStatAdd(get(T, tn), o, surf, track, distB, parseInt(r.pop, 10) || 0, prize, pace);
+      if (hn) klStatAdd(get(H, hn), o, surf, track, distB, 0, prize, pace);
+      if (jn && tn){
+        var key = jn + '×' + tn;
+        var ps = P[key] || (P[key] = { name: key, jockey: jn, trainer: tn, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, recent: [] });
+        ps.rides++; if (o === 1) ps.win++; if (o <= 2) ps.place++; if (o <= 3) ps.show++;
+        if (prize) ps.winPrize += prize;
+        ps.recent.push(o); if (ps.recent.length > 30) ps.recent.shift();
+      }
+    });
+  });
+  var res = { jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
+  klDbCache = res;
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
+  return res;
+}
+function klStatsOf(kind, name){
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache) klDbCache = klBuildFromDb();
+  var map = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
+  return (name != null && map && map[name]) ? map[name] : null;
+}
+function klRefreshFromDb(){ return klBuildFromDb(); }
+
 /* ============================================================
    p64_jockeyui.js — ★2026-09-13 第25弾②: 🏇 騎手・調教師DB タブのUI
    ------------------------------------------------------------
@@ -34853,98 +34919,90 @@ function jdbProg(html){ var e = $('jdbProg'); if (e) e.innerHTML = html || ''; v
 
 /* 登録簿・キャッシュの状況を表示 */
 function jdbRefreshStat(){
-  try {
-    var nj = klRegCount('jockey'), nt = klRegCount('trainer');
-    var reg = klRegLoad();
-    var at = reg && reg.at ? new Date(reg.at) : null;
-    jdbStat('登録簿: <b>騎手 ' + nj + '名</b> / <b>調教師 ' + nt + '名</b>' +
-      (at ? '<span class="muted">（最終取得 ' + at.toLocaleString('ja-JP') + '）</span>' : '<span class="warn">（未取得）</span>'));
-  } catch(e){}
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  var nj = klDbCache ? Object.keys(klDbCache.jockey).length : 0;
+  var nt = klDbCache ? Object.keys(klDbCache.trainer).length : 0;
+  var nh = klDbCache ? Object.keys(klDbCache.horse).length : 0;
+  var at = klDbCache && klDbCache.at ? new Date(klDbCache.at) : null;
+  jdbStat('学習DB集計: <b>騎手 ' + nj + '名</b> / <b>調教師 ' + nt + '名</b> / 馬 ' + nh +
+    '（' + (klDbCache ? klDbCache.n : 0) + 'レース）' +
+    (at ? '<span class="muted">（集計 ' + at.toLocaleString('ja-JP') + '）</span>' : '<span class="warn">（未集計）</span>'));
 }
 
 /* ---- 一覧取得（登録簿を作る） ---- */
 function jdbBuildRegistry(){
   var kind = jdbKind();
-  jdbProg('⏳ ' + (kind === 'trainer' ? '調教師' : '騎手') + 'リーディングを取得中…');
-  klBuildRegistry(kind, JDB_MAX_PAGE, function(done, pages, got){
-    jdbProg('⏳ ' + done + ' / ' + pages + ' ページ目…（' + got + '件登録）');
-  }).then(function(r){
-    jdbProg('✅ 一覧完了: ' + (r.added || 0) + '件追加（合計 ' + (r.total || 0) + '件）');
-    if (r.errs && r.errs.length){ console.error('🏇DB 取得エラー', r.errs); jdbProg('⚠ 取得エラー（詳細はF12コンソール）: ' + r.errs.slice(0,3).join(' / ')); }
-    jdbRefreshStat();
-    jdbBuildDropdown(kind);
-    jdbSearch();
-    var doAll = (typeof $ === 'function' && $('jdbFetchAll')) ? $('jdbFetchAll').checked : true;
-    if (doAll){
-      jdbProg('⏳ 全' + (r.total || 0) + '名の詳細を取得・保存中…');
-      return klFetchAllDetails(kind, function(done2, total2, id){
-        jdbProg('⏳ 詳細 ' + done2 + '/' + total2 + '（' + id + '）');
-      }).then(function(s2){
-        jdbBuildDropdown(kind);
-        jdbProg('✅ 完了: 一覧 ' + (r.total || 0) + '名＋詳細 ' + (s2.done || 0) + '名を保存' + (s2.fail ? '（失敗 ' + s2.fail + '）' : ''));
-      }).catch(function(e){
-        jdbProg('<span class="warn">❌ 詳細取得失敗: ' + esc(String(e && e.message || e)) + '</span>');
-      });
-    }
-  }).catch(function(e){
-    jdbProg('<span class="warn">❌ 取得失敗: ' + esc(String(e && e.message || e)) + '</span>');
-  });
+  jdbProg('⏳ 学習DBから ' + (kind === 'trainer' ? '調教師' : '騎手') + 'を集計中…');
+  var st = klRefreshFromDb();
+  var cnt = Object.keys((kind === 'trainer') ? st.trainer : st.jockey).length;
+  jdbProg('✅ 学習DB（' + st.n + 'レース）から集計: ' + (kind === 'trainer' ? '調教師' : '騎手') + ' ' + cnt + '名');
+  jdbRefreshStat();
+  jdbBuildDropdown(kind);
+  jdbSearch();
 }
 
 /* ---- 検索 ---- */
+function jdbRaceIndex(){
+  var db = (typeof diLs === 'function') ? diLs() : null;
+  var races = (db && db.races) || {};
+  var map = {};
+  Object.keys(races).forEach(function(rid){
+    var rec = races[rid], meta = rec.meta || {};
+    var nm = meta.name || '';
+    if (!nm) return;
+    (map[nm] = map[nm] || []).push({ rid: rid, date: meta.date || '', place: meta.place || '', rnum: meta.rnum || '', grade: meta.grade || '' });
+  });
+  return map;
+}
 function jdbSearch(){
-  var kind = jdbKind();
+  var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache) klDbCache = klBuildFromDb();
   var q = klStr(($('jdbQuery') || {}).value || '');
-  var reg = klRegLoad();
-  var bag = (reg && reg[kind]) || {};
-  var keys = Object.keys(bag);
-  var qk = klNameKey(q);
   var hits = [];
-  keys.forEach(function(k){
-    var e = bag[k];
-    if (!e) return;
-    if (!qk || k.indexOf(qk) >= 0 || klNameKey(e.name || '').indexOf(qk) >= 0) hits.push(e);
-  });
-  /* 順位順（無ければ勝率順） */
+  if (target === 'horse'){
+    var hm = klDbCache.horse;
+    var hall = Object.keys(hm).map(function(k){ return hm[k]; });
+    hits = q ? hall.filter(function(e){ return (e.name || '').indexOf(q) >= 0; }) : hall;
+  } else if (target === 'race'){
+    var rm = jdbRaceIndex();
+    var rk = Object.keys(rm);
+    hits = (q ? rk.filter(function(k){ return k.indexOf(q) >= 0; }) : rk).map(function(k){ return { name: k, list: rm[k] }; });
+  } else {
+    var map = (target === 'trainer') ? klDbCache.trainer : klDbCache.jockey;
+    var all2 = Object.keys(map).map(function(k){ return map[k]; });
+    hits = q ? all2.filter(function(e){ return (e.name || '').indexOf(q) >= 0; }) : all2;
+  }
   hits.sort(function(a, b){
-    if (a.rank && b.rank) return a.rank - b.rank;
-    if (a.rank) return -1;
-    if (b.rank) return 1;
-    return (b.w1 || 0) - (a.w1 || 0);
+    if (target === 'race') return b.list.length - a.list.length;
+    return (b.win / Math.max(1, b.rides)) - (a.win / Math.max(1, a.rides));
   });
-  var card = $('jdbListCard');
-  if (card) card.style.display = '';
-  var box = $('jdbList');
-  var cnt = $('jdbListCount');
+  var card = $('jdbListCard'); if (card) card.style.display = '';
+  var box = $('jdbList'); var cnt = $('jdbListCount');
   if (cnt) cnt.textContent = hits.length + ' 件' + (q ? '（「' + q + '」）' : '（全件）');
   if (!box) return;
-  if (!hits.length){
-    box.innerHTML = '<div class="muted">' + (keys.length
-      ? '該当なし。' : '<b>登録簿がまだ空です。</b>上の「📥 一覧を取得して登録簿を作る」を押してください。') + '</div>';
+  if (!hits.length){ box.innerHTML = '<div class="muted">該当なし。</div>'; return; }
+  var show = hits.slice(0, 100);
+  if (target === 'race'){
+    box.innerHTML = '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>レース名</th><th>開催日</th><th>場</th><th>R</th><th>グレード</th><th>出走回数</th></tr></thead><tbody>' +
+      show.map(function(e){
+        return '<tr><td>' + esc(e.name) + '</td><td>' + (e.list[0] && e.list[0].date ? e.list[0].date : '') + '</td><td>' + (e.list[0] && e.list[0].place || '') + '</td><td>' + (e.list[0] && e.list[0].rnum || '') + '</td><td>' + (e.list[0] && e.list[0].grade || '') + '</td><td>' + e.list.length + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
     return;
   }
-  var top3 = $('jdbTop3Only') && $('jdbTop3Only').checked;
-  var show = top3 ? hits.slice(0, 3) : hits.slice(0, 100);
   box.innerHTML = '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
-    '<th>位</th><th>名前</th><th>所属</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>騎乗</th>' +
-    '<th>勝率</th><th>連対率</th><th>複勝率</th><th>賞金(万)</th><th></th></tr></thead><tbody>' +
+    '<th>名前</th><th>出走</th><th>1着</th><th>勝率</th><th>連対率</th><th>3着内率</th><th>単勝回収</th><th></th></tr></thead><tbody>' +
     show.map(function(e){
-      return '<tr>' +
-        '<td>' + (e.rank ? e.rank : '-') + '</td>' +
-        '<td style="white-space:nowrap"><b>' + esc(e.name || '') + '</b>' +
-          '<span class="muted small"> ' + esc(klId(e.id)) + '</span></td>' +
-        '<td class="small">' + esc(e.branch || '') + '</td>' +
-        '<td>' + (e.w1 != null ? e.w1 : '-') + '</td><td>' + (e.w2 != null ? e.w2 : '-') + '</td>' +
-        '<td>' + (e.w3 != null ? e.w3 : '-') + '</td><td>' + (e.out != null ? e.out : '-') + '</td>' +
-        '<td>' + (e.rides != null ? e.rides : '-') + '</td>' +
-        '<td>' + (e.winRate != null ? e.winRate : '-') + '</td>' +
-        '<td>' + (e.placeRate != null ? e.placeRate : '-') + '</td>' +
-        '<td>' + (e.showRate != null ? e.showRate : '-') + '</td>' +
-        '<td>' + (e.money != null ? Math.round(e.money).toLocaleString('ja-JP') : '-') + '</td>' +
-        '<td><button class="btn small" data-jdb="' + esc(e.id) + '" data-kind="' + kind + '">詳細</button></td>' +
-      '</tr>';
-    }).join('') + '</tbody></table></div>' +
-    (top3 ? '' : (hits.length > show.length ? '<div class="muted small">上位 ' + show.length + ' 件を表示（全 ' + hits.length + ' 件）</div>' : ''));
+      var rate = e.rides ? e.win / e.rides * 100 : 0;
+      var pr = e.rides ? e.place / e.rides * 100 : 0;
+      var sr = e.rides ? e.show / e.rides * 100 : 0;
+      var roi = e.rides ? e.winPrize / e.rides : 0;
+      return '<tr><td style="white-space:nowrap"><b>' + esc(e.name || '') + '</b></td>' +
+        '<td>' + e.rides + '</td><td>' + e.win + '</td>' +
+        '<td>' + rate.toFixed(1) + '%</td><td>' + pr.toFixed(1) + '%</td><td>' + sr.toFixed(1) + '%</td>' +
+        '<td>' + (e.winPrize ? Math.round(roi) : '-') + '</td>' +
+        '<td><button class="btn small" data-jname="' + esc(e.name) + '" data-kind="' + target + '">詳細</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 /* ---- 成績テーブルの描画 ---- */
@@ -34970,48 +35028,39 @@ function jdbRecTable(rec, caption){
    登録簿に名前が無ければ「未取得」を案内し、登録簿の取得を促します（勝手に大量通信しない）。 */
 function jdbOpenByName(name, kind){
   kind = (kind === 'trainer') ? 'trainer' : 'jockey';
-  try { if (typeof goTab === 'function') goTab('t-jockeydb'); } catch(e){}
+  try { if (typeof goTab === 'function') goTab('t-database'); } catch(e){}
   var kEl = $('jdbKind'); if (kEl) kEl.value = kind;
   var qEl = $('jdbQuery'); if (qEl) qEl.value = klStr(name);
   jdbRefreshStat();
   jdbSearch();
-  var id = klFindId(name, kind);
-  if (!id){
-    var box = $('jdbDetail'), card = $('jdbDetailCard');
-    if (card) card.style.display = '';
-    if (box) box.innerHTML = '<div class="warn">「' + esc(klStr(name)) + '」が<b>登録簿に見つかりません</b>。<br>' +
-      '上の <b>「📥 一覧を取得して登録簿を作る」</b> を一度押すと、' + (kind === 'trainer' ? '調教師' : '騎手') + 'の名前→IDが登録され、' +
-      '以降はいつでもタップだけで開けます（登録簿は7日もちます・自動削除されません）。</div>';
+  var d = klStatsOf(kind, klStr(name));
+  var card = $('jdbDetailCard');
+  if (card) card.style.display = '';
+  if (!d){
+    var box = $('jdbDetail');
+    if (box) box.innerHTML = '<div class="warn">「' + esc(klStr(name)) + '」が<b>学習DBの集計に見つかりません</b>。先に過去レースを取り込み、「📊 学習DBから集計」を押すと、出走履歴から自動集計されます。</div>';
     return;
   }
-  /* キャッシュがあれば即表示（通信しない）／無ければ取得 */
-  var cached = klEntGet(kind, id);
-  jdbOpenDetail(id, kind, !cached);
+  jdbShowDetail(d, kind);
 }
 
 /* ★第28弾: 名前選択ドロップダウン（一覧取得後に構築。選んだ瞬間にキャッシュから即表示） */
 function jdbBuildDropdown(kind){
   var sel = $('jdbSel'); if (!sel) return;
-  var reg = klRegLoad(); var bag = (reg && reg[kind]) || {};
-  var arr = Object.keys(bag).map(function(k){ return bag[k]; }).filter(Boolean);
-  arr.sort(function(a, b){
-    if (a.rank && b.rank) return a.rank - b.rank;
-    if (a.rank) return -1; if (b.rank) return 1;
-    return klStr(a.name || '').localeCompare(klStr(b.name || ''), 'ja');
-  });
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache) klDbCache = klBuildFromDb();
+  var map = (kind === 'trainer') ? klDbCache.trainer : klDbCache.jockey;
+  var arr = Object.keys(map).map(function(k){ return map[k]; });
+  arr.sort(function(a, b){ return (b.win / Math.max(1, b.rides)) - (a.win / Math.max(1, a.rides)); });
   var html = '<option value="">— ' + (kind === 'trainer' ? '調教師' : '騎手') + 'を選択 —</option>';
-  html += arr.map(function(e){ return '<option value="' + esc(klNameKey(e.name)) + '">' + esc(e.name || '') + '　' + klId(e.id) + '</option>'; }).join('');
+  html += arr.map(function(e){ return '<option value="' + esc(e.name) + '">' + esc(e.name) + '　勝率' + (e.rides ? (e.win / e.rides * 100).toFixed(0) : 0) + '%</option>'; }).join('');
   sel.innerHTML = html;
 }
 function jdbOnSelect(){
   var sel = $('jdbSel'); if (!sel || !sel.value) return;
   var kind = jdbKind();
-  var reg = klRegLoad(); var bag = (reg && reg[kind]) || {};
-  var e = bag[sel.value];
-  if (!e){ return; }
-  var d = klEntGet(kind, e.id);
-  if (d){ jdbShowDetail(d, kind); }        // キャッシュから即表示（通信なし）
-  else { jdbOpenDetail(e.id, kind, true); } // 未取得なら取得
+  var d = klStatsOf(kind, sel.value);
+  if (d){ var card = $('jdbDetailCard'); if (card) card.style.display = ''; jdbShowDetail(d, kind); }
 }
 
 /* ---- 詳細表示 ---- */
@@ -35019,80 +35068,31 @@ function jdbShowDetail(d, kind){
   var card = $('jdbDetailCard'), box = $('jdbDetail');
   if (!box) return;
   if (card) card.style.display = '';
-  if (!d){ box.innerHTML = '<div class="warn">詳細を取得できませんでした（登録簿に名前が無い可能性があります）。</div>'; return; }
-  var form = klFormOf(d);
-  var ab = d.ability || { courses: [], baba: [], cond: [], time: [] };
-  var b = d.basic || {};
+  if (!d){ box.innerHTML = '<div class="warn">詳細を表示できませんでした。</div>'; return; }
+  var rate = d.rides ? d.win / d.rides * 100 : 0;
+  var pr = d.rides ? d.place / d.rides * 100 : 0;
+  var sr = d.rides ? d.show / d.rides * 100 : 0;
+  var roi = d.rides ? d.winPrize / d.rides : 0;
+  var turf = d.bySurf.turf, dirt = d.bySurf.dirt;
+  var recent = (d.recent || []).slice(-15).map(function(o){ return o === 1 ? '🥇' : o <= 3 ? '🥉' : o; }).join(' ');
+  var byTrack = Object.keys(d.byTrack || {}).map(function(t){ var x = d.byTrack[t]; return t + ':' + (x.rides ? (x.win / x.rides * 100).toFixed(0) : 0) + '%'; }).sort().join(' ');
+  var byDist = Object.keys(d.byDist || {}).map(function(t){ var x = d.byDist[t]; return t + 'm:' + (x.rides ? (x.win / x.rides * 100).toFixed(0) : 0) + '%'; }).sort().join(' ');
   var h = '';
   h += '<div class="row" style="align-items:baseline;gap:8px;flex-wrap:wrap">' +
     '<h3 style="margin:0">' + esc(d.name || '') + '</h3>' +
-    (d.yomi ? '<span class="muted small">' + esc(d.yomi) + '</span>' : '') +
-    '<span class="muted small">' + (kind === 'trainer' ? '調教師' : '騎手') + ' ' + esc(klId(d.id)) + '</span>' +
-    (form.label ? '<span class="chip' + (/好調|絶好調/.test(form.label) ? ' ok' : /不調/.test(form.label) ? ' warn' : '') + '">' +
-      esc(form.label) + (form.ratio != null ? '（本年÷累計 ' + form.ratio.toFixed(2) + '）' : '') + '</span>' : '') +
-    '</div>';
-  /* 調子の根拠 */
-  if (form.todayRuns > 0){
-    h += '<div class="muted small" style="margin-top:2px">今週の騎乗: <b>' + form.todayRuns + '戦' + form.todayWins + '勝</b>' +
-      '（勝率 ' + (form.todayRate * 100).toFixed(1) + '%）</div>';
-  }
-  /* 基本情報 */
-  var kv = [];
-  if (b['生年月日']) kv.push(['生年月日', b['生年月日']]);
-  if (b['初免許年']) kv.push(['初免許年', b['初免許年']]);
-  if (b['所属']) kv.push(['所属', b['所属']]);
-  if (b['所属厩舎']) kv.push(['所属厩舎', b['所属厩舎']]);
-  if (b['平地初勝利']) kv.push(['平地初勝利', b['平地初勝利']]);
-  if (kv.length){
-    h += '<table class="grid" style="margin-top:8px"><tbody>' + kv.map(function(x){
-      return '<tr><th style="white-space:nowrap">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>';
-    }).join('') + '</tbody></table>';
-  }
-  /* イチ推しアビリティ */
-  if ((d.abilityItems || []).length){
-    h += '<div style="margin-top:8px"><b>⭐ イチ推しアビリティ</b><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px">' +
-      (ab.courses || []).map(function(c){ return '<span class="chip ok">' + esc(c.text) + '</span>'; }).join('') +
-      (ab.baba || []).map(function(x){ return '<span class="chip">' + esc(x.text) + '</span>'; }).join('') +
-      (ab.cond || []).map(function(x){ return '<span class="chip">' + esc(x) + '</span>'; }).join('') +
-      (ab.time || []).map(function(x){ return '<span class="chip">' + esc(x) + '</span>'; }).join('') +
-      (ab.unknown || []).map(function(x){ return '<span class="chip muted">' + esc(x) + '</span>'; }).join('') +
-      '</div></div>';
-  }
-  /* 成績 */
-  h += '<div style="margin-top:10px">' + jdbRecTable(d.thisYear, '本年成績') + '</div>';
-  h += '<div style="margin-top:6px">' + jdbRecTable(d.career, '累計成績') + '</div>';
-  /* 年度別×着順別のリンク */
-  var yr = new Date().getFullYear();
-  h += '<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">' +
-    '<span class="muted small">年度別×着順別の履歴:</span>' +
-    [yr, yr - 1, yr - 2].map(function(y){
-      return '<span class="small"><b>' + y + '年</b> ' +
-        [['全',''],['1着',1],['2着',2],['3着',3],['着外',4]].map(function(a){
-          return '<a href="' + esc(klHistoryUrl(kind, d.id, y, a[1] || null)) + '" target="_blank" rel="noopener">' + a[0] + '</a>';
-        }).join(' / ') + '</span>';
-    }).join('<span class="muted">｜</span>') +
-    '</div>';
-  /* 今週の騎乗馬 */
-  if ((d.weekly || []).length){
-    h += '<div style="margin-top:10px"><b>📅 今週の騎乗馬</b>' + d.weekly.map(function(day){
-      return '<div class="muted small" style="margin-top:4px">' + esc(day.y + '年' + day.mo + '月' + day.d + '日') +
-        (day.kai ? ' ' + esc(day.kai + '回' + (day.venue || '') + day.dayNo + '日目') : '') +
-        ' <b>' + (day.runs || 0) + '戦' + (day.wins || 0) + '勝</b></div>' +
-        (day.races && day.races.length ? '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
-          '<th>場</th><th>R</th><th>レース名</th><th>コース</th><th>人</th><th>着</th><th>馬名</th><th>斤量</th><th>厩舎</th><th>コンビ</th><th>間隔</th>' +
-          '</tr></thead><tbody>' + day.races.map(function(r){
-            return '<tr><td>' + esc(r.venue || '') + '</td><td>' + (r.rnum || '-') + '</td>' +
-              '<td style="white-space:nowrap">' + (r.raceId
-                ? '<a href="' + esc('https://www.keibalab.jp/db/race/' + r.raceId + '/') + '" target="_blank" rel="noopener">' + esc(r.raceName || '') + '</a>'
-                : esc(r.raceName || '')) + '</td>' +
-              '<td>' + esc(r.course || '') + '</td><td>' + (r.pop != null ? r.pop : '') + '</td>' +
-              '<td' + (r.rank === 1 ? ' style="color:var(--ok-ink);font-weight:700"' : '') + '>' + (r.rank != null ? r.rank : '') + '</td>' +
-              '<td style="white-space:nowrap">' + esc(r.horseName || '') + '</td>' +
-              '<td>' + (r.weight != null ? r.weight : '') + '</td><td class="small">' + esc(r.trainer || '') + '</td>' +
-              '<td class="small">' + esc(r.combo || '') + '</td><td class="small">' + esc(r.interval || '') + '</td></tr>';
-          }).join('') + '</tbody></table></div>' : '');
-    }).join('') + '</div>';
-  }
+    '<span class="muted small">' + (kind === 'trainer' ? '調教師' : kind === 'horse' ? '競走馬' : '騎手') + '・学習DB集計</span>' +
+    (d.popN ? '<span class="chip">' + (d.popSum / d.popN).toFixed(1) + '人気平均</span>' : '') + '</div>';
+  h += '<div class="row" style="gap:14px;flex-wrap:wrap;margin-top:6px">' +
+    '<span>出走 <b>' + d.rides + '</b></span>' +
+    '<span>勝率 <b>' + rate.toFixed(1) + '%</b></span>' +
+    '<span>連対率 <b>' + pr.toFixed(1) + '%</b></span>' +
+    '<span>3着内率 <b>' + sr.toFixed(1) + '%</b></span>' +
+    (d.winPrize ? '<span>単勝回収 <b>' + Math.round(roi) + '</b></span>' : '') + '</div>';
+  if (turf) h += '<div class="small muted">芝: 出走' + turf.rides + ' / 勝利' + turf.win + '（' + (turf.rides ? (turf.win / turf.rides * 100).toFixed(0) : 0) + '%）</div>';
+  if (dirt) h += '<div class="small muted">ダート: 出走' + dirt.rides + ' / 勝利' + dirt.win + '（' + (dirt.rides ? (dirt.win / dirt.rides * 100).toFixed(0) : 0) + '%）</div>';
+  if (byTrack) h += '<div class="small muted">競馬場別勝率: ' + byTrack + '</div>';
+  if (byDist) h += '<div class="small muted">距離別勝率: ' + byDist + '</div>';
+  h += '<div class="small" style="margin-top:6px">直近成績: ' + (recent || '—') + '</div>';
   box.innerHTML = h;
 }
 function jdbOpenDetail(id, kind, force){
@@ -35200,6 +35200,24 @@ function jdbDebugFetch(){
   });
 }
 
+/* 一括取込後に自動実行するマクロ（バックテスト／AI再学習／タイム学習／馬場バイアス） */
+function dbMacroRun(){
+  var steps = [
+    { n: 'バックテスト', f: function(){ if (typeof btRun === 'function') btRun(); } },
+    { n: 'AI予想の自己学習（再学習）', f: function(){ if (typeof apRelearnAll === 'function') apRelearnAll(); } },
+    { n: '前走タイムのレベル・タイム換算学習', f: function(){ if (typeof tlLearnRun === 'function') tlLearnRun(true); } },
+    { n: '前日の馬場バイアス', f: function(){ if (typeof nkBiasFetchAll === 'function') nkBiasFetchAll(); } }
+  ];
+  var i = 0;
+  function next(){
+    if (i >= steps.length) return;
+    var s = steps[i++];
+    try { console.log('🗄 自動マクロ: ' + s.n); if (typeof diYearMsgSet === 'function') diYearMsgSet('⚙ 自動マクロ実行中: ' + s.n + '…'); } catch(e){}
+    try { s.f(); } catch(e){ console.error(e); }
+    setTimeout(next, 1200);
+  }
+  next();
+}
 function jockeyDbInit(){
   var btn;
   if ((btn = $('jdbBuild'))) btn.addEventListener('click', function(){ jdbBuildRegistry(); });
@@ -35224,9 +35242,11 @@ function jockeyDbInit(){
   /* 一覧の「詳細」ボタン（イベント委譲） */
   var list = $('jdbList');
   if (list) list.addEventListener('click', function(e){
-    var b = e.target.closest && e.target.closest('[data-jdb]');
+    var b = e.target.closest && e.target.closest('[data-jname]');
     if (!b) return;
-    jdbOpenDetail(b.getAttribute('data-jdb'), b.getAttribute('data-kind') || jdbKind(), false);
+    var kind = b.getAttribute('data-kind') || jdbKind();
+    var d = klStatsOf(kind, b.getAttribute('data-jname'));
+    if (d){ var card = $('jdbDetailCard'); if (card) card.style.display = ''; jdbShowDetail(d, kind); }
   });
   jdbRefreshStat();
 }
@@ -35311,7 +35331,7 @@ function goTab(id){
   if (id === 't-jravideo' && typeof jvRefresh === 'function') jvRefresh();
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブを開いたら登録簿・キャッシュの状況を更新 */
-  if (id === 't-jockeydb' && typeof jockeyDbOnShow === 'function'){ try { jockeyDbOnShow(); } catch(e){} }
+  if (id === 't-database' && typeof jockeyDbOnShow === 'function'){ try { jockeyDbOnShow(); } catch(e){} }
   if (id === 't-tenki' && typeof tkRenderVenueBar === 'function'){
     try { tkRenderPcList(); } catch(e){}
     try { if (typeof tkOnTabOpen === 'function') tkOnTabOpen(); } catch(e){}
