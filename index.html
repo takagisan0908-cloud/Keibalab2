@@ -34372,6 +34372,20 @@ function klParseLeading(html, kind){
     tseen[tm2[1]] = 1;
     out.trainers.push({ kind: 'trainer', id: tm2[1], name: klStripTags(tm2[2]) });
   }
+  /* ★第29弾: <tr>が無い/構造違いの場合のフォールバック（該当kindの全リンク走査） */
+  if (out.rows.length === 0){
+    var fbr = new RegExp('href=["\']?/db/' + kind + '/(\\d{5})/', 'gi'), fm2;
+    while ((fm2 = fbr.exec(h)) !== null){
+      var fid2 = fm2[1];
+      if (seen[fid2]) continue;
+      var fseg = h.slice(fm2.index, fm2.index + 120);
+      var fnm = fseg.match(/>([^<]{1,24}?)<\/a>/);
+      var fn2 = fnm ? klStripTags(fnm[1]) : '';
+      if (!fn2) continue;
+      seen[fid2] = 1;
+      out.rows.push({ kind: kind, id: fid2, name: fn2, w1:null,w2:null,w3:null,out:null,rides:null,winRate:null,placeRate:null,showRate:null,money:null, rank:null, branch:'' });
+    }
+  }
   if (!out.rows.length) out.err = 'no rows';
   return out;
 }
@@ -34751,12 +34765,12 @@ function klBuildRegistry(kind, maxPage, onProgress){
   var pages = Math.max(1, parseInt(maxPage || 12, 10));
   var reg = klRegLoad();
   if (!reg[kind]) reg[kind] = {};
-  var got = 0, done = 0;
+  var got = 0, done = 0, errs = [];
   function next(p){
     if (p > pages){
       reg.at = Date.now(); reg.pages = pages;
       klRegSave(reg);
-      return Promise.resolve({ kind: kind, added: got, total: Object.keys(reg[kind]).length, pages: done });
+      return Promise.resolve({ kind: kind, added: got, total: Object.keys(reg[kind]).length, pages: done, errs: errs });
     }
     return klGet(klListUrl(kind, p)).then(function(html){
       var r = klParseLeading(html, kind);
@@ -34769,7 +34783,7 @@ function klBuildRegistry(kind, maxPage, onProgress){
       if (typeof onProgress === 'function') onProgress(done, pages, got);
       if (!r.hasNext && done >= 1) return next(pages + 1);      // 次ページが無ければ終了
       return next(p + 1);
-    }).catch(function(){ return next(p + 1); });
+    }).catch(function(e){ errs.push('page' + p + ': ' + String((e && e.message) || e)); return next(p + 1); });
   }
   return next(1);
 }
@@ -34854,6 +34868,7 @@ function jdbBuildRegistry(){
     jdbProg('⏳ ' + done + ' / ' + pages + ' ページ目…（' + got + '件登録）');
   }).then(function(r){
     jdbProg('✅ 一覧完了: ' + (r.added || 0) + '件追加（合計 ' + (r.total || 0) + '件）');
+    if (r.errs && r.errs.length){ console.error('🏇DB 取得エラー', r.errs); jdbProg('⚠ 取得エラー（詳細はF12コンソール）: ' + r.errs.slice(0,3).join(' / ')); }
     jdbRefreshStat();
     jdbBuildDropdown(kind);
     jdbSearch();
