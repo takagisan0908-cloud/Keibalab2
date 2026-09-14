@@ -1,0 +1,1724 @@
+<body>
+<header class="topbar">
+  <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
+  <div class="brand">
+    <div class="logo">🐎</div>
+    <div>
+      <div class="b1">競馬AIラボ</div>
+      <div class="b2">展開予想 ・ AI印 ・ レースシミュレーター</div>
+    </div>
+  </div>
+  <div class="hd">
+    <span class="savest" id="saveState"></span>
+    <button type="button" class="btn" id="btnTheme" title="テーマ切替（Spotify風ダーク／ライト）">🌙 ダーク</button>
+    <button class="btn" id="btnNew">＋ 新規レース</button>
+    <button class="btn" id="btnExport">保存(JSON)</button>
+    <button class="btn" id="btnImportB">読込(JSON)</button>
+    <input type="file" id="fileImport" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<!-- 左ドロワー（GitHub風・全ページ共通） -->
+<div class="drawer-back" id="drawerBack"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <b>📖 メニュー（目次）</b>
+    <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
+  </div>
+  <nav class="drawer-nav" id="drawerList"></nav>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>__BUILD_ID__</b></div>
+</aside>
+
+<nav class="tabs">
+  <button class="tab" data-t="t-top">🏠 トップ</button>
+  <button class="tab active" data-t="t-input">① データ入力</button>
+  <button class="tab" data-t="t-kentai">② 展開予想・AI印</button>
+  <button class="tab" data-t="t-sim">③ レースシミュレーター</button>
+  <button class="tab" data-t="t-horse">④ 馬ノート(短評DB)</button>
+  <button class="tab" data-t="t-jravideo">⑤ JRA映像</button>
+  <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
+  <button class="tab" data-t="t-tenki">⑦ 天気予報</button>
+  <button class="tab" data-t="t-jockeydb">🏇 騎手・調教師DB</button>
+</nav>
+
+<main>
+<!-- ================= 🏠 トップ（全ページの入口・目次） ================= -->
+<section class="page" id="t-top">
+  <div class="page-top-hero">
+    <div class="hb">🐎</div>
+    <h1>競馬AIラボ</h1>
+    <div class="sub">出馬表の入力・AI印・展開予想・レースシミュレーション・重賞データ分析まで、この1ページで。<br>各機能は下のメニュー（または左上「☰ 目次」）から移動します。<br><span class="small muted">旧「過去データ」タブと旧「血統」タブは⑥重賞データ分析に、旧「レースを選ぶ」タブは①データ入力に統合しました。</span></div>
+    <div class="quick">
+      <button type="button" class="btn" data-goto="t-input">📥 データ入力（URL取込・レース選択）</button>
+      <button type="button" class="btn" data-goto="t-kentai">🧠 展開予想・AI印</button>
+      <button type="button" class="btn" data-goto="t-grade">📊 重賞データ分析</button>
+    </div>
+  </div>
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>🧮 馬券の点数計算 ・ WIN5点数計算</h2>
+      <span class="chip">ボックス / 軸流し / フォーメーション</span>
+      <span class="sp"></span>
+      <span class="small muted">買い目を入れる前に点数と金額をチェック（自己責任の参考用です）</span>
+    </div>
+    <div class="row2" style="grid-template-columns:1.15fr .85fr">
+      <div class="card" style="margin-top:0">
+        <h3 style="margin:0 0 6px">通常の馬券</h3>
+        <div class="fgrid" style="grid-template-columns:auto 1fr auto">
+          <div class="fcell"><label for="bcKind">券種</label>
+            <select id="bcKind">
+              <option value="tan">単勝</option><option value="fuku">複勝</option>
+              <option value="uren">枠連</option><option value="umaren">馬連</option>
+              <option value="wide">ワイド</option><option value="umatan">馬単</option>
+              <option value="sanren">三連複</option><option value="santan" selected>三連単</option>
+            </select>
+          </div>
+          <div class="fcell"><label for="bcMode">買い方</label>
+            <select id="bcMode">
+              <option value="box" selected>ボックス</option><option value="naga">軸流し</option><option value="fo">フォーメーション</option>
+            </select>
+          </div>
+          <div class="fcell" style="min-width:110px"><label for="bcYen">1点の金額(円)</label>
+            <input id="bcYen" type="number" min="10" step="10" value="100" style="width:90px">
+          </div>
+        </div>
+        <div id="bcInputs" class="small" style="margin:4px 0 8px"></div>
+        <div id="bcRes" style="border:1px solid var(--line2);background:var(--card);border-radius:10px;padding:8px 11px"></div>
+        <div class="small muted" style="margin-top:6px">※ フォーメーションは「重複なし（列ごとに違う馬）」で計算します。同じ馬を複数列に入れる場合はご自身で数え直してください。1点100円の5倍・10倍などの金額も目安です。</div>
+      </div>
+      <div class="card" style="margin-top:0">
+        <h3 style="margin:0 0 6px">WIN5（5レースの組合せ）</h3>
+        <div class="small muted" style="margin:0 0 6px">各レースの<b>選択頭数</b>を入れると「通りの数＝各レースの積」で計算します（1点100円固定）。</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+          <label class="small">レース① (頭): <input id="bc5a" type="number" min="1" max="18" value="1" style="width:70px"></label>
+          <label class="small">レース② (頭): <input id="bc5b" type="number" min="1" max="18" value="1" style="width:70px"></label>
+          <label class="small">レース③ (頭): <input id="bc5c" type="number" min="1" max="18" value="1" style="width:70px"></label>
+          <label class="small">レース④ (頭): <input id="bc5d" type="number" min="1" max="18" value="1" style="width:70px"></label>
+          <label class="small">レース⑤ (頭): <input id="bc5e" type="number" min="1" max="18" value="1" style="width:70px"></label>
+        </div>
+        <div id="bc5Res" style="border:1px solid var(--line2);background:var(--card2);border-radius:10px;padding:8px 11px;margin-top:8px"></div>
+        <div class="small muted" style="margin-top:6px">例: 3→4→5→2→6 頭なら 3×4×5×2×6 = 720通り → 72,000円（ただし的中確率も上がります）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hm-title">📖 すべての機能（タブ）</div>
+  <div class="hm-grid" id="homeMenu"><div class="small muted">読み込み中…</div></div>
+  <div class="hm-note">💡 <b>はじめ方:</b> ①「レースを選ぶ」か「データ入力」で netkeiba のレースを読み込み → ②でAI印・展開予想 → レース後に結果を取込むと「AI予想の自己学習」「トラックバイアス」に蓄積され、次の予想に活かせます。</div>
+</section>
+
+<!-- ================= ① 入力 ================= -->
+<section class="page active" id="t-input">
+  <!-- ===== ライブ3サブタブ(race.sp風): 出馬表 / オッズ / 結果・払戻 ===== -->
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
+    <div class="livebar">
+      <button type="button" class="lsbtn ls-a" data-lt="shutuba">🏇 出馬表</button>
+      <button type="button" class="lsbtn" data-lt="odds">💰 オッズ</button>
+      <button type="button" class="lsbtn" data-lt="result">🏁 結果・払戻</button>
+      <span class="sp"></span>
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:.83rem" title="画面を開いている間、選んだ間隔で単勝オッズを自動更新します（結果の自動確認も行います）">
+        <input type="checkbox" id="lvAuto"> 自動更新
+      </label>
+      <select id="lvInt" title="自動更新の間隔" style="font-size:.8rem;padding:3px 4px">
+        <option value="30">30秒</option><option value="60" selected>60秒</option><option value="120">120秒</option>
+      </select>
+      <button type="button" class="btn primary" id="lvNow" title="オッズと結果を今すぐ取得して反映します">🔄 手動で更新</button>
+      <span class="small muted livetick" id="lvClock"></span>
+    </div>
+    <div class="small" id="lvMsg" style="color:var(--ok-ink);margin:2px 0 4px"></div>
+  </div>
+
+  <div id="live-shutuba">
+
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>🔎 レース名で探して出馬表を取込（JRA重賞 2002年〜）</h2>
+      <span class="chip">出馬表＋単勝オッズを自動取込</span>
+      <span class="sp"></span>
+      <span class="small muted">★これがメインの入力方法です（検索して選ぶだけ）</span>
+    </div>
+    <div class="small muted" style="margin:0 0 6px">
+      年とレース名を入れて<b>🔎 検索</b> → 候補の<b>「✅ このレースを出馬表＋オッズまで自動取込」</b>を押すだけで、
+      <b>出馬表と単勝オッズをまとめて取り込みます</b>（URLを手でコピーする必要はありません）。
+      <span class="muted">対象はJRA重賞（2002年〜）。重賞以外・地方は見つからないので、下の「🔗 URLから直接取込」をお使いください。</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <input id="rsYear" type="number" min="2002" step="1" style="width:90px" placeholder="2026"> 年
+      <input id="rsName" placeholder="レース名（例: セントウルS ／ セントウルステークス）" style="flex:1;min-width:200px">
+      <button type="button" class="btn primary" id="btnRsGo">🔎 検索</button>
+    </div>
+    <div id="rsMsg" class="small muted" style="margin-top:4px"></div>
+    <div id="rsOut"></div>
+
+    <!-- ★2026-09-11 第11弾: URL直貼り付けは「エラー時のみ使う」ものなので、ふだんは閉じておく -->
+    <details id="urlManualFold" style="margin-top:10px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+      <summary style="cursor:pointer;padding:8px;font-size:.86rem;font-weight:700">🔗 netkeiba URLから直接取込
+        <span class="small muted" style="font-weight:400">（ふだんは閉じています・🔎検索で取れないときのエラー用）</span></summary>
+      <div style="padding:0 8px 8px">
+        <div class="small muted" style="margin:2px 0 6px">
+          上の🔎検索に出ないレース（重賞以外・地方交流・過去レース）や、検索が通信エラーになるときに、
+          netkeiba のURLを直接貼り付けて取り込みます。<b>取り込みに失敗したときはこの枠が自動で開きます。</b>
+        </div>
+        <div class="fgrid" style="grid-template-columns:1fr auto auto">
+          <div class="fcell full" style="grid-column:1/-1">
+            <label>netkeiba のレースURLを貼り付け（例: https://race.netkeiba.com/race/shutuba.html?race_id=202609040211 ）</label>
+            <input id="urlImport" placeholder="https://race.netkeiba.com/race/shutuba.html?race_id=＿＿＿＿＿＿＿＿＿＿">
+          </div>
+          <button class="btn primary" id="btnUrlCard">① 出馬表＋レース情報を取込</button>
+          <button class="btn primary" id="btnUrlOdds">② 単勝オッズを取込</button>
+          <button class="btn ghost" id="btnUrlBoth" title="出馬表に加えてオッズまで自動取得">①+② まとめて取込</button>
+        </div>
+      </div>
+    </details>
+    <!-- ★2026-09-12 第17弾: 出走前にその日の出馬表をまとめて取得し、AI予想の「事前予想」を保存する。
+         結果が出たら自動的に突き合わせて学習する（rec.pre / b.pre）。
+         これが無いと「結果を取り込んだときに印を作り直す（再シミュレーション）」しかできず、
+         ①のAI印の本当の成績が測れませんでした。 -->
+    <details id="preCard" style="margin-top:10px;border:1px solid #1c6e42;border-radius:8px;background:var(--card)">
+      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:var(--ok-ink)">📥 その日の出馬表を一括取得 → AI予想の「事前予想」を保存（学習用）
+        <span class="chip" id="preCount" style="margin-left:6px;font-weight:400">まだ事前予想はありません</span></summary>
+      <div style="padding:0 8px 10px">
+        <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
+          選んだ日の<b>全レースの出馬表</b>をnetkeibaからまとめて取得し、1レースずつ<b>①のAI印を計算して保存</b>します。
+          レース前にやっておくことで、<b>結果が出たときに「事前予想 vs 実際の結果」を突き合わせて学習</b>できるようになります。
+          <br>　📌 <b>保存されるもの</b>: 印(◎〜△)・順位・確率・各ファクターの値（オッズ/調教/持ちタイム/展開/馬場/洋芝/学習DB実績）・<b>展開予想のスコアとラベル</b>・当日の<b>トラックバイアス予想</b>・<b>🎯軸に最適馬／💠妙味馬／🕳穴馬（各1頭）</b>
+          <br>　🎯💠🕳 <b>軸・妙味・穴の一覧</b>: 取得した日の全レースぶんを <b>②展開予想・AI印</b> の「📅 その日の全レース 軸・妙味・穴 一覧」に表で出します（現在のレースぶんは「🎯💠🕳 今回の軸・妙味・穴」に出ます）。結果を取り込んだレースは着順と照合して 🏆1着／✅3着内 を表示します
+          <br>　🔁 <b>結果との照合は自動</b>: 結果メモの📥取込・日付指定取込・年指定一括取込のどれで結果を入れても、保存済みの事前予想と突き合わせて<b>「📌 事前予想の成績」</b>として集計します（②の🔬診断と🔁自己学習に出ます）
+          <br>　🚫 <b>いかさま防止</b>: すでに結果が確定しているレースは<b>必ずスキップ</b>します（結果を知ってから予想しても意味がないため）
+          <br>　🦵 <b>脚質は学習DBの履歴から自動補完</b>: 出馬表には脚質が無いので、学習DBの<b>過去戦の通過順</b>（その日付より前だけ）から判定して埋めます
+          <br>　※ オッズは発売中でないと取得できません（取れなかったレースは人気要素なしの予想になります）
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px">開催日
+            <input type="date" id="preDate" style="font-family:inherit;font-size:.86rem;padding:2px 6px">
+          </label>
+          <button type="button" class="btn primary" id="preBtn">📥 一括取得して事前予想を保存</button>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="各馬の馬柱（プロフィール＋全戦績）も取得します。🏇馬柱AI評価・バ場好走率・洋芝/コース適性・騎手成績/鉄砲 が使えるようになります。1頭1〜3秒かかるので全レースだと時間がかかります（取得済みはキャッシュで高速）">
+            <input type="checkbox" id="preChkDetail"> 各馬の馬柱データも取得する（時間がかかります）
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="すでに事前予想を保存済みのレースも取り直します（オッズが動いた後などに）">
+            <input type="checkbox" id="preChkForce"> 保存済みも取り直す
+          </label>
+        </div>
+        <div id="preMsg" class="small" style="margin-top:6px"></div>
+        <div id="preStat" class="small muted" style="margin-top:4px;max-height:180px;overflow:auto"></div>
+      </div>
+    </details>
+    <!-- ★2026-09-12 第18弾: バックテスト（過去レースを結果を見ずに予想し直す） -->
+    <details id="btCard" style="margin-top:10px;border:1px solid #6b4ea8;border-radius:8px;background:var(--card)">
+      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:#b39ddb">🕰 バックテスト（過去レースを「結果を見ずに」予想し直して照合する／通信ゼロ）
+        <span class="chip" id="btCount" style="margin-left:6px;font-weight:400">まだバックテストはありません</span></summary>
+      <div style="padding:0 8px 10px">
+        <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
+          「結果が確定しているレースは事前予想にならないので必ずスキップ」は<b>いかさま防止のために正しい動作</b>ですが、
+          そのままだと学習データが<b>これから走るレースぶんしか貯まらない</b>ので精度がなかなか上がりません。
+          そこで、<b>学習DBに入っている過去レースを「出走前に分かる情報だけ」で予想し直し、あとで結果と照合</b>します。
+          <b>netkeibaへの通信は一切ありません</b>（学習DBの中だけで完結するので数秒〜1分程度）。
+          <br>　✅ <b>使う情報（レース前に確定しているもの）</b>: 馬番・馬名・性齢・斤量・騎手・馬ID・<b>単勝オッズ</b>・人気・馬場状態・距離・芝/ダート・<b>その日付より前の出走だけから作った脚質と過去実績</b>
+          <br>　🚫 <b>使わない情報（結果側）</b>: 着順・タイム・上り3F・コーナー通過順・着差・払戻金
+          <br>　🔒 <b>いかさま防止の仕組み</b>: 過去実績は <code>hfFeatures(rows, d8)</code> が<b>レース日より前の出走だけ</b>を返します（自分自身は当然、同日の他レースも除外）。
+          さらに<b>展開学習(p50)は学習DB全体の集計で日付フィルタが無いため、バックテスト中は自動的にOFF</b>になります。
+          <br>　📦 <b>保存先は別欄</b>: 本物の事前予想 <code>rec.pre</code> は<b>絶対に上書きしません</b>。<code>rec.preBt</code>（<code>synthetic:true</code> / <code>src:'backtest'</code>）に入り、
+          照合結果は <code>rec.preBtMarks</code> と月別バケットの <code>b.bt</code> へ。🔬診断の表①〜④に「🕰バックテスト」の行として並びます。
+          <br>　🎓 <b>何が良くなるか</b>: 提案4の<b>ファクター別学習</b>（どの材料が効いているかを測って重みを自動調整）は
+          本物の事前予想が<b>30レース</b>そろうまで動きませんでしたが、バックテストで<b>数千レースぶん</b>のデータが手に入るので、
+          重み調整がすぐに効くようになります＝<b>的中率・回収率の改善に直結</b>します。
+          <br>　⚠ <b>正直な注意</b>: 出馬表に無い手入力ファクター（前走タイム・調教・出遅れ率・血統）は空になります。
+          これは「📥一括取得を『馬柱データも取得する』オフで実行したとき」と同じ条件なので、事前予想の実力を測る比較としては公平です。
+          ただし<b>バックテストの数字＝そのまま実戦の数字</b>とは限りません（実戦で馬柱まで取得すればもう少し良くなります）。
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn primary" id="btBtn">🕰 バックテストを実行</button>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px">期間(開始)
+            <input type="date" id="btFrom" style="font-family:inherit;font-size:.86rem;padding:2px 6px">
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px">期間(終了)
+            <input type="date" id="btTo" style="font-family:inherit;font-size:.86rem;padding:2px 6px">
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="0または空欄で制限なし。多いほど時間はかかりますが学習データは増えます">上限
+            <input type="number" id="btMax" min="0" max="20000" step="100" value="0" style="width:74px;font-family:inherit;font-size:.86rem;padding:2px 6px"> レース
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="チェックすると前回の集計(b.bt)をクリアせずに上へ足します。通常はオフのままで（同じレースを2回数えると数字がズレます）">
+            <input type="checkbox" id="btChkKeep"> 前回の集計を残して足す
+          </label>
+          <button type="button" class="btn small" id="btClear" title="rec.preBt と b.bt を全部消します（本物の事前予想 rec.pre には触れません）">🗑 バックテストだけ削除</button>
+        </div>
+        <div id="btMsg" class="small" style="margin-top:6px"></div>
+        <div id="btStat" class="small muted" style="margin-top:4px;max-height:200px;overflow:auto"></div>
+      </div>
+    </details>
+    <div id="urlLog" class="small" style="margin-top:10px"></div>
+    <details>
+      <summary>URL取込の通信設定（出馬表HTMLのみ初回セットアップが必要）</summary>
+      <div class="small">
+        <p>「②単勝オッズ」は中継が無くても<b>そのまま動きます</b>（JSONP）。「①出馬表」と「前レース自動取込」は、netkeiba側が別サイトからの直接読込(CORS)を許可していないため、<b>小さい中継(リレー)が1つあれば動きます</b>。</p>
+        <p><b>すぐ試すなら</b>: 配布ZIPを解凍したフォルダで <code>node server-local.js</code> を実行 → 表示される <code>http://localhost:8788</code> を開けば、中継込みで全部動きます（スマホでは使えません）。毎週スマホ/どこからでも使うには下の方法1で公開するのがおすすめです。</p>
+        <p><b>公開したのに「出馬表だけ取れない」場合は</b>: 下の「🔧 中継を診断」で原因を確認できます。<b>index.html 単体</b>の公開では中継(/api/race)が動かないので、<b>Vercel なら keiba-lab-vercel.zip</b>（api/race.js 同梱）、<b>Cloudflare Pages なら keiba-lab-cloudflare-pages.zip</b>（functions/api/race.js 同梱）をフォルダごとデプロイしてください。</p>
+        <p><b>方法1（おすすめ・設定不要）</b>：<b>Vercel</b> に keiba-lab-vercel.zip の中身（index.html ＋ api/race.js ＋ アイコン類）をそのままデプロイする。中継が自動で動き、アプリから /api/race へ自動接続します。<b>Cloudflare Pages</b> なら keiba-lab-cloudflare-pages.zip（functions/api/race.js 同梱）を「wrangler pages deploy」で公開すれば /api/race が有効です。→ どちらでも中継が無い場合は、自動的にオッズ(JSONP)だけ動くモードになります。</p>
+        <p><b>方法2</b>：GitHub Pages等の静的ホストに置く場合、無料のCloudflare Worker（後述の worker-relay.js を貼るだけ）を作り、下の「カスタム中継URL」に <code>https://＜あなたの名前＞.workers.dev/fetch</code> を保存。以降は毎週このURLだけで利用できます。</p>
+        <label>カスタム中継URL（任意）</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <input id="urlRelayInp" placeholder="https://xxxx.workers.dev/fetch" style="flex:1;min-width:260px">
+          <button class="btn" id="btnRelaySave">保存</button>
+          <button class="btn ghost" id="btnRelayTest">接続テスト</button>
+          <button class="btn primary" id="btnRelayAuto" title="自前の中継（Vercel/Cloudflare/Deno/GAS）→ 予備の公開プロキシ の順に試し、最初に成功したものを保存します">🔎 使える中継を自動で選ぶ</button>
+        </div>
+        <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
+          <div class="small" style="font-weight:bold">💾 端末の保存領域（localStorage）</div>
+          <div class="small muted" style="margin:2px 0 6px">
+            🥇 <b>学習DB（④で取り込んだ過去データ）と AI予想の学習データは第一優先</b>で残します。
+            保存領域（目安5MB）が足りなくなったときは、♻️<b>また取り直せるキャッシュ（馬柱・血統・⑥分析・カレンダー・天気など）を自動で削除</b>して、学習データの保存を優先します。<br>
+            📊 シミュレーションの合計集計は<b>③のタブを開いている間だけのメモリ集計</b>になったので、保存領域は使いません。<br>
+            何がどれだけ入っているかを確認して、<b>取得し直せるキャッシュ</b>から手動でも消せます。
+          </div>
+          <div id="storeUse" class="small" style="margin:2px 0 6px"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="btn ghost" id="btnStoreUse">💾 使用量を確認</button>
+            <button type="button" class="btn ghost" id="btnStoreTrim" title="馬柱・血統・⑥分析・カレンダーなど、また取り直せるキャッシュだけを削除します">🧹 安全に空きを作る</button>
+          </div>
+          <div id="storeTbl" class="small" style="margin-top:6px;overflow-x:auto"></div>
+        </div>
+        <div style="margin-top:8px"><button class="btn primary" id="btnRelayDiag">🔧 中継を診断（今デプロイしたURLで確認）</button>
+          <span class="small muted"> 自動で各経路を試し「どれが動いているか/どう直せばいいか」を表示します</span>
+        </div>
+        <div id="urlLog2" class="muted" style="margin-top:6px"></div>
+        <p class="muted">※URLはnetkeibaの利用規約をご確認のうえ、ご自身の予想用途でお使いください。</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <h2>レース情報</h2>
+      <div class="fgrid">
+        <div class="fcell"><label>レース名</label><input id="rName" placeholder="例: 東京11R オークス"></div>
+        <div class="fcell"><label>開催(省略可)</label><input id="rPlace" placeholder="例: 東京 芝 2400m"></div>
+        <div class="fcell"><label>馬場状態</label>
+          <select id="rBaba">
+            <option value="">未設定</option><option value="fast">良</option><option value="good">稍重</option>
+            <option value="yield">重</option><option value="soft">不良</option><option value="dirt_fast">ダート・良</option>
+            <option value="dirt_seal">ダート・含水多め</option>
+          </select>
+        </div>
+        <div class="fcell"><label>距離(m)</label><input id="rDist" type="number" min="800" max="3600" step="100" placeholder="例 2000"></div>
+        <div class="fcell"><label>クラス(省略可)</label>
+          <select id="rClass">
+            <option value="">選択なし</option><option>新馬</option><option>未勝利</option><option>1勝クラス</option>
+            <option>2勝クラス</option><option>3勝クラス</option><option>オープン</option><option>G3</option>
+            <option>G2</option><option>G1</option><option>地方交流</option>
+          </select>
+        </div>
+        <div class="fcell"><label>締切時刻(省略可)</label><input id="rTime" placeholder="例 15:30"></div>
+        <div class="fcell"><label>芝のクッション値(任意)</label><input id="rCushion" type="number" step="0.1" min="5" max="12" placeholder="例 8.1" title="JRA公式の当日測定値・または競馬新聞等の値を入力"></div>
+      </div>
+      <div class="row2" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+        <button type="button" class="btn ghost" id="btnJraBaba" title="JRA公式サイト(jra.go.jp/keiba)の馬場情報から当日の馬場状態・芝クッション値・含水率を取得して反映します（JRA開催日のみ・開催場の記載が必須）">🌤 JRA公式から当日馬場を取得</button>
+        <span id="jraBabaInfo" class="small muted"></span>
+      </div>
+      <div class="small muted">※ 馬場状態はペース診断・AI予想に使用。芝クッション値は保存・対象レース表示されます（予想スコア計算には未使用）。当日の値は上のボタンで JRA公式(jra.go.jp/keiba)から自動取得できます（中継稼働時）。過去レースのクッション値はJRAのアーカイブがPDFのため自動取込は未対応（馬場状態のみ表示）。</div>
+      <div class="warnbox" id="raceHint" style="display:none">※距離が未入力だと「持ちタイム比較」は計算されません。</div>
+    </div>
+
+    <!-- ★2026-09-13 第19弾④: テキスト貼り付け取込は「URL取込が使えないときの予備」なので、
+         ①の他の折り込み（🔗 netkeiba URLから直接取込）と同じく ふだんは閉じた表示にしました。
+         「取り込む」を押すと必ず開くので、ログが閉じた中に隠れることはありません（p7_import.js）。 -->
+    <div class="card">
+      <details id="pasteFold" style="border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+        <summary style="cursor:pointer;padding:8px;font-size:.86rem;font-weight:700">📋 テキスト貼り付けで取込
+          <span class="small muted" style="font-weight:400">（ふだんは閉じています・出馬表/単勝オッズ/調教タイム/持ちタイム）</span></summary>
+        <div style="padding:0 8px 8px">
+          <p class="small muted">サイトからコピーしたテキスト表を貼り付けて取込ます（出馬表は「🔗 netkeiba URLから直接取込」が最速です）。<b>読み間違いは必ず下の出馬表で確認・修正</b>してください。</p>
+          <div class="fgrid" style="grid-template-columns:auto 1fr">
+            <div class="fcell"><label>種類</label>
+              <select id="pasteType">
+                <option value="card">出馬表</option>
+                <option value="odds">単勝オッズ</option>
+                <option value="yobi">調教タイム</option>
+                <option value="time">持ちタイム</option>
+              </select>
+            </div>
+            <div class="fcell"><label>貼り付け内容(サイトからコピーした表など)</label>
+              <textarea id="pasteTxt" rows="3" class="textareafull" placeholder="netkeibaの出馬表テキスト等をここに貼り付けて「取り込む」を押してください"></textarea>
+            </div>
+          </div>
+          <div class="small muted" style="margin-top:4px">書き方の例: 出馬表は「枠 馬番 馬名 性齢 斤量 騎手」の1行=1頭 ／ 調教は「馬名 6F 83.5-5F 69.1-3F 38.9」 ／ 持ちタイムは「馬名 1:59.9」。</div>
+          <div style="margin-top:8px;text-align:right"><button class="btn primary" id="btnPaste">取り込む</button></div>
+          <div id="pasteLog" class="small muted"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>🏟 該当レースのコースの特徴（JRA公式コース紹介）</h2>
+      <span class="chip" id="courseChip">自動判定</span>
+      <span class="sp"></span>
+      <span class="small muted">出馬表の舞台となる競馬場のコース特性を確認できます</span>
+    </div>
+    <div id="courseBox"><div class="small muted">「開催」欄に開催場（例: 東京・中山・阪神 など）が入ると表示します。</div></div>
+  </div>
+
+  <!-- 2026-09-11 第14弾: 重賞のときだけ使う機能なので、ふだんは折り込んで閉じています -->
+  <details class="card fold" id="umaFold" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+    <summary class="foldhead">
+      <span class="fmark"></span>
+      <h2 style="margin:0">🌐 うましるの調教評価から調教タイムを取込（重賞のみ）</h2>
+      <span class="chip">G1〜G3</span>
+      <span class="sp"></span><span class="foldhint"></span>
+    </summary>
+    <div class="foldbody">
+    <p class="small muted">調教評価サイト「うましる」の<b>追い切り評価・全頭診断</b>記事（<a href="https://umasiru.com/archives/tag/oikiri" target="_blank" rel="noreferrer">https://umasiru.com/archives/tag/oikiri</a>）から、現在のレースに該当する記事を探して最終追い切りの時計（例 4F54.2-3F37.9-1F11.5）を読み取り、馬名を割り当てて反映します。netkeiba取込より自動で記事も拾える取込方法です。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn primary" id="btnUmaAuto">🔍 このレースの記事を自動検索して取込</button>
+      <details style="flex:1;min-width:260px;margin-top:0">
+        <summary>記事URLを直接指定して取込（自動検索で見つからない場合）</summary>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+          <input id="umaUrlInp" placeholder="https://umasiru.com/archives/＿＿＿＿" style="flex:1;min-width:230px">
+          <button class="btn" id="btnUmaUrl">この記事から取込</button>
+        </div>
+      </details>
+    </div>
+    <div id="umaLog" class="small" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>📅 日付を選んで出馬表を取込（その日の1〜12Rから選択）</h2>
+      <span class="chip">netkeiba</span>
+      <span class="sp"></span>
+      <span class="small muted">日付 → 競馬場ごとの1〜12R → 選んだレースの出馬表をこのアプリへ取込（自動保存）</span>
+    </div>
+    <div class="kai-toolbar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 6px">
+      <input type="date" id="rkDate" style="font-size:.95rem;padding:5px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)" aria-label="開催日を入力">
+      <button class="btn primary" id="rkFetch">🗓 この日の1〜12Rを出す</button>
+      <button class="btn ghost" id="rkToday" title="今日の開催を見る">今日</button>
+      <span class="small muted">（旧「レースを選ぶ」タブはこの機能と重複していたため削除しました。以降はこの欄から選べます）</span>
+    </div>
+    <div id="rkMsg" class="small muted" style="margin:2px 0 6px"></div>
+    <div id="rkList"></div>
+    <div id="rkDetail"></div>
+
+    <!-- ★2026-09-13 第20弾: 日付からレースを選んだあとの手間をまとめて自動化する設定 -->
+    <details id="amCard" style="margin-top:10px;border:1px solid #1c6e42;border-radius:8px;background:var(--card)">
+      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:var(--ok-ink)">🤖 自動マクロ（レースを選んだら残りも全部まとめてやる）
+        <span class="chip" id="amChip" style="margin-left:6px;font-weight:400">既定ON</span></summary>
+      <div style="padding:0 8px 10px">
+        <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
+          ①で<b>日付からレースを1つ選ぶだけ</b>で、これまで手作業だった4つが自動でつながります。
+          <br>　<b>(A) その日の他のレースも自動検出</b> … 選んでいないレースの出馬表も取得して<b>事前予想を保存</b>します。
+          💰回収率チューナーと🔁自己学習は「出走前の予想 × 結果」が無いと測れないので、これが自動になると<b>別途「📥 一括取得」を押す必要がなくなります</b>。
+          すでに保存済みのレースと<b>結果が確定しているレースは必ずスキップ</b>します（いかさま防止）。
+          <br>　<b>(B) 全馬データ → 上3F・前走タイム → 🧠脚質AI推定 を自動反映</b> … 出馬表＋オッズの取得に紐づけて、
+          「🧾 出馬表の全馬データを取得・表示」→「🐎 全馬に前走の上3F・タイムを自動反映」→<b>「🧠 脚質をAI推定」</b>を<b>マクロのように連続実行</b>します。
+          ★脚質のAI推定は<b>前の2つが取った過去成績（端末内キャッシュ）だけ</b>で計算するので<b>追加の通信はゼロ</b>です。
+          <b>手で入力した脚質は絶対に上書きしません</b>（空欄は必ず補完・自動値は確信度70%以上のときだけ上書き）。
+          <br>　<b>(B0) 出馬表の取り直しをしない</b> … 「📥 その日の出馬表を一括取得」で取った出馬表は端末内に残るので、
+          「📅 日付を選んで出馬表を取込」で同じレースを選んだときは<b>通信せず即座に復元</b>します（当日30分・過去7日）。
+          取り直したいときだけ「🔄 取り直す（再取得）」を押してください。<b>この項目は常にONで、OFFにはできません。</b>
+          <br>　<b>(C) 未確定の開催週データは水曜日に自動削除</b> … 結果が確定していない事前予想は、
+          <b>その開催週の水曜日</b>（土曜開催なら4日後）になったら自動で消します。毎週 localStorage が膨らまなくなります。
+          過去レースは学習DBからいつでも取り込み直せるので問題ありません。<b>結果と照合済みのレコードは学習に使うので絶対に消しません。</b>
+          <br>　<b>(C2) 🌊トラックバイアスも水曜日に自動削除</b> … ④の当日馬場記録（state.biasRaces）も同じ水曜日に消します。
+          過去ぶんは学習DB側で<b>確定データ</b>として取り直せます（⑥重賞データ分析・🎓展開学習）。
+          <br>　<b>(E) 🌊トラックバイアスを開催日に自動取得</b> … その日のレース一覧の<b>発走時刻を見て、発走＋12分</b>
+          （結果が確定している見込みの時刻）を過ぎた未取得レースだけを<b>1分ごとにチェックして自動取得</b>します。
+          最終レース＋30分で締めの一括取得。<b>ページを開いている間だけ</b>動きますが、開いた瞬間に追い取得するので途中からでも最新化されます。
+          <br>　<b>(D) ⑥重賞カレンダー → 過去10年分析 → 🧬血統抽出 まで自動</b> … カレンダーでレースを選ぶと
+          「📥 この重賞の過去10年を分析」が自動で走り、<b>終わり次第そのまま血統ファクターの抽出</b>に入ります。
+          <br>　<b>(F) 🎛 重みをレースごとに自動補正</b> … ②の重み設定で、スライダーの位置はそのままに
+          実効重みだけをレースごとに調整します（詳細は②の「🎛 レースごとにAIが自動で重みを補正する」）。
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="選んだ日付の他のレースも取得して事前予想を保存します（1レース1〜3秒）">
+            <input type="checkbox" id="amChkDay" checked> (A) 他のレースも自動検出
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="全馬のプロフィール・戦績・成績分析 → 上3F・前走タイム の順に自動実行します">
+            <input type="checkbox" id="amChkHorse" checked> (B) 全馬データ→上3Fを自動
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第21弾②: (B)で取得した過去成績（端末内キャッシュ）だけを使って脚質をAI推定します。追加の通信はありません。手で入力した脚質は上書きしません">
+            <input type="checkbox" id="amChkStyle" checked> (B) 🧠脚質AI推定も自動
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="(A)のときに各馬の馬柱も取得します。(B)で全馬データを取得するのでふつうは不要です（全レースぶん取ると非常に時間がかかります）">
+            <input type="checkbox" id="amChkDetail"> (A)で各馬の馬柱も取得（時間がかかります）
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="結果が確定していない開催週の事前予想を、その週の水曜日に自動削除します">
+            <input type="checkbox" id="amChkClean" checked> (C) 水曜日に自動削除
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第21弾④: ④トラックバイアスの当日記録も同じ水曜日に削除します。過去ぶんは学習DB側で確定データとして取り直せます">
+            <input type="checkbox" id="amChkBiasClean" checked> (C2) 🌊バイアスも水曜削除
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第21弾④: 開催日に、発走時刻＋12分を過ぎた未取得レースのトラックバイアスを1分ごとにチェックして自動取得します（ページを開いている間だけ）">
+            <input type="checkbox" id="amChkBias" checked> (E) 🌊バイアスを開催日に自動取得
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="⑥の過去10年分析が終わったら、そのまま🧬血統ファクターの抽出を実行します">
+            <input type="checkbox" id="amChkDr" checked> (D) ⑥→🧬血統まで自動
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第21弾⑤: ②の重みスライダーはそのままに、実効重みだけをレースごとに自動補正します">
+            <input type="checkbox" id="amChkWt" checked> (F) 🎛重みの自動補正
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <button type="button" class="btn ghost" id="amCleanBtn" title="日付に関係なく、結果が確定していない過去の開催週の事前予想を今すぐ削除します（結果照合済みは残します）">🧹 今すぐ掃除する</button>
+          <button type="button" class="btn ghost" id="amPendingBtn" title="結果が確定していない事前予想が何件貯まっているかを出します">📊 貯まり具合を見る</button>
+          <span class="small muted" id="amPending"></span>
+        </div>
+        <div id="amMsg" class="small" style="margin-top:6px"></div>
+        <div id="amStat" class="small muted" style="margin-top:4px;max-height:150px;overflow:auto"></div>
+      </div>
+    </details>
+
+  <div class="card">
+    <h2>📥 読み込み履歴（自動保存されたレース）</h2>
+    <div id="kaiHistEmpty" class="small muted">まだありません。上の一覧でレースを選び「出馬表を読み込む」を押すと、出馬表ごと自動保存され、ここからいつでも復元できます。</div>
+    <div id="kaiHist" class="kai-hist"></div>
+    <div class="small muted" style="margin-top:8px">履歴はこの端末内（localStorage）に自動保存されます。出馬表＋レース情報のスナップショットなので、開催ページが更新されてもそのまま復元できます。</div>
+  </div>
+
+  <!-- ★2026-09-13 第23弾④⑤: 「📥 一括取得」で取ったレースの一覧。
+       従来は 一括取得 しても ここ（読み込み履歴）に何も残らず、
+       「取得できたのか／どれが取れたのか」が分かりませんでした。
+       1件ごとに全馬のスナップショットを持つと localStorage を食い潰すので、
+       ここは **レース情報だけの軽い一覧**（1件 約60バイト）にして、
+       「表示」を押すと ④ で端末に入れた出馬表キャッシュから **通信せず即座に** 開きます。 -->
+  <div class="card">
+    <div class="cardhead">
+      <h2 style="margin:0">🗂 一括取得した出馬表（その日の全レース）</h2>
+      <span class="chip" id="preListChip">0件</span>
+      <span class="sp" style="flex:1"></span>
+      <button type="button" class="kai-mini" id="preListClear" title="この一覧だけ消します（出馬表キャッシュ・学習DB・読み込み履歴は消えません）">一覧を消去</button>
+    </div>
+    <div id="preListEmpty" class="small muted">まだありません。「📅 日付を選んで出馬表を取込」の <b>📥 一括取得して事前予想を保存</b> を押すと、その日の全レースの出馬表を端末に取り込み、ここに一覧が出ます。<br>以降はその日のどのレースを選んでも <b>netkeiba に取りに行かずパッと表示</b>されます。</div>
+    <div id="preList" class="kai-hist"></div>
+    <div class="small muted" style="margin-top:8px">出馬表は端末内に圧縮保存（最大80レース・当日はその日の終わりまで有効）。<b>出走取消や馬場変更があったとき</b>は、開いた画面の「🔄 取り直す（再取得）」で最新を取り直せます。</div>
+  </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>出馬表（最大18頭）</h2>
+      <span class="chip" id="horseCount">0 / 18頭</span>
+      <span class="sp"></span>
+      <button class="btn" id="btnStyleAI" title="netkeibaの過去成績（コーナー通過順）から各馬の脚質をAI推定します">🧠 脚質をAI推定</button>
+      <button class="btn" id="btnDemo">サンプル18頭を入れる</button>
+      <button class="btn ghost" id="btnSort">馬番順に並べ替え</button>
+      <button class="btn ghost red" id="btnClear">全削除</button>
+    </div>
+    <div id="raceHeaderLine" class="small muted" style="margin-bottom:6px"></div>
+    <div class="tblwrap">
+      <table class="htbl" id="horseTbl">
+        <thead><tr>
+          <th style="min-width:30px">#</th>
+          <th style="min-width:34px">枠</th>
+          <th style="min-width:34px">馬番</th>
+          <th style="min-width:130px">馬名</th>
+          <th style="min-width:56px">性齢</th>
+          <th style="min-width:52px">斤量</th>
+          <th style="min-width:84px">騎手<br><span style="font-weight:400">(乗り替わり・当該馬での成績)</span></th>
+          <th style="min-width:112px" title="前走から90日（3ヶ月）以上の休み明け＝今回が鉄砲（休み明け初戦）のときだけ表示します。前走が鉄砲だった場合は「2走目」と出ます。間隔が空いていない馬には何も出しません。定義は netkeiba 競馬新聞と同じ（実データで一致を確認済み）。戦績は①の「🐎 全馬プロフィール」で取得すると入ります。">休養・鉄砲<br><span style="font-weight:400">(前走から間隔が空いた馬だけ)</span></th>
+          <th style="min-width:60px">単勝</th>
+          <th style="min-width:64px">脚質</th>
+          <th style="min-width:52px">印</th>
+          <th style="min-width:76px">出遅れ率%<br><span style="font-weight:400">(0〜100)</span></th>
+          <th style="min-width:120px">調教タイム(最後の追い切り等)</th>
+          <th style="min-width:96px" title="上段: netkeibaから取得した前走の上3F(上がり3ハロン)。下段入力: 前走タイム(今回と同距離±200m分を自動反映)">上3F / 持ちタイム</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="horseBody"></tbody>
+      </table>
+    </div>
+    <div class="small muted" id="gridTip" style="margin-top:6px">※ 脚質: 逃げ/先行/差し/追込 例 「先」「差」。印は◎○▲△☆。単勝・オッズ・調教・持ちタイムは AI予想の材料です。※ 出遅れ率%は「過去のスタートで出遅れた割合」で<b>0〜100%</b>（100を超える入力は100に丸めます）。逃げ・先行型ほど、この数値が高いとAI評価が下がります。<b>この欄は手入力です</b>（netkeiba取得時も自動では書き込みません）。🐎馬情報では、過去レースの位置取りから検出した出遅れ（表記「(出遅れ)」は明示・無い場合は「1角最後方なのに直後に挽回」したレースを推定。終盤だけ伸びた後方は除外）を<b>参考表示</b>します。</div>
+    <button class="btn dashed" id="btnAddHorse" style="margin-top:8px">＋ 馬を1頭追加（上限18頭）</button>
+  </div>
+
+  <div class="card" id="hdCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
+    <div class="cardhead">
+      <h2>🧾 全馬のプロフィール・戦績・成績分析（netkeiba自動取得）</h2>
+      <span class="chip">馬ごとの詳細表</span>
+      <span class="sp"></span>
+      <span class="small muted">各出走馬のプロフィール・通算成績・戦績一覧・条件別の成績分析をそのまま表にします</span>
+    </div>
+    <div class="small muted" style="margin-bottom:6px">
+      「netkeiba URL取込」などで出馬表を読み込んだレースの全出走馬（馬ID付き）を対象に、
+      netkeibaの<b>馬プロフィールページ</b>と<b>戦績ページ（全レース表）</b>から
+      プロフィール（生年月日・調教師・馬主・生産者・通算成績・獲得賞金・主な勝鞍）と、
+      <b>戦績詳細</b>（日付・開催・R・レース名・距離・馬場・着順・単勝・人気・騎手・斤量・通過順・上り・馬体重）、
+      さらに<b>成績分析</b>（全体／芝・ダ／距離別／馬場別／競馬場別の着別成績と単勝回収率）を自動で集計して表にします。
+      初回は1頭あたり約1〜2秒かかります（結果はこの端末にキャッシュされ、2時間以内は再利用）。
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+      <button type="button" class="btn primary" id="hdBtn">📥 出馬表の全馬データを取得・表示</button>
+      <button type="button" class="btn ghost" id="hdDiag" title="競走馬DB(db.netkeiba.com)が取得できているかを確認します">🔧 通信を診断</button>
+      <button type="button" class="btn ghost" id="hdReload" title="このレースの出走馬のキャッシュを消して取り直します（結果更新・重賞翌日などに）">↻ キャッシュ無視で再取得</button>
+      <span class="small muted" id="hdHint"></span>
+    </div>
+    <div id="hdMsg" class="small" style="margin:4px 0"></div>
+    <div id="hdOut"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px;border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>📡 上3F・前走データを自動取得（netkeiba 馬データ）</h2>
+      <span class="chip">前走の上り3F</span>
+      <span class="sp"></span>
+      <button type="button" class="btn ghost" id="btnNkDiag" title="競走馬DB(db.netkeiba.com)が取得できているかを確認します">🔧 通信を診断</button>
+      <button type="button" class="btn primary" id="btnNkGo" title="出馬表の全馬について netkeiba(db.netkeiba.com)の馬ページから直近戦績を取得し、前走の上り3Fと、今回と同距離±200m以内の前走タイムを馬表へ自動反映します">🐎 全馬に前走の上3F・タイムを自動反映</button>
+      <button type="button" class="btn ghost" id="btnNkReload" title="netkeiba馬データのキャッシュを消去して取り直します">🗑 キャッシュを消去</button>
+    </div>
+    <p class="small muted">「持ちタイム」を手入力せずに済む方法です。①で <b>netkeiba URL取込</b> をしたレースの全出走馬（netkeiba競走馬ID付き）について、
+      netkeiba の<b>馬プロフィールページ</b>と<b>戦績ページ（db.netkeiba.com/horse）</b>から「前走（今回より前の直近レース）」の
+      <b>上り3F</b>を取得し、馬表の「上3F / 持ちタイム」欄へ自動反映します。今回と<b>同距離±200m以内</b>の前走タイムも、手入力済みでなければ併せて反映します（AI予想の材料）。</p>
+    <div class="small" style="background:var(--card);border:1px solid var(--line2);border-radius:9px;padding:6px 10px;margin:4px 0">
+      🐎 各行の <b>🐎 馬情報</b>ボタン（旧「📜馬柱」）で、その馬のプロフィールと直近5走の馬柱をnetkeiba風に表示します。
+      馬柱の「上3F」は<b>そのレース内での速さ順位</b>で色分け: <span class="lgb r1" style="background:#ffe13b">上り1位=黄</span> <span class="lgb r2" style="background:#7fc4ff">上り2位=青</span> <span class="lgb r3" style="background:#ffaad4">上り3位=ピンク</span>。
+    </div>
+    <div class="small muted">取得は初回1頭あたり1〜3秒（結果はこの端末にキャッシュされ、同じ馬は2回目から高速）。馬情報の色分け判定には中央開催のみ各レース結果を参照します（地方・古い開催は無色）。</div>
+    <div id="nkLog" class="small" style="margin-top:8px"></div>
+  </div>
+  </div><!-- /#live-shutuba (出馬表) -->
+
+  <!-- ===== オッズサブタブ ===== -->
+  <div id="live-odds" class="hid">
+    <div class="card">
+      <div class="cardhead">
+        <h2>💰 単勝オッズ（リアルタイム・netkeiba）</h2>
+        <span class="chip" id="lvOddsChip">未取得</span>
+        <span class="sp"></span>
+        <span class="small muted">人気順。左端のオッズ列「単勝(反映)」が出馬表にも反映されています</span>
+      </div>
+      <div id="lvOddsMsg" class="small" style="margin:4px 0"></div>
+      <div class="tblwrap">
+        <table class="htbl">
+          <thead><tr><th>人気</th><th>馬番</th><th>馬名</th><th>オッズ</th><th>変動</th><th>単勝(反映)</th></tr></thead>
+          <tbody id="lvOddsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 結果・払戻サブタブ ===== -->
+  <div id="live-result" class="hid">
+    <div class="card">
+      <div class="cardhead">
+        <h2>🏁 結果・払戻</h2>
+        <span class="chip" id="lvResChip">未確定</span>
+        <span class="sp"></span>
+        <span class="small muted">現在のレースの結果を取得して表示（netkeibaへ取得できる状態であること・終了後に「結果確定」と払戻が出ます）</span>
+      </div>
+      <div id="lvResMsg" class="small" style="margin:4px 0"></div>
+      <div id="lvResBody"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ② 展開・AI予想 ================= -->
+<section class="page" id="t-kentai">
+  <div class="card empty" id="kentaiEmpty">
+    <div class="big">まだ出馬表がありません</div>
+    <p>まず「① データ入力」でレース情報と出馬表（馬名・オッズ・脚質など）を入力してください。<br>netkeiba URL取込・テキスト貼り付け・サンプル入力のどれでもOKです。</p>
+    <button class="btn primary" data-goto="t-input">入力タブへ移動</button>
+  </div>
+
+  <div class="hid" id="kentaiBody">
+    <!-- ★2026-09-13 第23弾①: オッズの「最終取得時刻」を必ず見えるようにした。
+         このタブを開くたびに最新の単勝オッズを取り直し（定期ポーリングはしない）、
+         変わっていれば AI印・軸/妙味/穴・買い目提案まで自動で描き直します。 -->
+    <div class="card" style="padding:8px 14px" id="oddsFreshCard">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="chip" id="oddsFreshChip">オッズ未取得</span>
+        <span class="small muted" id="oddsFreshTxt">このタブを開くと最新の単勝オッズを自動で取り直します。</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn ghost" id="oddsFreshBtn" style="padding:3px 10px;font-size:.78rem">🔄 今すぐ最新オッズ</button>
+      </div>
+    </div>
+    <div class="card" id="biasCardWrap">
+      <div class="cardhead">
+        <h2>📈 当日トラックバイアス（馬場傾向）</h2>
+        <span class="chip" id="biasChip">未設定</span>
+        <span class="sp"></span>
+        <span class="small muted">同じ開催で走り終えた前レースの結果から「今日の馬場のクセ」を判定</span>
+      </div>
+      <div id="biasSummary"></div>
+      <!-- ★2026-09-13 第21弾④: 開催日に「発走時刻＋12分」を過ぎたレースのバイアスを自動取得する -->
+      <details id="baCard" style="margin:8px 0 2px;border:1px solid #1c6e42;border-radius:8px;background:var(--card2)">
+        <summary style="cursor:pointer;padding:7px 8px;font-size:.86rem;font-weight:700;color:var(--ok-ink)">🌊 トラックバイアスの自動取得（開催日に自動で最新化）
+          <span class="chip" style="margin-left:6px;font-weight:400">発走＋12分で確定見込み</span></summary>
+        <div style="padding:0 8px 9px">
+          <div class="small muted" style="margin:2px 0 6px;line-height:1.75">
+            開催日（今日）に、<b>その日のレース一覧の発走時刻を見て</b>「発走時刻 ＋ 12分（＝結果が確定している見込み）」を過ぎた
+            <b>未取得のレースだけ</b>を自動で取りに行きます。<b>1分ごとにチェック</b>し、最終レース＋30分で締めの一括取得をします。
+            <br>　→ 朝イチで取ったバイアスが昼過ぎまで古いまま、ということがなくなります。<b>取得済みのレースは二度叩きません</b>。
+            <br>　→ 結果がまだ確定していないレースは「未取得」として残り、<b>次のチェックで自動で取り直します</b>。
+            <br>　<b>※このアプリは静的ページなので、ページを開いている間だけ動きます。</b>
+            ただし開いた瞬間に今日の未取得ぶんをまとめて追い取得するので、途中から開いても最新化されます。
+            <br>　🧹 <b>開催週が終わった（＝その週の水曜日が来た）記録は自動で削除</b>します。
+            ④の記録は「当日の馬場」を見るためのものなので、過去ぶんは学習DB側で<b>確定データ</b>として取り直せます
+            （⑥重賞データ分析・🎓展開学習）。設定は①の「🤖 自動マクロ」カードの☑「(C2) 🌊バイアスも水曜削除」で変えられます。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn ghost" id="baNowBtn" title="今日の未取得レースをいますぐ取りに行きます（レース一覧も取り直します）">🌊 いま取得する</button>
+            <button type="button" class="btn ghost" id="baCleanBtn" title="開催週が終わったトラックバイアス記録を今すぐ削除します（当日・今週ぶんは残します）">🧹 古い記録を掃除する</button>
+            <button type="button" class="btn ghost" id="baInfoBtn" title="今日の取得状況を出します">📊 取得状況</button>
+          </div>
+          <div id="baInfo" class="small muted" style="margin-top:5px"></div>
+          <div id="baStat" class="small" style="margin-top:3px;max-height:130px;overflow:auto"></div>
+        </div>
+      </details>
+      <!-- ★2026-09-12 第18弾: 前日の馬場（確定している）→ 当日のバイアス想定 -->
+      <div id="pbWrap" style="border-top:1px dashed var(--line2);margin:8px 0 4px;padding-top:5px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <b class="small" style="color:var(--info-ink)">🕰 前日の馬場 → 当日のバイアス想定</b>
+          <label class="small" style="display:inline-flex;align-items:center;gap:3px"
+            title="オフにすると前日の馬場は表示だけになり、AI印の補正には使いません。展開予想欄でバイアスを手動指定したときは、そちらが常に最優先です">
+            <input type="checkbox" id="pbUseChk" checked> 当日ぶんが薄い間は前日の馬場を想定に使う
+          </label>
+          <span class="small muted">学習DBから検出・<b>netkeibaへの通信ゼロ</b></span>
+        </div>
+        <div id="pbBox"></div>
+        <details class="tbhelp">
+        <summary class="small">📖 <b>前日の馬場をどう使うか</b>（決めかた・測りかた・縮小のしかた）<span class="muted">クリックで開く</span></summary>
+        <div class="small muted" style="margin-top:2px;line-height:1.7">
+          トラックバイアスは「その日の馬場」の話なので、上の当日判定は<b>同じ日の記録だけ</b>で見ています（この制約は変えていません）。
+          ただ<b>レース前・朝イチはまだ当日の記録が無い</b>ので、判定が出せず補正がかかりませんでした。
+          そこで<b>前日の馬場はすでに確定している</b>ことを使い、当日の<b>想定</b>として補います。
+          <br>　📅 <b>「前日」の決めかた</b>: カレンダー上の昨日ではなく、<b>学習DBにある同じ競馬場のレース日で対象日より前の一番新しい日</b>。
+          これで <b>土曜＋日曜開催 → 日曜の前日＝土曜</b>、<b>日曜＋月曜開催 → 月曜の前日＝日曜</b>、3日開催 → 3日目の前日＝2日目 が全部自動的に正しくなります。
+          場が違う日（例: 東京→中山）は混ぜません。前の開催まで <b>8日以上</b> 空いている場合は馬場が別物なので使いません。
+          <br>　📏 <b>測りかたは当日判定と同じ物差し</b>: 前日の全レースの<b>3着以内に入った馬の4角通過順</b>を 逃げ/先行/差し/追込 に分け、
+          前残り寄与度（逃げ1.00・先行0.78・差し0.38・追込0.06）の平均を出します。0.60以上＝前残り・先行有利 / 0.42以下＝差し・追込有利。
+          <br>　🎚 <b>そのまま100%は使いません</b>: 前日の馬場は「当日の測定値」ではなく「想定」なので、<b>0.5（フラット）へ60%まで縮小</b>し、
+          日付が空くほどさらに減衰させます。当日の記録が増えてきたら <b>当日 ÷ (当日＋12)</b> の重みでブレンドし、
+          朝イチは前日寄り・終盤は当日の実測が主役になるようにしています。
+          <br>　✋ <b>手動指定が最優先</b>: 下の「トラックバイアス手動指定」で選んだ場合はそちらを使い、この想定は適用しません（「OFF」なら補正なし）。
+        </div>
+        </details>
+      </div>
+      <div id="biasManualRow" style="border-top:1px dashed var(--line2);margin:8px 0 4px;padding-top:2px"></div>
+      <div id="biasBox"></div>
+      <div id="biasLog" class="small" style="margin-top:8px"></div>
+      <details style="margin-top:6px">
+        <summary>手入力・テキストで追記する場合（中継が未設定でも使えます）</summary>
+        <p class="small muted">1行 = 1レース。記入例: <code>阪神1R 芝1400 良 | 1着:3(2) 2着:7(5) 3着:1(9) | 1:21.3</code></p>
+        <textarea id="biasPasteTxt" rows="4" style="width:100%" placeholder="阪神1R 芝1400 良 | 1着:3(2) 2着:7(5) 3着:1(9) | 1:21.3&#10;阪神2R 芝1400 稍重 | 1着:9(8) 2着:4(6) 3着:2(3) | 1:22.5"></textarea>
+        <div style="text-align:right;margin-top:6px"><button class="btn primary" id="btnBiasPaste">テキストを記録に追加</button></div>
+        <div class="small muted">※ 括弧の数字は4角通過位置。1〜2=「前」・3〜6=「中」・7以降=「後」に自動で振り分けます。手入力の後も下のボタンで自由に修正できます。</div>
+      </details>
+    </div>
+    <div class="card" id="tlCard">
+      <div class="cardhead">
+        <h2>⏱ 前走タイムのレベル（1着じゃなくても評価）</h2>
+        <span class="chip">前走の時計 → 🎯 / ⚠️</span>
+        <span class="sp"></span>
+        <span class="small muted">同条件の過去の勝ち時計と比較（距離・クラス・馬場を換算／着差から勝ち時計を復元）</span>
+      </div>
+      <p class="small muted" style="margin:2px 0 6px">
+        出走馬それぞれの<b>直近の走り（まずは前走）</b>の時計を、<b>1着かどうかに関係なく</b>評価します。<br>
+        比べるのは <b>同競馬場・同馬場(芝/ダ)・同距離帯・同じ時期の「過去の勝ち時計」</b>。
+        馬柱の<b>着差（＝勝ち馬までの秒差）</b>から負けレースの勝ち時計も復元するので、
+        未勝利クラスのように「1着が少ない馬」ばかりでも母集団を作れます。
+        <b>距離・クラス（新馬/未勝利/1勝〜3勝/OP・L・重賞）・馬場（稍重/重/不良）は基準時計で換算</b>してから比較します。<br>
+        そのうえで ①<b>自分の時計が速い</b>（<b>馬券内かどうかは問いません</b>）
+        ②<b>レース自体の勝ち時計が速い＝レベルの高いレースで勝ち馬から僅差</b>、という走りも同じ馬の行に<b>追記</b>します（1頭につき最大3走ぶん）。<br>
+        判定は<b>短評として📒馬ノートに自動登録</b>され、<b>前走</b>が🎯（時計が速い＝買い材料）／⚠️（勝ち時計が遅い＝割り引き）の馬には
+        <b>出馬表の取得時に自動で</b>馬名の横にマークを付けます。
+        <b>⚠️は「1着の勝ち時計が遅い」場合だけ</b>（負け馬の時計が勝ち馬より遅いのは着差のぶんなのでマークしません）。
+        次々走以降はマークを付けず、📒の短評（メモ）で確認できます。<br>
+        <b>勝ち馬には2着差</b>（同じレースを走った他馬の馬柱から復元）、<b>負け馬には勝ち馬からの着差</b>を表示します。
+      </p>
+      <div id="tlBox"></div>
+    </div>
+    <div class="card" style="padding:10px 16px">
+      <div class="small muted">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
+    </div>
+    <div class="row2">
+      <div class="card">
+        <h2>展開予想（ペース診断）</h2>
+        <div id="paceTop"></div>
+        <div id="paceModes" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:8px 0 2px"></div>
+        <div class="small muted" style="margin:0 0 8px">🎚 ペース想定を切り替えると「展開適性・AI印・買い目」が連動して変わります。</div>
+        <div class="pacebar"><i id="paceArrow"></i></div>
+        <div class="pacescale"><span>スロー展開</span><span>平均ペース</span><span>超ハイペース</span></div>
+        <div id="paceDetail"></div>
+        <div class="scenario" id="paceScenario"></div>
+        <div id="favFlow" class="small" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h2>AI予想エンジンの重み設定</h2>
+        <p class="small muted">どの情報を重視して◎〜☆を決めるかを調整します。スライダーを動かすと即座に再計算されます。</p>
+        <div id="weightSliders"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn ghost" id="btnWReset">標準に戻す</button>
+          <span class="small muted">重み合計: </span><b id="wSum"></b>
+          <span class="sp"></span>
+          <span class="small muted">0にするとその材料を無視します</span>
+        </div>
+        <!-- ★2026-09-13 第21弾⑤: レースごとの自動補正（オーバーレイ方式） -->
+        <div id="wtAutoCard" style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line2)">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="small" style="display:inline-flex;align-items:center;gap:4px;font-weight:700"
+                   title="スライダーの位置はそのまま残し、このレースの材料の揃い具合・当日のトラックバイアス・過去の実績から自動で倍率を掛けて実効重みを決めます。OFFにすると即座にスライダーの値だけに戻ります">
+              <input type="checkbox" id="wtAutoChk" checked> 🎛 レースごとにAIが自動で重みを補正する（既定ON）
+            </label>
+            <button type="button" class="btn ghost" id="wtAutoBtn" style="font-size:.78rem;padding:2px 10px" title="リフト学習を計算し直して、補正の内訳を更新します">🔄 補正を計算し直す</button>
+          </div>
+          <div class="small muted" style="margin:2px 0 4px">
+            <b>スライダーの位置そのものは変わりません</b>（いつでも手動の設定に戻せます）。
+            右の <span class="wtbar">×1.24 → 8.7</span> が<b>このレースでの実効重み</b>です。
+            過去のレース展開・🌊トラックバイアス・学習DBの中身・各詳細データの揃い具合から
+            <b>レースごとに</b>倍率（×0.30〜×1.60）を決めます。
+            <br>　<b>なぜ必要か</b>: 材料が半分しか無い馬列で満点の重みを掛けると、データの無い馬が中立(0.5)に寄って
+            <b>データのある馬だけ損をする</b>ゆがみが出ます。揃い具合に応じて重みを落とすと、
+            そのレースで本当に使える材料だけが効くようになります。
+          </div>
+          <div id="wtAutoBox" class="small"></div>
+        </div>
+        <div id="wNote"></div>
+        <div id="babaBar" style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line2)">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn ghost" id="btnBbData" style="font-size:.8rem;padding:2px 10px" title="出走馬それぞれの馬柱戦績(db.netkeiba.com/horse/result/)を取得し、このレースと同じ開催場×同じ馬場(良/稍重/重/不良)の3着内好走率をAI印に反映します">📊 バ場好走率データを取得</button>
+            <button type="button" class="btn ghost" id="btnYoTime" style="font-size:.8rem;padding:2px 10px" title="各馬の馬柱戦績から「競馬場ごとの最速持ちタイム・最速上がり3F」を検出して一覧表示します。洋芝(札幌・函館)と野芝(他場)を分けて表示し、今回と同じコース種別・同距離の最速タイムをAIの「🏔 洋芝・コース適性」として加点します">⏱ 競馬場別の持ちタイム・上がり3F</button>
+            <span class="small muted">同じ開催場・同じ馬場状態で出走した過去レースの3着内率を集計します。集計ができると、上の「🏟 バ場好走率」スライダーで重視度を調整できます。馬柱データは「⏱ 競馬場別の持ちタイム」でも共用します。</span>
+          </div>
+          <div id="bbDataMsg" class="small" style="margin-top:4px"></div>
+          <div id="yoMsg" class="small" style="margin-top:2px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead" style="padding:2px 2px 8px">
+        <h2 style="margin:0">AI印と総合評価</h2>
+        <span class="sp"></span>
+        <button type="button" class="btn primary" id="btnKentaiRefresh" style="font-size:.8rem;padding:4px 12px"
+          title="オッズの変動・出走取り消し・馬場状態の変化・自己学習の追加などを最新の入力に反映して、AI印・総合評価・買い目・各予想モデルの印をまとめて再計算します（オッズ・結果はrace.netkeibaから再取得を試みます）">🔄 最新情報を取得して更新</button>
+      </div>
+      <div class="small muted" style="margin:-2px 0 6px" id="kentaiRefreshHint">オッズ変動・出走取消・馬場変化・学習追加後は、上の「🔄 最新情報を取得して更新」で印・買い目・各モデルの印をまとめて再計算できます。</div>
+      <div id="aiNote"></div>
+      <div class="tblwrap">
+        <table class="ktbl">
+          <thead><tr>
+            <th>印</th><th>着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
+            <th>調教</th><th>持ちタイム</th><th>展開適性</th><th>バ場好走</th><th>洋芝・<br>コース適性</th><th>総合</th>
+          </tr></thead>
+          <tbody id="aiTbl"></tbody>
+        </table>
+      </div>
+      <!-- ★2026-09-12 第18弾: 各レースの「軸に最適馬・妙味馬・穴馬」を1頭ずつ -->
+      <div class="card" id="pkCurCard" style="margin-top:14px;border-color:var(--line2)">
+        <h2>🎯💠🕳 今回の軸・妙味・穴（各1頭）</h2>
+        <div class="small muted" style="margin-top:2px">
+          <b>🎯 軸に最適馬</b>＝AI勝率が一番高い馬（3連系の「軸」に最適・最も外しにくい）／
+          <b>💠 妙味馬</b>＝期待値（AI勝率 × 単勝オッズ）が一番高い馬（<b>1.0以上ならオッズが実力より甘い</b>）／
+          <b>🕳 穴馬</b>＝<b>人気薄の中で AI評価が市場評価を一番上回っている</b>馬（市場比 = AI勝率 ÷ 市場期待勝率）。
+          オッズは控除後（JRAは単勝20%・馬連系25%）なので、プラスになるのは<b>市場より上に見ている馬だけ</b>です。
+          軸と妙味が同じ馬になるときは、妙味馬に軸を除いた2番手を出します。
+        </div>
+        <div id="pkBox" style="margin-top:8px"></div>
+      </div>
+      <div class="row2">
+        <div class="card" style="margin-top:14px">
+          <h2>買い目提案（予算から自動配分）</h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
+            <label class="small">予算(円)
+              <input type="number" id="buyMoney" min="100" max="1000000" step="100" value="2000" style="width:90px;font-family:inherit;font-size:.9rem;padding:2px 4px">
+            </label>
+            <label class="small" style="display:inline-flex;align-items:center;gap:4px">作戦
+              <select id="buyMode" style="font-family:inherit;font-size:.85rem;padding:2px 4px">
+                <option value="k">堅実（単勝・複勝多め）</option>
+                <option value="b" selected>標準</option>
+                <option value="a">勝負手（馬連・3連複多め）</option>
+              </select>
+            </label>
+            <span class="small muted">金額を変えると下の配分も自動で変わります。<b>馬券は100円単位でしか買えないため、配分はすべて100円単位（1点あたり100円の倍数）</b>で出します。単勝・複勝は実オッズから期待値を計算。馬連・3連複はオッズ未確定のためAI的中率を目安に配分します。</span>
+          </div>
+          <div id="buyBox"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h2>🎯💰🔰 各予想モデルの印（自己学習3モデル × 現在のレース）</h2>
+          <div id="modelBox" class="small"></div>
+        </div>
+      </div>
+      <!-- ★2026-09-12 第18弾: 買い目提案（詳細版）3連系・オッズ妙味・金額の自動割り振り -->
+      <details class="card fold" id="bpCard" style="margin-top:14px;border-color:#6b4ea8;padding:0">
+        <summary class="foldhead">
+          <span class="fmark"></span>
+          <h2 style="margin:0">📈 買い目提案（詳細版）― 3連系・オッズ妙味・金額の自動割り振り</h2>
+          <span class="chip" id="bpChip">—</span>
+          <span class="sp"></span><span class="foldhint"></span>
+          <div class="foldpick" id="bpPick" title="折り込んだままでも要点が分かるように、提案の1番手を文章で要約しています（開くと全買い目の表が出ます）">📈 <b>妙味重視の1番手</b>: オッズを入れると、単勝〜3連単の全買い目を「AI勝率 ÷ 市場期待勝率」で並べ替えた提案がここに出ます。</div>
+        </summary>
+        <div class="foldbody">
+          <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
+            上の「買い目提案（予算から自動配分）」は <b>4券種に固定比率で分けて1点均等</b>でした。
+            こちらは <b>単勝・複勝・ワイド・馬連・馬単・3連複・3連単の全買い目を「オッズ妙味」で並べ替え、
+            期待値が大きい買い目に多く・小さい買い目に少なく（分数ケリー）金額を振ります</b>。全部100円単位です。
+            <br>　🔍 <b>オッズ妙味 edge</b> = AI勝率 ÷ 市場期待勝率（市場期待勝率 = 単勝オッズから控除分を除いて逆算）。
+            <b>1.00 = 市場並み / 1.20 = AIが2割上に見ている</b>。
+            <br>　💴 <b>推定オッズ</b> = 市場期待勝率を <b>Harville の式</b>（1着→2着→3着の同時確率）に通して作った理論オッズ × (1 − 控除率)。
+            馬連・3連系は発走前に実オッズが分からないので、この推定値で比較します。
+            <br>　📊 <b>期待回収率</b> = AI的中率 × 推定オッズ。JRAの控除（単勝・複勝20%／その他25%）込みなので、
+            <b>100%を超えるには edge が 単勝系で1.25以上・3連系で1.34以上</b>必要です。これが<b>回収率を上げる唯一の正攻法</b>です。
+            <br>　🧮 <b>組み合わせの edge は「各馬の edge の掛け算」に近い値</b>になります（Harvilleは「1−前の馬の確率」で割るので厳密な積にはならず、実測で±1割ほどブレます）。
+            なので妙味のある馬を組み合わせるほど edge は大きくなり、<b>3連系ほど妙味が効きやすい</b>です。逆に<b>人気馬どうしの3連複は edge が1.0前後</b>に収まり、控除を引かれて確実に負ける側です。
+            <br>　⚠ <b>edge が 1.0 以上の買い目が1つも無いレースは「張らない」が正解</b>です。その場合は自動的に
+            予算の35%までに抑えた最小限の張り方にして、期待回収率を正直に出します。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
+            <label class="small">予算(円)
+              <input type="number" id="bpMoney" min="100" max="1000000" step="100" value="2000" style="width:88px;font-family:inherit;font-size:.9rem;padding:2px 4px">
+            </label>
+            <label class="small" style="display:inline-flex;align-items:center;gap:4px">作戦
+              <select id="bpMode" style="font-family:inherit;font-size:.85rem;padding:2px 4px">
+                <option value="k">堅実（ケリー1/7・最大10点）</option>
+                <option value="b" selected>標準（ケリー1/4）</option>
+                <option value="a">勝負手（ケリー2/5・edge 1.15以上だけ）</option>
+              </select>
+            </label>
+            <label class="small" title="AI勝率÷市場期待勝率がこれ未満の買い目は候補から外します。上げると「本当に妙味のある目」だけ残り、下げると点数が増えます">妙味の下限 edge
+              <input type="number" id="bpEdge" min="0.5" max="3" step="0.05" value="1.00" style="width:66px;font-family:inherit;font-size:.9rem;padding:2px 4px">
+            </label>
+            <label class="small" title="提案する買い目の最大点数。3連系を入れると組合せが一気に増えるので、ここで頭打ちにします">最大点数
+              <input type="number" id="bpMax" min="1" max="60" step="1" value="24" style="width:60px;font-family:inherit;font-size:.9rem;padding:2px 4px">
+            </label>
+            <label class="small" title="候補の組合せを作るのに使う頭数（AI上位＋妙味上位の和集合）。増やすと薄い目まで拾いますが計算と点数が増えます">候補にする頭数
+              <input type="number" id="bpPool" min="4" max="18" step="1" value="8" style="width:56px;font-family:inherit;font-size:.9rem;padding:2px 4px">
+            </label>
+            <span class="small" style="display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center">券種
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_tan" checked>単勝</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_fuku" checked>複勝</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_wide" checked>ワイド</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_umaren" checked>馬連</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_umatan" checked>馬単</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_sanren" checked>3連複</label>
+              <label class="small" style="display:inline-flex;align-items:center;gap:2px"><input type="checkbox" id="bpK_santan" checked>3連単</label>
+            </span>
+            <span class="small muted">値を変えると下の表が自動で作り直されます。</span>
+          </div>
+          <div id="bpBox"></div>
+        </div>
+      </details>
+      <!-- ★2026-09-12 第18弾: 一括取得した日の全レースの 軸・妙味・穴 一覧 -->
+      <div class="card" id="pkCard" style="margin-top:14px;border-color:var(--line2)">
+        <h2>📅 その日の全レース 軸・妙味・穴 一覧</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">
+          <label class="small">日付 <input type="date" id="pkDayDate" style="font-family:inherit;font-size:.9rem;padding:2px 4px"></label>
+          <button class="btn small" id="pkDayRun">📅 表示する</button>
+          <span id="pkDayCount" class="muted small"></span>
+        </div>
+        <div class="small muted" style="margin:2px 0 6px">
+          ①データ入力の「📥 その日の出馬表を一括取得」で保存した<b>出走前の事前予想</b>（<code>rec.pre.picks</code>）を、
+          その日の全レースぶんまとめて出します。日付を空欄にすると現在の入力中のレースの日付を使います。
+          結果を取り込んだレースは<b>着順と照合</b>して 🏆1着 / ✅3着内 / 4着以下 を表示し、
+          下に「🎯軸・💠妙味・🕳穴 それぞれの3着内率」を出します。
+        </div>
+        <div id="pkDayBox"></div>
+      </div>
+
+      <!-- ★2026-09-13 第19弾②: 的中率40〜60%から「回収率」を底上げする設定を、
+           端末に貯まった 出走前の予想(rec.pre) × 結果(rec.result の実払戻) の実測で総当たりして探す。
+           折り込んだままでも最良設定が読めるように summary 内へ要約を出します。 -->
+      <details class="card fold" id="vtCard" style="margin-top:14px;border-color:#2f7d5d;padding:0">
+        <summary class="foldhead">
+          <span class="fmark"></span>
+          <h2 style="margin:0">💰 回収率チューナー ― 的中率はそのままで「回収率」を上げる買い方を実測で探す</h2>
+          <span class="chip" id="vtChip">—</span>
+          <span class="sp"></span><span class="foldhint"></span>
+          <div class="foldpick" id="vtPick" title="折り込んだままでも結論が分かるように、回収率が最も高かった買い方を文章で要約しています（開くと全表が出ます）">💰 <b>回収率の最良設定</b>: 開いて「🔁 総当たりする」を押すと、貯まっている予想×結果から回収率が最も高かった買い方を探してここに出します。</div>
+        </summary>
+        <div class="foldbody">
+          <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
+            <b>的中率が高いのに回収率が伸びない</b>原因は、ほぼ次の3つです。このカードはそれを<b>あなたの実際的数据で</b>測ります。
+            <br>　<b>(1) 点数が多すぎる</b> … 的中率＝当たる割合、回収率＝払戻÷投資額。1点増えるごとに投資が100円ずつ増えるので、
+            当たっても回収率は下がります。<b>的中率を保ったまま点数を減らす</b>のが一番効きます。
+            <br>　<b>(2) 当たりやすい目＝オッズが低い目を買っている</b> … JRAの控除は単勝・複勝20%／その他25%。
+            人気通りなら长期で必ず負けます。プラスになるのは <b>edge（AI勝率÷市場期待勝率）が 単勝系1.25以上・3連系1.34以上</b>の目だけです。
+            <br>　<b>(3) 金額が均等</b> … 妙味の大きい目も小さい目も同じ100円だと、期待値の低い買い目が回収率を薄めます。
+            <br>　→ 券種・候補頭数・edge の下限・最大点数・金額配分の<b>全組み合わせを総当たり</b>し、
+            回収率が高かった順に出します。1位の設定は<b>ワンタッチで③「買い目提案（詳細版）」に反映</b>できます。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
+            <button type="button" class="btn primary" id="vtRun">🔁 総当たりする（貯まっている予想×結果で実測）</button>
+            <span id="vtMsg" class="small"></span>
+          </div>
+          <div id="vtBox"></div>
+        </div>
+      </details>
+    </div>
+    <!-- 2026-09-12 第15弾: 縦長になるので折り込み。折り込んだままでも「今回の狙い目馬」が
+         文章の要約（#aihPick）で読めるように summary 内へ常時表示しています -->
+    <details class="card fold" id="aihCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🏇 馬柱AI評価（芝・ダ替わりの適正 / 得意コース・距離・馬場）<span class="small muted" style="font-weight:400"> ※出馬表の出力時に自動入力</span></h2>
+        <span class="chip" id="aihChip">未取得</span>
+        <span class="sp"></span><span class="foldhint"></span>
+        <div class="foldpick" id="aihPick" title="折り込んだままでも狙い目が分かるように、馬柱AI評価の結果を文章で要約しています（開くと馬ごとの表が出ます）">🎯 <b>狙い目</b>: 出馬表を取り込むと、芝・ダ替わりの適正／得意コース・距離・馬場から今回の狙い目馬をここに文章で要約します。</div>
+      </summary>
+      <div class="foldbody">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px">
+        <button type="button" class="btn ghost" id="aihBtn" title="出馬表を出力した時点で自動的に馬柱を取得してAI評価します。このボタンは今すぐ手動で再取得・再表示したいとき用です">🔄 馬柱AI評価を今すぐ再取得（出馬表の出力時に自動入力）</button>
+        <div id="aihMsg" class="small" style="margin:0"></div>
+      </div>
+      <div id="aihOut" class="small"></div>
+      </div>
+    </details>
+
+    <div class="card" id="learnCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+      <div class="cardhead">
+        <h2>🎓 展開学習（レース結果からAI予想を修正）</h2>
+        <span class="chip" id="learnChip">未学習</span>
+        <span class="sp"></span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.82rem" title="展開学習の補正をAI印に反映するか">
+          <input type="checkbox" id="learnUseChk" checked> 反映する
+        </label>
+      </div>
+      <p class="small muted">「このレースの直近の結果」や「本日の他レースの結果」から <b>どの脚質（逃げ/先行/差し/追込）に展開が向く傾向か</b> を集計し、AI印の「展開適性」評価を自動補正します。<b>本日分は「🔍 前レース結果を自動取込（トラックバイアス）」と同じ通信で同時に取得・学習します</b>（別途の取得は不要）。補正内容は下に表示され、いつでも「反映する」を外して元のAI印に戻せます。</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+        <button type="button" class="btn primary" id="btnLearnHist" title="このレースの過去(直近最大8回)の結果ページを取得し、馬券内の脚質・4角位置から展開傾向を学習します（要: 中継設定）">📥 このレースの過去結果で学習</button>
+        <button type="button" class="btn ghost" id="btnLearnDay" title="トラックバイアス取得と同じ通信で本日の前レース結果を取り込み、展開学習も同時に更新します">📥 本日の他レースを学習（トラックバイアス取得と同時）</button>
+        <button type="button" class="btn ghost" id="btnLearnReset" title="学習結果・記録をすべて消去します">学習をリセット</button>
+      </div>
+      <div id="learnOut" class="small" style="margin-top:8px"></div>
+      <div id="learnLog" class="small muted" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card" id="memoCard">
+      <div class="cardhead">
+        <h2>🎬 展開メモ・次走サポート（直近の重賞から）</h2>
+        <span class="chip">JRA重賞(G1〜G3)</span>
+        <span class="sp"></span>
+        <button type="button" class="btn ghost" id="btnMemoRun" title="各馬の直近の重賞レース（コーナー通過順・着順）から展開の利/不利を自動推定し、今回の展開予想と照合したメモを表示します">✨ 展開メモを自動生成</button>
+      </div>
+      <div id="memoInfo" class="small muted" style="margin-top:4px"></div>
+      <div id="memoLog" class="small" style="margin-top:6px"></div>
+      <div id="memoOut"></div>
+    </div>
+
+    <!-- 2026-09-12 第15弾: 説明が長いのでカードごと折り込み。
+         折り込んだままでも学習状況の要点が読めるように summary 内（#apPick）へ1行表示します -->
+    <details class="card fold" id="apCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+  <summary class="foldhead">
+    <span class="fmark"></span>
+    <h2 style="margin:0">🔁 AI予想の自己学習（3モデル印評価 × 年月ごと学習 → DB保存）</h2>
+    <span class="chip" id="apCount">未学習</span>
+    <span class="sp"></span><span class="foldhint"></span>
+    <div class="foldpick" id="apPick" title="折り込んだままでも学習の状況が分かるように要点を1行で表示しています（開くと月別の回収率・3モデルの成績表が出ます）">📚 まだ自己検証の記録がありません。過去データ（日付指定・年指定の一括取得・結果メモの📥取込）でレースを取り込むと、開催年月ごとに学習が始まります。</div>
+  </summary>
+  <div class="foldbody">
+  <div class="cardhead" style="margin-bottom:6px">
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:.82rem" title="学習した補正をAI印に反映するか">
+      <input type="checkbox" id="apUseChk" checked> 反映する
+    </label>
+    <button type="button" class="btn ghost" id="apReset" style="font-size:.72rem;padding:2px 8px">学習をリセット</button>
+    <button type="button" class="btn ghost" id="apRelearn" style="font-size:.72rem;padding:2px 8px;border-color:#1c6e42;color:var(--ok-ink)" title="予想モデル(判定式)を変えたり、過去レースを年指定一括取込・結果メモ📥・横(サイド)取得で追加したあとに押すと、保存済みの過去レースを現在のモデルで評価し直して年月別の学習集計を再構築します。記録を全消去せずに済みます。">🔄 再学習する</button>
+    <span class="sp"></span>
+    <span class="small muted">※ 結果が確定していない月（今日はまだ来ていない月）は表示・学習の対象外です</span>
+  </div>
+  <details style="margin:0 0 6px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+    <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 自己学習のしくみ・回収率の計算方法の説明を開く／閉じる</summary>
+  <div class="small muted" style="margin:6px 8px 8px">
+    過去データ（日付指定・<b>年指定の一括取得</b>・結果メモの📥取込）で<u>1レース取得するたびに</u>、
+    そのレースを<b>3つのモデル（印評価）</b>で予想し直して実際の着順・単勝払戻と照合し、<b>開催年月ごとに</b>学習します（「前の月まで」の実績から翌月以降の予想へ反映＝のぞき見なし）。
+    <br>　🎯 <b>的中率重視</b>: 単勝オッズ＋脚質から「当たりそうな馬」順に印 ／ 💰 <b>回収率重視</b>: 本命を<b>約5番人気以下（中穴〜大穴）</b>から選んで配当を狙う ／ 🔰 <b>ハイブリッド</b>: 🎯と💰をλで混合し<b>回収率100%以上</b>を目指して自動調整（モデルごとに印が変わり得ます）。
+    <br>　💰 <b>回収率の計算</b>: 各レース<b>1万円</b>を想定資金とし、そのモデルが印を打った5頭(◎○▲☆△)の単勝へ<b>AIの信頼度で配分購入</b>した場合の総払戻 ÷ 1万円 を回収率とします（過去保存データには単勝以外の払戻が無いため、単勝でシミュレーション）。
+    <br>　🔄 <b>再学習する</b>: 予想モデル・判定式を変更した後や、<b>過去レースの横(サイド)取得</b>・年指定一括取込・結果メモ📥でレースを追加した後に押すと、<b>保存済みの過去レースを「今のモデル」で評価し直して</b>年月別の集計・学習パラメータを再構築します（従来はモデル変更後に再集計できず、消して取り込み直す必要がありました）。
+    <br>　<span style="color:#c78f1f">※ <b>2026-09-12 第17弾で予想の材料と学習の判定式を変えたので、🔄再学習する を1回押してください。</b>押すまでは従来の集計（旧形式）で判定します。</span>
+    <br>　📐 <b>第17弾で変えたこと（1）学習の判定を「リフト」に</b>: 従来は「AIが人気より上げた馬の3着内率」を「印全体の3着内率」と比べていましたが、<u>上げた馬は定義上ほぼ人気薄なので3着内率が低くて当然</u>＝常に「効いていない」と判定され、<b>学習するほど人気順に収束する</b>不公平な比較でした。
+    <br>　　　→ <b>市場期待勝率</b>（<code>(1÷オッズ) ÷ Σ(1÷オッズ)</code>＝控除後オッズから逆算した市場の見立て）と比較する<b>リフト</b>方式に変更。「上げた馬が市場の期待以上に勝ったか」で判定するので、<b>効いていると分かったときは重みを強められます</b>（展開/脚質の重み ×0.40〜×1.40。従来は ×1.00 が上限で、弱めることしかできませんでした）。サンプルが少ないほど 1.00 へ縮小します（過学習防止）。
+    <br>　📐 <b>第17弾で変えたこと（2）予想の材料を増やした</b>: 従来このモデルが見ていたのは<b>「オッズ・脚質・出遅れ率」の3つだけ</b>で、しかも脚質は <code>逃げ0.63 / 先行0.59 / 差し0.51 / 追込0.43</code> の<b>4段階固定値</b>でした（＝何レース学習しても材料は増えない）。
+    <br>　　　→ 学習DBの履歴から作る<b>総合能力</b>を追加しました: 過去戦の<b>3着内率</b>・<b>上り3Fの相対順位</b>（そのレースで何番目に速かったか）・<b>同距離帯の実績</b>・<b>騎手の勝率</b>、さらに<b>鉄砲/2走目/長期休養</b>の補正。実装は <code>p52_histfeat.js</code>。
+    <br>　📐 <b>第17弾で変えたこと（3）いかさま(look-ahead)の修正</b>: 従来は脚質を<b>『そのレース自身の通過順』（結果ページの通過）</b>から判定していました。自分が当てに行くレースの走り方を事前情報として使っていたので、<b>的中率・回収率が見かけ上よく出ていました</b>。
+    <br>　　　→ 脚質は<b>過去戦の通過順</b>（直近3戦の4角位置の中央値）から、それも無ければ<b>出馬表の入力値</b>だけを使い、結果の通過順は一切使いません。他の特徴も全て「<b>そのレースの日付より前の出走だけ</b>」から作ります（同日も使いません）。
+    <br>　📐 <b>第17弾で変えたこと（4）日付バグの修正</b>: <code>race_id</code> は <b>年(4)+場コード(2)+回(2)+日(2)+R(2)</b> で、5〜6桁目は<b>月ではなく場コード</b>です（01札幌 02函館 03福島 04新潟 05東京 06中山 07中京 08京都 09阪神 10小倉）。日付が分からないレースで <code>race_id</code> から日付を作っていたため、<b>例) 東京のレースが全部「5月」に分類されて年月別の学習バケットが壊れていました</b>。→ 学習DBに保存済みの日付を使うようにし、分からない場合は<b>捏造せず学習バケットに入れません</b>。
+    <br>　🔬 <b>下の「AI予想の診断」</b>で、◎がどれだけ人気に寄っているか・市場を実際に上回れているか（リフト）を計測できます。
+    <br>学習した集計とパラメータは保存領域（IndexedDB対応ブラウザでは<b>DB「keiba_ap_v1」</b>へ自動保存、非対応時は従来キー）に貯まり、血統ファクター（⑥のオカルト血統）などにも再利用されます。
+    <br>📅 <b>結果が確定していない月は表示しません</b>: 今日はまだ来ていない月（例: 9月なのに10月ぶんの集計がある）は回収率の表から外し、今月ぶんは「今月・結果は確定途中」と印を付けて表示します。未来の月は学習にも使いません。
+  </div>
+  </details>
+  <div class="small" style="margin-bottom:4px">📶 AI印へ反映するモデル:
+    <span id="apModelSet" style="display:inline-flex;gap:4px;flex-wrap:wrap">
+      <label style="display:inline-flex;gap:3px;align-items:center;font-size:.82rem;background:var(--card2);padding:1px 6px;border-radius:10px"><input type="radio" name="apModel" value="hit">🎯 的中率重視</label>
+      <label style="display:inline-flex;gap:3px;align-items:center;font-size:.82rem;background:var(--card2);padding:1px 6px;border-radius:10px"><input type="radio" name="apModel" value="roi">💰 回収率重視</label>
+      <label style="display:inline-flex;gap:3px;align-items:center;font-size:.82rem;background:var(--card2);padding:1px 6px;border-radius:10px"><input type="radio" name="apModel" value="hyb" checked>🔰 ハイブリッド</label>
+    </span>
+  </div>
+  <div id="apRelearnMsg" class="small" style="margin:4px 0"></div>
+  <div id="apOut" class="small" style="margin-top:6px"></div>
+
+<!-- ★2026-09-12 第17弾・提案1: AI予想の「診断」（計測だけ。印の付け方は一切変えない）
+     2026-09-12 のコード調査で「メインエンジンの最終確率は 0.745×市場 + 0.255×モデル なので
+     実効オッズ依存が約79%」「🎯的中率重視は脚質が±0.25しか動かせず1番人気をほぼ覆せない」
+     「💰回収率重視は実力評価が脚質だけで、実質オッズの高い穴を選んでいるだけ」ことが分かったため、
+     まず"本当に人気に寄っているか／市場を上回れているか"を数字で出す。
+     長い表が6つ出るので入れ子の折り込みにして、開いたときだけ集計する。 -->
+  <details id="apdCard" style="margin:8px 0 2px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+    <summary class="small" style="cursor:pointer;padding:5px 8px;font-weight:700;color:#c78f1f">🔬 AI予想の診断 ― ◎は人気にどれだけ寄っているか／市場を上回れているか（計測のみ・印は変わりません）</summary>
+    <div style="padding:6px 8px 8px">
+      <div class="small muted" style="margin-bottom:6px;line-height:1.75">
+        <b>何を測るか</b>: 保存済みの自己検証レコード（結果が確定したレース）から、次の6つの表を出します。
+        <br>　① <b>3モデルと基準線の比較</b> — 「◎が1番人気だった率」と、<b>基準線A＝1番人気を毎レース単勝100円</b>／<b>基準線B＝全頭均等買い（ランダム）</b>の回収率を並べます。<b>この2本を超えられないモデルには市場に対する優位性がありません。</b>
+        <br>　② <b>◎の人気別分布</b> — 本命が何番人気に打たれているか。1番人気の列が大きいほど人気順をなぞっているだけ。
+        <br>　③ <b>◎=1番人気のレース vs 打ち替えたレース</b> — 人気を裏切った判断で価値を出せているか。
+        <br>　④ <b>リフト（実勝率 − 市場期待勝率）</b> — <b>一番大事な表</b>。「AIが人気より上げた馬」が市場の期待以上に走っていれば独自情報が効いている、0以下なら印は人気順と同じ。
+        <br>　⑤ <b>人気別の実績</b> — 学習DBの全出走馬で見た市場の校准（オッズは正しいか）。
+        <br>　⑥ <b>市場期待勝率の帯別</b> — どのオッズ帯が儲かるか。💰モデルが狙うべき帯がここで分かります。
+        <br>　⑦ <b>今回の出走馬の「レース前の特徴」</b> — 学習DBの履歴から作った材料（過去戦・上り順位・同距離・騎手・鉄砲/2走目）を1頭ずつ。<b>このレースの日付より前のデータだけ</b>を使っていることが確認できます。
+        <br>　⑧ <b>ファクター別の学習（提案4）</b> — 出走前に保存したスナップショットから、<b>どの材料が馬の優劣を見分けられているか</b>をファクターごとに測り、効いていない材料の重みを自動で下げます。
+        <br>※ <b>市場期待勝率</b> = (1÷オッズ) ÷ Σ(1÷オッズ)。控除後オッズから逆算した「市場の見立て」で、これとの差（リフト）だけがモデルの独自価値です。
+        <br>※ 判定の目安は <b>100レース</b>。それ未満だと回収率のブレが ±30ポイント程度出ます（表の上に注意を出します）。
+      </div>
+      <button type="button" class="btn ghost" id="apdRun" style="font-size:.74rem;padding:2px 8px">🔄 診断し直す</button>
+      <div id="apdBox" class="small" style="margin-top:6px"></div>
+      <!-- ★2026-09-12 第17弾・提案4: ファクター別の学習（どの材料が効いているか） -->
+      <div id="flBox" class="small" style="margin-top:6px"></div>
+    </div>
+  </details>
+  </div>
+    </details>
+
+<!-- ★2026-09-12 第16弾: 展開（ペース）適性とコーナー通過順バイアスの学習。
+     学習DBに保存された「コーナー通過順・ペース(S/M/H)・200mごとのラップタイム・払戻金」から
+     ・馬ごとの展開適性（ハイペースだと走る／スローだと届かない）
+     ・競馬場×面×距離帯ごとの「4角の位置別 3着内率」＝開催日が経つほど分かるバイアス
+     ・ペース×脚質の有利不利
+     を集計します。縦長になるので折り込み、閉じたままでも要点が読めるように summary へ1行出します。 -->
+<details class="card fold" id="pfCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+  <summary class="foldhead">
+    <span class="fmark"></span>
+    <h2 style="margin:0">🌊 展開の学習（ペース適性 × コーナー通過順バイアス → DB保存）</h2>
+    <span class="chip" id="pfCount">未学習</span>
+    <span class="sp"></span><span class="foldhint"></span>
+    <div class="foldpick" id="pfPick" title="折り込んだままでも学習の状況と今回の狙い目が分かるように要点を1行で表示しています（開くとペース別の脚質有利・不利、4角の位置別3着内率、出走馬ごとの展開適性が出ます）">📚 まだ展開の学習データがありません。学習DBにレースを取り込むと、コーナー通過順・ペース・200mラップが一緒に保存されて学習が始まります。</div>
+  </summary>
+  <div class="foldbody">
+  <div class="cardhead" style="margin-bottom:6px">
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:.82rem" title="学習した展開適性・バイアス補正をAI印に反映するか">
+      <input type="checkbox" id="pfUseChk" checked> AI印に反映する
+    </label>
+    <span class="sp"></span>
+    <span class="small muted" id="pfCtx"></span>
+  </div>
+  <details style="margin:0 0 6px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+    <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 何を学習しているか・どう予想に使うかの説明を開く／閉じる</summary>
+    <div class="small muted" style="margin:6px 8px 8px;line-height:1.75">
+      <b>学習DBに保存する追加情報（第16弾から）</b>:
+      ①<b>コーナー通過順</b>（1〜4角の並び＋馬番ごとの位置。netkeiba の「コーナー通過順位」表から。記号の意味＝<code>,</code>は1〜2馬身差／<code>-</code>は2〜5馬身差／<code>=</code>は5馬身以上／<code>()</code>は1馬身未満の並走（内側の馬番から）／<code>*</code>は馬群の先頭）
+      ②<b>ペース</b>（<b>S</b>=スロー／<b>M</b>=ミドル／<b>H</b>=ハイ。netkeiba の表示をそのまま保存し、表示が無いレースは200mラップの「前半3F−上がり3F」から推定します）
+      ③<b>200mごとのラップタイム</b>（通過タイムとラップの両方）
+      ④<b>払戻金</b>（単勝・複勝・枠連・ワイド・馬連・馬単・3連複・3連単の全8券種。オッズ妙味・回収率の精度向上に使います）
+      <br>※ ①〜④は<b>すでに取得している結果ページのHTMLに入っている</b>ので、追加の通信は発生しません（DB結果ページにラップやコーナーのブロックが無かったレースだけ、PC版の結果ページを1回取りに行きます）。
+      <br><b>どう予想に使うか</b>:
+      <br>　🐎 <b>馬ごとの展開適性</b> — 学習DB内の<b>同じ馬名</b>の過去レースを「そのレースのペース × 着順」で集計し、<b>今回のペース予想</b>（②の展開予想）に合うかを倍率にします。「ハイペースだと走るがスローでは届かない」を数値で出します。サンプルが5戦未満の馬は倍率を掛けません（根拠が薄いので判定しない）。
+      <br>　🏟 <b>コーナー通過順バイアス</b> — 競馬場×面×距離帯ごとに「<b>4角で何番手だった馬の3着内率</b>」を集計します。<b>開催日が経ってレースが溜まるほど、その競馬場の前残り／差し有利がはっきりします</b>。今回の条件でサンプルが足りないときは全場の同じ距離帯で代用します。
+      <br>　🌊 <b>ペース×脚質</b> — 「ハイペースの日は差し・追込が来やすい」などを全レースで集計し、脚質ごとの有利不利を出します。
+      <br>※ トラックバイアス（当日ぶんのみ）とは別に、こちらは<b>履歴が溜まるほど精度が上がる長期の学習</b>です。集計結果は保存領域（<code>keiba_pf_v1</code>）へ圧縮して保存します。
+    </div>
+  </details>
+  <div id="pfBox" class="small" style="margin-top:6px"></div>
+  </div>
+</details>
+<div class="card" id="rnCard">
+      <div class="cardhead">
+        <h2>🖋 レース結果メモ（レース後の内容を保存 → 次走で自動表示）</h2>
+        <span class="chip">結果後に保存</span>
+        <span class="sp"></span>
+        <button type="button" class="btn ghost" id="btnRnRefresh" title="今回の出走馬に保存されているメモを表示します">↻ 保存メモを表示</button>
+      </div>
+      <p class="small muted">レースが終わったら netkeiba の<b>結果ページ</b>を取込み、「このレースはどういう内容だったか」をメモとして保存。そのレースに出走していた各馬が<b>次に走るとき（次走・それ以降）</b>、この画面で自動的にそのメモを表示して参考にできます。</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <input id="rnUrl" placeholder="netkeibaの結果URLまたは race_id（空欄なら現在のレースIDを使います）" style="flex:1;min-width:240px">
+        <button type="button" class="btn primary" id="btnRnGet" title="結果ページを取得して「このレースの内容」を自動要約します">📥 結果を取込・要約</button>
+      </div>
+      <div id="rnInfo" class="small muted" style="margin-top:6px"></div>
+      <div id="rnPrev" style="margin-top:6px"></div>
+      <div class="tblwrap hid" id="rnEditWrap" style="margin-top:8px">
+        <textarea id="rnNote" rows="5" style="width:100%" placeholder="例: 前残り。超ハイペースで逃げ・先行が崩れ、中団から差してきた上位3頭の決着。この馬は4角で外を回され脚を余した。"></textarea>
+        <div style="text-align:right;margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+          <span class="small muted" id="rnApplyHint">保存すると、このレースに出ていた全馬の「次走メモ」に登録されます</span>
+          <button type="button" class="btn primary" id="btnRnSave">💾 この内容で保存</button>
+        </div>
+      </div>
+      <div id="rnList" style="margin-top:10px"></div>
+      <div style="margin-top:10px;font-weight:bold">📌 今回の出走馬に保存されている「過去の結果メモ」</div>
+      <div id="rnNext" class="small" style="margin-top:4px"></div>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>🗓 年指定で過去データを自動取込（学習DB用・JRA全レース）</h2>
+      <span class="chip">重複なし保存</span>
+      <span class="sp"></span>
+      <span class="small muted">中断・再開OK</span>
+    </div>
+    <div class="small muted" style="margin-bottom:8px">
+      年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとの
+      <b>JRA全レース（場ごとに1〜12R）</b>を1レースずつ自動で取得します。各レースから
+      <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>
+      を自動で検出して<b>学習DBへ保存</b>し、自己学習（3モデル・年月ごと）にも反映します（1年＝約100開催日・約3,600レース、1レース1〜2秒かかります）。
+      同じレース・同じ内容（全項目一致）は重複保存しません。<b>途中で中断しても、同じ年を再実行すれば続きから</b>取り込めます。
+      <br>保存領域が満杯になった場合は<b>最も古いレースから順に自動削除</b>され、新しい分に置き換わります（古い順に上書き）。保存はブラウザの大容量領域（IndexedDB）へ自動で行われます。
+      <br>データ源は netkeiba（過去開催日も可・全項目あり）。netkeiba に開催日一覧が無い日のみ JRA公式を補助で使用します（その場合は上り3Fなど一部項目が空欄になります）。
+    </div>
+    <div id="diStat" class="small" style="margin-top:8px"></div>
+    <div id="diMsg" class="small" style="margin-top:4px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="diYear" style="font-family:inherit;font-size:.9rem;padding:3px 6px"></select>
+      <button type="button" class="btn primary" id="diYearBtn">📥 この年の全レースを一括取得・学習DBへ保存</button>
+      <button type="button" class="btn ghost hid" id="diYearStop" title="現在の1日分の取込が終わり次第、そこで停止します">⏹ 中断する</button>
+      <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
+    </div>
+    <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b>🎓 タイム換算の学習（⏱前走タイムのレベルの判定基準を自動アップデート）</b>
+        <span class="chip" id="tlLearnChip">未学習</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn primary" id="tlLearnBtn" title="学習DB（このカードで取り込んだ全レース）と馬柱キャッシュから基準時計を学び直します">🎓 学習DBから基準時計を学習し直す</button>
+        <button type="button" class="btn ghost" id="tlLearnClear" title="学習した基準時計を消して、もとの静的テーブル（パータイム＋クラス補正）に戻します">学習値を消す</button>
+      </div>
+      <!-- 2026-09-12 第15弾: 補正・上乗せの仕組みの説明は長いので折り込み -->
+      <details style="margin:6px 0 0;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+        <summary class="small" style="cursor:pointer;padding:4px 8px;font-weight:700;color:var(--ok-ink)">📖 タイム換算の学習のしかた（基準時計・各種<b>補正</b>と距離帯の<b>上乗せ</b>の説明）を開く／閉じる</summary>
+        <p class="small muted" style="margin:6px 8px 8px">
+        取り込んだ<b>JRA全レースの勝ち時計</b>（と①で取得した<b>馬柱</b>の勝ち時計）から、
+        <b>「距離 × クラス × 競馬場 × 年 × 馬場」の基準時計そのもの</b>を学習します。
+        学習すると②の<b>⏱前走タイムのレベル</b>（早い🎯/遅い⚠️）の判定基準が自動的に切り替わり、
+        <b>取込が終わるたび自動で学習し直す</b>ので、次走評価の基準がいつも最新になります。<br>
+        馬柱だけでは母集団が薄くなりがちです（例: 未勝利クラスの馬は1着が少ない）。
+        <b>年を1つ取り込むだけで約3,600レースの勝ち時計</b>が基準に使えるようになります。
+        学習は<b>中央値</b>で外れ値（新馬戦・少頭数・極端な馬場）に引っ張られないようにし、
+        <b>件数が足りない距離・クラスはもとの基準時計（パータイム＋クラス補正）をそのまま使う</b>ので、学習DBが空でも動きは変わりません。<br>
+        <b>【学習している補正の内訳】</b>①<b>距離の基準時計</b>（面×距離）②<b>クラス補正</b>（未勝利を0とした各クラスの差）
+        ③<b>距離帯ごとのクラス差の上乗せ</b>（短=〜1400m／中=1500〜2000m／長=2100m〜。距離が伸びるほどクラス差も広がるため、②に<b>上乗せ</b>します）
+        ④<b>年齢区分の補正</b>（2歳・3歳は時計がかかります）⑤<b>競馬場補正</b>（コースごとの時計の出方）
+        ⑥<b>年補正</b>（コース改修や馬場の年差）⑦<b>馬場補正</b>（良へ換算するために引く秒数）⑧<b>距離×クラスの個別補正</b>（件数がある組合せだけ）。
+        <b>件数が足りないグループ（n&lt;しきい値）は補正をかけずに捨てる</b>ので、珍しい条件の外れ値が競馬場補正や年補正を壊しません。
+        🚧 <b>障害は平地（芝・ダート）とは別枠</b>で学習し、障害の基準には障害の学習値だけを使います。
+        </p>
+      </details>
+      <div id="tlLearnMsg" class="small" style="margin-top:6px"></div>
+      <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
+      <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
+    </div>
+    <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:var(--card2);border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
+  </div>
+</section>
+
+<!-- ================= ③ シミュレーター ================= -->
+<section class="page" id="t-sim">
+  <div class="card empty" id="simEmpty">
+    <div class="big">②で予想がまだ計算されていません</div>
+    <p>「② 展開予想・AI印」に移動して出馬表を確認してから戻ってきてください。<br>印エンジンの勝率を使ってレースを再現します。</p>
+    <button class="btn primary" data-goto="t-kentai">展開・AI予想へ</button>
+  </div>
+  <div class="hid" id="simBody">
+    <div class="card">
+      <div class="simrow">
+        <button class="btn primary" id="btnRun">⚡ 結果を出す</button>
+        <button class="btn" id="btnRerun">🔄 もう一度</button>
+        <label style="display:flex;align-items:center;gap:5px">まとめて
+          <select id="simRuns">
+            <option value="3">3回</option><option value="5">5回</option><option value="10" selected>10回</option><option value="20">20回</option><option value="50">50回</option>
+          </select>
+        </label>
+        <button class="btn" id="btnMulti">⏩ まとめて実行</button>
+        <button class="btn small red" id="btnAggReset" type="button" title="「📊 合計集計」をこのレースぶんだけ消す（③のタブを開いている間だけのメモリ集計です）">🗑 集計リセット</button>
+        <span class="small muted">※ 実行するたびに下の「📊 シミュレーション合計集計」へ積み上がります。<b>③のタブを開いている間だけ</b>のメモリ集計で、別のタブに移るとリセットされます（端末の保存領域は使いません）。</span>
+      </div>
+      <div id="simMsg" class="small" style="margin-top:6px;color:var(--ok-ink)"></div>
+      <div id="simHint" class="small muted" style="margin-top:6px"></div>
+      <div id="simRunState" class="small" style="margin-top:6px;color:var(--mut)"></div>
+    </div>
+
+    <div class="row2" style="grid-template-columns:1.35fr .9fr">
+      <div class="card" style="min-width:0">
+        <h2>🏁 このレースの結果想定</h2>
+        <div id="finMeta" class="small muted" style="margin:2px 0 8px"></div>
+        <div class="hid" id="simResultWrap">
+          <div class="tblwrap">
+            <table style="min-width:600px">
+              <thead><tr>
+                <th>着順</th><th>馬番</th><th style="text-align:left">馬名</th><th>タイム</th><th>着差</th><th style="text-align:right">単勝参考</th><th style="text-align:right">AI勝率</th>
+              </tr></thead>
+              <tbody id="finBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="simResultEmpty" class="small muted" style="margin-top:4px">「⚡ 結果を出す」を押すと、この1走行の全頭の着順・タイム・着差とレース展開がすぐに表示されます（映像は廃止したので一瞬で終わり、何度でも実行できます）。実行するたびに下の「📊 合計集計」に積み上がります。</div>
+      </div>
+      <div class="card">
+        <h2>レース展開</h2>
+        <div id="simExp" class="small" style="line-height:1.85"></div>
+        <hr style="border:none;border-top:1px dashed var(--line2);margin:14px 0 10px">
+        <h2 style="margin-top:0">1着予想（AI印の順）</h2>
+        <div id="simMarkLine" class="marks-line"></div>
+        <div class="small muted" style="margin-top:6px">AI印エンジンの勝率(全馬の和=100%に補正)が、そのまま各馬の実力差としてレースに反映されます。</div>
+      </div>
+    </div>
+
+    <details class="card fold" open id="simAggCard">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">📊 シミュレーションの合計集計</h2>
+        <span class="chip">③タブを開いている間だけ・メモリ集計</span>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
+      <div id="simAggSummary" class="small" style="margin:2px 0 8px"></div>
+      <div class="tblwrap" style="max-height:380px">
+        <table>
+          <thead><tr>
+            <th>馬番</th><th style="text-align:left">馬名</th><th>単勝</th><th>AI勝率</th><th>回数</th>
+            <th>1着<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>連対<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>複勝<br><span class="muted" style="font-weight:400">率</span></th>
+            <th>平均着順<br><span class="muted" style="font-weight:400">最高〜最低</span></th>
+            <th>出遅れ率<br><span class="muted" style="font-weight:400">②で入力</span></th>
+            <th>脚質のブレ<br><span class="muted" style="font-weight:400">馬柱から</span></th>
+          </tr></thead>
+          <tbody id="simAggBody"></tbody>
+        </table>
+      </div>
+      <div class="small muted" style="margin-top:8px">💡 「出遅れ率」は②で入力した値、「脚質のブレ」は馬柱（過去戦績の4角通過順）から自動判定したものです。ブレが大きい馬は毎回ちがう脚質で走るとして結果の振れ幅を広げています。集計はこのレースぶんだけ保存され、他のレースを切り替えても消えません。</div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section class="page" id="t-horse">
+  <details class="card fold" open>
+    <summary class="foldhead">
+      <span class="fmark"></span>
+      <h2>📄 レース後「短評ページ」を貼り付け → 対象馬へ登録</h2>
+      <span class="chip">馬名で自動判定</span>
+      <span class="sp"></span><span class="foldhint"></span>
+    </summary>
+    <div class="foldbody">
+    <p class="small muted">レース後に配信される「各馬の短評」が書かれたページ（新聞・競馬サイトのレース回顧や短評コーナー等）をコピーして下の欄へ貼り付け、「解析して割当」を押してください。<b>出馬表に載っている馬名（例: 「ドウデュース」）を含む行・文</b>を自動でその馬の短評として割り当てます。自動判定が外れていても、各行のプルダウンで対象馬を選び直せます。</p>
+    <div class="small muted" style="margin:2px 0 4px" id="hbRaceInfo"></div>
+    <textarea id="hbPaste" rows="7" style="width:100%" placeholder="例：&#10;ドウデュース＝好位から直線で突き抜けて完勝。メンバー最強を証明した。&#10;ソールオリエンス＝中団追走も直線で伸び切れず。もう少し距離がほしい。&#10;（このように各馬1行ずつ、または文章ごと貼り付けてOK）"></textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+      <button type="button" class="btn primary" id="btnHbParse">🔍 解析して割当画面へ</button>
+      <span class="small muted">※ 保存した短評はその馬の「馬ノート」にずっと残り、次回以降その馬が出走すると「📒 メモあり」マークで表示されます。</span>
+    </div>
+    <div style="margin-top:14px;border-top:1px dashed var(--line2);padding-top:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span class="small" style="font-weight:700">📰 記事URLを貼り付けて抽出:</span>
+        <input id="hbNewsUrl" value="" style="flex:1;min-width:300px" placeholder="例: https://news.sp.netkeiba.com/?pid=news_view&amp;no=341993">
+        <button type="button" class="btn ghost" id="btnHbUrlPaste" title="クリップボードのURLをここへ貼り付けます">📋 貼り付け</button>
+        <button type="button" class="btn ghost" id="btnHbUrlClear" title="入力欄のURL（リンク）を消します">🗑 入力リンクを消す</button>
+        <button type="button" class="btn primary" id="btnHbNewsOpen" title="貼り付けた記事ページを取得し、「N着＋馬名（騎手）コメント」を抽出してプレビューします">📄 この記事から馬コメントを抽出</button>
+      </div>
+      <div class="small muted" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
+        <label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" id="arNetChk" checked style="margin-top:2px">
+          <span><b>🌐 見つからないレースは netkeiba から出馬表を取りに行く</b><br>
+          <span class="small muted">記事から<b>レース名を自動検出</b>し、①今の出馬表 ②出馬表キャッシュ（直近40レース）③学習DB ④馬ノート の順に<b>該当馬を参照</b>します。
+          1頭も見つからなかったレースだけ、race_id（無ければレース名検索）から出馬表を取得して照合し直します。
+          取得した出馬表はキャッシュに残るので2回目は通信ゼロです。OFFにするとローカルデータの範囲だけで照合します。</span></span>
+        </label>
+      </div>
+      <div class="small muted" style="margin-top:4px">
+        「📋 貼り付け」でクリップボードからURLを入れられます（そのままペーストでもOK）。「🗑 入力リンクを消す」で、さっきのレースのURLを消して新しいものに貼り替えられます。<br>
+        netkeiba等で配信される「レース後コメント（各馬の短評）」が載っている<b>記事ページのURL</b>を上の欄に貼り付けてください。
+        記事内の「1着〜N着・馬名（騎手）＋コメント」を馬ごとに自動で切り出し、<b>記事の中からレース名を自動検出</b>して該当馬を参照するので、
+        <b>今開いている出馬表と違うレースの記事でも</b>短評を書き込めます（1記事に複数レースが載っていても、レースごとに区切って表示します）。
+        下のプレビューで確認してから割当表へ入れます。
+        例: セントウルSレース後コメントの短評URL。netkeiba取得には中継が必要です（公開時は <b>Vercel: api/race.js</b>／<b>Cloudflare Pages: functions/api/race.js</b> を同梱すると動作します）。
+      </div>
+      <div class="hid" id="hbNewsPreview" style="margin-top:8px;border:1px solid var(--line2);border-radius:9px;padding:8px 10px;background:var(--card)">
+        <div id="hbNewsPrevHead" class="small" style="margin-bottom:6px;font-weight:700"></div>
+        <div id="hbNewsPrevBody" class="small"></div>
+        <div style="margin-top:8px;text-align:right;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+          <span class="small muted" id="hbNewsPrevCnt"></span>
+          <button type="button" class="btn ghost" id="btnHbNewsClosePrev">閉じる</button>
+          <button type="button" class="btn primary" id="btnHbNewsUse" title="プレビューで確認した馬コメントを下の割当表へ入れます">この内容を割当表へ入れる</button>
+        </div>
+      </div>
+    </div>
+    <div class="hid" id="hbAssignWrap" style="margin-top:10px;border-top:1px dashed var(--line2);padding-top:10px">
+      <div style="display:flex;gap:10px;align-items:center;margin:2px 0 6px;flex-wrap:wrap">
+        <span class="small" style="font-weight:700">登録する種類:</span>
+        <label style="display:flex;gap:4px;align-items:center;font-size:.85rem"><input type="radio" name="hbKind" id="hbKindShort" checked> 📝 短評</label>
+        <label style="display:flex;gap:4px;align-items:center;font-size:.85rem"><input type="radio" name="hbKind" id="hbKindAdv"> ⚖️ 有利不利</label>
+        <label style="display:flex;gap:4px;align-items:center;font-size:.85rem"><input type="radio" name="hbKind" id="hbKindMemo"> 📌 メモ</label>
+      </div>
+      <div id="hbAssignRows"></div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <span class="small muted">選択した馬へ登録します（「対象外」を選んだ行は保存しません）。</span>
+        <button type="button" class="btn ghost" id="btnHbCancelAssign">キャンセル</button>
+        <button type="button" class="btn primary" id="btnHbSaveAssign">💾 選択した馬に登録</button>
+      </div>
+    </div>
+    <div id="hbInfo" class="small muted" style="margin-top:6px"></div>
+    </div>
+  </details>
+
+  <div class="row2" style="grid-template-columns:1.15fr .85fr">
+    <details class="card fold" id="hbDbCard" open>
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2>📒 馬データベース（馬ごとの専用ノート）</h2>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px">
+        <button type="button" class="btn ghost" id="btnHbBackup" title="全馬ノートをJSONで出力（別端末への移行用）">出力(JSON)</button>
+        <button type="button" class="btn ghost" id="btnHbRestore" title="出力したJSONを貼り付けて復元">復元</button>
+        <span class="small muted">一覧は枠内でスクロールします（登録が増えてもページは伸びません）</span>
+      </div>
+      <div id="hbSum" class="small" style="font-weight:700;color:var(--ok-ink);margin:2px 0 8px"></div>
+      <div id="hbNowStrip" style="margin-top:2px"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+        <label class="small muted" for="hbSearch">馬名・メモ検索:</label>
+        <input id="hbSearch" placeholder="馬名 / 競走馬ID / メモの言葉" style="flex:1;min-width:200px">
+      </div>
+      <div class="hbsbox"><div id="hbList"></div></div>
+      <div id="hbMoreRow" style="text-align:center;margin-top:8px"></div>
+      <div class="small muted" style="margin-top:10px">※ 馬ノートはこのブラウザの端末内に保存されます（他端末へ移すときは「出力(JSON)」→ 先方で「復元」）。レースの出馬表と違い、<b>レースを切り替えても消えません</b>。同じ馬（netkeiba競走馬ID or 馬名）がまた出走した時に②・①の表へ「📒 メモあり」マークが付きます。</div>
+    </div>
+    </details>
+    <details class="card fold" style="min-width:0">
+      <summary class="foldhead"><span class="fmark"></span><h2>使い方・メモの種類</h2><span class="sp"></span><span class="foldhint"></span></summary>
+      <div class="foldbody">
+      <h2 style="display:none">使い方・メモの種類</h2>
+      <div style="line-height:1.9;font-size:.86rem">
+        <div>📝 <b>短評</b>：レース後の各馬の走りに関する短評（上記の貼り付けで自動登録）</div>
+        <div>⚖️ <b>有利不利</b>：その馬にとっての展開の利・不利メモ（出遅れ・不利な枠・コース替わり等）</div>
+        <div>📌 <b>メモ</b>：その他の備忘</div>
+        <div>📓 <b>自由メモ</b>：馬ごとの常設メモ欄（適性・距離・休み明けの傾向など）</div>
+      </div>
+      <hr style="border:none;border-top:1px dashed var(--line2);margin:12px 0">
+      <div class="small muted" style="line-height:1.8">
+        ・馬の同一性は <b>netkeiba競走馬ID</b> を最優先し、なければ馬名で照合します。出馬表は「URL取込」だと競走馬ID付きで入力され、より確実にマークが付きます。<br>
+        ・マーク📒をクリックするとメモの一覧が開き、「詳細ページで開く」でこの④の馬ページに移動します。<br>
+        ・②展開予想・AI印の上部にも「保存済みノートがある馬」のチップが並びます。
+      </div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ================= ⑤ JRA映像 ================= -->
+<section class="page" id="t-jravideo">
+  <div class="card">
+    <div class="cardhead">
+      <h2>🎬 JRA公式レース映像（結果ページへの自動ナビ）</h2>
+      <span class="chip">掲載: 直近約2ヶ月</span>
+      <span class="sp"></span>
+      <span class="small muted">公式はiframe埋め込み禁止 → 該当ページを新しいタブで開きます</span>
+    </div>
+    <div class="small" style="background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:8px;margin-bottom:10px">
+      JRA公式のレース映像は「レース結果」ページ内の ▶（PLAY）ボタンから視聴できます（公式サイトが外部からの埋め込みを許可していないため、アプリ内再生はできません）。
+      <br>下の<b>開催日・競馬場・レース番号(R)</b>を指定すると、このアプリがJRAサイト上の該当「レース結果」ページを中継リレー経由で<b>自動で探して新しいタブで開きます</b>。
+      対象は<b>開催済みレースの直近約2ヶ月</b>（JRA結果ページ掲載分）です。
+    </div>
+    <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end">
+      <div class="fcell"><label>開催日</label><input id="jvDate" type="date" title="結果ページが存在する開催日"></div>
+      <div class="fcell"><label>競馬場</label><select id="jvVenue"></select></div>
+      <div class="fcell"><label>レース番号(R)</label><input id="jvR" type="number" min="1" max="12" step="1" style="width:100%" placeholder="例 11"></div>
+      <div class="fcell"><label>レース名（自動表示）</label><input id="jvName" readonly style="background:var(--card2)" placeholder="— セットすると表示されます —"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+      <button type="button" class="btn" id="jvFillBtn">📌 現在のレース／①で選んだレースをセット</button>
+      <button type="button" class="btn primary" id="jvGoBtn">🔎 JRA結果ページを自動解決して開く ↗</button>
+      <span class="small muted" id="jvSrc"></span>
+    </div>
+    <div id="jvStatus" class="small" style="display:none;margin-top:8px;border-radius:6px;padding:6px 8px"></div>
+    <div id="jvLog" class="small muted" style="display:none;margin-top:6px;background:var(--card2);border-radius:6px;padding:8px;line-height:1.7"></div>
+
+    <div style="margin-top:16px;border-top:1px dashed var(--line2);padding-top:12px">
+      <div class="small" style="font-weight:bold;font-size:.95rem">🗓 JRA公式の「レース結果」一覧をそのまま表示（直近約2ヶ月）</div>
+      <div class="small muted" style="margin:3px 0 8px">ご指定の <code>accessS.html</code> にあるレース名一覧（レース映像・パトロールビデオ付き）と同じものをアプリ内に再現します。
+        日付 → 競馬場 の順に展開し、見たいレース名の「🎬 映像ページを開く ↗」を押すと該当ページが新しいタブで開きます。
+        （現在のレースと一致する日付には「★」が付きます。）</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <button type="button" class="btn primary" id="jvBrowseBtn">🗓 一覧を読み込む（JRAへ1回問合せ）</button>
+        <button type="button" class="btn ghost" id="jvBrowseReload" title="開催日の追加など最新化するときに使います">↻ 再取得（キャッシュを更新）</button>
+        <span id="jvBrowseStat" class="small muted"></span>
+      </div>
+      <div id="jvBrowse" class="small" style="font-size:.85rem"></div>
+    </div>
+    <div class="small muted" style="margin-top:10px">
+      ※ この機能には出馬表と同じ「中継リレー」が必要です（「① データ入力」→ URL取込の通信設定 → 🔧 中継を診断 で確認できます）。手動で探す場合は
+      <a href="https://www.jra.go.jp/keiba/" target="_blank" rel="noopener">JRA公式サイト レース情報（別タブ）</a> から「レース結果」→ 日付選択 でも辿れます。
+    </div>
+  </div>
+</section>
+
+<!-- ================= ⑥ 重賞データ分析（navi-keiba風） ================= -->
+<section class="page" id="t-grade">
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <div class="cardhead">
+      <h2>📅 年度の重賞カレンダー（JRAレーシングカレンダー風・月別）</h2>
+      <span class="chip">中央 G1〜G3 ＋ 地方交流 Jpn</span>
+      <span class="sp"></span>
+      <span class="small muted">レースをクリックすると 下の「📊 重賞データ分析」でそのレースをすぐ実行します</span>
+    </div>
+    <div class="small muted" style="margin-bottom:6px">
+      年に開催された<b>中央G1〜G3</b>（JRAの開催日カレンダーから、芝・ダ・障害を含む）と、代表的な<b>地方交流ダートグレード（Jpn1〜3）</b>を月ごとに表示します。
+      日付の枠の中のレース名をタップ/クリックすると、その年のそのレースについて過去10年の共通点を自動分析します（下の「📊 重賞データ分析」と同じ表示先・同じエンジン）。
+      中央の重賞は netkeiba の開催日一覧から、地方交流は netkeiba DB のレース検索で補完しています。
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 6px">
+      <label class="small">年度
+        <select id="gcYear" style="font-size:.9rem;padding:3px 6px"></select>
+      </label>
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:.84rem" title="地方競馬（大井・川崎・船橋・浦和・盛岡など）が主催するダートグレード交流重賞も表示します">
+        <input type="checkbox" id="gcJpn" checked> 地方交流Jpnも表示
+      </label>
+      <span class="sp"></span>
+      <button type="button" class="btn ghost" id="gcReload" title="この年度のカレンダー情報を消して取得し直します">↻ 再取得</button>
+      <button type="button" class="btn ghost" id="gcDiag" title="重賞日程ページが取得できているかを確認します">🔧 通信を診断</button>
+    </div>
+    <div class="gc-monthbar" id="gcMonthBar"></div>
+    <div id="gcMsg" class="small" style="color:var(--ok-ink);margin:2px 0 4px"></div>
+    <div id="gcCal" class="small"></div>
+    <div class="small muted" style="margin-top:6px">凡例:
+      <span class="gcb g1">G1</span><span class="gcb g2">G2</span><span class="gcb g3">G3</span><span class="gcb jpn">Jpn(地方交流)</span>
+      ・カレンダー内のレース名をクリック → 下の「📊 重賞データ分析」に結果を表示（取得済み分析はキャッシュされ、2回目から速いです）。
+      ・JRA中央の開催日は netkeiba の開催カレンダー掲載分（今年の開催確定前の週は表示されません）。
+    </div>
+  </div>
+
+  <!-- 旧「⑥ 分析結果（カレンダーから選択したレース）」カードは、📊重賞データ分析と中身が同一だったため
+       2026-09-11 に統合しました。カレンダーから選んでも①から選んでも、結果はこのカードの #drOut だけに出ます。 -->
+  <div class="card" id="drCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
+    <div class="cardhead">
+      <h2>📊 重賞データ分析（過去10年・馬券内の共通点）</h2>
+      <span class="chip">G1〜G3 同名レース</span>
+      <span class="sp"></span>
+      <span class="small muted">navi-keiba風に各情報を表でまとめて表示・⑥の分析結果はここ1箇所に出ます</span>
+    </div>
+    <div class="small muted" style="margin-bottom:8px">
+      いま読み込んでいる<b>重賞（G1〜G3）</b>と同じレース名の過去10回分の成績から、
+      馬券内（3着以内）に入りやすい条件を自動で集計します。
+      枠順・馬番・当日人気・脚質（推定）・前走（4角位置・上がり順位・クラス・人気・着順・レース）・
+      馬体重（当日・前走差）・父（種牡馬）・母父・生産者・生まれ月・キャリア・関東/関西/海外馬・騎手別・
+      騎手の所属（美浦/栗東）・芝/ダートなど を表でまとめ、あてはまりそうな傾向を自動判定して先頭に表示します。
+      <br>初回は過去馬の個別データをnetkeibaから取得するため<b>1〜3分</b>かかります（進行表示あり・
+      結果はキャッシュされ、同じレースは2回目から即時表示）。<br>
+      騎手の所属（美浦/栗東）は、DB結果ページの騎手IDから netkeiba の騎手プロフィールを参照して補完します。
+      初回はこの確認にも少し時間がかかります（以降キャッシュ）。
+    </div>
+    <div id="drPick" class="small" style="margin:2px 0 8px;padding:8px 10px;border:1px dashed var(--line2);border-radius:10px;background:var(--card)"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+      <button type="button" class="btn primary" id="drBtn">📥 この重賞の過去10年を分析（取得・集計）</button>
+      <button type="button" class="btn ghost" id="drClear" title="取得した分析用キャッシュを消去">🗑 キャッシュを消去</button>
+      <button type="button" class="btn ghost" id="drDiag" title="この機能が使うページを実際に取得して、中継(リレー)のどこで失敗しているかを表示します">🔧 通信を診断</button>
+      <span class="small muted" id="drTargetHint">対象: ①で読み込んだレース／📅カレンダーで選んだレース</span>
+    </div>
+    <div id="drStat" class="small muted" style="margin:2px 0"></div>
+    <div id="drMsg" class="small" style="margin:4px 0;color:var(--ok-ink)"></div>
+    <div id="drOut" class="small"></div>
+
+    <!-- ===== 🧬 血統ファクター（旧⑧血統タブ → 旧🧬カード → ここへ統合） ===== -->
+    <div id="bfBlock" style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--line2)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:1.06rem;font-weight:800">🧬 血統ファクター（同じ分析データから自動抽出）</div>
+        <span class="chip">非統計・参考</span>
+        <span class="sp"></span>
+        <span class="small muted">5代まで＝表／6〜10代＝共通点だけを3〜4点</span>
+      </div>
+      <div class="small muted" style="margin:4px 0 6px">
+        上の📊分析で実際に集計に使われた<b>過去10年の1〜3着馬（約30頭）</b>の血統を、
+        netkeiba の5代血統表から<b>親馬ページをたどって最深10代まで</b>解析します。
+        <b>5代まで</b>は従来通り「何年に馬券に絡んだか」の表に、
+        <b>6代目以降</b>は全部は出さずに<b>「勝ち馬の共通点」「3着内の共通点」を3〜4点ずつ</b>
+        （例: 母系に Grey Sovereign を内包・7/10頭に該当）まとめ、
+        その<b>内訳（系統・何代目・どの年のどの馬が持っていたか・今日の出走馬で何頭か）を表</b>に出します。
+        続けて<b>今回の出馬表から「その共通点に当てはまる馬」を該当が多い順に検出</b>します。
+        ボタンは<b>「🧬 血統を抽出して今回の出走馬を検出」の1本だけ</b>で、抽出→出走馬の血統取得→該当検出まで一気に進みます。
+        検出はあくまで傾向・オカルトレベルなので、②のAI印への反映は下のスイッチと各行の☑で任意にON/OFFできます。
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <button type="button" class="btn primary" id="bfDrBtn" title="これ1本で全部: ⑥の分析データから血統ファクターと10代の共通点を抽出 → 今日の出走馬の血統(10代)を取得 → 該当検出の表まで出します（取得済みはキャッシュで即時）">🧬 血統を抽出して今回の出走馬を検出（これ1本で全部）</button>
+        <button type="button" class="btn ghost" id="bfReset" title="ONにしたファクターを全部OFFに戻す">⏻ 反映OFFに戻す</button>
+        <button type="button" class="btn ghost" id="bfDelCache" title="血統・レース結果キャッシュを消去">🗑 キャッシュ消去</button>
+        <label style="font-size:.82rem;display:inline-flex;gap:4px;align-items:center;margin-left:6px"
+               title="ON: 5代目の祖先32頭の血統表も取得して10代まで集計し、6代目以降の共通点を出します（初回は数分・以後キャッシュで即時）／OFF: 5代まで（高速）">
+          <input type="checkbox" id="bfDeepCb" checked> 🧬 10代まで掘る（既定ON）
+        </label>
+        <label style="font-size:.82rem;display:inline-flex;gap:4px;align-items:center;margin-left:6px">
+          <input type="checkbox" id="bfApplyCb"> 全体スイッチ: 反映ON中のファクターを②のAI印に加点
+        </label>
+      </div>
+      <div class="small muted" style="margin-bottom:6px">
+        ※ <b>10代まで掘る</b>場合は初回だけ親馬ページをたどります。<b>実測: 過去5年(14頭)で252件・65秒／過去10年(約30頭)なら400〜500件・2〜4分</b>の目安です
+        （重複する祖先は自動で使い回すので頭数の割に通信は増えません。2回目以降はキャッシュで即時）。
+        急ぐときは「🧬 10代まで掘る」をOFFにすると5代まで（1〜2分）になります。
+      </div>
+      <div id="bfTarget" class="small"></div>
+      <div id="bfMsg" class="small" style="margin:4px 0"></div>
+
+      <!-- ★2026-09-11 第11弾: 抽出開始ボタンの直下＝「🔎 検出結果」。抽出が終わったら必ずここに文と表が出る -->
+      <div id="bfSummary" style="margin:8px 0 10px"></div>
+
+      <details class="card fold" id="bfDetailFold" style="margin-top:6px;padding:0">
+        <summary class="foldhead">
+          <span class="fmark"></span>
+          <h2 style="margin:0;font-size:.95rem">🔍 内訳・全件（共通点の出どころ／該当の内訳／5代ファクター全件と反映ONの管理）</h2>
+          <span class="sp"></span><span class="foldhint"></span>
+        </summary>
+        <div class="foldbody">
+      <div id="bfDeepOut" class="small" style="margin:6px 0"></div>
+      <div id="bfDeepHit" class="small" style="margin:6px 0;overflow-x:auto"></div>
+      <div id="bfList" class="small" style="overflow-x:auto"></div>
+      <div id="bfToday" class="small" style="margin-top:8px;background:var(--card);border-radius:8px;padding:6px 8px"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+<!-- ===== 旧④過去データタブの内容（⑥重賞データ分析へ統合） ===== -->
+    <div class="card">
+      <div class="cardhead">
+        <h2>🏛 このレースの過去データ（同名レース・名称変更対応）</h2>
+        <span class="chip">旧④タブ → ⑥に統合</span>
+        <span class="sp"></span>
+        <button class="btn ghost" id="btnHistCacheClear" title="netkeibaから取得した過去データのキャッシュを消します">キャッシュを削除</button>
+      </div>
+      <p class="small muted">対象レースは<b>上の📅重賞カレンダーの選択</b>（または①で読み込んだ出馬表）に連動します。📊重賞データ分析・🧬血統ファクターも同じ対象レースを見ます。<br>
+      現在開いているレースと同じ系列の過去成績をnetkeibaから取得して閲覧できます。レース名が変更されていても、現在のレースに対応する過去の呼び名・開催で自動追跡します（例: 「セントウルS」の系統は正式名「セントウルステークス」としてnetkeibaに集約されています）。</p>
+      <div id="histCurRace" style="font-weight:700;margin:6px 0 10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label for="histRange">対象:</label>
+        <select id="histRange">
+          <option value="5">直近5回</option>
+          <option value="10" selected>直近10回</option>
+          <option value="15">直近15回</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="histSameChk" checked>現在の距離と同じ開催だけ集計</label>
+        <button class="btn primary" id="btnHistGo">過去10年を取得・表示</button>
+      </div>
+      <div style="margin-top:10px;padding:10px;border:1px dashed var(--line2);border-radius:10px">
+        <div class="small muted">まだレースURLを設定していない場合（テキスト貼り付けのみで入力した場合など）:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <input id="histUrlInp" placeholder="https://race.netkeiba.com/race/shutuba.html?race_id=＿＿＿＿ または race_id=123456789012" style="flex:1;min-width:280px">
+          <button class="btn" id="btnHistUrlSet">このレースとして設定＆取得</button>
+        </div>
+      </div>
+      <div id="histLog" class="small" style="margin-top:10px"></div>
+    </div>
+    <div id="histSeriesName" style="margin-top:8px;margin-bottom:2px;font-size:1.15rem;font-weight:700"></div>
+    <div id="histOut" style="display:grid;gap:14px;margin-top:4px"></div>
+
+  <!-- 旧「🧬 重賞オカルト血統ファクター」カードと「🏆 血統ファクター 上位5件 × 該当馬」カードは
+       中身が同じになるため 2026-09-11 に廃止し、📊重賞データ分析カード(#drCard)内の
+       #bfBlock へ統合しました（5代まで＝表／6〜10代＝共通点3〜4点）。 -->
+</section>
+
+<!-- ================= ⑦ 天気予報 ================= -->
+<section class="page" id="t-tenki">
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
+    <h2 style="margin-top:0">⑦ ☀️ 天気予報（当日開催場の1時間ごと天気）</h2>
+    <p class="small muted" style="margin:4px 0 8px">
+      <b>初回の1回だけ</b>、ホームメイト「全国の競馬場一覧」から各競馬場の<b>住所（郵便番号）をコピーして保存</b>します。
+      2回目以降（再起動後も）は保存済みを使い、<b>当日開催の競馬場名のボタンを押すだけ</b>で
+      <b>天気・気温・湿度・降水量・降水確率・風向風速</b>の1時間ごと予報が出ます（馬場・時計の判断材料）。
+    </p>
+    <div class="simrow">
+      <label style="display:flex;align-items:center;gap:5px">日付
+        <input type="date" id="tkDate" class="sm" style="min-width:150px">
+      </label>
+      <button class="btn primary" id="tkFetch">🔍 当日の開催場を取得</button>
+      <button class="btn" id="tkShow">☀️ 当日開催を全部表示</button>
+      <button class="btn" id="tkReload">↻ 再取得（キャッシュ無視）</button>
+      <button class="btn ghost" id="tkClr">天気キャッシュ消去</button>
+      <button class="btn ghost" id="tkClrAll">住所・地点キャッシュも消去</button>
+    </div>
+    <div id="tkMsg" class="small" style="margin-top:6px;line-height:1.7"></div>
+    <div id="tkVenueBar" class="small" style="margin-top:8px;border-top:1px dashed var(--line2);padding-top:8px;line-height:1.9"></div>
+  </div>
+  <div id="tkOut"></div>
+  <div class="card">
+    <div class="small muted">
+      ※ 表示は tenki.jp の「1時間ごとの天気」ページ（今日〜明後日の3日分）に基づきます。日付をそれ以外にすると当日分が無いため、参考として直近の日を表示します。<br>
+      ※ 競馬場の住所（郵便番号）一覧＝初回にホームメイト「全国の競馬場一覧」 https://www.homemate-research-keiba.com/list/ からコピーして保存したもの（未取得時は同梱の一覧）:
+      <span id="tkPcList"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ★2026-09-13 第25弾②: 🏇 騎手・調教師DB
+     keibalab.jp のDBから騎手・調教師の成績を取得してキャッシュし、
+     検索・参照できるようにします（③でAI予想のファクターに使用）。
+     ============================================================ -->
+<section class="page" id="t-jockeydb">
+  <h2>🏇 騎手・調教師DB</h2>
+  <div class="card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="jdbKind" class="inp" style="max-width:130px">
+        <option value="jockey">騎手</option>
+        <option value="trainer">調教師</option>
+      </select>
+      <input id="jdbQuery" class="inp" placeholder="名前を入力（例: 松山弘平 / ルメール）" style="flex:1;min-width:180px">
+      <button id="jdbSearch" class="btn">🔍 検索</button>
+      <button id="jdbBuild" class="btn ghost" title="リーディング一覧を全ページ取得して「名前→ID」の登録簿を作ります">📥 一覧を取得して登録簿を作る</button>
+      <span id="jdbStat" class="muted small"></span>
+    </div>
+    <div class="muted small" style="margin-top:6px">
+      取得元: <code>keibalab.jp/db/</code>（同一配信の <code>/api/race</code> 中継経由・ホスト制限なし）。
+      <b>一度取得したものはキャッシュされ、次回以降は通信せず即表示</b>されます（成績12時間・登録簿7日）。
+    </div>
+    <div id="jdbProg" class="muted small" style="margin-top:4px"></div>
+  </div>
+
+  <div class="card" id="jdbListCard" style="display:none">
+    <div class="row" style="align-items:center;gap:8px">
+      <b>🔎 検索結果</b><span id="jdbListCount" class="muted small"></span>
+      <label class="small"><input type="checkbox" id="jdbTop3Only"> 1〜3着のみ</label>
+    </div>
+    <div id="jdbList" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card" id="jdbDetailCard" style="display:none">
+    <div id="jdbDetail"></div>
+  </div>
+
+  <div class="card" id="jdbRaceCard">
+    <b>🎯 今日のレースの騎手・調教師を一括取得</b>
+    <div class="muted small">現在の出馬表に登録されている騎手・調教師をまとめて取得し、③のAIファクターに使えるようにします。</div>
+    <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
+      <button id="jdbFetchRace" class="btn">📡 この出走表の騎手・調教師を取得</button>
+      <button id="jdbDropCache" class="btn ghost">🗑 成績キャッシュを消す</button>
+      <button id="jdbDropReg" class="btn ghost">🗑 登録簿を消す</button>
+    </div>
+    <div id="jdbRaceStat" class="muted small" style="margin-top:6px"></div>
+    <div id="jdbRaceTable" style="margin-top:6px"></div>
+  </div>
+
+  <details class="card tbhelp">
+    <summary><b>ℹ このタブの仕組み・取得できる項目</b></summary>
+    <div style="padding:6px 2px;line-height:1.7">
+      <p><b>取得できる項目</b></p>
+      <ul style="padding-left:20px">
+        <li><b>基本情報</b>: 生年月日・年齢・初免許年・所属（美浦/栗東）・所属厩舎・平地/障害の初騎乗・初勝利</li>
+        <li><b>イチ推しアビリティ</b>: 得意コース（例: 阪神ダ1400m）・得意馬場（例: 芝重・不良◎）・条件（軽斤量/小型馬/少頭数）・時間帯（序盤戦1〜3R）</li>
+        <li><b>本年成績</b>（＝直近1年）と <b>累計成績</b>（＝全期間）を、平地/障害/全レース別に
+          1着・2着・3着・着外・騎乗回数・勝率・連対率・3着内率</li>
+        <li><b>今週の騎乗馬</b>: 日付ごとの「◯戦◯勝」と全騎乗（レース名・コース・人気・着順・馬名・斤量・厩舎・コンビ成績・間隔・前走）</li>
+        <li><b>年度別×着順別の履歴</b>: <code>history.html?year=2026&amp;ar=1</code>（ar=1/2/3/4 = 1着/2着/3着/着外）</li>
+      </ul>
+      <p><b>③ AIファクターへの使い方</b></p>
+      <p>「<b>調子</b>」は本年勝率 ÷ 累計勝率で測ります（1.30以上=絶好調 / 1.10以上=好調 / 0.90以下=やや不調 / 0.75以下=不調・買いづらい）。
+      あわせて当日の「◯戦◯勝」、得意コース・得意馬場・時間帯が今回のレース条件と一致するかを判定します。
+      <b>すべて実測値から計算し、推測は入れません。</b></p>
+      <p class="muted"><b>注意</b>: 騎手IDと調教師IDは<b>別体系で番号が衝突します</b>
+      （例: 田辺裕信=騎手01075 / 矢作芳=調教師01075）。そのためキャッシュは必ず「騎手/調教師」を分けて保存しています。</p>
+    </div>
+  </details>
+</section>
+
+</main>
+
+<footer>
+  ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
+  ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
+  競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">__BUILD_ID__</b></span>
+</footer>
+
+<div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
