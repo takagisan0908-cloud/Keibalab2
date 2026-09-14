@@ -2562,6 +2562,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <input id="jdbQuery" class="inp" placeholder="名前を入力（例: 松山弘平 / ルメール）" style="flex:1;min-width:180px">
       <button id="jdbSearch" class="btn">🔍 検索</button>
       <button id="jdbBuild" class="btn ghost" title="リーディング一覧を全ページ取得して「名前→ID」の登録簿を作ります">📥 一覧を取得して登録簿を作る</button>
+      <button id="jdbDebug" class="btn ghost" title="取得した生HTMLを確認（パーサ修正用・クリップボードにコピー）">🐞 取得HTML確認</button>
       <span id="jdbStat" class="muted small"></span>
     </div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
@@ -2575,6 +2576,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     </div>
     <div id="jdbProg" class="muted small" style="margin-top:4px"></div>
     <div class="progbar" style="margin-top:6px;height:8px;background:var(--line2);border-radius:4px;overflow:hidden;display:none" id="jdbProgBar"><div id="jdbProgFill" style="height:100%;width:0;background:var(--ok-ink);transition:width .2s"></div></div>
+    <textarea id="jdbDebugOut" readonly style="display:none;width:100%;height:120px;margin-top:6px;font-size:11px"></textarea>
   </div>
 
   <div class="card" id="jdbListCard" style="display:none">
@@ -35180,6 +35182,24 @@ function jdbFetchForRace(){
 }
 
 /* ---- 配線 ---- */
+/* ★第29弾: 取得した生HTMLを画面に出してクリップボードへ（パーサ修正用・デバイス无关） */
+function jdbDebugFetch(){
+  var kind = jdbKind();
+  jdbProg('⏳ ' + kind + ' の生HTMLを取得中…');
+  var url = klListUrl(kind, 1);
+  try { if (typeof console !== 'undefined') console.log('🏇DB debug url:', url); } catch(e){}
+  klGet(url).then(function(html){
+    var s = String(html || '');
+    var snip = s.slice(0, 1500);
+    jdbProg('✅ 取得: ' + s.length + '文字<br><small>' + esc(snip).replace(/\n/g, ' ') + '</small>');
+    var out = $('jdbDebugOut'); if (out){ out.style.display = ''; out.value = s.slice(0, 8000); try { out.select(); } catch(e){} }
+    try { if (navigator.clipboard) navigator.clipboard.writeText(s.slice(0, 8000)).catch(function(){}); } catch(e){}
+    try { if (typeof console !== 'undefined') console.log('🏇DB debug HTML[' + kind + ']:', s.slice(0, 8000)); } catch(e){}
+  }).catch(function(e){
+    jdbProg('❌ 取得失敗: ' + esc(String((e && e.message) || e)));
+  });
+}
+
 function jockeyDbInit(){
   var btn;
   if ((btn = $('jdbBuild'))) btn.addEventListener('click', function(){ jdbBuildRegistry(); });
@@ -35196,6 +35216,7 @@ function jockeyDbInit(){
   var q = $('jdbQuery');
   if (q) q.addEventListener('keydown', function(e){ if (e.key === 'Enter') jdbSearch(); });
   if ((btn = $('jdbSel'))) btn.addEventListener('change', jdbOnSelect);
+  if ((btn = $('jdbDebug'))) btn.addEventListener('click', jdbDebugFetch);
   var kd = $('jdbKind');
   if (kd) kd.addEventListener('change', function(){ jdbRefreshStat(); jdbSearch(); });
   var t3 = $('jdbTop3Only');
