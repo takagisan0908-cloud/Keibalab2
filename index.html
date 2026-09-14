@@ -2503,6 +2503,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <select id="jdbTarget" class="inp" style="max-width:110px"><option value="jockey">騎手</option><option value="trainer">調教師</option><option value="horse">競走馬</option><option value="race">レース</option></select>
+      <select id="jdbSort" class="inp" style="max-width:170px"><option value="win">リーディング(勝利数)順</option><option value="name">名前順</option><option value="rides">出走回数順</option><option value="winRate">勝率順</option><option value="placeRate">連対率順</option><option value="showRate">3着内率順</option></select>
       <input id="jdbQuery" class="inp" placeholder="名前を入力（例: 松山弘平 / ルメール / コントレイル）" style="flex:1;min-width:180px">
       <button id="jdbSearch" class="btn">🔍 検索</button>
       <button id="jdbBuild" class="btn ghost" title="学習DBから騎手・調教師の成績を集計します">📊 学習DBから集計</button>
@@ -34893,6 +34894,7 @@ function klFetchAllDetails(kind, onProgress){
    集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
 var klDbCache = null;
 function klDistBand(d){ var n = parseInt(d, 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
+function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
 function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
 function klAcc(o, k){ return o[k] || (o[k] = { rides: 0, win: 0, place: 0, show: 0, winPrize: 0 }); }
 function klStatAdd(s, order, surf, track, distB, pop, prize, pace, year, partner, isGr, raceRec){
@@ -34932,7 +34934,12 @@ function klBuildFromDb(){
       var o = parseInt((r.order != null ? r.order : r[1]), 10);
       if (isNaN(o)) return;
       var no = String(r.no != null ? r.no : r[0]);
-      var prize = (o === 1 && prizeOf[no] != null) ? Number(prizeOf[no]) : 0;
+      var prize = 0;
+      if (o === 1){
+        var py = (prizeOf[no] != null && prizeOf[no] !== '') ? Number(prizeOf[no]) : 0;
+        if (!py){ var od = parseFloat(r.odds); if (!isNaN(od)) py = od * 100; }
+        prize = py;
+      }
       var pace = (rec.xd && rec.xd.pace) ? rec.xd.pace : '';
       var jn = r.jockey, tn = r.trainer, hn = r.name;
       var jr = { date: meta.date8 || meta.date || '', place: track, rnum: meta.rnum || '', name: meta.name || '', dist: meta.dist || '', surf: surf, order: o, odds: r.odds || '', pop: r.pop || '', jockey: jn, trainer: tn, weight: r.weight || '', passing: r.passing || '', last3: r.last3 || '', hw: r.weightChg || '' };
@@ -35042,6 +35049,18 @@ function jdbRenderList(){
       return '<tr><td style="white-space:nowrap"><b>' + esc(e.name||'') + '</b></td><td>' + e.rides + '</td><td>' + e.win + '</td><td>' + rate.toFixed(1) + '%</td><td>' + pr.toFixed(1) + '%</td><td>' + sr.toFixed(1) + '%</td><td><button class="btn small" data-jname="' + esc(e.name) + '" data-kind="' + target + '">詳細</button></td></tr>';
     }).join('') + '</tbody></table></div>' + jdbPager();
 }
+function jdbSortCmp(a, b){
+  var k = (typeof $ === 'function' && $('jdbSort')) ? $('jdbSort').value : 'win';
+  var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
+  if (target === 'race'){ return b.list.length - a.list.length; }
+  if (k === 'name') return (a.name||'').localeCompare(b.name||'', 'ja');
+  if (k === 'rides') return b.rides - a.rides;
+  if (k === 'win') return b.win - a.win;
+  if (k === 'winRate') return (b.win/Math.max(1,b.rides)) - (a.win/Math.max(1,a.rides));
+  if (k === 'placeRate') return (b.place/Math.max(1,b.rides)) - (a.place/Math.max(1,a.rides));
+  if (k === 'showRate') return (b.show/Math.max(1,b.rides)) - (a.show/Math.max(1,a.rides));
+  return b.win - a.win;
+}
 function jdbSearch(){
   var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
   if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
@@ -35059,10 +35078,7 @@ function jdbSearch(){
     var all2 = Object.keys(map).map(function(k){ return map[k]; });
     jdbHits = q ? all2.filter(function(e){ return (e.name||'').indexOf(q) >= 0; }) : all2;
   }
-  jdbHits.sort(function(a, b){
-    if (target === 'race') return b.list.length - a.list.length;
-    return (b.win / Math.max(1, b.rides)) - (a.win / Math.max(1, a.rides));
-  });
+  jdbHits.sort(jdbSortCmp);
   jdbPage = 0;
   var card = $('jdbListCard'); if (card) card.style.display = '';
   jdbRenderList();
@@ -35180,13 +35196,14 @@ function jdbShowDetail(d, kind){
     h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>' + partnerKey.replace('別','') + '</th><th>騎乗</th><th>勝利</th><th>勝率</th><th>単勝回収(概算)</th><th>複勝回収(概算)</th></tr></thead><tbody>';
     pts.forEach(function(p){ var x = p.v; var roi = x.rides?Math.round((x.winPrize||0)/x.rides):0; h += '<tr><td>' + esc(p.k) + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + roi + '</td><td>' + roi + '</td></tr>'; });
     h += '</tbody></table></div>';
-    h += '<div class="small" style="margin-top:8px"><u>距離別（累計・芝/ダ別の勝利分布）</u></div><div class="row" style="gap:16px;flex-wrap:wrap">';
-    ['turf','dirt'].forEach(function(sm){ var lbl = sm==='turf'?'芝':'ダート'; var bd = d.bySurf[sm]; if (!bd || !bd.win){ h += '<div class="small">'+lbl+': 勝利なし</div>'; return; } var seg = Object.keys(d.byDist).filter(function(k){ return d.byDist[k] && d.byDist[k].win; }).map(function(k){ return { label: k, v: d.byDist[k].win, c: (sm==='turf'?'#2e7d46':'#9a5b2e') }; }); h += '<div style="text-align:center"><div>'+lbl+'</div>' + jdbPie(seg) + '<div class="small muted">勝利 ' + bd.win + ' / 騎乗 ' + bd.rides + '</div></div>'; });
-    h += '</div>';
+    h += '<div class="small" style="margin-top:8px"><u>距離別（累計・全距離帯）</u></div>';
+    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>距離</th><th>騎乗</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>';
+    Object.keys(d.byDist).sort(function(a,b){ return klDistRank(a) - klDistRank(b); }).forEach(function(k){ var x = d.byDist[k]; h += '<tr><td>' + k + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + x.place + '</td><td>' + x.show + '</td><td>' + (x.rides - x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
+    h += '</tbody></table></div>';
     var trk = Object.keys(d.byTrack || {}).map(function(k){ return { k:k, v:d.byTrack[k] }; }).sort(function(a,b){ return b.v.win - a.v.win; }).slice(0, 12);
     h += '<div class="small" style="margin-top:8px"><u>競馬場別（累計・上位12）</u></div>';
-    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>場</th><th>騎乗</th><th>勝利</th><th>勝率</th></tr></thead><tbody>';
-    trk.forEach(function(t){ var x=t.v; h += '<tr><td>' + esc(t.k) + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
+    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>場</th><th>騎乗</th><th>勝利</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>';
+    trk.forEach(function(t){ var x=t.v; h += '<tr><td>' + esc(t.k) + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
     h += '</tbody></table></div>';
     h += '</div>';
     if (trainerKind){
@@ -35331,18 +35348,27 @@ function jdbDebugFetch(){
 /* 一括取込後に自動実行するマクロ（バックテスト／AI再学習／タイム学習／馬場バイアス） */
 function dbMacroRun(){
   var steps = [
-    { n: 'バックテスト', f: function(){ if (typeof btRun === 'function') btRun(); } },
-    { n: 'AI予想の自己学習（再学習）', f: function(){ if (typeof apRelearnAll === 'function') apRelearnAll(); } },
-    { n: '前走タイムのレベル・タイム換算学習', f: function(){ if (typeof tlLearnRun === 'function') tlLearnRun(true); } },
-    { n: '前日の馬場バイアス', f: function(){ if (typeof nkBiasFetchAll === 'function') nkBiasFetchAll(); } }
+    { n: 'バックテスト', f: function(){ if (typeof btRun === 'function') btRun(); }, ok: 'バックテストを開始しました' },
+    { n: 'AI予想の自己学習（再学習）', f: function(){ if (typeof apRelearnAll === 'function') apRelearnAll(); }, ok: '再学習を開始しました' },
+    { n: '前走タイムのレベル・タイム換算学習', f: function(){ if (typeof tlLearnRun === 'function') tlLearnRun(true); }, ok: 'タイム学習を開始しました' },
+    { n: '前日の馬場バイアス', f: function(){ if (typeof nkBiasFetchAll === 'function') nkBiasFetchAll(); }, ok: '馬場バイアス取得を開始しました（対象レースが無い場合はスキップ）' }
   ];
   var i = 0;
   function next(){
-    if (i >= steps.length) return;
+    if (i >= steps.length){
+      if (typeof diYearMsgSet === 'function') diYearMsgSet('✅ 自動マクロ一連処理を開始しました（各機能は裏側で実行中です。詳細は各タブをご確認ください）。');
+      return;
+    }
     var s = steps[i++];
-    try { console.log('🗄 自動マクロ: ' + s.n); if (typeof diYearMsgSet === 'function') diYearMsgSet('⚙ 自動マクロ実行中: ' + s.n + '…'); } catch(e){}
-    try { s.f(); } catch(e){ console.error(e); }
-    setTimeout(next, 1200);
+    try {
+      if (typeof diYearMsgSet === 'function') diYearMsgSet('⚙ 自動マクロ実行中: ' + s.n + '…');
+      s.f();
+      if (typeof diYearMsgSet === 'function') diYearMsgSet('✓ ' + s.ok);
+    } catch(e){
+      console.error(e);
+      if (typeof diYearMsgSet === 'function') diYearMsgSet('⚠ ' + s.n + 'でエラー: ' + (e && e.message || e) + '（続行）');
+    }
+    setTimeout(next, 1500);
   }
   next();
 }
@@ -35362,6 +35388,7 @@ function jockeyDbInit(){
   var q = $('jdbQuery');
   if (q) q.addEventListener('keydown', function(e){ if (e.key === 'Enter') jdbSearch(); });
   if ((btn = $('jdbSel'))) btn.addEventListener('change', jdbOnSelect);
+  var so = $('jdbSort'); if (so) so.addEventListener('change', function(){ if (jdbHits && jdbHits.length) jdbRenderList(); });
   if ((btn = $('jdbDebug'))) btn.addEventListener('click', jdbDebugFetch);
   var kd = $('jdbKind');
   if (kd) kd.addEventListener('change', function(){ jdbRefreshStat(); jdbSearch(); });
