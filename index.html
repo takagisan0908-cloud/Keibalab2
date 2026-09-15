@@ -18021,7 +18021,10 @@ function diParseJraResult(html, venue, rnum, date8){
     var no = g('num');
     var name = '';
     var nm = tr.match(/<td[^>]*class="horse"[^>]*>([\s\S]*?)<\/td>/i);
+    var hid = '';
     if (nm){
+      var hm = nm[1].match(/href="[^"]*\/horse\/(\d+)\/?/i);
+      hid = hm ? hm[1] : '';
       var am = nm[1].match(/<a[^>]*>([\s\S]*?)<\/a>/i);
       name = bfStrip(am ? am[1] : nm[1]);
     }
@@ -18034,7 +18037,7 @@ function diParseJraResult(html, venue, rnum, date8){
     var wt = g('h_weight').replace(/\s+/g, '');
     var pop = g('pop');
     out.rows.push({
-      order: order, frame: '', no: no, name: name, id: '',
+      order: order, frame: '', no: no, name: name, id: hid, nk: hid,
       sexAge: g('age'), weight: g('weight'), jockey: g('jockey'), time: g('time'),
       margin: g('margin'), passing: corner, last3: '', odds: '', pop: pop,
       weightChg: wt, trainer: g('trainer')
@@ -35438,7 +35441,7 @@ function hkHorseIdFromDb(name){
     var hit = null;
     Object.keys(races).some(function(rid){
       var rows = (races[rid] && races[rid].rows) || [];
-      return rows.some(function(r){ if (String(r.name || '') === nm && r.nk){ hit = r.nk; return true; } return false; });
+      return rows.some(function(r){ var h = r.nk || r.id; if (String(r.name || '') === nm && h){ hit = h; return true; } return false; });
     });
     return hit;
   } catch(e){ return null; }
@@ -35469,7 +35472,7 @@ function hkHorseFetchNetkeiba(name, idHint, cb, onStatus){
     var q = encodeURIComponent(name);
     var sUrl = 'https://db.netkeiba.com/?pid=horse_list&word=' + q;
     var s = (typeof bfGet === 'function') ? bfGet(sUrl) : bfRelayGet(sUrl);
-    s.then(function(sh){ var idm = sh.match(/\/horse\/(\d+)\//); go(idm ? idm[1] : null); })
+    s.then(function(sh){ var idm = sh.match(/\/horse\/(\d{6,})/); go(idm ? idm[1] : null); })
      .catch(function(){ (typeof bfRelayGet === 'function' ? bfRelayGet(sUrl) : Promise.reject(0)).then(function(sh){ var idm = sh.match(/\/horse\/(\d+)\//); go(idm ? idm[1] : null); }).catch(function(){ fail('search-fail'); }); });
   } catch(e){ fail('search-err'); }
 }
