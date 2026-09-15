@@ -35196,8 +35196,8 @@ function jdbShowDetail(d, kind){
     h += '<div class="small" style="margin:4px 0 2px"><u>年度別</u></div>';
     var yrs = Object.keys(d.byYear).sort().reverse();
     h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>年</th><th>騎乗</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>連対率</th><th>複勝率</th><th>重賞出走</th><th>重賞勝利</th></tr></thead><tbody>';
-    h += '<tr style="font-weight:700"><td>累計</td><td>' + d.rides + '</td><td>' + d.win + '</td><td>' + d.place + '</td><td>' + d.show + '</td><td>' + (d.rides-d.show) + '</td><td>' + (d.rides?(d.win/d.rides*100).toFixed(1):0) + '%</td><td>' + (d.rides?(d.place/d.rides*100).toFixed(1):0) + '%</td><td>' + (d.rides?(d.show/d.rides*100).toFixed(1):0) + '%</td><td>' + d.gr.rides + '</td><td>' + d.gr.win + '</td></tr>';
-    yrs.forEach(function(y){ var x = d.byYear[y]; h += '<tr><td>' + y + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + x.place + '</td><td>' + x.show + '</td><td>' + (x.rides-x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td><td>-</td><td>-</td></tr>'; });
+    h += '<tr style="font-weight:700"><td>累計</td><td>' + d.rides + '</td><td>' + d.win + '</td><td>' + (d.place-d.win) + '</td><td>' + (d.show-d.place) + '</td><td>' + (d.rides-d.show) + '</td><td>' + (d.rides?(d.win/d.rides*100).toFixed(1):0) + '%</td><td>' + (d.rides?(d.place/d.rides*100).toFixed(1):0) + '%</td><td>' + (d.rides?(d.show/d.rides*100).toFixed(1):0) + '%</td><td>' + d.gr.rides + '</td><td>' + d.gr.win + '</td></tr>';
+    yrs.forEach(function(y){ var x = d.byYear[y]; h += '<tr><td>' + y + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.place-x.win) + '</td><td>' + (x.show-x.place) + '</td><td>' + (x.rides-x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td><td>-</td><td>-</td></tr>'; });
     h += '</tbody></table></div>';
     h += '<div class="small" style="margin-top:6px"><u>近走</u>: ' + ((d.recent||[]).slice(-30).map(function(o){ return o===1?'🥇':o<=3?'🥉':o; }).join(' ')||'—') + '</div>';
     h += '</div>';
@@ -35210,7 +35210,7 @@ function jdbShowDetail(d, kind){
     h += '</tbody></table></div>';
     h += '<div class="small" style="margin-top:8px"><u>距離別（累計・全距離帯）</u></div>';
     h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>距離</th><th>騎乗</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>';
-    Object.keys(d.byDist).sort(function(a,b){ return klDistRank(a) - klDistRank(b); }).forEach(function(k){ var x = d.byDist[k]; h += '<tr><td>' + k + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + x.place + '</td><td>' + x.show + '</td><td>' + (x.rides - x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
+    Object.keys(d.byDist).sort(function(a,b){ return klDistRank(a) - klDistRank(b); }).forEach(function(k){ var x = d.byDist[k]; h += '<tr><td>' + k + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.place-x.win) + '</td><td>' + (x.show-x.place) + '</td><td>' + (x.rides - x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
     h += '</tbody></table></div>';
     var trk = Object.keys(d.byTrack || {}).map(function(k){ return { k:k, v:d.byTrack[k] }; }).sort(function(a,b){ return b.v.win - a.v.win; }).slice(0, 12);
     h += '<div class="small" style="margin-top:8px"><u>競馬場別（累計・上位12）</u></div>';
@@ -35238,8 +35238,8 @@ function jdbShowDetail(d, kind){
     }
     h += '</div>';
     h += '<div class="jdb-sec"><b>■ 成績分析</b>';
-    function anRow(label, st){ if (!st) return ''; var roi = st.rides?Math.round((st.winPrize||0)/st.rides):0; return '<tr><td>' + label + '</td><td>' + st.rides + '</td><td>' + st.win + '</td><td>' + (st.rides?(st.win/st.rides*100).toFixed(1):0) + '%</td><td>' + (st.rides?(st.place/st.rides*100).toFixed(1):0) + '%</td><td>' + (st.rides?(st.show/st.rides*100).toFixed(1):0) + '%</td><td>' + roi + '</td></tr>'; }
-    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>区分</th><th>騎乗</th><th>1着</th><th>勝率</th><th>連対率</th><th>複勝率</th><th>単勝回収(概算)</th></tr></thead><tbody>';
+    function anRow(label, st){ if (!st) return ''; return '<tr><td>' + label + '</td><td>' + st.rides + '</td><td>' + st.win + '</td><td>' + (st.rides?(st.win/st.rides*100).toFixed(1):0) + '%</td><td>' + (st.rides?(st.place/st.rides*100).toFixed(1):0) + '%</td><td>' + (st.rides?(st.show/st.rides*100).toFixed(1):0) + '%</td></tr>'; }
+    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>区分</th><th>騎乗</th><th>1着</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>';
     h += anRow('全体', d);
     h += anRow('芝', d.bySurf.turf);
     h += anRow('ダート', d.bySurf.dirt);
@@ -35407,9 +35407,9 @@ function hkHorseParseResults(html){
     if (cells.length < 15) continue;
     var date = cells[0] || '', venue = cells[1] || '', rnum = (cells[3]||'').replace(/[^0-9]/g,''), rname = cells[4] || '';
     var od = cells[8] || '', pop = (cells[9]||'').replace(/[^0-9]/g,''), order = (cells[10]||'').replace(/[^0-9]/g,''), jockey = cells[11] || '', weight = cells[12] || '';
-    var dist = cells[13] || '', surf = /ダ/.test(dist||'') ? 'ダ' : '芝', time = cells[15] || '', diff = cells[16] || '';
+      var dist = cells[13] || '', surf = /ダ/.test(dist||'') ? 'ダ' : '芝', time = cells[15] || '', diff = cells[16] || '', agari = cells[17] || '';
     if (!order) continue;
-    rows.push({ date: date, place: venue, rnum: rnum, name: rname, dist: dist.replace(/[^\x00-\x7F]/g,''), surf: surf, order: parseInt(order,10)||0, odds: od, pop: parseInt(pop,10)||0, jockey: jockey, weight: weight, time: time, diff: diff });
+      rows.push({ date: date, place: venue, rnum: rnum, name: rname, dist: dist.replace(/[^\x00-\x7F]/g,''), surf: surf, order: parseInt(order,10)||0, odds: od, pop: parseInt(pop,10)||0, jockey: jockey, weight: weight, time: time, diff: diff, agari: agari });
   }
   return rows;
 }
@@ -35466,9 +35466,14 @@ function hkHorseFetchNetkeiba(name, idHint, cb){
     }).catch(function(){ cb(null); });
   } catch(e){ cb(null); }
 }
+function hkOrderBg(o){ o = parseInt(o, 10); if (o === 1) return 'background:#ffe082;color:#5b4500'; if (o === 2) return 'background:#90caf9;color:#0d3a5c'; if (o === 3) return 'background:#ef9a9a;color:#5c0d0d'; return ''; }
+function hkGradeBadge(name){ if (!name) return ''; return String(name).replace(/(G1|G2|G3|GⅠ|GⅡ|GⅢ)/g, function(m){ var c = m.replace('Ⅰ','1').replace('Ⅱ','2').replace('Ⅲ','3'); return '<span style="background:var(--g'+c+');color:#fff;padding:0 3px;border-radius:3px;font-weight:700">'+m+'</span>'; }); }
+function hkAgariBg(a, mn, mx){ var m = String(a||'').match(/[\d.]+/); if (!m) return ''; var v = parseFloat(m[0]); if (mn != null && v <= mn) return 'background:#bbf7d0;color:#064e2c'; if (mx != null && v >= mx) return 'background:#fecaca;color:#5c0d0d'; return ''; }
 function jdbShowHorseMerged(d, nk){
   var p = nk.prof || {};
   var rcs = nk.races || [];
+  var ags = rcs.map(function(r){ var m = String(r.agari||'').match(/[\d.]+/); return m ? parseFloat(m[0]) : null; }).filter(function(x){ return x != null; });
+  var agMin = ags.length ? Math.min.apply(null, ags) : null, agMax = ags.length ? Math.max.apply(null, ags) : null;
   var h = '';
   h += '<div style="padding-right:24px"><h3 style="margin:0">' + esc(d.name || '') + '</h3>';
   h += '<div class="muted small">競走馬・netkeiba DB から取得（出走歴 ' + rcs.length + ' 件・キャッシュ保存済）</div></div>';
@@ -35483,8 +35488,8 @@ function jdbShowHorseMerged(d, nk){
   h += '<div class="jdb-sec"><b>■ 戦績詳細（netkeiba・過去データ/海外含む）</b>';
   if (!rcs.length){ h += '<div class="small muted">出走歴がありません。</div>'; }
   else {
-    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>日付</th><th>場</th><th>R</th><th>レース名</th><th>距離</th><th>馬場</th><th>着順</th><th>単勝</th><th>人気</th><th>騎手</th><th>斤量</th><th>タイム</th><th>着差</th></tr></thead><tbody>';
-    rcs.slice(0,120).forEach(function(r){ h += '<tr><td>' + esc(r.date||'') + '</td><td>' + esc(r.place||'') + '</td><td>' + esc(r.rnum||'') + '</td><td>' + esc(r.name||'') + '</td><td>' + esc(r.dist||'') + '</td><td>' + esc(r.surf||'') + '</td><td' + (r.order===1?' style="color:var(--ok-ink);font-weight:700"':'') + '>' + esc(r.order||'') + '</td><td>' + esc(r.odds||'') + '</td><td>' + esc(r.pop||'') + '</td><td>' + esc(r.jockey||'') + '</td><td>' + esc(r.weight||'') + '</td><td>' + esc(r.time||'') + '</td><td>' + esc(r.diff||'') + '</td></tr>'; });
+    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>日付</th><th>場</th><th>R</th><th>レース名</th><th>距離</th><th>馬場</th><th>着順</th><th>単勝</th><th>人気</th><th>騎手</th><th>斤量</th><th>タイム</th><th>着差</th><th>上がり</th></tr></thead><tbody>';
+    rcs.slice(0,120).forEach(function(r){ h += '<tr><td>' + esc(r.date||'') + '</td><td>' + esc(r.place||'') + '</td><td>' + esc(r.rnum||'') + '</td><td>' + hkGradeBadge(r.name||'') + '</td><td>' + esc(r.dist||'') + '</td><td>' + esc(r.surf||'') + '</td><td style="' + hkOrderBg(r.order) + '">' + esc(r.order||'') + '</td><td>' + esc(r.odds||'') + '</td><td>' + esc(r.pop||'') + '</td><td>' + esc(r.jockey||'') + '</td><td>' + esc(r.weight||'') + '</td><td>' + esc(r.time||'') + '</td><td>' + esc(r.diff||'') + '</td><td style="' + hkAgariBg(r.agari, agMin, agMax) + '">' + esc(r.agari||'') + '</td></tr>'; });
     h += '</tbody></table></div>';
   }
   h += '</div>';
