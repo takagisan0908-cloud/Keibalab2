@@ -34904,6 +34904,7 @@ function klFetchAllDetails(kind, onProgress){
    外部サイト(keibalab/netkeiba)を経由せず、diLs() のレース行(r.jockey/r.trainer/r.order/meta 等)から集計する。
    集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
 var klDbCache = null;
+var KL_STATS_V = 3;
 function klDistBand(d){ var n = parseInt(String(d).replace(/[^0-9]/g, ''), 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
 function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
 function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
@@ -34966,13 +34967,13 @@ function klBuildFromDb(){
       }
     });
   });
-  var res = { jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
+  var res = { v: KL_STATS_V, jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
   klDbCache = res;
   try { if (typeof localStorage !== 'undefined') localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
   return res;
 }
 function klStatsOf(kind, name){
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
   if (!klDbCache) klDbCache = klBuildFromDb();
   var map = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
   return (name != null && map && map[name]) ? map[name] : null;
@@ -35074,7 +35075,7 @@ function jdbSortCmp(a, b){
 }
 function jdbSearch(){
   var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
   if (!klDbCache) klDbCache = klBuildFromDb();
   var q = klStr(($('jdbQuery') || {}).value || '');
   jdbHits = [];
@@ -35140,7 +35141,7 @@ function jdbBuildDropdown(){
   var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
   var row = $('jdbSelRow'); if (row) row.style.display = (target === 'horse' || target === 'race') ? 'none' : '';
   if (target === 'horse' || target === 'race') return;
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
   if (!klDbCache) klDbCache = klBuildFromDb();
   var kind = (target === 'trainer') ? 'trainer' : 'jockey';
   var map = (kind === 'trainer') ? klDbCache.trainer : klDbCache.jockey;
@@ -35250,7 +35251,7 @@ function jdbShowDetail(d, kind){
   var nkq = encodeURIComponent(d.name || '');
   h += '<div class="small" style="margin-top:10px"><a href="https://db.netkeiba.com/?pid=horse_list&word=' + nkq + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を検索</a></div>';
   jdbModalOpen(h);
-  try { hkHorseFetchNetkeiba(d.name, function(nk){ if (nk && nk.races && nk.races.length) jdbShowHorseMerged(d, nk); }); } catch(e){}
+  try { hkHorseFetchNetkeiba(d.name, function(nk){ if (nk) jdbShowHorseMerged(d, nk); }); } catch(e){}
 }
 function jdbOpenDetail(id, kind, force){
   id = klId(id);
@@ -35412,29 +35413,42 @@ function hkHorseParseResults(html){
   }
   return rows;
 }
+function bfRelayGet(url){
+  return new Promise(function(res, rej){
+    var cands = (typeof nkRelayCandidates === 'function') ? nkRelayCandidates() : [];
+    var i = 0;
+    function nxt(){
+      if (i >= cands.length){ rej(new Error('relay none')); return; }
+      var b = cands[i++];
+      var full = (typeof nkRelayBuild === 'function') ? nkRelayBuild(b, url) : '';
+      if (!full){ nxt(); return; }
+      (typeof nkFetchTimeout === 'function' ? nkFetchTimeout(full, 30000) : Promise.reject(new Error('no fetch')))
+        .then(function(t){ if (!t || t.length < 400) nxt(); else res(t); })
+        .catch(function(){ nxt(); });
+    }
+    nxt();
+  });
+}
 function hkHorseFetchNetkeiba(name, cb){
   var cached = hkHorseCacheGet(name);
   if (cached){ cb(cached); return; }
   try {
     var q = encodeURIComponent(name);
     var sUrl = 'https://db.netkeiba.com/?pid=horse_list&word=' + q;
-    var sp = (typeof bfGet === 'function') ? bfGet(sUrl) : null;
-    if (!sp || !sp.then){ cb(null); return; }
-    sp.then(function(sh){
+    bfRelayGet(sUrl).then(function(sh){
       var idm = sh.match(/\/horse\/(\d+)\//);
       if (!idm){ cb(null); return; }
       var id = idm[1];
       var pUrl = 'https://db.netkeiba.com/horse/' + id + '/';
       var rUrl = 'https://db.netkeiba.com/horse/' + id + '/result/';
-      var pp = (typeof bfGet === 'function') ? bfGet(pUrl) : Promise.resolve('');
-      var rp = (typeof bfGet === 'function') ? bfGet(rUrl) : Promise.resolve('');
-      Promise.all([pp, rp]).then(function(rs){
-        var prof = hkHorseParsePairs(rs[0] || '');
-        var races = hkHorseParseResults(rs[1] || '');
-        var obj = { name: name, prof: prof, races: races, fetchedAt: Date.now() };
-        hkHorseCacheSet(name, obj);
-        cb(obj);
-      }).catch(function(){ cb(null); });
+      Promise.all([bfRelayGet(pUrl).catch(function(){ return ''; }), bfRelayGet(rUrl).catch(function(){ return ''; })])
+        .then(function(rs){
+          var prof = hkHorseParsePairs(rs[0] || '');
+          var races = hkHorseParseResults(rs[1] || '');
+          var obj = { name: name, prof: prof, races: races, fetchedAt: Date.now() };
+          hkHorseCacheSet(name, obj);
+          cb(obj);
+        }).catch(function(){ cb(null); });
     }).catch(function(){ cb(null); });
   } catch(e){ cb(null); }
 }
