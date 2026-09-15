@@ -4557,7 +4557,13 @@ var WEIGHT_DEFS = [
      p5_engine の中で mark の重みを常に 0 にしています。 */
 ];
 
-function currentAnalysis(){ return analyzeRace(); }
+var _caSig = '', _caRes = null;
+function currentAnalysis(){
+  var biasKey = (state && state.biasV && state.biasV.frontScore != null) ? state.biasV.frontScore : '';
+  var sig = (state.raceId||'') + '|' + (state.horses||[]).map(function(h){ return [h.no,h.odds,h.yobi,h.time,h.style,h.slow,(h.pop||''),h.name].join(','); }).join(';') + '|' + (state.biasOverride||'') + '|' + (state.paceOverride||'') + '|' + biasKey;
+  if (sig === _caSig && _caRes) return _caRes;
+  _caSig = sig; _caRes = analyzeRace(); return _caRes;
+}
 
 /* ★2026-09-13 第24弾④a: ⏱持ちタイム セルの表示ヘルパ
    以前は (1) 馬柱ベースのとき「時計(距離)」を出すが、距離が今回と大きく違っていても
@@ -4698,6 +4704,7 @@ function renderPaceUI(pace){
   var f = $('favFlow'); if (f) f.innerHTML = esc(pace.fav);
 }
 
+var _kentaiSig = ''; var _kentaiRes = null;
 function renderKentaiFull(){
   var has = state.horses.length > 0;
   $('kentaiEmpty').style.display = has ? 'none' : '';
@@ -4706,7 +4713,14 @@ function renderKentaiFull(){
   buildWeightSliders();
   if (typeof renderBiasCard === 'function') renderBiasCard();
   if (typeof renderLearnCard === 'function') renderLearnCard();
-  var res = currentAnalysis();
+  var sig = (state.raceId||'') + '|' + (state.horses||[]).map(function(h){ return [h.no,h.odds,h.yobi,h.time,h.style,h.slow,(h.pop||'')].join(','); }).join(';') + '|' + (state.biasOverride||'') + '|' + (state.paceOverride||'');
+  var res;
+  if (sig === _kentaiSig && _kentaiRes){ res = _kentaiRes; }
+  else {
+    res = currentAnalysis();
+    _kentaiSig = sig; _kentaiRes = res;
+    try { if (typeof apSnapPred === 'function' && state && state.raceId){ apSnapPred(String(state.raceId), res); } } catch(e){}
+  }
   renderPaceUI(res.pace);
   renderTables(res);
   if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }
@@ -4715,10 +4729,7 @@ function renderKentaiFull(){
      結果が確定しているレースは apSnapPred 側で必ず断るので、いかさまにはなりません。
      同じ内容（馬番:印:オッズ が一致）なら書き直さないため、保存回数は増えません。 */
   try {
-    if (typeof apSnapPred === 'function' && state && state.raceId){
-      apSnapPred(String(state.raceId), res);
-      if (typeof preRenderCount === 'function') preRenderCount();
-    }
+    if (typeof preRenderCount === 'function'){ try { preRenderCount(); } catch(e){} }
   } catch(e){}
 }
 function renderTables(res){
@@ -34893,7 +34904,7 @@ function klFetchAllDetails(kind, onProgress){
    外部サイト(keibalab/netkeiba)を経由せず、diLs() のレース行(r.jockey/r.trainer/r.order/meta 等)から集計する。
    集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
 var klDbCache = null;
-function klDistBand(d){ var n = parseInt(d, 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
+function klDistBand(d){ var n = parseInt(String(d).replace(/[^0-9]/g, ''), 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
 function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
 function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
 function klAcc(o, k){ return o[k] || (o[k] = { rides: 0, win: 0, place: 0, show: 0, winPrize: 0 }); }
@@ -34903,9 +34914,9 @@ function klStatAdd(s, order, surf, track, distB, pop, prize, pace, year, partner
   if (order <= 2) s.place++;
   if (order <= 3) s.show++;
   var sm = (surf === 'ダ' || surf === 'ダート') ? 'dirt' : (surf === '障害') ? 'jump' : 'turf';
-  klAcc(s.bySurf, sm); s.bySurf[sm].rides++; if (order === 1) s.bySurf[sm].win++;
-  if (track){ klAcc(s.byTrack, track); s.byTrack[track].rides++; if (order === 1) s.byTrack[track].win++; }
-  if (distB){ klAcc(s.byDist, distB); s.byDist[distB].rides++; if (order === 1) s.byDist[distB].win++; }
+  klAcc(s.bySurf, sm); s.bySurf[sm].rides++; if (order === 1) s.bySurf[sm].win++; if (order <= 2) s.bySurf[sm].place++; if (order <= 3) s.bySurf[sm].show++;
+  if (track){ klAcc(s.byTrack, track); s.byTrack[track].rides++; if (order === 1) s.byTrack[track].win++; if (order <= 2) s.byTrack[track].place++; if (order <= 3) s.byTrack[track].show++; }
+  if (distB){ klAcc(s.byDist, distB); s.byDist[distB].rides++; if (order === 1) s.byDist[distB].win++; if (order <= 2) s.byDist[distB].place++; if (order <= 3) s.byDist[distB].show++; }
   if (year){ klAcc(s.byYear, year); s.byYear[year].rides++; if (order === 1) s.byYear[year].win++; if (order <= 2) s.byYear[year].place++; if (order <= 3) s.byYear[year].show++; }
   if (partner){ var bp = klAcc(s.byPartner, partner); bp.rides++; if (order === 1) bp.win++; if (order <= 2) bp.place++; if (order <= 3) bp.show++; if (prize) bp.winPrize += prize; }
   if (isGr){ s.gr.rides++; if (order === 1) s.gr.win++; if (order <= 2) s.gr.place++; if (order <= 3) s.gr.show++; }
@@ -35237,8 +35248,9 @@ function jdbShowDetail(d, kind){
     h += '</div>';
   }
   var nkq = encodeURIComponent(d.name || '');
-  h += '<div class="small" style="margin-top:10px"><a href="https://db.netkeiba.com/?pid=jockey_list&word=' + nkq + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を検索</a></div>';
+  h += '<div class="small" style="margin-top:10px"><a href="https://db.netkeiba.com/?pid=horse_list&word=' + nkq + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を検索</a></div>';
   jdbModalOpen(h);
+  try { hkHorseFetchNetkeiba(d.name, function(nk){ if (nk && nk.races && nk.races.length) jdbShowHorseMerged(d, nk); }); } catch(e){}
 }
 function jdbOpenDetail(id, kind, force){
   id = klId(id);
@@ -35372,6 +35384,86 @@ function dbMacroRun(){
   }
   next();
 }
+/* 競走馬詳細: netkeiba DB から同名馬を検索して全データを取得・キャッシュ */
+var HK_HORSE_CACHE = {};
+function hkHorseCacheLoad(){ if (!HK_HORSE_CACHE._l){ try { HK_HORSE_CACHE = JSON.parse(localStorage.getItem('khl_horse_cache') || '{}'); } catch(e){ HK_HORSE_CACHE = {}; } HK_HORSE_CACHE._l = 1; } return HK_HORSE_CACHE; }
+function hkHorseCacheGet(name){ var c = hkHorseCacheLoad(); return c[name] || null; }
+function hkHorseCacheSet(name, obj){ var c = hkHorseCacheLoad(); c[name] = obj; try { localStorage.setItem('khl_horse_cache', JSON.stringify(c)); } catch(e){} }
+function hkHorseParsePairs(html){
+  var map = {};
+  var re = /<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/gi, m;
+  while ((m = re.exec(html))){ var k = bfStrip(m[1]); var v = bfStrip(m[2]); if (k) map[k] = v; }
+  return map;
+}
+function hkHorseParseResults(html){
+  var rows = [];
+  var tbls = html.match(/<table[^>]*class="[^"]*(?:race_table_01|nk_table|db_h_race)[^"]*"[\s\S]*?<\/table>/gi) || [];
+  var tbl = tbls[tbls.length - 1] || '';
+  if (!tbl){ var all = html.match(/<table[\s\S]*?<\/table>/gi) || []; tbl = all[all.length - 1] || ''; }
+  var trs = tbl.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+  for (var i = 1; i < trs.length; i++){
+    var cells = (trs[i].match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || []).map(function(c){ return bfStrip(c.replace(/<[^>]*>/g, ' ')); });
+    if (cells.length < 15) continue;
+    var date = cells[0] || '', venue = cells[1] || '', rnum = (cells[3]||'').replace(/[^0-9]/g,''), rname = cells[4] || '';
+    var od = cells[8] || '', pop = (cells[9]||'').replace(/[^0-9]/g,''), order = (cells[10]||'').replace(/[^0-9]/g,''), jockey = cells[11] || '', weight = cells[12] || '';
+    var dist = cells[13] || '', surf = /ダ/.test(dist||'') ? 'ダ' : '芝', time = cells[15] || '', diff = cells[16] || '';
+    if (!order) continue;
+    rows.push({ date: date, place: venue, rnum: rnum, name: rname, dist: dist.replace(/[^\x00-\x7F]/g,''), surf: surf, order: parseInt(order,10)||0, odds: od, pop: parseInt(pop,10)||0, jockey: jockey, weight: weight, time: time, diff: diff });
+  }
+  return rows;
+}
+function hkHorseFetchNetkeiba(name, cb){
+  var cached = hkHorseCacheGet(name);
+  if (cached){ cb(cached); return; }
+  try {
+    var q = encodeURIComponent(name);
+    var sUrl = 'https://db.netkeiba.com/?pid=horse_list&word=' + q;
+    var sp = (typeof bfGet === 'function') ? bfGet(sUrl) : null;
+    if (!sp || !sp.then){ cb(null); return; }
+    sp.then(function(sh){
+      var idm = sh.match(/\/horse\/(\d+)\//);
+      if (!idm){ cb(null); return; }
+      var id = idm[1];
+      var pUrl = 'https://db.netkeiba.com/horse/' + id + '/';
+      var rUrl = 'https://db.netkeiba.com/horse/' + id + '/result/';
+      var pp = (typeof bfGet === 'function') ? bfGet(pUrl) : Promise.resolve('');
+      var rp = (typeof bfGet === 'function') ? bfGet(rUrl) : Promise.resolve('');
+      Promise.all([pp, rp]).then(function(rs){
+        var prof = hkHorseParsePairs(rs[0] || '');
+        var races = hkHorseParseResults(rs[1] || '');
+        var obj = { name: name, prof: prof, races: races, fetchedAt: Date.now() };
+        hkHorseCacheSet(name, obj);
+        cb(obj);
+      }).catch(function(){ cb(null); });
+    }).catch(function(){ cb(null); });
+  } catch(e){ cb(null); }
+}
+function jdbShowHorseMerged(d, nk){
+  var p = nk.prof || {};
+  var rcs = nk.races || [];
+  var h = '';
+  h += '<div style="padding-right:24px"><h3 style="margin:0">' + esc(d.name || '') + '</h3>';
+  h += '<div class="muted small">競走馬・netkeiba DB から取得（出走歴 ' + rcs.length + ' 件・キャッシュ保存済）</div></div>';
+  h += '<div class="jdb-sec"><b>■ プロフィール</b><div class="small">';
+  h += '生年月日: ' + (p['生年月日']||'―') + '<br>';
+  h += '調教師: ' + (p['調教師']||'―') + '<br>';
+  h += '馬主: ' + (p['馬主']||'―') + '<br>';
+  h += '生産者: ' + (p['生産者']||'―') + '<br>';
+  h += '通算成績: ' + (p['通算成績']||'―') + '<br>';
+  h += '獲得賞金: ' + (p['獲得賞金']||'―') + '<br>';
+  h += '主な勝鞍: ' + (p['主な勝鞍']||'―') + '</div></div>';
+  h += '<div class="jdb-sec"><b>■ 戦績詳細（netkeiba・過去データ/海外含む）</b>';
+  if (!rcs.length){ h += '<div class="small muted">出走歴がありません。</div>'; }
+  else {
+    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>日付</th><th>場</th><th>R</th><th>レース名</th><th>距離</th><th>馬場</th><th>着順</th><th>単勝</th><th>人気</th><th>騎手</th><th>斤量</th><th>タイム</th><th>着差</th></tr></thead><tbody>';
+    rcs.slice(0,120).forEach(function(r){ h += '<tr><td>' + esc(r.date||'') + '</td><td>' + esc(r.place||'') + '</td><td>' + esc(r.rnum||'') + '</td><td>' + esc(r.name||'') + '</td><td>' + esc(r.dist||'') + '</td><td>' + esc(r.surf||'') + '</td><td' + (r.order===1?' style="color:var(--ok-ink);font-weight:700"':'') + '>' + esc(r.order||'') + '</td><td>' + esc(r.odds||'') + '</td><td>' + esc(r.pop||'') + '</td><td>' + esc(r.jockey||'') + '</td><td>' + esc(r.weight||'') + '</td><td>' + esc(r.time||'') + '</td><td>' + esc(r.diff||'') + '</td></tr>'; });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+  var nkq = encodeURIComponent(d.name || '');
+  h += '<div class="small" style="margin-top:10px"><a href="https://db.netkeiba.com/?pid=horse_list&word=' + nkq + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を検索</a></div>';
+  jdbModalOpen(h);
+}
 function jockeyDbInit(){
   var btn;
   if ((btn = $('jdbBuild'))) btn.addEventListener('click', function(){ jdbBuildRegistry(); });
@@ -35389,6 +35481,7 @@ function jockeyDbInit(){
   if (q) q.addEventListener('keydown', function(e){ if (e.key === 'Enter') jdbSearch(); });
   if ((btn = $('jdbSel'))) btn.addEventListener('change', jdbOnSelect);
   var so = $('jdbSort'); if (so) so.addEventListener('change', function(){ if (jdbHits && jdbHits.length) jdbRenderList(); });
+  var jt = $('jdbTarget'); if (jt) jt.addEventListener('change', function(){ var q = $('jdbQuery'); if (q) q.value = ''; if (typeof jdbBuildDropdown === 'function') jdbBuildDropdown(); });
   if ((btn = $('jdbDebug'))) btn.addEventListener('click', jdbDebugFetch);
   var kd = $('jdbKind');
   if (kd) kd.addEventListener('change', function(){ jdbRefreshStat(); jdbSearch(); });
