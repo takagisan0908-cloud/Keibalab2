@@ -34904,7 +34904,7 @@ function klFetchAllDetails(kind, onProgress){
    外部サイト(keibalab/netkeiba)を経由せず、diLs() のレース行(r.jockey/r.trainer/r.order/meta 等)から集計する。
    集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
 var klDbCache = null;
-var KL_STATS_V = 3;
+var KL_STATS_V = 4;
 function klDistBand(d){ var n = parseInt(String(d).replace(/[^0-9]/g, ''), 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
 function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
 function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
@@ -35251,7 +35251,7 @@ function jdbShowDetail(d, kind){
   var nkq = encodeURIComponent(d.name || '');
   h += '<div class="small" style="margin-top:10px"><a href="https://db.netkeiba.com/?pid=horse_list&word=' + nkq + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を検索</a></div>';
   jdbModalOpen(h);
-  try { hkHorseFetchNetkeiba(d.name, function(nk){ if (nk) jdbShowHorseMerged(d, nk); }); } catch(e){}
+  try { hkHorseFetchNetkeiba(d.name, hkHorseIdFromDb(d.name), function(nk){ if (nk) jdbShowHorseMerged(d, nk); }); } catch(e){}
 }
 function jdbOpenDetail(id, kind, force){
   id = klId(id);
@@ -35429,26 +35429,40 @@ function bfRelayGet(url){
     nxt();
   });
 }
-function hkHorseFetchNetkeiba(name, cb){
+function hkHorseIdFromDb(name){
+  try {
+    var db = (typeof diLs === 'function') ? diLs() : null;
+    var races = (db && db.races) || {};
+    var nm = String(name || '').trim();
+    var hit = null;
+    Object.keys(races).some(function(rid){
+      var rows = (races[rid] && races[rid].rows) || [];
+      return rows.some(function(r){ if (String(r.name || '') === nm && r.nk){ hit = r.nk; return true; } return false; });
+    });
+    return hit;
+  } catch(e){ return null; }
+}
+function hkHorseFetchNetkeiba(name, idHint, cb){
   var cached = hkHorseCacheGet(name);
   if (cached){ cb(cached); return; }
+  var go = function(id){
+    if (!id){ cb(null); return; }
+    var pUrl = 'https://db.netkeiba.com/horse/' + id + '/';
+    var rUrl = 'https://db.netkeiba.com/horse/' + id + '/result/';
+    Promise.all([bfRelayGet(pUrl).catch(function(){ return ''; }), bfRelayGet(rUrl).catch(function(){ return ''; })])
+      .then(function(rs){
+        var prof = hkHorseParsePairs(rs[0] || '');
+        var races = hkHorseParseResults(rs[1] || '');
+        var obj = { name: name, prof: prof, races: races, fetchedAt: Date.now() };
+        hkHorseCacheSet(name, obj);
+        cb(obj);
+      }).catch(function(){ cb(null); });
+  };
+  if (idHint){ go(idHint); return; }
   try {
     var q = encodeURIComponent(name);
-    var sUrl = 'https://db.netkeiba.com/?pid=horse_list&word=' + q;
-    bfRelayGet(sUrl).then(function(sh){
-      var idm = sh.match(/\/horse\/(\d+)\//);
-      if (!idm){ cb(null); return; }
-      var id = idm[1];
-      var pUrl = 'https://db.netkeiba.com/horse/' + id + '/';
-      var rUrl = 'https://db.netkeiba.com/horse/' + id + '/result/';
-      Promise.all([bfRelayGet(pUrl).catch(function(){ return ''; }), bfRelayGet(rUrl).catch(function(){ return ''; })])
-        .then(function(rs){
-          var prof = hkHorseParsePairs(rs[0] || '');
-          var races = hkHorseParseResults(rs[1] || '');
-          var obj = { name: name, prof: prof, races: races, fetchedAt: Date.now() };
-          hkHorseCacheSet(name, obj);
-          cb(obj);
-        }).catch(function(){ cb(null); });
+    bfRelayGet('https://db.netkeiba.com/?pid=horse_list&word=' + q).then(function(sh){
+      var idm = sh.match(/\/horse\/(\d+)\//); go(idm ? idm[1] : null);
     }).catch(function(){ cb(null); });
   } catch(e){ cb(null); }
 }
