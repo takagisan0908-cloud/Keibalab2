@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>競馬AIラボ｜展開予想・AI印・レースシミュレーター</title>
 <meta name="description" content="競馬AIラボ — 展開予想・AI印・レースシミュレーター。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
-<meta name="theme-color" content="#121212">
+<meta name="theme-color" content="#0b3a2a">
 <meta name="color-scheme" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -713,7 +713,7 @@ table.htbl th, table.htbl td{border:1px solid var(--line2);padding:4px 7px}
    ・html[data-theme="light"] で従来のライトテーマ（右上の ☀️/🌙 で切替・記憶）
    ・1024px以上：左メニューを常時表示（Spotifyのサイドバー風）、タブバーは非表示
    ========================================================================== */
-html{color-scheme:dark}
+html{color-scheme:light}
 html[data-theme="light"]{color-scheme:light}
 body{
   background:var(--bg);
@@ -900,6 +900,10 @@ html[data-theme="light"] .btn.primary{border-color:transparent}
 html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#0d8f4e;border-color:var(--line2);box-shadow:0 -2px 8px rgba(30,70,40,.10)}
 /* 上部にほんのり明るさ（Spotifyのメインビュー風） */
 body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repeat,var(--bg)}
+/* 🌍海外競馬: 検索候補 */
+.ovcand{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:6px}
+.ovcbtn{display:block;width:100%;padding:10px 12px;line-height:1.5;white-space:normal;height:auto}
+.ovcbtn:hover{border-color:var(--g3);background:#f2fbf5}
 
 </style>
 
@@ -915,7 +919,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   </div>
   <div class="hd">
     <span class="savest" id="saveState"></span>
-    <button type="button" class="btn" id="btnTheme" title="テーマ切替（Spotify風ダーク／ライト）">🌙 ダーク</button>
+
     <button class="btn" id="btnNew">＋ 新規レース</button>
     <button class="btn" id="btnExport">保存(JSON)</button>
     <button class="btn" id="btnImportB">読込(JSON)</button>
@@ -944,6 +948,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
   <button class="tab" data-t="t-tenki">⑦ 天気予報</button>
   <button class="tab" data-t="t-database">🗄 データベース</button>
+  <button class="tab" data-t="t-aiprop">🤖 AI提案</button>
+  <button class="tab" data-t="t-overseas">🌍 海外競馬</button>
 </nav>
 
 <main>
@@ -2633,6 +2639,26 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
 </footer>
 
+<section class="page" id="t-aiprop">
+  <h2>🤖 AI提案</h2>
+  <div class="card"><div class="small">回収率100%超を目指す価値馬抽出・分析。EV(期待値)=自前統計勝率×平均倍率、人気乖離=実力−人気期待。緑色＝買いの価値あり。複勝は単勝より市場効率が高く取りやすい傾向。</div></div>
+  <div id="aipropBody"></div>
+</section>
+<section class="page" id="t-overseas">
+  <h2>🌍 海外競馬</h2>
+  <div class="card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="ovDetect" class="btn primary">🔍 出馬表検出（レース開催チェック）</button>
+      <span class="muted small">直近2週間以内に開催される海外発売レースを検索候補として表示します</span>
+    </div>
+    <div class="muted small" style="margin-top:6px">
+      検出元: <code>jra.go.jp/keiba/overseas/racelist/</code>（JRA海外競馬・発売レース表）／
+      出馬表・馬柱: <code>/JRADB/accessSD.html</code>（JRA公式）／
+      オッズ: <code>world.jra-van.jp/archive/</code>（JRAオッズ＋Morning Line）
+    </div>
+  </div>
+  <div id="ovBody"></div>
+</section>
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
 <script>
 /* ===== src/cimg から自動埋め込みされたコース画像(dataURI) ===== */
@@ -19412,6 +19438,8 @@ var NAV_ITEMS = [
   { t:'t-sim',      icon:'🏇', name:'レースシミュレーター',  sub:'着順サンプル・📊合計集計（出遅れ率・脚質のブレを反映）' },
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
   { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・年指定自動取込' },
+  { t:'t-aiprop',   icon:'🤖', name:'AI提案',                sub:'価値馬・EV・人気乖離・条件別鮮度' },
+  { t:'t-overseas', icon:'🌍', name:'海外競馬',              sub:'JRA-VAN海外レースの出馬表・馬詳細・戦績' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
   { t:'t-tenki',    icon:'☀️', name:'天気予報',                sub:'当日開催場の1時間ごと天気（気温・湿度・降水・風）' }
@@ -19485,7 +19513,7 @@ function initNav(){
    ========================================================= */
 var THEME_KEY = 'khl_theme_v1';
 function themeGet(){
-  try { return (localStorage.getItem(THEME_KEY) === 'light') ? 'light' : 'dark'; }
+  try { return (localStorage.getItem(THEME_KEY) === 'dark') ? 'dark' : 'light'; }
   catch(e){ return 'dark'; }
 }
 function themeApply(mode){
@@ -34910,9 +34938,9 @@ var klDbCache = null;
 var KL_STATS_V = 4;
 function klDistBand(d){ var n = parseInt(String(d).replace(/[^0-9]/g, ''), 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
 function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
-function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
+function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byDistEx: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
 function klAcc(o, k){ return o[k] || (o[k] = { rides: 0, win: 0, place: 0, show: 0, winPrize: 0 }); }
-function klStatAdd(s, order, surf, track, distB, pop, prize, pace, year, partner, isGr, raceRec){
+function klStatAdd(s, order, surf, track, distB, distEx, pop, prize, pace, year, partner, isGr, raceRec){
   s.rides++;
   if (order === 1) s.win++;
   if (order <= 2) s.place++;
@@ -34921,7 +34949,8 @@ function klStatAdd(s, order, surf, track, distB, pop, prize, pace, year, partner
   klAcc(s.bySurf, sm); s.bySurf[sm].rides++; if (order === 1) s.bySurf[sm].win++; if (order <= 2) s.bySurf[sm].place++; if (order <= 3) s.bySurf[sm].show++;
   if (track){ klAcc(s.byTrack, track); s.byTrack[track].rides++; if (order === 1) s.byTrack[track].win++; if (order <= 2) s.byTrack[track].place++; if (order <= 3) s.byTrack[track].show++; }
   if (distB){ klAcc(s.byDist, distB); s.byDist[distB].rides++; if (order === 1) s.byDist[distB].win++; if (order <= 2) s.byDist[distB].place++; if (order <= 3) s.byDist[distB].show++; }
-  if (year){ klAcc(s.byYear, year); s.byYear[year].rides++; if (order === 1) s.byYear[year].win++; if (order <= 2) s.byYear[year].place++; if (order <= 3) s.byYear[year].show++; }
+  if (distEx){ klAcc(s.byDistEx, distEx); s.byDistEx[distEx].rides++; if (order === 1) s.byDistEx[distEx].win++; if (order <= 2) s.byDistEx[distEx].place++; if (order <= 3) s.byDistEx[distEx].show++; }
+  if (year){ klAcc(s.byYear, year); s.byYear[year].rides++; if (order === 1) s.byYear[year].win++; if (order <= 2) s.byYear[year].place++; if (order <= 3) s.byYear[year].show++; if (!s.byYear[year].byDistEx) s.byYear[year].byDistEx = {}; klAcc(s.byYear[year].byDistEx, distEx); s.byYear[year].byDistEx[distEx].rides++; if (order === 1) s.byYear[year].byDistEx[distEx].win++; if (order <= 2) s.byYear[year].byDistEx[distEx].place++; if (order <= 3) s.byYear[year].byDistEx[distEx].show++; }
   if (partner){ var bp = klAcc(s.byPartner, partner); bp.rides++; if (order === 1) bp.win++; if (order <= 2) bp.place++; if (order <= 3) bp.show++; if (prize) bp.winPrize += prize; }
   if (isGr){ s.gr.rides++; if (order === 1) s.gr.win++; if (order <= 2) s.gr.place++; if (order <= 3) s.gr.show++; }
   s.recent.push(order); if (s.recent.length > 60) s.recent.shift();
@@ -34940,6 +34969,7 @@ function klBuildFromDb(){
     var surf = /障害/.test(meta.surface || '') ? '障害' : (/ダ/.test(meta.surface || '') ? 'ダ' : '芝');
     var track = meta.place || '';
     var distB = klDistBand(meta.dist);
+    var distEx = surf + String(parseInt(String(meta.dist).replace(/[^0-9]/g, ''), 10) || 0) + 'm';
     var year = String(meta.date8 || meta.date || '').slice(0, 4);
     var isGr = !!(meta.grade && meta.grade !== '');
     var prizeOf = {};
@@ -34958,9 +34988,9 @@ function klBuildFromDb(){
       var pace = (rec.xd && rec.xd.pace) ? rec.xd.pace : '';
       var jn = r.jockey, tn = r.trainer, hn = r.name;
       var jr = { date: meta.date8 || meta.date || '', place: track, rnum: meta.rnum || '', name: meta.name || '', dist: meta.dist || '', surf: surf, order: o, odds: r.odds || '', pop: r.pop || '', jockey: jn, trainer: tn, weight: r.weight || '', passing: r.passing || '', last3: r.last3 || '', hw: r.weightChg || '' };
-      if (jn) klStatAdd(get(J, jn), o, surf, track, distB, parseInt(r.pop, 10) || 0, prize, pace, year, tn, isGr, null);
-      if (tn) klStatAdd(get(T, tn), o, surf, track, distB, parseInt(r.pop, 10) || 0, prize, pace, year, jn, isGr, null);
-      if (hn) klStatAdd(get(H, hn), o, surf, track, distB, 0, prize, pace, year, tn, isGr, jr);
+      if (jn) klStatAdd(get(J, jn), o, surf, track, distB, distEx, parseInt(r.pop, 10) || 0, prize, pace, year, tn, isGr, null);
+      if (tn) klStatAdd(get(T, tn), o, surf, track, distB, distEx, parseInt(r.pop, 10) || 0, prize, pace, year, jn, isGr, null);
+      if (hn) klStatAdd(get(H, hn), o, surf, track, distB, distEx, 0, prize, pace, year, tn, isGr, jr);
       if (jn && tn){
         var key = jn + '×' + tn;
         var ps = P[key] || (P[key] = { name: key, jockey: jn, trainer: tn, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, recent: [] });
@@ -35183,6 +35213,16 @@ function jdbPie(seg, size){
   seg.forEach(function(s){ var a0 = acc/total*360, a1 = (acc+s.v)/total*360; stops.push(s.c + ' ' + a0 + 'deg ' + a1 + 'deg'); acc += s.v; });
   return '<span style="display:inline-block;width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:conic-gradient(' + stops.join(',') + ')"></span>';
 }
+var jdbCurD = null;
+function jdbRenderDistEx(d, scope){
+  var map = (scope === 'all') ? (d.byDistEx || {}) : (d.byYear[scope] && d.byYear[scope].byDistEx);
+  var box = document.getElementById('jdbDistExBox');
+  if (!box) return;
+  if (!map || !Object.keys(map).length){ box.innerHTML = '<div class="small muted">該当年の距離別データなし</div>'; return; }
+  var keys = Object.keys(map).sort(function(a,b){ var sa=a.charAt(0), sb=b.charAt(0); if (sa!==sb) return sa<sb?-1:1; return (parseInt(a.replace(/[^0-9]/g,''),10)||0)-(parseInt(b.replace(/[^0-9]/g,''),10)||0); });
+  var rows = keys.map(function(k){ var x = map[k]; return '<tr><td>' + k + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.place-x.win) + '</td><td>' + (x.show-x.place) + '</td><td>' + (x.rides-x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; }).join('');
+  box.innerHTML = '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>距離</th><th>騎乗</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
 function jdbShowDetail(d, kind){
   if (!d){ return; }
   var horse = (kind === 'horse'), trainerKind = (kind === 'trainer');
@@ -35211,9 +35251,9 @@ function jdbShowDetail(d, kind){
     h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>' + partnerKey.replace('別','') + '</th><th>騎乗</th><th>勝利</th><th>勝率</th><th>単勝回収(概算)</th><th>複勝回収(概算)</th></tr></thead><tbody>';
     pts.forEach(function(p){ var x = p.v; var roi = x.rides?Math.round((x.winPrize||0)/x.rides):0; h += '<tr><td>' + esc(p.k) + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + roi + '</td><td>' + roi + '</td></tr>'; });
     h += '</tbody></table></div>';
-    h += '<div class="small" style="margin-top:8px"><u>距離別（累計・全距離帯）</u></div>';
-    h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>距離</th><th>騎乗</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>連対率</th><th>複勝率</th></tr></thead><tbody>';
-    Object.keys(d.byDist).sort(function(a,b){ return klDistRank(a) - klDistRank(b); }).forEach(function(k){ var x = d.byDist[k]; h += '<tr><td>' + k + '</td><td>' + x.rides + '</td><td>' + x.win + '</td><td>' + (x.place-x.win) + '</td><td>' + (x.show-x.place) + '</td><td>' + (x.rides - x.show) + '</td><td>' + (x.rides?(x.win/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.place/x.rides*100).toFixed(1):0) + '%</td><td>' + (x.rides?(x.show/x.rides*100).toFixed(1):0) + '%</td></tr>'; });
+    h += '<div class="small" style="margin-top:8px"><u>距離別（個別距離）</u>　年別: <select id="jdbDistYear" onchange="jdbRenderDistEx(jdbCurD, this.value)"><option value="all">全体</option>' + Object.keys(d.byYear).sort().reverse().map(function(y){ return '<option value="'+y+'">'+y+'</option>'; }).join('') + '</select></div>';
+    h += '<div id="jdbDistExBox"></div>';
+    jdbCurD = d;
     h += '</tbody></table></div>';
     var trk = Object.keys(d.byTrack || {}).map(function(k){ return { k:k, v:d.byTrack[k] }; }).sort(function(a,b){ return b.v.win - a.v.win; }).slice(0, 12);
     h += '<div class="small" style="margin-top:8px"><u>競馬場別（累計・上位12）</u></div>';
@@ -35255,6 +35295,7 @@ function jdbShowDetail(d, kind){
   var nkq = encodeURIComponent(d.name || '');
   h += '<div class="small" style="margin-top:10px"><a href="' + (function(){ var hid=(typeof hkHorseIdFromDb==='function')?hkHorseIdFromDb(d.name):null; return hid?('https://db.netkeiba.com/horse/'+hid+'/'):('https://db.netkeiba.com/?pid=horse_list&word='+encodeURIComponent(d.name||'')); })() + '" target="_blank" rel="noopener">netkeibaで「' + esc(d.name || '') + '」を開く</a></div>';
   jdbModalOpen(h);
+  if (jdbCurD && jdbCurD.byDistEx) jdbRenderDistEx(jdbCurD, 'all');
   try { hkHorseFetchNetkeiba(d.name, hkHorseIdFromDb(d.name), function(nk){ if (nk) jdbShowHorseMerged(d, nk); }, function(st){ try { var el = document.querySelector('#jdbModal #hkStat'); if (el) el.textContent = (st && st.indexOf('err') === 0) ? ('netkeiba取得失敗: ' + st.slice(4)) : (st === 'cached' ? 'netkeiba取得（キャッシュ）完了' : 'netkeiba取得中…'); } catch(e){} }); } catch(e){}
 }
 function jdbOpenDetail(id, kind, force){
@@ -35598,6 +35639,577 @@ function jockeyDbInit(){
 /* タブを開いたときに状況を更新 */
 function jockeyDbOnShow(){ try { jdbRefreshStat(); } catch(e){} }
 
+/* ============================================================
+   🤖 AI提案タブ（回収率改善: 価値馬抽出・EV・人気乖離）
+   ============================================================ */
+var AI_HELP = [
+  { k:'value', t:'① 価値馬抽出',             d:'的中率ではなく期待回収率(EV)が1.0を超える馬を上位に。自前統計の勝率×平均倍率で算出し、緑＝買いの価値あり。' },
+  { k:'ev',    t:'② EV(期待値)計算',         d:'EV = 統計勝率 × 倍率。1.0超で理論的にプラス。単勝・複勝は控除率を考慮（0.80）。' },
+  { k:'gap',   t:'③ 人気乖離（市場とのズレ）', d:'オッズが示す期待勝率より自前統計勝率が高い馬＝市場が過小評価。乖離が大きいほど妙味。' },
+  { k:'fresh', t:'④ 条件別・鮮度付き統計',   d:'距離・馬場・競馬場・脚質・騎手・調教師の条件別に集計。直近の実績ほど重み大（鮮度）。' },
+  { k:'place', t:'⑤ 複勝重視',               d:'単勝より複勝の方が人気馬で市場効率が高く、回収率をプラスにしやすい。複勝EVも表示。' },
+  { k:'risk',  t:'⑥ リスク管理',             d:'ケリー基準で資金配分を提案。1点・1レースの上限を守り破産確率を下げる。' }
+];
+function aiProposalHelpHTML(){
+  return '<details class="card"><summary style="cursor:pointer;padding:6px"><b>ℹ このタブの使い方（各項目の詳細）</b></summary>' +
+    '<dl style="margin:6px 10px;line-height:1.7">' + AI_HELP.map(function(x){ return '<dt style="font-weight:700;margin-top:6px">' + esc(x.t) + '</dt><dd class="muted small">' + esc(x.d) + '</dd>'; }).join('') + '</dl></details>';
+}
+function aiEvOf(prob, odds, kind){
+  if (!prob || !odds) return null;
+  var keep = (kind === 'fuku' || kind === 'wide') ? 0.80 : 0.80;
+  return prob * (odds * keep);
+}
+function aiMarketProb(odds){
+  if (!odds || odds <= 0) return null;
+  var sum = 0;
+  (state.horses || []).forEach(function(h){ var o = parseFloat(h.odds); if (o && o > 0) sum += 1 / o; });
+  var base = sum > 0 ? sum : 1;
+  return (1 / odds) / base;
+}
+function aiStatProb(h){
+  var p = null, n = 0, s = 0;
+  function add(rate, w){
+    if (rate == null) return;
+    var r = (rate > 1 ? rate / 100 : rate);
+    if (r <= 0 || r > 1) return;
+    s += r * w; n += w;
+  }
+  try {
+    var js = (typeof klStatsOf === 'function') ? klStatsOf('jockey', h.jockey) : null;
+    if (js && js.rides >= 20) add(js.win / js.rides, 1);
+    var ts = (typeof klStatsOf === 'function') ? klStatsOf('trainer', h.trainer) : null;
+    if (ts && ts.rides >= 20) add(ts.win / ts.rides, 0.7);
+    var hs = (typeof klStatsOf === 'function') ? klStatsOf('horse', h.name) : null;
+    if (hs && hs.rides >= 5) add(hs.win / hs.rides, 1.3);
+  } catch(e){}
+  if (n > 0) p = s / n;
+  if (p == null){ var o = parseFloat(h.odds); if (o && o > 0) p = aiMarketProb(o); }
+  return p;
+}
+function aiProposalRows(){
+  var hs = (state.horses || []).filter(function(h){ return h && h.no && (h.name || h.odds); });
+  return hs.map(function(h){
+    var odds = parseFloat(h.odds) || null;
+    var p = aiStatProb(h);
+    var mp = odds ? aiMarketProb(odds) : null;
+    var ev = (p != null && odds) ? aiEvOf(p, odds, 'tan') : null;
+    var gap = (p != null && mp != null) ? (p - mp) : null;
+    return { h: h, odds: odds, p: p, mp: mp, ev: ev, gap: gap };
+  });
+}
+function aiProposalRender(){
+  var box = $('aipropBody'); if (!box) return;
+  var rows = aiProposalRows();
+  if (!rows.length){ box.innerHTML = '<div class="card muted">出馬表がありません。①データ入力でレースを読み込んでください。</div>' + aiProposalHelpHTML(); return; }
+  rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
+  var h = '';
+  h += '<div class="card"><b>🎯 価値馬（EV順）</b>' +
+    '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>騎手</th><th>調教師</th><th>オッズ</th><th>統計勝率</th><th>市場勝率</th><th>単勝EV</th><th>乖離</th></tr></thead><tbody>' +
+    rows.map(function(r){
+      var good = (r.ev != null && r.ev >= 1.0);
+      var st = good ? 'background:#c8e6c9;color:#1b5e20;font-weight:700' : '';
+      return '<tr style="' + st + '"><td>' + esc(r.h.no) + '</td><td>' + esc(r.h.name || '') + '</td><td>' + esc(r.h.jockey || '') + '</td><td>' + esc(r.h.trainer || '') + '</td>' +
+        '<td>' + (r.odds || '-') + '</td><td>' + (r.p != null ? (r.p * 100).toFixed(1) + '%' : '-') + '</td>' +
+        '<td>' + (r.mp != null ? (r.mp * 100).toFixed(1) + '%' : '-') + '</td>' +
+        '<td>' + (r.ev != null ? r.ev.toFixed(2) : '-') + '</td>' +
+        '<td>' + (r.gap != null ? (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt' : '-') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<div class="muted small" style="margin-top:6px">EV＝統計勝率×(オッズ×控除0.8)。1.00超が理論的にプラス（緑色）。乖離＝統計勝率−市場勝率。</div></div>';
+  h += '<div class="card"><b>💠 複勝EV（近似）</b>' +
+    '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>複勝EV</th><th>判定</th></tr></thead><tbody>' +
+    rows.map(function(r){
+      var pp = r.p; var evF = (pp != null && r.odds) ? aiEvOf(Math.min(0.95, pp * 2.6), Math.max(1.1, r.odds / 2.2), 'fuku') : null;
+      var ok = (evF != null && evF >= 1.0);
+      return '<tr' + (ok ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '') + '><td>' + esc(r.h.no) + '</td><td>' + esc(r.h.name || '') + '</td><td>' + (evF != null ? evF.toFixed(2) : '-') + '</td><td>' + (ok ? '妙味あり' : '-') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<div class="muted small" style="margin-top:6px">※複勝オッズ未取得のため近似（複勝率≈勝率×2.6／複勝オッズ≈単勝÷2.2）。</div></div>';
+  box.innerHTML = h + aiProposalHelpHTML();
+}
+function aiProposalInit(){ try { aiProposalRender(); } catch(e){} }
+
+/* ============================================================
+   🌍 海外競馬タブ（第32弾: JRA海外馬券発売レース → 出馬表検出）
+   ------------------------------------------------------------
+   1) https://www.jra.go.jp/keiba/overseas/racelist/
+      …「発売レース」表から直近2週間以内に開催されるレース名を検出し、
+        検索候補として表示する（レース開催チェック）
+   2) 候補をタップ → 出馬表・馬柱・オッズを取得してタブ内に出力
+      ① 出馬表／馬柱 … JRAレース個別ページの「出馬表」リンク先
+         （/JRADB/accessSD.html?CNAME=…）を解析
+      ② オッズ2形式（JRAオッズ／Morning Line）…
+         https://world.jra-van.jp/archive/ で年を指定して同名レースを
+         引き当て、/race/<slug>/<year>/racecard/ から取得し馬番で合体
+   ============================================================ */
+var OV_LIST = [];     // JRA 発売レース表の全行
+var OV_ARCHIVE = null;// JRA-VAN archive の特集レース一覧
+var OV_CUR = null;    // 選択中のレース（OV_LISTの要素）
+var OV_ROWS = [];     // JRA 出馬表の解析結果
+var OV_ODDS = {};     // 馬番 → {jra, local}
+var OV_VAN = null;    // 引き当てた JRA-VAN の特集レース
+var OV_VAN_HTML = ''; // JRA-VAN 出馬表の生HTML（代替表示用）
+var OV_SRC = '';      // 実際に表示に使った出馬表の出典
+var OV_CARD_URL = ''; // 解析に使った出馬表URL
+function ovClean(s){
+  return String(s == null ? '' : s)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, function(m, n){ try { return String.fromCharCode(parseInt(n, 10)); } catch(e){ return ''; } })
+    .replace(/\s+/g, ' ').trim();
+}
+/* 取得は bfGet（中継 /api/race）経由。jra.go.jp は自動で shift_jis 変換される */
+function ovGet(url){
+  if (typeof bfGet === 'function') return bfGet(url);
+  if (typeof histFetchHtml === 'function') return histFetchHtml(url);
+  return Promise.reject(new Error('取得手段がありません'));
+}
+function ovField(body, re){
+  var m = String(body).match(re);
+  return m ? ovClean(m[1]) : '';
+}
+function ovNormName(s){
+  return String(s || '')
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .replace(/[Ⅰ-ⅹ]/g, function(c){ return String('ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ'.indexOf(c) + 1); })
+    .replace(/[IⅤ]/g, 'I')
+    .replace(/[\s　]/g, '')
+    .replace(/[・･.,、]/g, '')
+    .toLowerCase();
+}
+function ovAbs(href){
+  href = String(href || '');
+  if (/^https?:\/\//i.test(href)) return href;
+  if (href.charAt(0) === '/') return 'https://www.jra.go.jp' + href;
+  return 'https://www.jra.go.jp/keiba/overseas/race/' + href;
+}
+function ovDateOf(s){
+  var m = String(s || '').match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  return m ? new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)) : null;
+}
+function ovYearOf(s){
+  var m = String(s || '').match(/(\d{4})年/);
+  return m ? m[1] : String(new Date().getFullYear());
+}
+function ovDayDiff(d){
+  if (!d) return 99999;
+  var n = new Date();
+  var t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  var t1 = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((t1 - t0) / 86400000);
+}
+/* ---------- 1) JRA「発売レース」表を解析 ---------- */
+function ovParseJraList(html){
+  var out = [];
+  var trs = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  trs.forEach(function(tr){
+    var tds = [], re = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi, m;
+    while ((m = re.exec(tr)) !== null) tds.push(ovClean(m[1]));
+    if (tds.length < 4) return;
+    if (!/^\d{4}年\d{1,2}月\d{1,2}日/.test(tds[0] || '')) return;
+    var href = (tr.match(/href="([^"]+)"/) || ['', ''])[1];
+    out.push({ date: tds[0], place: tds[1], name: tds[2], dist: tds[3],
+      winner: tds[4] || '', href: href, day: ovDayDiff(ovDateOf(tds[0])) });
+  });
+  return out;
+}
+function ovFetchJraList(){
+  return ovGet('https://www.jra.go.jp/keiba/overseas/racelist/').then(function(html){
+    OV_LIST = ovParseJraList(html);
+    return OV_LIST;
+  });
+}
+/* ---------- 2) JRA-VAN archive（年を指定して該当レースを引く） ---------- */
+function ovParseArchive(html){
+  var out = [];
+  var lis = html.match(/<li class="archive-list">[\s\S]*?<\/li>/g) || [];
+  lis.forEach(function(li){
+    var link = li.match(/href="\/race\/([a-z0-9_-]+)\/(\d{4})\/"/);
+    if (!link) return;
+    out.push({
+      slug: link[1], year: link[2],
+      name:    ovField(li, /class="archive-name"><h2>([\s\S]*?)<\/h2>/),
+      vdate:   ovField(li, /<p class="day">([\s\S]*?)<\/p>/),
+      country: ovField(li, /<p class="country">([\s\S]*?)<\/p>/),
+      course:  ovField(li, /<div class="detail">\s*<p>([\s\S]*?)<\/p>/),
+      jpn:     ovField(li, /出走予定日本馬：([\s\S]*?)<\/p>/)
+    });
+  });
+  return out;
+}
+function ovArchive(){
+  if (OV_ARCHIVE) return Promise.resolve(OV_ARCHIVE);
+  return ovGet('https://world.jra-van.jp/archive/').then(function(html){
+    OV_ARCHIVE = ovParseArchive(html);
+    return OV_ARCHIVE;
+  }).catch(function(){ OV_ARCHIVE = []; return OV_ARCHIVE; });
+}
+/* ---------- 3) JRA 出馬表（馬柱）を解析 ---------- */
+function ovParsePast(body){
+  if (!body || !/class="date"/.test(body)) return null;
+  var corners = [], cre = /<li title="\d+コーナー通過順位">([^<]*)<\/li>/g, cm;
+  while ((cm = cre.exec(body)) !== null) corners.push(ovClean(cm[1]));
+  return {
+    date:    ovField(body, /<div class="date"><span>([\s\S]*?)<\/span>/),
+    rc:      ovField(body, /<div class="rc">([\s\S]*?)<\/div>/),
+    race:    ovField(body, /<div class="name">([\s\S]*?)<\/div>/),
+    grade:   ovField(body, /class="grade_icon"><img[^>]*alt="([^"]*)"/),
+    place:   ovField(body, /<div class="place">([^<]*)</),
+    head:    ovField(body, /<span class="max">([^<]*)</),
+    gate:    ovField(body, /<span class="gate">([^<]*)</),
+    pop:     ovField(body, /<span class="pop">([^<]*)</),
+    jockey:  ovField(body, /<div class="jockey">([\s\S]*?)<\/div>/),
+    weight:  ovField(body, /<div class="weight">([^<]*)<span>/),
+    dist:    ovField(body, /<span class="dist">([\s\S]*?)<\/span>/),
+    time:    ovField(body, /<p class="time">([\s\S]*?)<\/p>/),
+    cond:    ovField(body, /<span class="condition">([\s\S]*?)<\/span>/),
+    course:  ovField(body, /<p class="h_raceCourse">([\s\S]*?)<\/p>/),
+    corners: corners.join('-'),
+    winner:  ovField(body, /<p class="fin">([\s\S]*?)<span class="time">/),
+    gap:     ovField(body, /<span class="time">\s*\(([^)]*)\)/)
+  };
+}
+function ovParseJraCard(html){
+  var rows = [];
+  var trs = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  trs.forEach(function(tr){
+    var tds = [], re = /<td class="([^"]*)"[^>]*>([\s\S]*?)<\/td>/gi, m;
+    while ((m = re.exec(tr)) !== null) tds.push({ cls: m[1], body: m[2] });
+    if (tds.length < 4) return;
+    var num = '', hb = '', jb = '', waku = '', pasts = [];
+    tds.forEach(function(td){
+      if (td.cls === 'num') num = ovClean(td.body);
+      else if (td.cls === 'horse') hb = td.body;
+      else if (td.cls === 'jockey') jb = td.body;
+      else if (td.cls === 'waku') waku = ovClean(td.body);
+      else if (td.cls.indexOf('past') === 0) pasts.push(ovParsePast(td.body));
+    });
+    if (!hb || !/<div class="txt">/.test(hb)) return;
+    var name = ovField(hb, /<div class="txt">([\s\S]*?)<\/div>/);
+    if (!name) return;
+    rows.push({
+      no: num, waku: waku, name: name,
+      odds:  ovField(hb, /<span class="num"><strong[^>]*>([^<]*)<\/strong>/),
+      pop:   ovField(hb, /\((\d+)<span>番人気/),
+      rec:   ovField(hb, /class="cell result">\s*\(([^)]*)\)/),
+      owner: ovField(hb, /<p class="owner">([\s\S]*?)<\/p>/),
+      trainer: ovField(hb, /<p class="trainer">([\s\S]*?)<span class="division">/),
+      div:   ovField(hb, /<span class="division">\s*\(([^)]*)\)/),
+      sire:  ovField(hb, /<li class="sire"><span>父：<\/span>([\s\S]*?)<\/li>/),
+      mare:  ovField(hb, /<li class="mare"><span>母：<\/span>([\s\S]*?)<span class="bloodmare">/),
+      mfather: ovField(hb, /<span class="bloodmare">\(母の父：([^)]*)\)/),
+      rating: ovField(hb, /<div class="rating">[\s\S]*?>([^<]*)</),
+      born: ovField(jb, /<p class="code">([^<]*)<\/p>/),
+      cloth: (jb.match(/<p class="cloth"><img src="([^"]*)"/) || ['', ''])[1],
+      sex:  ovField(jb, /<p class="age">([\s\S]*?)<\/p>/),
+      weight: ovField(jb, /<p class="weight">([^<]*)<span>/),
+      jockey: ovField(jb, /<p class="jockey">([\s\S]*?)<\/p>/),
+      pasts: pasts.filter(Boolean)
+    });
+  });
+  return rows;
+}
+/* ---------- 4) JRA-VAN の出馬表からオッズ2形式を抽出 ---------- */
+function ovParseVanOdds(html){
+  var map = {}, idxs = [], re = /raceTable__details__line__item--horseNun/g, m;
+  while ((m = re.exec(html)) !== null) idxs.push(m.index);
+  for (var i = 0; i < idxs.length; i++){
+    var blk = html.slice(idxs[i], (i + 1 < idxs.length) ? idxs[i + 1] : idxs[i] + 5000);
+    var no = ovField(blk, /--horseNun[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/);
+    if (!no) continue;
+    var key = (/^\d+$/.test(no) ? no : ('x' + i)); // 取消・除外は馬番が無いため重複させない
+    map[key] = {
+      no:    no,
+      jra:   ovField(blk, /--odds__jra[^>]*>([\s\S]*?)<\/span>/),
+      local: ovField(blk, /--odds__local[^>]*>([\s\S]*?)<\/span>/)
+    };
+  }
+  return map;
+}
+/* ---------- 4b) JRA-VAN 出馬表（JRA側に出馬表が無いときの代替） ---------- */
+function ovVanPast(body){
+  if (!body || !/before__info__rank/.test(body)) return null;
+  var title = ovField(body, /data-title="([^"]*)"/);
+  var date = '', rname = '';
+  var tm = title.split(/\s+/);
+  if (tm.length >= 2){ date = tm[0]; rname = tm.slice(1).join(' '); }
+  var headRaw = ovField(body, /--before__info__name">([\s\S]*?)<span>/);
+  var detM = body.match(/--before__details">([\s\S]*?)<\/p>/);
+  var segs = String(detM ? detM[1] : '').replace(/<br\s*\/?>/gi, '|').replace(/<[^>]*>/g, '')
+    .split('|').map(function(s){ return ovClean(s); }).filter(function(s){ return s; });
+  /* segs[0]=タイム+ダ+1800 ／ segs[1]=良 7頭 7番 3人気 ／ segs[2]=Fプラ57 ／ segs[3]=勝馬(着差) */
+  var s0 = String(segs[0] || '');
+  var mTime = s0.match(/^(\S+)/);
+  var dist = mTime ? ovClean(s0.slice(mTime[1].length)) : ovClean(s0);
+  var c2 = String(segs[1] || '');
+  var mCond = c2.match(/^(\S+)/), mHead = c2.match(/(\d+)\s*頭/),
+      mGate = c2.match(/(\d+)\s*番/), mPop = c2.match(/(\d+)\s*人気/);
+  var jw = String(segs[2] || '');
+  var mJw = jw.match(/^(.*?)(\d{2}(?:\.\d)?)$/);
+  var win = String(segs[3] || '');
+  return {
+    date: date, rc: '', race: rname || ovField(body, /--before__info__name[\s\S]*?<span>([\s\S]*?)</),
+    grade: '', place: ovField(body, /--before__info__rank[\s\S]*?<span>([\s\S]*?)<\/span>/),
+    head: mHead ? mHead[1] : '', gate: mGate ? mGate[1] : '', pop: mPop ? mPop[1] : '',
+    jockey: mJw ? ovClean(mJw[1]) : ovClean(jw), weight: mJw ? mJw[2] : '',
+    dist: dist, time: mTime ? mTime[1] : '',
+    cond: mCond ? mCond[1] : '', course: headRaw.replace(/[0-9/]+\s*$/, ''),
+    corners: '',
+    winner: ovClean(win.replace(/\(.*$/, '')), gap: (win.match(/\(([^)]*)\)/) || ['', ''])[1]
+  };
+}
+function ovParseVanCard(html){
+  var rows = [], idxs = [], re = /raceTable__details__line__item--horseNun/g, m;
+  while ((m = re.exec(html)) !== null) idxs.push(m.index);
+  for (var i = 0; i < idxs.length; i++){
+    var blk = html.slice(idxs[i], (i + 1 < idxs.length) ? idxs[i + 1] : idxs[i] + 12000);
+    var name = ovField(blk, /--horse__name[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/);
+    if (!name) continue;
+    var infoM = blk.match(/--horse__info">([\s\S]*?)<span/);
+    var infoRaw = infoM ? infoM[1] : '';
+    var trainer = ovClean(infoRaw.replace(/<br\s*\/?>/gi, '|').split('|')[0]);
+    var rating = ovField(blk, /--horse__info__rating">([\s\S]*?)<\/span>/).replace(/^R/i, '');
+    var sexM = blk.match(/item--jockey[\s\S]*?<p>([\s\S]*?)<img/);
+    var sexRaw = sexM ? sexM[1] : '';
+    var pop = ovField(blk, /--odds__pop">([\s\S]*?)<\/span>/).replace(/[^\d]/g, '');
+    var pasts = [];
+    var pre = /raceTable__details__line__item--before/g, pm;
+    while ((pm = pre.exec(blk)) !== null){
+      var pb = blk.slice(pm.index, pm.index + 2500);
+      var p = ovVanPast(pb);
+      if (p) pasts.push(p);
+    }
+    rows.push({
+      no:    ovField(blk, /--horseNun[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/),
+      waku:  ovField(blk, /--gateNun[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/),
+      name:  name,
+      odds:  ovField(blk, /--odds__jra[^>]*>([\s\S]*?)<\/span>/),
+      pop:   pop,
+      rec:   '', owner: '', div: '',
+      trainer: trainer,
+      sire:    ovField(blk, /--horse__info__father"><span>父<\/span>([\s\S]*?)<\/span>/),
+      mare:    ovField(blk, /--horse__info__mother"><span>母<\/span>([\s\S]*?)<\/span>/),
+      mfather: ovField(blk, /--horse__info__motherfather"><span>母父<\/span>([\s\S]*?)<\/span>/),
+      rating:  rating,
+      born:  (blk.match(/flags flag_([a-z]+)/) || ['', ''])[1].toUpperCase(),
+      cloth: (blk.match(/--jockey__cloth[^>]*data-original="([^"]*)"/) || blk.match(/--jockey__cloth[^>]*src="([^"]*)"/) || ['', ''])[1],
+      sex:   ovClean(sexRaw),
+      weight: ovField(blk, /--jockey__weight">([\s\S]*?)<\/span>/).replace(/kg/i, ''),
+      /* 騎手は <a> の無い（JRA-VANに未登録の）馬がいるので両対応 */
+      jockey: ovField(blk, /--jockey__name[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/) ||
+              ovField(blk, /--jockey__name">([\s\S]*?)<\/span>/),
+      pasts: pasts.slice(0, 5)
+    });
+  }
+  return rows;
+}
+/* ---------- 5) 候補（直近2週間）を描画 ---------- */
+function ovRenderCandidates(){
+  var box = $('ovBody'); if (!box) return;
+  var near = OV_LIST.filter(function(r){ return r.day >= 0 && r.day <= 14; });
+  var future = OV_LIST.filter(function(r){ return r.day > 14; });
+  var past = OV_LIST.filter(function(r){ return r.day < 0; });
+  var h = '<div class="card"><b>🎯 検索候補（直近2週間以内に開催）</b>' +
+    '<div class="muted small" style="margin:4px 0 8px">JRA海外競馬発売レースの一覧から、本日から14日以内に開催されるレースを拾いました。タップすると出馬表・馬柱・オッズを取得します。</div>';
+  if (!OV_LIST.length){
+    h += '<div class="warn">発売レース表を取得できませんでした。🔍 出馬表検出 を押し直してください。</div>';
+  } else if (!near.length){
+    h += '<div class="muted">直近2週間（' + ovTodayLabel() + '〜' + ovPlusLabel(14) + '）に開催される海外発売レースは見つかりませんでした。</div>';
+  } else {
+    h += '<div class="ovcand">' + near.map(function(r){ return ovCandHTML(r, true); }).join('') + '</div>';
+  }
+  if (future.length){
+    h += '<div class="muted small" style="margin:10px 0 4px"><b>今後の発売予定（15日以降）</b></div>' +
+      '<div class="ovcand">' + future.map(function(r){ return ovCandHTML(r, false); }).join('') + '</div>';
+  }
+  if (past.length){
+    h += '<details style="margin-top:10px"><summary class="small muted">終了したレース（' + past.length + '件・参考）</summary>' +
+      '<div class="ovcand">' + past.slice(0, 12).map(function(r){ return ovCandHTML(r, false); }).join('') + '</div></details>';
+  }
+  h += '</div>';
+  box.innerHTML = h;
+}
+function ovCandHTML(r, hot){
+  var idx = OV_LIST.indexOf(r);
+  var badge = r.day < 0 ? '終了' : (r.day === 0 ? '本日' : (r.day === 1 ? '明日' : r.day + '日後'));
+  var st = hot ? 'border-color:var(--g3);background:#f2fbf5' : '';
+  return '<button type="button" class="btn ghost ovcbtn" style="text-align:left;' + st + '" onclick="ovPickRace(' + idx + ')">' +
+    '<div><b>' + esc(r.name) + '</b>　<span class="chip">' + esc(badge) + '</span>' +
+      (r.dist ? '<span class="muted small"> ' + esc(r.dist) + '</span>' : '') + '</div>' +
+    '<div class="muted small">' + esc(r.date) + '　' + esc(r.place) +
+      (r.winner ? '　優勝: ' + esc(r.winner) : '') + '</div></button>';
+}
+function ovTodayLabel(){
+  var d = new Date();
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+function ovPlusLabel(n){
+  var d = new Date(Date.now() + n * 86400000);
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+/* ---------- 6) レース選択 → 取得 ---------- */
+function ovPickRace(i){
+  var r = OV_LIST[i]; if (!r) return;
+  OV_CUR = r; OV_ROWS = []; OV_ODDS = {}; OV_VAN = null; OV_CARD_URL = '';
+  OV_VAN_HTML = ''; OV_SRC = '';
+  var box = $('ovBody'); if (!box) return;
+  box.innerHTML = '<div class="card muted">取得中… <b>' + esc(r.name) + '</b>（JRA出馬表→JRA-VANオッズの順に取得します）</div>';
+  var url = ovAbs(r.href);
+  var isRacePage = /\/keiba\/overseas\/race\/[0-9a-z]+/i.test(url);
+  var step1 = isRacePage ? ovGet(url).then(function(h){
+      var m = h.match(/\/JRADB\/accessSD\.html\?CNAME=[^"'\s]+/);
+      if (!m) return '';
+      OV_CARD_URL = 'https://www.jra.go.jp' + m[0].replace(/&amp;/g, '&');
+      return ovGet(OV_CARD_URL);
+    }).catch(function(){ return ''; }) : Promise.resolve('');
+  step1.then(function(cardHtml){
+    OV_SRC = cardHtml ? 'JRA公式 出馬表' : '';
+    if (cardHtml) OV_ROWS = ovParseJraCard(cardHtml);
+    return ovLoadVanOdds(r);
+  }).then(function(){
+    /* JRA側に出馬表が無い（レース個別ページ未公開など）場合は
+       world.jra-van.jp/archive/ 側の出馬表を代替表示する */
+    if ((!OV_ROWS || !OV_ROWS.length) && OV_VAN_HTML){
+      OV_ROWS = ovParseVanCard(OV_VAN_HTML);
+      if (OV_ROWS.length) OV_SRC = 'JRA-VAN World 出馬表';
+    }
+    ovRenderRace();
+  }).catch(function(e){
+    box.innerHTML = '<div class="warn">取得に失敗しました: ' + esc(String((e && e.message) || e)) + '</div>';
+  });
+}
+function ovLoadVanOdds(race){
+  var year = ovYearOf(race.date);
+  return ovArchive().then(function(list){
+    var target = ovNormName(race.name), hit = null;
+    for (var i = 0; i < list.length; i++){
+      if (list[i].year === year && ovNormName(list[i].name) === target){ hit = list[i]; break; }
+    }
+    if (!hit){
+      for (var j = 0; j < list.length; j++){
+        if (list[j].year !== year) continue;
+        var a = ovNormName(list[j].name), b = target;
+        if (a && b && (a.indexOf(b) >= 0 || b.indexOf(a) >= 0)){ hit = list[j]; break; }
+      }
+    }
+    OV_VAN = hit;
+    if (!hit) return null;
+    return ovGet('https://world.jra-van.jp/race/' + hit.slug + '/' + hit.year + '/racecard/')
+      .then(function(h){
+        OV_VAN_HTML = h || '';
+        OV_ODDS = ovParseVanOdds(h);
+        return OV_ODDS;
+      })
+      .catch(function(){ OV_VAN_HTML = ''; OV_ODDS = {}; return null; });
+  }).catch(function(){ return null; });
+}
+/* ---------- 7) 出馬表・馬柱・オッズを描画 ---------- */
+function ovRenderRace(){
+  var box = $('ovBody'); if (!box) return;
+  var r = OV_CUR; if (!r) { ovRenderCandidates(); return; }
+  var rows = OV_ROWS || [];
+  var h = '';
+  /* ヘッダ */
+  h += '<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+    '<button type="button" class="btn ghost" onclick="ovRenderCandidates()">← 候補に戻る</button>' +
+    '<b style="font-size:1.05rem">' + esc(r.name) + '</b>' +
+    '<span class="chip">' + esc(r.date) + '</span>' +
+    '<span class="chip">' + esc(r.place) + '</span>' +
+    (r.dist ? '<span class="chip">' + esc(r.dist) + '</span>' : '') +
+    '<button type="button" class="btn ghost" onclick="ovDetect()">🔍 出馬表検出（やり直す）</button>' +
+    '</div>';
+  h += '<div class="muted small" style="margin-top:6px">' +
+    '出馬表/馬柱: <code>' + esc(OV_SRC || '未取得') + '</code>　' +
+    'オッズ: <code>' + (OV_VAN ? ('JRA-VAN ' + OV_VAN.slug + '/' + OV_VAN.year) : '該当なし') + '</code>' +
+    (OV_CARD_URL ? '　<a href="' + esc(OV_CARD_URL) + '" target="_blank" rel="noopener">JRA出馬表を開く</a>' : '') +
+    (OV_VAN ? '　<a href="https://world.jra-van.jp/race/' + esc(OV_VAN.slug) + '/' + esc(OV_VAN.year) + '/racecard/" target="_blank" rel="noopener">JRA-VAN出馬表を開く</a>' : '') +
+    '</div></div>';
+  if (!rows.length){
+    h += '<div class="card warn">出馬表を取得できませんでした。<br>' +
+      '・レース個別ページがまだ無い（発売決定前など）場合は、JRA-VAN側にのみ出馬表があることがあります。<br>' +
+      '・凱旋門賞などのビッグレースは開催が近づくと JRA 側に「出馬表」が出ます。</div>';
+    if (OV_VAN) h += '<div class="card muted small">JRA-VAN 側の特集ページ: <a href="https://world.jra-van.jp/race/' + esc(OV_VAN.slug) + '/' + esc(OV_VAN.year) + '/racecard/" target="_blank" rel="noopener">出馬表を開く</a></div>';
+    box.innerHTML = h;
+    return;
+  }
+  /* 出馬表 */
+  h += '<div class="card"><b>📋 出馬表</b><span class="muted small"> （JRAオッズ / Morning Line は JRA-VAN から合体）</span>' +
+    '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
+    '<th>馬番</th><th>ゲート</th><th>馬名</th><th>国</th><th>性齢/毛色</th><th>斤量</th><th>騎手</th>' +
+    '<th>調教師</th><th>R</th><th>父</th><th>母父</th><th>馬主</th><th>通算成績</th>' +
+    '<th>JRA</th><th>ML</th><th>人気</th></tr></thead><tbody>';
+  rows.forEach(function(x){
+    var od = OV_ODDS[x.no] || {};
+    var tor = /取消|中止|除外/.test(x.no);
+    h += '<tr' + (tor ? ' style="opacity:.55"' : '') + '>' +
+      '<td>' + esc(x.no) + '</td><td>' + esc(x.waku) + '</td>' +
+      '<td style="white-space:nowrap"><b>' + esc(x.name) + '</b></td>' +
+      '<td>' + esc(x.born) + '</td><td class="small">' + esc(x.sex) + '</td>' +
+      '<td>' + esc(x.weight) + '</td><td class="small">' + esc(x.jockey) + '</td>' +
+      '<td class="small">' + esc(x.trainer) + (x.div ? '(' + esc(x.div) + ')' : '') + '</td>' +
+      '<td>' + esc(x.rating) + '</td>' +
+      '<td class="small">' + esc(x.sire) + '</td><td class="small">' + esc(x.mfather) + '</td>' +
+      '<td class="small">' + esc(x.owner) + '</td><td class="small">' + esc(x.rec) + '</td>' +
+      '<td><b>' + esc(od.jra || x.odds || '―') + '</b></td>' +
+      '<td>' + esc(od.local || '―') + '</td>' +
+      '<td>' + esc(x.pop || '―') + '</td></tr>';
+  });
+  h += '</tbody></table></div>' +
+    '<div class="muted small" style="margin-top:6px">R=レーティング／通算成績=(1着.2着.3着.着外)／JRA=JRAオッズ／ML=現地Morning Line／人気=JRAの人気</div></div>';
+  /* 馬柱（前走〜4走前） */
+  h += '<div class="card"><b>📊 馬柱（前走〜4走前）</b>' +
+    '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th>' +
+    '<th>前走</th><th>前々走</th><th>3走前</th><th>4走前</th></tr></thead><tbody>';
+  rows.forEach(function(x){
+    h += '<tr><td>' + esc(x.no) + '</td><td style="white-space:nowrap"><b>' + esc(x.name) + '</b></td>';
+    for (var k = 0; k < 4; k++){
+      var p = x.pasts[k];
+      h += '<td class="small" style="vertical-align:top">' + (p ? ovPastHTML(p) : '―') + '</td>';
+    }
+    h += '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  box.innerHTML = h;
+}
+function ovPastHTML(p){
+  var s = '';
+  s += '<div style="white-space:nowrap">' + esc(p.date) + ' ' + esc(p.rc) + '</div>';
+  s += '<div style="white-space:nowrap"><b>' + esc(p.race) + '</b>' + (p.grade ? '<span class="chip">' + esc(p.grade) + '</span>' : '') + '</div>';
+  s += '<div style="white-space:nowrap">' + esc(p.place) + '着／' + esc(p.head) + '頭　ゲート' + esc(p.gate) + '番　' + esc(p.pop) + '番人気</div>';
+  s += '<div style="white-space:nowrap">' + esc(p.jockey) + ' ' + esc(p.weight) + 'kg</div>';
+  s += '<div style="white-space:nowrap">' + esc(p.course) + ' ' + esc(p.dist) + ' ' + esc(p.cond) + ' ' + esc(p.time) + '</div>';
+  if (p.corners) s += '<div style="white-space:nowrap" class="muted">通過 ' + esc(p.corners) + '</div>';
+  if (p.winner) s += '<div style="white-space:nowrap" class="muted">勝馬 ' + esc(p.winner) + (p.gap ? '(' + esc(p.gap) + ')' : '') + '</div>';
+  return s;
+}
+/* ---------- 8) 「出馬表検出」 ---------- */
+function ovDetect(){
+  var box = $('ovBody'); if (!box) return;
+  box.innerHTML = '<div class="card muted">JRA海外競馬「発売レース」表を取得中…</div>';
+  ovFetchJraList().then(function(list){
+    if (!list || !list.length){
+      box.innerHTML = '<div class="warn">発売レース表を取得できませんでした（通信をご確認ください）。</div>';
+      return;
+    }
+    ovRenderCandidates();
+  }).catch(function(e){
+    box.innerHTML = '<div class="warn">取得に失敗しました: ' + esc(String((e && e.message) || e)) + '</div>';
+  });
+}
+/* ---------- タブ表示・初期化 ---------- */
+function ovRender(){
+  var box = $('ovBody'); if (!box) return;
+  if (OV_CUR && OV_ROWS.length){ ovRenderRace(); return; }
+  if (OV_LIST.length){ ovRenderCandidates(); return; }
+  box.innerHTML = '<div class="card"><div class="muted">「🔍 出馬表検出」を押すと、JRA海外競馬の発売レース表から' +
+    '<b>直近2週間以内に開催されるレース</b>を検索候補として表示します。<br>' +
+    '候補をタップすると、JRA公式の出馬表（馬柱4走分・血統・レーティング・馬主・単勝オッズ・人気）と、' +
+    'JRA-VAN のオッズ（JRA／Morning Line）を取得してここに出力します。</div></div>';
+}
+function ovInit(){
+  var b = $('ovDetect');
+  if (b) b.addEventListener('click', function(){ ovDetect(); });
+}
+
 var SIMAGG_DROP_N = 0;   // ③を離れて消した集計のレース数
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
@@ -35677,6 +36289,8 @@ function goTab(id){
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブを開いたら登録簿・キャッシュの状況を更新 */
   if (id === 't-database' && typeof jockeyDbOnShow === 'function'){ try { jockeyDbOnShow(); } catch(e){} }
+  if (id === 't-aiprop' && typeof aiProposalRender === 'function'){ try { aiProposalRender(); } catch(e){} }
+  if (id === 't-overseas' && typeof ovRender === 'function'){ try { ovRender(); } catch(e){} }
   if (id === 't-tenki' && typeof tkRenderVenueBar === 'function'){
     try { tkRenderPcList(); } catch(e){}
     try { if (typeof tkOnTabOpen === 'function') tkOnTabOpen(); } catch(e){}
@@ -35756,6 +36370,8 @@ function doImport(file){
 function boot(){
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブの配線 */
   try { if (typeof jockeyDbInit === 'function') jockeyDbInit(); } catch(e){}
+  try { if (typeof aiProposalInit === 'function') aiProposalInit(); } catch(e){}
+  try { if (typeof ovInit === 'function') ovInit(); } catch(e){}
   /* ★2026-09-13 第24弾・追加修正: 学習DB/学習実績のメモ化（第23弾⑥）は
      「同じタブ内の書き込み」しか検知できません（diLsSet/apLsSet… が内部で drop するため）。
      別のタブで④の取込やバックアップ復元をすると、こちらのタブのメモが古いまま残り、
