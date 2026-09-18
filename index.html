@@ -2630,20 +2630,19 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     </div>
 </section>
 
-</main>
-
-<footer>
-  ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
-  ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
-  競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
-</footer>
-
+<!-- ================= 🤖 AI提案（回収率改善） ================= -->
 <section class="page" id="t-aiprop">
   <h2>🤖 AI提案</h2>
-  <div class="card"><div class="small">回収率100%超を目指す価値馬抽出・分析。EV(期待値)=自前統計勝率×平均倍率、人気乖離=実力−人気期待。緑色＝買いの価値あり。複勝は単勝より市場効率が高く取りやすい傾向。</div></div>
+  <div class="card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="aiRefresh" class="btn primary">🔄 再計算（その日の全レース）</button>
+      <span class="muted small">①データ入力で「📥 その日の出馬表を一括取得」すると、その日の全レースがここに反映されます</span>
+    </div>
+    <div class="small" style="margin-top:6px">回収率100%超を目指す価値馬抽出・分析。EV(期待値)=AI確率×オッズ×控除0.8、人気乖離=AI確率−市場確率。緑色＝買いの価値あり（EV1.00超）。複勝は単勝より市場効率が高く取りやすい傾向。</div>
+  </div>
   <div id="aipropBody"></div>
 </section>
+<!-- ================= 🌍 海外競馬（JRA海外馬券発売レース） ================= -->
 <section class="page" id="t-overseas">
   <h2>🌍 海外競馬</h2>
   <div class="card">
@@ -2659,6 +2658,15 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   </div>
   <div id="ovBody"></div>
 </section>
+</main>
+
+<footer>
+  ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
+  ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
+  競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
+</footer>
+
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
 <script>
 /* ===== src/cimg から自動埋め込みされたコース画像(dataURI) ===== */
@@ -35695,38 +35703,187 @@ function aiProposalRows(){
     var ev = (p != null && odds) ? aiEvOf(p, odds, 'tan') : null;
     var gap = (p != null && mp != null) ? (p - mp) : null;
     return { h: h, odds: odds, p: p, mp: mp, ev: ev, gap: gap };
+  }).filter(function(r){ return r.odds != null || r.p != null; });
+}
+/* ============================================================
+   ★第32弾②: 「その日の全レース」に反映
+   ①データ入力の「📥 その日の出馬表を一括取得」で保存された
+   事前予想（rec.pre.rows ＝ 馬番/馬名/オッズ/AI確率）を読み、
+   同じ開催日の【全レース】ぶんの EV を通信ゼロで計算します。
+   ============================================================ */
+var AI_DAY_D8 = '';
+function aiRnumOf(it){
+  var m = String((it && it.rnum) || '').match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 99;
+}
+/* 一括取得済みのレースのうち、同じ開催日のものを場名→R番号順に */
+function aiDayItems(){
+  var out = [];
+  try {
+    if (typeof preListAll !== 'function') return out;
+    var items = (preListAll() || []).filter(function(it){ return it && it.rid; });
+    if (!items.length) return out;
+    var d8 = '';
+    try { if (typeof apMetaCur === 'function') d8 = String(apMetaCur().date8 || ''); } catch(e){}
+    var has = {};
+    items.forEach(function(it){ if (it.d8) has[it.d8] = 1; });
+    if (!d8 || !has[d8]){
+      try { if (typeof nkTodayD8 === 'function') d8 = String(nkTodayD8() || ''); } catch(e){}
+    }
+    if (!d8 || !has[d8]) d8 = String(items[0].d8 || '');
+    if (!d8) return out;
+    AI_DAY_D8 = d8;
+    out = items.filter(function(it){ return String(it.d8) === d8; });
+    out.sort(function(a, b){
+      var pa = String(a.place || ''), pb = String(b.place || '');
+      if (pa !== pb) return pa < pb ? -1 : 1;
+      return aiRnumOf(a) - aiRnumOf(b);
+    });
+  } catch(e){}
+  return out;
+}
+/* 保存済みの事前予想から 1レースぶんの EV 行を作る */
+function aiRaceRowsFromRec(rid){
+  var rows = [];
+  try {
+    if (typeof apGet !== 'function') return rows;
+    var rec = apGet(String(rid || ''));
+    var snap = rec && (rec.pre || rec.preBt);
+    if (!snap || !snap.rows || !snap.rows.length) return rows;
+    /* 市場確率＝オッズの逆数をレース内で正規化（オッズ未取得馬は母数から除く） */
+    var sum = 0;
+    snap.rows.forEach(function(r){ var o = parseFloat(r.odds); if (o && o > 0) sum += 1 / o; });
+    snap.rows.forEach(function(r){
+      var odds = parseFloat(r.odds) || null;
+      var p = (r.prob != null && isFinite(Number(r.prob))) ? Number(r.prob) : null;
+      if (p != null && p > 1) p = p / 100;           // 百分率で入っていた場合の保険
+      var mp = (odds && sum > 0) ? (1 / odds) / sum : null;
+      var ev = (p != null && odds) ? aiEvOf(p, odds, 'tan') : null;
+      var evF = (p != null && odds) ? aiEvOf(Math.min(0.95, p * 2.6), Math.max(1.1, odds / 2.2), 'fuku') : null;
+      rows.push({
+        no: String(r.no == null ? '' : r.no), name: String(r.name || ''), odds: odds,
+        p: p, mp: mp, ev: ev, evF: evF,
+        gap: (p != null && mp != null) ? (p - mp) : null, mark: String(r.mark || '')
+      });
+    });
+  } catch(e){}
+  return rows;
+}
+function aiPct(v){ return (v == null) ? '-' : (v * 100).toFixed(1) + '%'; }
+function aiNum(v, d){ return (v == null) ? '-' : Number(v).toFixed(d == null ? 2 : d); }
+/* 1レースぶんの表 */
+function aiRowsTable(rows){
+  var h = '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
+    '<th>馬番</th><th>馬名</th><th>印</th><th>オッズ</th><th>AI確率</th><th>市場確率</th>' +
+    '<th>乖離</th><th>単勝EV</th><th>複勝EV</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var good = (r.ev != null && r.ev >= 1.0);
+    var st = good ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '';
+    h += '<tr' + st + '><td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
+      '<td>' + esc(r.mark || '') + '</td><td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td>' +
+      '<td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
+      '<td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td>' +
+      '<td>' + aiNum(r.ev) + '</td><td>' + aiNum(r.evF) + '</td></tr>';
   });
+  h += '</tbody></table></div>';
+  h += '<div class="muted small" style="margin-top:4px">緑＝単勝EV 1.00超。複勝EVは複勝オッズ未取得のため近似（複勝率≈勝率×2.6／複勝オッズ≈単勝÷2.2）。</div>';
+  return h;
+}
+/* 現在のレース（学習DBの自前統計から） */
+function aiCurRaceHTML(){
+  var rows = aiProposalRows();
+  if (!rows.length) return '';
+  rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
+  var name = String((state && state.race && state.race.name) || '現在のレース');
+  var h = '<div class="card"><b>🏇 ' + esc(name) + '</b>' +
+    '<div class="muted small" style="margin:4px 0 6px">画面に読み込まれているレース。勝率は学習DBの騎手／調教師／馬の実績から算出。</div>';
+  h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>騎手</th><th>調教師</th>' +
+    '<th>オッズ</th><th>統計勝率</th><th>市場勝率</th><th>単勝EV</th><th>乖離</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var good = (r.ev != null && r.ev >= 1.0);
+    var st = good ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '';
+    h += '<tr' + st + '><td>' + esc(r.h.no) + '</td><td style="white-space:nowrap">' + esc(r.h.name || '') + '</td>' +
+      '<td class="small">' + esc(r.h.jockey || '') + '</td><td class="small">' + esc(r.h.trainer || '') + '</td>' +
+      '<td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td><td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
+      '<td>' + aiNum(r.ev) + '</td><td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="muted small" style="margin-top:6px">EV＝勝率×(オッズ×控除0.8)。1.00超が理論的にプラス（緑色）。乖離＝統計勝率−市場勝率。</div></div>';
+  return h;
 }
 function aiProposalRender(){
   var box = $('aipropBody'); if (!box) return;
-  var rows = aiProposalRows();
-  if (!rows.length){ box.innerHTML = '<div class="card muted">出馬表がありません。①データ入力でレースを読み込んでください。</div>' + aiProposalHelpHTML(); return; }
-  rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
   var h = '';
-  h += '<div class="card"><b>🎯 価値馬（EV順）</b>' +
-    '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>騎手</th><th>調教師</th><th>オッズ</th><th>統計勝率</th><th>市場勝率</th><th>単勝EV</th><th>乖離</th></tr></thead><tbody>' +
-    rows.map(function(r){
-      var good = (r.ev != null && r.ev >= 1.0);
-      var st = good ? 'background:#c8e6c9;color:#1b5e20;font-weight:700' : '';
-      return '<tr style="' + st + '"><td>' + esc(r.h.no) + '</td><td>' + esc(r.h.name || '') + '</td><td>' + esc(r.h.jockey || '') + '</td><td>' + esc(r.h.trainer || '') + '</td>' +
-        '<td>' + (r.odds || '-') + '</td><td>' + (r.p != null ? (r.p * 100).toFixed(1) + '%' : '-') + '</td>' +
-        '<td>' + (r.mp != null ? (r.mp * 100).toFixed(1) + '%' : '-') + '</td>' +
-        '<td>' + (r.ev != null ? r.ev.toFixed(2) : '-') + '</td>' +
-        '<td>' + (r.gap != null ? (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt' : '-') + '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    '<div class="muted small" style="margin-top:6px">EV＝統計勝率×(オッズ×控除0.8)。1.00超が理論的にプラス（緑色）。乖離＝統計勝率−市場勝率。</div></div>';
-  h += '<div class="card"><b>💠 複勝EV（近似）</b>' +
-    '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>複勝EV</th><th>判定</th></tr></thead><tbody>' +
-    rows.map(function(r){
-      var pp = r.p; var evF = (pp != null && r.odds) ? aiEvOf(Math.min(0.95, pp * 2.6), Math.max(1.1, r.odds / 2.2), 'fuku') : null;
-      var ok = (evF != null && evF >= 1.0);
-      return '<tr' + (ok ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '') + '><td>' + esc(r.h.no) + '</td><td>' + esc(r.h.name || '') + '</td><td>' + (evF != null ? evF.toFixed(2) : '-') + '</td><td>' + (ok ? '妙味あり' : '-') + '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    '<div class="muted small" style="margin-top:6px">※複勝オッズ未取得のため近似（複勝率≈勝率×2.6／複勝オッズ≈単勝÷2.2）。</div></div>';
+  var items = aiDayItems();
+  var dayLabel = '';
+  try { if (typeof preD8Label === 'function') dayLabel = preD8Label(AI_DAY_D8); } catch(e){}
+  if (!dayLabel && /^\d{8}$/.test(AI_DAY_D8 || '')){
+    var y = AI_DAY_D8.slice(0, 4), mo = AI_DAY_D8.slice(4, 6), dd = AI_DAY_D8.slice(6, 8);
+    dayLabel = y + '年' + parseInt(mo, 10) + '月' + parseInt(dd, 10) + '日';
+  }
+
+  /* ---- ① その日の全レース ---- */
+  if (items.length){
+    var all = [], done = 0, blocks = '';
+    items.forEach(function(it){
+      var rows = aiRaceRowsFromRec(it.rid);
+      if (!rows.length) return;
+      done++;
+      rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
+      var label = [it.place, (it.rnum ? it.rnum + 'R' : ''), it.name].filter(Boolean).join(' ');
+      var best = rows.filter(function(r){ return r.ev != null && r.ev >= 1.0; });
+      best.forEach(function(r){ all.push({ race: label || it.rid, rid: it.rid, r: r }); });
+      blocks += '<details class="card"' + (best.length ? ' open' : '') + '>' +
+        '<summary style="cursor:pointer"><b>' + esc(label || it.rid) + '</b>　' +
+        '<span class="muted small">' + rows.length + '頭／妙味馬 ' + best.length + '頭' +
+        (best.length ? '（最高EV ' + aiNum(best[0].ev) + '）' : '') + '</span></summary>' +
+        aiRowsTable(rows) + '</details>';
+    });
+    h += '<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+      '<b>📅 ' + esc(dayLabel || '開催日') + ' の全レース</b>' +
+      '<span class="chip">取得済み ' + done + ' / ' + items.length + ' レース</span>' +
+      '<span class="chip">妙味馬 ' + all.length + ' 頭</span>' +
+      '<span class="sp"></span><button type="button" class="btn ghost" onclick="aiProposalRender()">🔄 更新</button>' +
+      '</div>' +
+      '<div class="muted small" style="margin-top:6px">①データ入力の「📥 その日の出馬表を一括取得」で取り込んだレースを、' +
+      '保存済みのAI予想（オッズ・AI確率）から再計算しています（追加の通信はありません）。</div></div>';
+    if (all.length){
+      all.sort(function(a, b){ return (b.r.ev || 0) - (a.r.ev || 0); });
+      h += '<div class="card"><b>🎯 その日の妙味馬ランキング（EV順）</b>' +
+        '<div class="muted small" style="margin:4px 0 6px">全レース横断で、単勝EV 1.00超の馬だけを並べています。</div>' +
+        '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>#</th><th>レース</th><th>馬番</th>' +
+        '<th>馬名</th><th>オッズ</th><th>AI確率</th><th>市場確率</th><th>乖離</th><th>単勝EV</th><th>複勝EV</th></tr></thead><tbody>';
+      all.slice(0, 20).forEach(function(x, i){
+        var r = x.r;
+        h += '<tr style="background:#c8e6c9;color:#1b5e20;font-weight:700"><td>' + (i + 1) + '</td>' +
+          '<td class="small" style="white-space:nowrap">' + esc(x.race) + '</td>' +
+          '<td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
+          '<td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td><td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
+          '<td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td>' +
+          '<td>' + aiNum(r.ev) + '</td><td>' + aiNum(r.evF) + '</td></tr>';
+      });
+      h += '</tbody></table></div></div>';
+    } else {
+      h += '<div class="card muted">この日のレースで、単勝EV 1.00 を超える馬は見つかりませんでした。</div>';
+    }
+    h += blocks;
+  } else {
+    h += '<div class="card"><b>📅 その日の全レース</b>' +
+      '<div class="muted" style="margin-top:6px">まだ一括取得されたレースがありません。<br>' +
+      '①データ入力タブの <b>「📥 その日の出馬表を一括取得」</b> を押すと、その日の全レースがここに反映されます。</div></div>';
+  }
+
+  /* ---- ② 現在のレース（自前統計） ---- */
+  var cur = aiCurRaceHTML();
+  if (cur) h += cur;
+
   box.innerHTML = h + aiProposalHelpHTML();
 }
-function aiProposalInit(){ try { aiProposalRender(); } catch(e){} }
-
+function aiProposalInit(){
+  var b = $('aiRefresh');
+  if (b) b.addEventListener('click', function(){ try { aiProposalRender(); } catch(e){} });
+  try { aiProposalRender(); } catch(e){}
+}
 /* ============================================================
    🌍 海外競馬タブ（第32弾: JRA海外馬券発売レース → 出馬表検出）
    ------------------------------------------------------------
