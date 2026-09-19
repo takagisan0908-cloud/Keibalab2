@@ -5293,6 +5293,7 @@ function aiDepCss(){
     '.adw .adDt.on,.adw .adRc.on{background:#5b3a8f;color:#fff;border-color:#5b3a8f}' +
     '.adw .adRc b.st{margin-left:5px;font-size:.68rem;font-weight:700}' +
     '.adw .DevelopImgArea{overflow:hidden;border-radius:0 0 10px 10px}' +
+    '.adw .DevelopImgArea .DevelopImg01{width:88%;margin:12% 6% 5%;border-radius:0 0 10px 10px}' +
     '.adw .DevelopImgArea a{text-decoration:none}' +
     '.adw .DevelopImg01 .HorseIcon{cursor:default}' +
     '.adw .DevelopImgArea .PositionBtn_ActiveBg{bottom:7px;z-index:19}' +
@@ -5346,8 +5347,10 @@ function aiDepSpdHtml(cls){
   if (!m) return '';
   return '<span class="Speed' + m[1] + '_0' + Math.min(3, parseInt(m[2], 10) || 1) + '"></span>';
 }
+/* 走路を88%縮小しても先頭（left:100%）が右端から見切れないよう、位置を 0〜88% に収める（実物データはそのまま保持） */
+function aiDepLx(v){ v = Math.max(0, Math.min(100, Number(v) || 0)); return v > 88 ? 88 : v; }
 function aiDepMarkerHtml(no, h, p){
-  return '<a><span class="HorseIcon Color0' + (h.color || 1) + '" id="Horse' + aiDepEsc(no) + '" data-no="' + aiDepEsc(no) + '" style="top:' + p.top + '%;left:' + p.left + '%">' +
+  return '<a><span class="HorseIcon Color0' + (h.color || 1) + '" id="Horse' + aiDepEsc(no) + '" data-no="' + aiDepEsc(no) + '" style="top:' + p.top + '%;left:' + aiDepLx(p.left) + '%">' +
     '<span class="Waku Waku' + aiDepEsc(h.waku) + '">' + aiDepEsc(h.num) + '</span>' +
     '<span class="HorseName">' + aiDepEsc(h.name) + '</span>' +
     aiDepSpdHtml(p.spd) + '</span></a>';
@@ -5367,7 +5370,7 @@ function aiDepPositions(){
       if (!no || !d.horses[no]) continue;
       var pos = V[no] || { top: d.horses[no].top, left: d.horses[no].left, spd: '' };
       el.style.top = pos.top + '%';
-      el.style.left = pos.left + '%';
+      el.style.left = aiDepLx(pos.left) + '%';
       /* SpeedUp/Downバッジ差し替え（実物と同じく HorseIcon span 直下へ append） */
       var host = el;
       var old = host.querySelectorAll ? host.querySelectorAll('[class*="SpeedUp_"],[class*="SpeedDown_"]') : [];
