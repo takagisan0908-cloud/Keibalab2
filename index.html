@@ -1141,6 +1141,9 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <br>　⚠ <b>正直な注意</b>: 出馬表に無い手入力ファクター（前走タイム・調教・出遅れ率・血統）は空になります。
           これは「📥一括取得を『馬柱データも取得する』オフで実行したとき」と同じ条件なので、事前予想の実力を測る比較としては公平です。
           ただし<b>バックテストの数字＝そのまま実戦の数字</b>とは限りません（実戦で馬柱まで取得すればもう少し良くなります）。
+          <br>　💾 <b>やり直し不要・続きから</b>: 結果は <code>💾 バックテストを保存(JSON)</code> でファイル化できます。新しい index.html や別のブラウザでは
+          <code>📂 JSONから復元</code> を選ぶだけで<b>月別集計 b.bt まで作り直し</b>（二重計上なし）、以降の実行は「⏩ 実行済みはスキップ」で
+          <b>未実施ぶんだけ</b>走らせます＝アプリ更新のたびに全レース計算し直す必要はありません。
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button type="button" class="btn primary" id="btBtn">🕰 バックテストを実行</button>
@@ -1156,6 +1159,12 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="チェックすると前回の集計(b.bt)をクリアせずに上へ足します。通常はオフのままで（同じレースを2回数えると数字がズレます）">
             <input type="checkbox" id="btChkKeep"> 前回の集計を残して足す
           </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="チェックON: すでにバックテスト済み(rec.preBt+照合済み)のレースは飛ばし、未実施ぶんだけ走らせます。集計はクリアせず足し算になるので、実行のやり直しや「📂 復元」後の続きに便利。まっさらから計算し直したいときはオフに">
+            <input type="checkbox" id="btChkSkip" checked> ⏩ 実行済みはスキップ（続きだけ）
+          </label>
+          <button type="button" class="btn small" id="btExpBtn" title="保存済みのバックテスト予想(rec.preBt・照合Marks)を全部 JSON に書き出します。ファイルやブラウザを乗り換えても「📂 復元」で続きが使える保険です">💾 バックテストを保存(JSON)</button>
+          <button type="button" class="btn small" id="btImpBtn" title="「💾 バックテストを保存(JSON)」のファイルを読み戻し、月別集計 b.bt も記録から作り直します。既に持っているレースは上書きしません">📂 JSONから復元</button>
+          <input type="file" id="btImpFile" accept=".json,application/json" style="display:none">
           <button type="button" class="btn small" id="btClear" title="rec.preBt と b.bt を全部消します（本物の事前予想 rec.pre には触れません）">🗑 バックテストだけ削除</button>
         </div>
         <div id="btMsg" class="small" style="margin-top:6px"></div>
@@ -2635,10 +2644,14 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <h2>🤖 AI提案</h2>
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-      <button id="aiRefresh" class="btn primary">🔄 再計算（その日の全レース）</button>
-      <span class="muted small">①データ入力で「📥 その日の出馬表を一括取得」すると、その日の全レースがここに反映されます</span>
+      <button id="aiSettle" class="btn primary">📥 その日の結果を取得</button>
+      <button id="aiRefresh" class="btn ghost">🔄 再計算</button>
+      <button id="aiRecompute" class="btn ghost" title="保存済みの前日予想を、現在のエンジン（新馬戦・障害戦の補正込み）で通信ゼロで作り直します。結果確定済みは上書きしません">🔁 再計算（現エンジン）</button>
+      <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
+      <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
+      <span class="muted small">①「📥 その日の出馬表を一括取得」→発走後に「📥 その日の結果を取得」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
     </div>
-    <div class="small" style="margin-top:6px">回収率100%超を目指す価値馬抽出・分析。EV(期待値)=AI確率×オッズ×控除0.8、人気乖離=AI確率−市場確率。緑色＝買いの価値あり（EV1.00超）。複勝は単勝より市場効率が高く取りやすい傾向。</div>
+    <div class="small" style="margin-top:6px">その日の全レースに馬柱の印（◎○▲☆△）を並べ、結果が付いたレースは着順・払戻・展開（ペース／通過順位／バイアス）と突き合わせて1レースずつAIが振り返ります。緑＝印の馬が馬券内。</div>
   </div>
   <div id="aipropBody"></div>
 </section>
@@ -3881,7 +3894,75 @@ function analyzeRace(){
     }
   } catch(e){}
   wK = Math.max(0, (w.tenkai || 0) * apPen);   // 補正後の tenkai 重みに掛け直す
-  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0)) || 1;
+  /* ★2026-09-19 第37弾: 新馬戦・障害戦だけの限定コンテキストファクター（他レースは完全に無変化）
+     新馬戦: ①同競馬場×同距離の父・母父成績(p29 pgRoi)②騎手の新馬戦実績③調教師の新馬戦
+       仕上がり（勝率重視）を1列にまとめ、重み7で加算。さらに オッズ重み×1.35 で人気を強める
+       （市場blendはオッズ重みに連動しているので人気側へ自動で寄る）。
+     障害戦: 騎手の障害実績・調教師の障害実績（🏇DB bySurf.jump・5戦以上）を重み6で加算。
+     すべて学習DB/🏇DBの【確定済み過去】だけを使うため未来データは入らず、追加通信もゼロ。
+     該当データが無い馬は中立(0.5)で、列自体が作れなければ補正は入りません。 */
+  var ctxN = null, wCtxN = 0;
+  try {
+    var _rn = String((raceMeta && raceMeta.name) || (state.race && state.race.name) || '');
+    var _isNew = /新馬/.test(_rn) && !/障害/.test(_rn);
+    var _isJmp = /障害/.test(_rn);
+    if (_isNew || _isJmp){
+      var _rawN = hs.map(function(h){
+        var vs = [];
+        if (_isNew){
+          try {
+            var roi = (typeof pgRoiCached === 'function') ? pgRoiCached() : null;
+            var ped = h.pedi || null;
+            if (roi && roi.exact && ped){
+              [ped.sire, ped.msire].forEach(function(s){
+                var g2 = s ? roi.exact[String(s).trim()] : null;
+                if (g2 && g2.n >= 3) vs.push(g2.top3 / g2.n);
+              });
+            }
+          } catch(e){}
+          try {
+            var ns = (typeof nxNewStats === 'function') ? nxNewStats() : null;
+            if (ns){
+              var _nn = (typeof nxNormName === 'function') ? nxNormName : function(x){ return String(x || '').replace(/\s+/g, ''); };
+              var J = ns.jockey[_nn(h.jockey)], T = ns.trainer[_nn(h.trainer)];
+              if (J && J.n >= 3) vs.push(J.in3 / J.n);
+              if (T && T.n >= 3) vs.push(T.win / T.n * 0.6 + T.in3 / T.n * 0.4);
+            }
+          } catch(e){}
+        } else {
+          try {
+            if (typeof klStatsOf === 'function'){
+              [ ['jockey', h.jockey], ['trainer', h.trainer] ].forEach(function(pr){
+                var nm = String(pr[1] || '').trim();
+                var st2 = nm ? klStatsOf(pr[0], nm) : null;
+                var jp = st2 && st2.bySurf && st2.bySurf.jump;
+                if (jp && jp.rides >= 5) vs.push((jp.show || 0) / jp.rides);
+              });
+            }
+          } catch(e){}
+        }
+        if (!vs.length) return null;
+        var sm = 0;
+        vs.forEach(function(v){ sm += v; });
+        return sm / vs.length;
+      });
+      var _anyN = false;
+      for (var _q = 0; _q < _rawN.length; _q++){ if (_rawN[_q] != null){ _anyN = true; break; } }
+      if (_anyN){
+        ctxN = normCol(_rawN, false, 0.5);
+        wCtxN = _isNew ? 7 : 6;
+        if (_isNew){
+          if (w === state.weights){
+            var _wc2 = {};
+            for (var _wk in state.weights){ if (Object.prototype.hasOwnProperty.call(state.weights, _wk)) _wc2[_wk] = state.weights[_wk]; }
+            w = _wc2;   // 利用者のスライダー（state.weights）は絶対に書き換えない
+          }
+          w.odds = Math.max(0, (w.odds || 0) * 1.35);
+        }
+      }
+    }
+  } catch(e){ ctxN = null; wCtxN = 0; }
+  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0) + (ctxN ? wCtxN : 0)) || 1;
   var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   var U = hs.map(function(h, i){
     var score = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
@@ -3892,6 +3973,7 @@ function analyzeRace(){
     if (wakuOn) score += (w.waku||0) * (colW[i] != null ? colW[i] : 0.5);
     if (jockeyOn) score += (w.jockey||0) * (colJ[i] != null ? colJ[i] : 0.5);
     if (fieldLvOn) score += (w.fieldLv||0) * (colF[i] != null ? colF[i] : 0.5);
+    if (ctxN) score += wCtxN * (ctxN[i] != null ? ctxN[i] : 0.5);
     var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑥でON)の僅かな加点（オカルト反映）
     // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
@@ -13576,6 +13658,58 @@ function pgApplyAll(progress){
 function pgCurHorses(){
   return (state.horses || []).filter(function(h){ return h.pedi && (h.pedi.sire || h.pedi.msire); });
 }
+/* =========================================================
+   ★2026-09-19 第37弾: 予想エンジン用コンテキスト統計（新馬戦・障害戦限定補正）
+   - nxNewStats(): 学習DB(diLs)の「新馬戦」だけを集めて、騎手別・調教師別の
+     着別数（仕上がり早さの評価用）を作る。30秒メモ。未来データは入らない
+     （diLsは確定済み過去レースのみ）。
+   - pgRoiCached(): pgRoi()（同競馬場×同距離の父・母父成績）の30秒キャッシュ。
+     analyzeRace 1回ごとの全件スキャンを避けるため。
+   ========================================================= */
+function nxNormName(x){
+  return String(x == null ? '' : x).replace(/\s+/g, '').replace(/．/g, '.').replace(/[（(].*?[)）]/g, '');
+}
+var NX_MEMO = null, NX_AT = 0, NX_N = -1;
+function nxNewStats(force){
+  try {
+    var db = (typeof diLs === 'function') ? diLs() : null;
+    if (!db || !db.races) return NX_MEMO;
+    var keys = Object.keys(db.races), now = Date.now();
+    if (!force && NX_MEMO && NX_N === keys.length && (now - NX_AT) < 30000) return NX_MEMO;
+    var J = {}, T = {};
+    function acc(map, nm, order){
+      if (!nm) return;
+      var g2 = map[nm] = map[nm] || { n: 0, win: 0, in3: 0 };
+      if (!(order >= 1)) return;
+      g2.n++;
+      if (order === 1) g2.win++;
+      if (order <= 3) g2.in3++;
+    }
+    keys.forEach(function(rid){
+      var r = db.races[rid] || {};
+      var nm = String((r.meta && r.meta.name) || '');
+      if (nm.indexOf('新馬') < 0 || /障害/.test(nm)) return;
+      (r.rows || []).forEach(function(row){
+        var o = parseInt(row && row.order != null ? row.order : (Array.isArray(row) ? row[1] : 0), 10) || 0;
+        var jn = nxNormName(row && row.jockey), tn = nxNormName(row && row.trainer);
+        acc(J, jn, o); acc(T, tn, o);
+      });
+    });
+    NX_MEMO = { jockey: J, trainer: T, n: keys.length, builtAt: now };
+    NX_N = keys.length; NX_AT = now;
+    return NX_MEMO;
+  } catch(e){ return NX_MEMO; }
+}
+var PG_ROI_MEMO = null, PG_ROI_AT = 0;
+function pgRoiCached(force){
+  try {
+    var now = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+    if (!force && PG_ROI_MEMO && (now - PG_ROI_AT) < 30000) return PG_ROI_MEMO;
+    if (typeof pgRoi !== 'function') return null;
+    PG_ROI_MEMO = pgRoi(); PG_ROI_AT = now;
+    return PG_ROI_MEMO;
+  } catch(e){ return PG_ROI_MEMO; }
+}
 /* ---------- 回収率集計（p30 学習DBから） ---------- */
 function pgAcc(acc, key, order, odds, placePay){
   var g = acc[key] = acc[key] || { n:0, win:0, top3:0, retW:0, retP:0 };
@@ -14229,9 +14363,10 @@ function apEvalBt(rid){
     if (!marks || !marks.length) return null;
     rec.preBtMarks = marks;
     rec.preBtSettledAt = apNow();
-    apPut(rec);
     var mm = rec.meta || {};
     var ym = apYmSurf(mm.date8 || '', rid, mm.surface || '', mm.name || '') || rec.ym || '';
+    rec.preBtYm = ym;   // ★2026-09-19 第39弾: 集計月を記録しておく（JSONバックアップ復元時に b.bt を作り直すとき使う）
+    apPut(rec);
     if (ym) apAggAddPre(ym, marks, 'preBt');
     return rec;
   } catch(e){ return null; }
@@ -30085,6 +30220,16 @@ function preBtTargets(opt){
       } catch(e){}
     });
     out.sort(function(a, b){ return (a.d8 < b.d8 ? -1 : a.d8 > b.d8 ? 1 : 0) || (a.rid < b.rid ? -1 : 1); });
+    // ★2026-09-19 第39弾: opt.skip → すでにバックテスト済み（preBt+preBtMarks あり）のレースを飛ばす「続きだけ」実行
+    if (opt.skip){
+      try {
+        if (typeof apScanDrop === 'function') apScanDrop();
+        var haveBt = {};
+        var allBt = (typeof apScan === 'function') ? (apScan() || {}) : {};
+        Object.keys(allBt).forEach(function(rid){ var r = allBt[rid]; if (r && r.preBt && r.preBtMarks) haveBt[String(rid)] = 1; });
+        out = out.filter(function(x){ return !haveBt[x.rid]; });
+      } catch(e){}
+    }
     if (opt.max && opt.max > 0 && out.length > opt.max) out = out.slice(out.length - opt.max);  // 新しい順に max 件
   } catch(e){}
   return out;
@@ -30224,7 +30369,7 @@ function preBacktest(opt, progress){
 
 /* ---------- バックテストのUI ---------- */
 function btBusy(b){
-  ['btBtn', 'btFrom', 'btTo', 'btMax', 'btChkKeep'].forEach(function(id){
+  ['btBtn', 'btFrom', 'btTo', 'btMax', 'btChkKeep', 'btChkSkip', 'btExpBtn', 'btImpBtn'].forEach(function(id){
     var el = $(id); if (el) el.disabled = !!b;
   });
 }
@@ -30240,12 +30385,21 @@ function btRun(){
     return (el && el.value) ? String(el.value).replace(/[^0-9]/g, '') : '';
   }
   var opt = { from: d8of('btFrom'), to: d8of('btTo'), keep: !!($('btChkKeep') && $('btChkKeep').checked) };
+  // ★第39弾: 「実行済みはスキップ」→ 対象を未実施だけに絞る。集計は加算式なのでクリアしてはいけない＝keep 扱い
+  if ($('btChkSkip') && $('btChkSkip').checked){ opt.skip = true; opt.keep = true; }
   var mx = parseInt(($('btMax') || {}).value, 10);
   if (mx && mx > 0) opt.max = mx;
   var pre = preBtTargets(opt).length;
-  if (!pre){ btMsg('対象レースがありません（学習DBに結果と日付がそろったレースが必要です）', true); return; }
+  if (!pre){
+    var haveN = 0;
+    try { haveN = (typeof apBtCount === 'function') ? apBtCount() : 0; } catch(e){}
+    btMsg(haveN
+      ? ('未実施のレースは 0 件です（バックテスト済み ' + haveN + ' レースはスキップされました）。やり直すときは「⏩ スキップ」をオフにするか、🗑で削除してから実行してください')
+      : '対象レースがありません（学習DBに結果と日付がそろったレースが必要です）', true);
+    return;
+  }
   btBusy(true); btMsg('');
-  btStat('対象 <b>' + pre + '</b> レース。処理中…');
+  btStat('対象 <b>' + pre + '</b> レース' + (opt.skip ? '（実行済みはスキップ・集計は足し算）' : '') + '。処理中…');
   preBacktest(opt, function(msg){ btStat(msg); }).then(function(r){
     btBusy(false);
     btStat('✅ 完了: <b>' + r.ok + '</b> レース予想→照合' +
@@ -30302,9 +30456,119 @@ function btRenderCount(){
     ? ('バックテスト ' + bt + ' レース保存中（照合済み ' + ev + '）／学習DBの対象レース ' + tg)
     : ('まだバックテストはありません（学習DBの対象レース ' + tg + '）');
 }
+/* ---------- ★第39弾: バックテスト結果の JSON バックアップ（保存/復元） ----------
+   結果は rec.preBt / rec.preBtMarks（📚記録ストレージ）と月別集計 b.bt にある。
+   ファイルやブラウザが変わるとストレージごと消えるので、JSON に書き出しておけば
+   新しい側で「📂 復元」→ 集計を作り直して、そこから「続きだけ」実行できる。 */
+function btBackupObj(){
+  var out = { kind: 'keiba-bt-backup', v: 1, exported: new Date().toISOString(), count: 0, races: {} };
+  try {
+    if (typeof apScanDrop === 'function') apScanDrop();
+    var all = (typeof apScan === 'function') ? (apScan() || {}) : {};
+    Object.keys(all).forEach(function(rid){
+      var rec = all[rid];
+      if (!rec || !rec.preBt) return;
+      out.races[String(rid)] = {
+        ym: rec.preBtYm || rec.ym || '',
+        preBt: rec.preBt,
+        preBtMarks: rec.preBtMarks || null,
+        preBtSettledAt: rec.preBtSettledAt || null
+      };
+      out.count++;
+    });
+  } catch(e){}
+  return out;
+}
+function btExportRun(){
+  var o = btBackupObj();
+  if (!o.count){ btMsg('バックテストの結果がまだありません（先に「🕰 バックテストを実行」を押してください）', true); return o; }
+  var json;
+  try { json = JSON.stringify(o); } catch(e){ btMsg('バックアップ生成に失敗: ' + ((e && e.message) || e), true); return o; }
+  try {
+    var d = new Date();
+    var fname = 'keiba_bt_backup_' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.json';
+    var blob = new Blob([json], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    try { if (typeof setTimeout === 'function') setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e){} }, 4000); } catch(e){}
+    btMsg('💾 バックテスト結果 ' + o.count + ' レースを ' + fname + ' に保存しました。次のファイル／端末では「📂 復元」でこの JSON を選ぶだけです（実行済みはスキップされ、残りだけ走らせます）。');
+  } catch(e){ btMsg('ダウンロードに失敗しました: ' + ((e && e.message) || e), true); }
+  return o;
+}
+/* バックアップオブジェクトを📚記録へ戻し、b.bt 集計を全レコードから作り直す。
+   既存で自分以降に確定済みのレース（preBtSettledAt が新しい）は上書きしない。 */
+function btImportObj(o){
+  var restored = 0, skipped = 0, rebuilt = 0, months = 0;
+  var races = (o && o.races) ? o.races : {};
+  Object.keys(races).forEach(function(rid){
+    var dat = races[rid] || {};
+    if (!dat || !dat.preBt) return;
+    var rec = null;
+    try { rec = (typeof apGet === 'function') ? apGet(String(rid)) : null; } catch(e){}
+    if (!rec) rec = { rid: String(rid), auto: true, meta: {} };
+    if (rec.preBt && rec.preBtSettledAt && (!dat.preBtSettledAt || rec.preBtSettledAt >= dat.preBtSettledAt)){ skipped++; return; }
+    rec.preBt = dat.preBt;
+    rec.preBtMarks = dat.preBtMarks || null;
+    rec.preBtSettledAt = dat.preBtSettledAt || null;
+    rec.preBtYm = dat.ym || rec.preBtYm || '';
+    if (!rec.ym) rec.ym = dat.ym || '';
+    rec.lastAt = (typeof apNow === 'function') ? apNow() : new Date().toISOString();
+    try { if (typeof apPut === 'function') apPut(rec); restored++; } catch(e){}
+  });
+  /* 集計 b.bt は加算式 → 一度全月クリアしてから、入っているレコード全部で作り直す
+     （復元ぶん＋元からあったぶんが二重計上されないようにするため） */
+  try { months = (typeof apBtClear === 'function') ? apBtClear() : 0; } catch(e){}
+  try {
+    if (typeof apScanDrop === 'function') apScanDrop();
+    var all = (typeof apScan === 'function') ? (apScan() || {}) : {};
+    Object.keys(all).forEach(function(rid){
+      var rec = all[rid];
+      if (!rec || !rec.preBtMarks || !rec.preBtMarks.length) return;
+      var ym = rec.preBtYm || rec.ym || '';
+      if (!ym) return;
+      try { if (typeof apAggAddPre === 'function'){ apAggAddPre(ym, rec.preBtMarks, 'preBt'); rebuilt++; } } catch(e){}
+    });
+  } catch(e){}
+  try { if (typeof apRender === 'function') apRender(); } catch(e){}
+  try { if (typeof apdPaint === 'function') apdPaint(); } catch(e){}
+  try { if (typeof flDrop === 'function') flDrop(); } catch(e){}
+  try { if (typeof flPaint === 'function') flPaint(); } catch(e){}
+  try { btRenderCount(); } catch(e){}
+  var sum = { restored: restored, skipped: skipped, rebuilt: rebuilt, months: months };
+  btMsg('📂 復元完了: ' + restored + ' レースを戻し' + (skipped ? '（既に持っている ' + skipped + ' レースは上書きしない）' : '') +
+    '、集計を ' + months + ' 月クリア → ' + rebuilt + ' レースぶん作り直しました。' +
+    '「🕰 バックテストを実行」を押すと実行済みはスキップされ、残りだけ足せます。');
+  return sum;
+}
+function btImportRun(file){
+  if (!file) return Promise.resolve(null);
+  return new Promise(function(resolve){
+    var rd = null;
+    try { rd = new FileReader(); } catch(e){ btMsg('このブラウザはファイル読み込みに対応していません', true); resolve(null); return; }
+    rd.onload = function(){
+      var sum = null;
+      try {
+        var o = JSON.parse(String(rd.result || ''));
+        if (!o || o.kind !== 'keiba-bt-backup' || !o.races) throw new Error('バックアップファイルの形式が違います（keiba-bt-backup を選んでください）');
+        sum = btImportObj(o);
+      } catch(e){ btMsg('復元に失敗しました: ' + ((e && e.message) || e), true); }
+      resolve(sum);
+    };
+    rd.onerror = function(){ btMsg('ファイルを読めませんでした', true); resolve(null); };
+    try { rd.readAsText(file, 'utf-8'); } catch(e){ btMsg('復元に失敗しました: ' + ((e && e.message) || e), true); resolve(null); }
+  });
+}
 function initBt(){
   var b = $('btBtn'); if (b) b.addEventListener('click', btRun);
   var c = $('btClear'); if (c) c.addEventListener('click', btClearRun);
+  var be = $('btExpBtn'); if (be) be.addEventListener('click', btExportRun);
+  var bi = $('btImpBtn'); if (bi) bi.addEventListener('click', function(){ var f = $('btImpFile'); if (f) f.click(); });
+  var bf = $('btImpFile');
+  if (bf) bf.addEventListener('change', function(){
+    if (bf.files && bf.files[0]) btImportRun(bf.files[0]).then(function(){ try { bf.value = ''; } catch(e){} });
+  });
   var card = $('btCard');
   if (card) card.addEventListener('toggle', function(){ if (card.open) btRenderCount(); });
   try { btRenderCount(); } catch(e){}
@@ -35651,12 +35915,14 @@ function jockeyDbOnShow(){ try { jdbRefreshStat(); } catch(e){} }
    🤖 AI提案タブ（回収率改善: 価値馬抽出・EV・人気乖離）
    ============================================================ */
 var AI_HELP = [
-  { k:'value', t:'① 価値馬抽出',             d:'的中率ではなく期待回収率(EV)が1.0を超える馬を上位に。自前統計の勝率×平均倍率で算出し、緑＝買いの価値あり。' },
-  { k:'ev',    t:'② EV(期待値)計算',         d:'EV = 統計勝率 × 倍率。1.0超で理論的にプラス。単勝・複勝は控除率を考慮（0.80）。' },
-  { k:'gap',   t:'③ 人気乖離（市場とのズレ）', d:'オッズが示す期待勝率より自前統計勝率が高い馬＝市場が過小評価。乖離が大きいほど妙味。' },
-  { k:'fresh', t:'④ 条件別・鮮度付き統計',   d:'距離・馬場・競馬場・脚質・騎手・調教師の条件別に集計。直近の実績ほど重み大（鮮度）。' },
-  { k:'place', t:'⑤ 複勝重視',               d:'単勝より複勝の方が人気馬で市場効率が高く、回収率をプラスにしやすい。複勝EVも表示。' },
-  { k:'risk',  t:'⑥ リスク管理',             d:'ケリー基準で資金配分を提案。1点・1レースの上限を守り破産確率を下げる。' }
+  { k:'day',   t:'① その日の全レースの印',        d:'①データ入力の一括取得で保存したAI予想（◎○▲☆△）を、その日の全レースぶん一覧表示します。数値（EV等）は出さず、印とオッズだけ。' },
+  { k:'settle',t:'② その日の結果を取得',          d:'発走が過ぎたレースの着順・払戻・ペース・コーナー通過順を netkeiba DB結果ページから取り込み、印と同じ表に並べます（払戻が確定すると同じボタンを再実行で更新）。' },
+  { k:'recap', t:'③ AI振り返りコメント',          d:'結果が揃ったレースごとに、展開予想（ペース・トラックバイアス）と実際の流れ、印の馬が来た／来なかった理由を1レースずつ自動でまとめます。' },
+  { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。' },
+  { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
+  { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・CL・波乱度・RL）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。レースごとに見出しで波乱度A〜EとRL（レースランク1〜10）を、馬ごとにCL（コースランク0〜10）を表示。' },
+  { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
+  { k:'recomp',t:'⑧  再計算（現エンジン）',       d:'エンジン更新（第37弾・新馬戦／障害戦の限定補正など）を、保存済みの前日予想(rec.pre)へ反映します。端末の出馬表キャッシュと保存済みオッズだけなので通信ゼロ。結果確定済みレースは上書きせず保護します。' }
 ];
 function aiProposalHelpHTML(){
   return '<details class="card"><summary style="cursor:pointer;padding:6px"><b>ℹ このタブの使い方（各項目の詳細）</b></summary>' +
@@ -35706,12 +35972,20 @@ function aiProposalRows(){
   }).filter(function(r){ return r.odds != null || r.p != null; });
 }
 /* ============================================================
-   ★第32弾②: 「その日の全レース」に反映
-   ①データ入力の「📥 その日の出馬表を一括取得」で保存された
-   事前予想（rec.pre.rows ＝ 馬番/馬名/オッズ/AI確率）を読み、
-   同じ開催日の【全レース】ぶんの EV を通信ゼロで計算します。
+   ★2026-09-19 第34弾: AI提案タブ = その日の全レースの「印」＋1レースずつの振り返り
+   ------------------------------------------------------------
+   ・①データ入力の「📥 その日の出馬表を一括取得」で保存した事前予想（rec.pre）の
+     印（◎○▲☆△）を、その日の全レースぶん表示する（EV・確率などの数値は載せない）。
+   ・「📥 その日の結果を取得」で、終わったレースの結果（着順/払戻/ペース/通過順位）を
+     netkeiba DB結果ページから取り込み、印と結果を同じ表に並べて表示する。
+   ・結果が揃ったレースには「🧠 AI振り返り」を付ける：
+     展開予想（ペース・トラックバイアス）が実際どう転んだか、印の馬はなぜ来た/
+     来なかったのか、払戻確定後の配当まで踏まえた1レースぶんのまとめ-comment。
+   ・データはすべて学習DB（localStorage / IndexedDB）の保存済みレコードから読むので、
+     結果取得ボタン以外に通信は発生しない。
    ============================================================ */
 var AI_DAY_D8 = '';
+var AI_SETTLE = { busy: false, n: 0, done: 0, ok: 0, skip: 0, err: 0, msg: '' };
 function aiRnumOf(it){
   var m = String((it && it.rnum) || '').match(/(\d+)/);
   return m ? parseInt(m[1], 10) : 99;
@@ -35742,75 +36016,275 @@ function aiDayItems(){
   } catch(e){}
   return out;
 }
-/* 保存済みの事前予想から 1レースぶんの EV 行を作る */
-function aiRaceRowsFromRec(rid){
-  var rows = [];
-  try {
-    if (typeof apGet !== 'function') return rows;
-    var rec = apGet(String(rid || ''));
-    var snap = rec && (rec.pre || rec.preBt);
-    if (!snap || !snap.rows || !snap.rows.length) return rows;
-    /* 市場確率＝オッズの逆数をレース内で正規化（オッズ未取得馬は母数から除く） */
-    var sum = 0;
-    snap.rows.forEach(function(r){ var o = parseFloat(r.odds); if (o && o > 0) sum += 1 / o; });
-    snap.rows.forEach(function(r){
-      var odds = parseFloat(r.odds) || null;
-      var p = (r.prob != null && isFinite(Number(r.prob))) ? Number(r.prob) : null;
-      if (p != null && p > 1) p = p / 100;           // 百分率で入っていた場合の保険
-      var mp = (odds && sum > 0) ? (1 / odds) / sum : null;
-      var ev = (p != null && odds) ? aiEvOf(p, odds, 'tan') : null;
-      var evF = (p != null && odds) ? aiEvOf(Math.min(0.95, p * 2.6), Math.max(1.1, odds / 2.2), 'fuku') : null;
-      rows.push({
-        no: String(r.no == null ? '' : r.no), name: String(r.name || ''), odds: odds,
-        p: p, mp: mp, ev: ev, evF: evF,
-        gap: (p != null && mp != null) ? (p - mp) : null, mark: String(r.mark || '')
-      });
-    });
-  } catch(e){}
-  return rows;
+function aiNum(v, d){ return (v == null) ? '-' : Number(v).toFixed(d == null ? 1 : d); }
+function aiYen(v){
+  var n = parseInt(v, 10);
+  if (!(n > 0)) return '-';
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '円';
 }
-function aiPct(v){ return (v == null) ? '-' : (v * 100).toFixed(1) + '%'; }
-function aiNum(v, d){ return (v == null) ? '-' : Number(v).toFixed(d == null ? 2 : d); }
-/* 1レースぶんの表 */
+/* 1レースぶん: 保存済み予想(rec.pre)＋結果(rec.result)を1つの束に */
+function aiRecBundle(rid){
+  var out = null;
+  try {
+    var rec = (typeof apGet === 'function') ? apGet(String(rid || '')) : null;
+    var snap = rec && (rec.pre || rec.preBt);
+    if (!rec || !snap || !snap.rows || !snap.rows.length) return out;
+    var res = rec.result || null;
+    var byNo = {};
+    if (res && res.rows){
+      res.rows.forEach(function(r){ if (r && r.no != null) byNo[String(r.no)] = r; });
+    }
+    var MO = (typeof AP_MARK_ORDER !== 'undefined') ? AP_MARK_ORDER : ['◎', '○', '▲', '☆', '△'];
+    var rows = snap.rows.slice().sort(function(a, b){ return (a.rank || 99) - (b.rank || 99); }).map(function(x, i){
+      var rr = byNo[String(x.no)] || null;
+      return {
+        no: String(x.no == null ? '' : x.no), name: String(x.name || ''),
+        mark: String(x.mark || (i < MO.length ? MO[i] : '')),
+        odds: (x.odds == null || x.odds === '') ? null : (parseFloat(x.odds) || null),
+        style: String(x.style || ''),
+        order: rr ? (parseInt(rr.order, 10) || 0) : 0,
+        pop: rr ? String(rr.pop || '') : '',
+        passing: rr ? String(rr.passing || '') : ''
+      };
+    });
+    out = { rid: String(rid), rec: rec, snap: snap, res: res, rows: rows };
+  } catch(e){}
+  return out;
+}
+function aiMarkedRows(rows){ return (rows || []).filter(function(r){ return r && r.mark; }); }
+function aiHitRows(rows){ return (rows || []).filter(function(r){ return r && r.mark && r.order >= 1 && r.order <= 3; }); }
+function aiIsSettled(b){ return !!(b && b.res && b.res.rows && b.res.rows.length >= 3); }
+/* 印と結果を同じ表に（馬番/馬名/印/オッズ/結果） */
 function aiRowsTable(rows){
   var h = '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
-    '<th>馬番</th><th>馬名</th><th>印</th><th>オッズ</th><th>AI確率</th><th>市場確率</th>' +
-    '<th>乖離</th><th>単勝EV</th><th>複勝EV</th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    var good = (r.ev != null && r.ev >= 1.0);
-    var st = good ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '';
+    '<th>馬番</th><th>馬名</th><th>印</th><th>オッズ</th><th>結果</th></tr></thead><tbody>';
+  (rows || []).forEach(function(r){
+    var hit = r.mark && r.order >= 1 && r.order <= 3;
+    var in3 = r.order >= 1 && r.order <= 3;
+    var st = hit ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : (in3 ? ' style="background:#fff8e1"' : '');
+    var rc = r.order ? (r.order + '着' + (r.pop ? ' <span class="muted small">(' + esc(r.pop) + ')</span>' : ''))
+                     : '<span class="muted small">未確定</span>';
     h += '<tr' + st + '><td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
-      '<td>' + esc(r.mark || '') + '</td><td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td>' +
-      '<td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
-      '<td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td>' +
-      '<td>' + aiNum(r.ev) + '</td><td>' + aiNum(r.evF) + '</td></tr>';
+      '<td><b>' + esc(r.mark || '') + '</b></td><td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td>' +
+      '<td>' + rc + '</td></tr>';
   });
-  h += '</tbody></table></div>';
-  h += '<div class="muted small" style="margin-top:4px">緑＝単勝EV 1.00超。複勝EVは複勝オッズ未取得のため近似（複勝率≈勝率×2.6／複勝オッズ≈単勝÷2.2）。</div>';
-  return h;
+  return h + '</tbody></table></div>';
 }
-/* 現在のレース（学習DBの自前統計から） */
-function aiCurRaceHTML(){
-  var rows = aiProposalRows();
-  if (!rows.length) return '';
-  rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
-  var name = String((state && state.race && state.race.name) || '現在のレース');
-  var h = '<div class="card"><b>🏇 ' + esc(name) + '</b>' +
-    '<div class="muted small" style="margin:4px 0 6px">画面に読み込まれているレース。勝率は学習DBの騎手／調教師／馬の実績から算出。</div>';
-  h += '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>馬番</th><th>馬名</th><th>騎手</th><th>調教師</th>' +
-    '<th>オッズ</th><th>統計勝率</th><th>市場勝率</th><th>単勝EV</th><th>乖離</th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    var good = (r.ev != null && r.ev >= 1.0);
-    var st = good ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : '';
-    h += '<tr' + st + '><td>' + esc(r.h.no) + '</td><td style="white-space:nowrap">' + esc(r.h.name || '') + '</td>' +
-      '<td class="small">' + esc(r.h.jockey || '') + '</td><td class="small">' + esc(r.h.trainer || '') + '</td>' +
-      '<td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td><td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
-      '<td>' + aiNum(r.ev) + '</td><td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td></tr>';
+/* ---------- 🧠 AI振り返り（1レースぶんのまとめコメント） ---------- */
+var AI_PACE_JA = { S: 'スロー', M: 'ミドル', H: 'ハイ' };
+var AI_PACE_LVL = { 'スロー': 1, 'ややスロー': 2, 'ミドル': 3, '平均': 3, 'ややハイ': 4, 'ハイ': 5, '超ハイ': 6 };
+function aiRecapHTML(b){
+  var res = b.res;
+  if (!aiIsSettled(b)) return '';
+  var g = [];
+  var xd = res.xd || null;
+  var rows = b.rows || [];
+  /* 1) ペース: 事前の展開予想 vs 実際 */
+  var pd = b.snap.pace || null;
+  var real = (xd && xd.pace) ? (AI_PACE_JA[String(xd.pace).charAt(0).toUpperCase()] || '') : '';
+  if (pd && pd.label && real){
+    var dl = (AI_PACE_LVL[real] || 3) - (AI_PACE_LVL[pd.label] || 3);
+    var pv = 'ペースは予想 <b>' + esc(String(pd.label)) + '</b> → 実際 <b>' + esc(real) + '</b>';
+    if (dl >= 2) pv += '：想定よりずっと流れが速く、前がバテて後方からの差しが決まる展開になった。';
+    else if (dl === 1) pv += '：想定の少し速い流れ。差し・追込にやや有利な展開だった。';
+    else if (dl <= -2) pv += '：想定より流れが遅く、先行馬がそのまま残る展開になった。';
+    else pv += '：流れは概ね想定どおり。力関係が出やすい展開だった。';
+    if (pd.manual) pv += '（※ペースは手動設定）';
+    g.push(pv);
+  } else if (real){
+    g.push('実際のペース: <b>' + esc(real) + '</b>');
+  }
+  if (xd && xd.shape && xd.shape.l3 > 0){
+    g.push('上り3F <b>' + Number(xd.shape.l3).toFixed(1) + '秒</b>' +
+      (xd.shape.d != null ? '（前後半差 ' + (xd.shape.d >= 0 ? '+' : '') + Number(xd.shape.d).toFixed(1) + '秒）' : ''));
+  }
+  /* 2) 勝ち馬の道筋（通過順位・脚質タグ） */
+  var win = null;
+  res.rows.forEach(function(r){ if (!win && parseInt(r.order, 10) === 1) win = r; });
+  var wfull = null;
+  try {
+    var dr = (typeof diGet === 'function') ? diGet(b.rid) : null;
+    if (dr && dr.rows){ dr.rows.forEach(function(x){ if (!wfull && parseInt(x.order, 10) === 1) wfull = x; }); }
+  } catch(e){}
+  var sty = '';
+  if (xd && xd.sty && win && xd.sty[String(win.no)] && xd.sty[String(win.no)].tag) sty = String(xd.sty[String(win.no)].tag);
+  if (win){
+    var s = '勝ち馬は <b>' + esc(win.name) + '（' + esc(win.no) + '番' + (win.pop ? '・' + esc(win.pop) : '') + '）</b>' +
+      ((wfull && wfull.time) ? ' ' + esc(String(wfull.time)) : '') +
+      ((wfull && wfull.margin) ? '（着差 ' + esc(String(wfull.margin)) + '）' : '') +
+      (win.passing ? '、通過順位 ' + esc(win.passing) : '') +
+      (sty ? ' <span class="chip">' + esc(sty) + '</span>' : '');
+    var front = (sty === '逃げ' || sty === '先行');
+    if (front) s += '。前からの粘り込みで、展開を突くよりも位置取りが先だった。';
+    else if (sty) s += '。後方から-' + esc(sty) + '-で、脚をためる形がはまった。';
+    else s += '。';
+    g.push(s);
+  }
+  /* 3) トラックバイアスの想定と一致 */
+  var bs = b.snap.bias || null;
+  if (bs && (bs.posLabel || bs.frontScore != null)){
+    var fb = [];
+    if (bs.posLabel) fb.push(String(bs.posLabel));
+    if (bs.frontScore != null) fb.push('先行傾向 ' + Number(bs.frontScore).toFixed(2));
+    var judg = '';
+    if (sty){
+      if ((sty === '逃げ' || sty === '先行') && (Number(bs.frontScore) || 0) >= 0.5) judg = ' → 想定どおり前が踏ん張った';
+      else if ((sty === '差し' || sty === '追込') && (Number(bs.frontScore) || 0) >= 0.5) judg = ' → バイアス想定に反して外差しが決まった';
+      else if ((sty === '逃げ' || sty === '先行') && (Number(bs.frontScore) || 0) < 0.5) judg = ' → 差し想定だったのに前残りの穴';
+      else if (sty) judg = ' → 想定と結果はほぼ整合';
+    }
+    g.push('トラックバイアス想定: ' + esc(fb.join(' / ')) + judg + '。');
+  }
+  /* 4) 印 vs 結果 */
+  var marked = aiMarkedRows(rows), hits = aiHitRows(rows);
+  if (marked.length){
+    var list = marked.map(function(m){
+      var good = m.order >= 1 && m.order <= 3;
+      return (good ? '<b style="color:#1b5e20">' : '') + esc(m.mark) + esc(m.no) + ' ' + esc(m.name) +
+        '→' + (m.order ? m.order + '着' : '—') + (good ? '</b>' : '');
+    });
+    var jd = hits.length >= 2 ? '印の的中は上々（3着内 ' + hits.length + '頭）' :
+      (hits.length === 1 ? '3着内は ' + hits.length + '頭のみ。印は半分的外れ' : '印が全部圏外の大波乱。人気薄の決着になった');
+    g.push('印と結果: ' + list.join(' / ') + '　—　' + jd + '。');
+  }
+  /* 5) 印を外した馬券内の馬 */
+  var miss = [];
+  res.rows.forEach(function(r){
+    var o = parseInt(r.order, 10) || 0;
+    if (o < 1 || o > 3) return;
+    var pr = null;
+    rows.forEach(function(x){ if (String(x.no) === String(r.no)) pr = x; });
+    if (pr && pr.mark) return;
+    var rk = 0;
+    rows.forEach(function(x, i){ if (String(x.no) === String(r.no)) rk = i + 1; });
+    miss.push(esc(r.name) + '（' + esc(r.no) + '番' + (r.pop ? '・' + esc(r.pop) : '') +
+      (rk ? '・予想順位' + rk + '位' : '') + '）');
   });
-  h += '</tbody></table></div>';
-  h += '<div class="muted small" style="margin-top:6px">EV＝勝率×(オッズ×控除0.8)。1.00超が理論的にプラス（緑色）。乖離＝統計勝率−市場勝率。</div></div>';
-  return h;
+  if (miss.length) g.push('印を付けた馬が取りこぼした馬券内: ' + miss.join(' / ') + '。');
+  /* 6) 払戻（確定後） */
+  var pay = res.payout || null;
+  if (pay && pay.win){
+    function minPay(p2){
+      var arr = (p2 && p2.pays) || [];
+      var mn = null;
+      arr.forEach(function(y){ var n2 = parseInt(y, 10); if (n2 > 0 && (mn == null || n2 < mn)) mn = n2; });
+      return mn;
+    }
+    var ps = '単勝 ' + esc((pay.win.nos || [])[0] || '') + ' → ' + aiYen(minPay(pay.win));
+    if (pay.place && (pay.place.pays || []).length) ps += '／複勝 ' + pay.place.pays.map(aiYen).join('・');
+    if (pay.santan && (pay.santan.pays || []).length) ps += '／3連単 ' + esc((pay.santan.nos || []).join(' ')) + ' ' + aiYen(minPay(pay.santan));
+    g.push('払戻（確定）: ' + ps + '。');
+  } else {
+    g.push('<span class="muted">払戻はまだ未取得（確定後に📥結果取得を再実行すると反映されます）。</span>');
+  }
+  if (!g.length) return '';
+  return '<div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:6px">' +
+    '<b style="font-size:.86rem">🧠 AI振り返り</b>' +
+    '<ul style="margin:4px 0 0 18px;padding:0;line-height:1.85;font-size:.84rem">' +
+    g.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
 }
+/* ---------- 1レースぶんのブロック（表＋振り返り） ---------- */
+function aiRaceBlock(it){
+  var b = aiRecBundle(it.rid);
+  if (!b) return '';
+  var label = [it.place, (it.rnum ? it.rnum + 'R' : ''), it.name].filter(Boolean).join(' ');
+  var marked = aiMarkedRows(b.rows), hits = aiHitRows(b.rows);
+  var settled = aiIsSettled(b);
+  var chip = settled ? ('馬券内 ' + hits.length + '/' + marked.length + '頭的中') : '結果未取得';
+  var chipCol = settled ? (hits.length >= 2 ? 'color:var(--ok-ink);font-weight:700' : (hits.length === 1 ? '' : 'color:var(--err-ink)')) : 'color:var(--muted,#777)';
+  var open = (settled && hits.length >= 2) ? ' open' : '';
+  var cchip = (function(){
+    var cc = (typeof aiCtxChip === 'function') ? aiCtxChip(String(it.name || '') + ' ' + String((b.rec && b.rec.meta && b.rec.meta.name) || '')) : '';
+    return cc ? '<span class="chip" style="margin-left:6px;background:#ede7f6">' + cc + '</span>' : '';
+  })();
+  return '<details class="card"' + open + '><summary style="cursor:pointer"><b>' + esc(label || it.rid) + '</b>' + cchip +
+    '　<span class="muted small">' + b.rows.length + '頭／</span><span class="small" style="' + chipCol + '">' + chip + '</span>' +
+    '</summary>' + aiRowsTable(b.rows) + aiRecapHTML(b) + '</details>';
+}
+/* ---------- 📥 その日の結果を取得（終わったレースだけ・順次） ---------- */
+var AI_MSG = '';
+function aiSettleMsg(txt){
+  AI_MSG = String(txt || '');   // 再描画でも消えないように保持（render が div を作り直すため）
+  var el = (typeof $ === 'function') ? $('aiSettleMsg') : null;
+  if (el) el.innerHTML = AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '';
+}
+function aiSettleDay(){
+  if (AI_SETTLE.busy) return;
+  if (typeof bfGet !== 'function' || typeof bfParseDbResult !== 'function'){
+    aiSettleMsg('⚠ 取得機能が読み込めていません。ページをやり直しください。');
+    return;
+  }
+  var items = aiDayItems();
+  if (!items.length){ aiSettleMsg('⚠ その日の一括取得データがありません。まず①で「📥 その日の出馬表を一括取得」してください。'); return; }
+  var d8 = AI_DAY_D8;
+  var jobs = items.filter(function(it){
+    var b = aiRecBundle(it.rid);
+    if (!b) return false;                                  // 予想が保存されていないレースは対象外
+    var pay = b.res && b.res.payout;
+    return !(pay && pay.win);                              // 払戻まで揃っているレースはスキップ
+  });
+  AI_SETTLE = { busy: true, n: jobs.length, done: 0, ok: 0, skip: items.length - jobs.length, err: 0, msg: '' };
+  var btn = (typeof $ === 'function') ? $('aiSettle') : null;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ 取得中…'; }
+  function finish(){
+    AI_SETTLE.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = '📥 その日の結果を取得'; }
+    aiSettleMsg('完了: 結果 ' + AI_SETTLE.ok + ' レースを追加' + (AI_SETTLE.err ? '／失敗 ' + AI_SETTLE.err : '') +
+      (AI_SETTLE.skip ? '（払戻確定済み ' + AI_SETTLE.skip + ' レースはスキップ）' : ''));
+    try { if (typeof aiProposalRender === 'function') aiProposalRender(); } catch(e){}
+  }
+  if (!jobs.length){
+    AI_SETTLE.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = '📥 その日の結果を取得'; }
+    aiSettleMsg('取得が必要なレースはありません（この日の分はすべて払戻まで揃っています）。');
+    return;
+  }
+  aiSettleMsg('結果を取得中… 0 / ' + jobs.length + ' レース');
+  var seq = Promise.resolve();
+  jobs.forEach(function(it){
+    seq = seq.then(function(){
+      return bfGet('https://db.netkeiba.com/race/' + it.rid + '/').then(function(html){
+        var pr = null;
+        try { pr = bfParseDbResult(html); } catch(e){ pr = null; }
+        if (!pr || !pr.rows || !pr.rows.length || pr.n < 3){ AI_SETTLE.err++; return null; }  // 未確定/取れず
+        var xd = null;
+        try { if (typeof diExtractXD === 'function') xd = diExtractXD(html, pr); } catch(e){}
+        try {
+          if (typeof diSaveOne === 'function'){
+            diSaveOne({ rid: it.rid }, d8, pr, xd, { ok: 0, dup: 0, upg: 0, skip: 0, errors: 0, limit: 0, evicted: 0, xdExtra: 0 }, function(){});
+          }
+          AI_SETTLE.ok++;
+        } catch(e){ AI_SETTLE.err++; }
+        return null;
+      }).catch(function(){ AI_SETTLE.err++; }).then(function(){
+        AI_SETTLE.done++;
+        aiSettleMsg('結果を取得中… ' + AI_SETTLE.done + ' / ' + jobs.length + ' レース');
+        return (typeof preSleep === 'function') ? preSleep(160) : null;
+      });
+    });
+  });
+  seq.then(finish).catch(finish);
+}
+/* ---------- 現在のレース（①で一括取得していないときだけの保険） ---------- */
+function aiCurRaceBlock(){
+  var inDay = false;
+  try {
+    var curRid = String((typeof state !== 'undefined' && state && state.raceId) || '');
+    if (curRid) aiDayItems().forEach(function(it){ if (String(it.rid) === curRid) inDay = true; });
+  } catch(e){}
+  if (inDay) return '';
+  var hs = ((typeof state !== 'undefined' && state && state.horses) || []).filter(function(h){ return h && h.no && (h.name || h.mark); });
+  if (!hs.length) return '';
+  var rows = hs.map(function(h){
+    return { no: String(h.no), name: String(h.name || ''), mark: String(h.mark || ''),
+      odds: (h.odds == null || h.odds === '') ? null : (parseFloat(h.odds) || null),
+      style: '', order: 0, pop: '', passing: '' };
+  });
+  var name = String((typeof state !== 'undefined' && state && state.race && state.race.name) || '現在のレース');
+  return '<details class="card" open><summary style="cursor:pointer"><b>🏇 ' + esc(name) + '</b>' +
+    '　<span class="muted small">' + rows.length + '頭／結果未取得</span></summary>' + aiRowsTable(rows) + '</details>';
+}
+/* ---------- メイン描画 ---------- */
 function aiProposalRender(){
   var box = $('aipropBody'); if (!box) return;
   var h = '';
@@ -35821,69 +36295,585 @@ function aiProposalRender(){
     var y = AI_DAY_D8.slice(0, 4), mo = AI_DAY_D8.slice(4, 6), dd = AI_DAY_D8.slice(6, 8);
     dayLabel = y + '年' + parseInt(mo, 10) + '月' + parseInt(dd, 10) + '日';
   }
-
-  /* ---- ① その日の全レース ---- */
   if (items.length){
-    var all = [], done = 0, blocks = '';
+    var got = 0, settled = 0, hits = 0, paidN = 0, blocks = '';
     items.forEach(function(it){
-      var rows = aiRaceRowsFromRec(it.rid);
-      if (!rows.length) return;
-      done++;
-      rows.sort(function(a, b){ return (b.ev || -1) - (a.ev || -1); });
-      var label = [it.place, (it.rnum ? it.rnum + 'R' : ''), it.name].filter(Boolean).join(' ');
-      var best = rows.filter(function(r){ return r.ev != null && r.ev >= 1.0; });
-      best.forEach(function(r){ all.push({ race: label || it.rid, rid: it.rid, r: r }); });
-      blocks += '<details class="card"' + (best.length ? ' open' : '') + '>' +
-        '<summary style="cursor:pointer"><b>' + esc(label || it.rid) + '</b>　' +
-        '<span class="muted small">' + rows.length + '頭／妙味馬 ' + best.length + '頭' +
-        (best.length ? '（最高EV ' + aiNum(best[0].ev) + '）' : '') + '</span></summary>' +
-        aiRowsTable(rows) + '</details>';
+      var b = aiRecBundle(it.rid);
+      if (!b) return;
+      got++;
+      if (aiIsSettled(b)){
+        settled++;
+        hits += aiHitRows(b.rows).length;
+        if (b.res.payout && b.res.payout.win) paidN++;
+      }
+      blocks += aiRaceBlock(it);
     });
     h += '<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
       '<b>📅 ' + esc(dayLabel || '開催日') + ' の全レース</b>' +
-      '<span class="chip">取得済み ' + done + ' / ' + items.length + ' レース</span>' +
-      '<span class="chip">妙味馬 ' + all.length + ' 頭</span>' +
-      '<span class="sp"></span><button type="button" class="btn ghost" onclick="aiProposalRender()">🔄 更新</button>' +
+      '<span class="chip">印つき ' + got + ' / ' + items.length + ' レース</span>' +
+      '<span class="chip">結果つき ' + settled + ' レース</span>' +
+      '<span class="chip">払戻確定 ' + paidN + ' レース</span>' +
+      '<span class="chip">印の馬券内 ' + hits + ' 頭</span>' +
       '</div>' +
-      '<div class="muted small" style="margin-top:6px">①データ入力の「📥 その日の出馬表を一括取得」で取り込んだレースを、' +
-      '保存済みのAI予想（オッズ・AI確率）から再計算しています（追加の通信はありません）。</div></div>';
-    if (all.length){
-      all.sort(function(a, b){ return (b.r.ev || 0) - (a.r.ev || 0); });
-      h += '<div class="card"><b>🎯 その日の妙味馬ランキング（EV順）</b>' +
-        '<div class="muted small" style="margin:4px 0 6px">全レース横断で、単勝EV 1.00超の馬だけを並べています。</div>' +
-        '<div style="overflow-x:auto"><table class="grid"><thead><tr><th>#</th><th>レース</th><th>馬番</th>' +
-        '<th>馬名</th><th>オッズ</th><th>AI確率</th><th>市場確率</th><th>乖離</th><th>単勝EV</th><th>複勝EV</th></tr></thead><tbody>';
-      all.slice(0, 20).forEach(function(x, i){
-        var r = x.r;
-        h += '<tr style="background:#c8e6c9;color:#1b5e20;font-weight:700"><td>' + (i + 1) + '</td>' +
-          '<td class="small" style="white-space:nowrap">' + esc(x.race) + '</td>' +
-          '<td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
-          '<td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td><td>' + aiPct(r.p) + '</td><td>' + aiPct(r.mp) + '</td>' +
-          '<td>' + (r.gap == null ? '-' : (r.gap >= 0 ? '+' : '') + (r.gap * 100).toFixed(1) + 'pt') + '</td>' +
-          '<td>' + aiNum(r.ev) + '</td><td>' + aiNum(r.evF) + '</td></tr>';
-      });
-      h += '</tbody></table></div></div>';
-    } else {
-      h += '<div class="card muted">この日のレースで、単勝EV 1.00 を超える馬は見つかりませんでした。</div>';
-    }
+      '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
+      '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
+      '「📥 その日の結果を取得」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
+      'エンジン更新後は <b>「🔁 再計算（現エンジン）」</b> で、前日保存の予想を通信ゼロで作り直せます（結果確定済みは上書きせず保護）。' +
+      '新馬戦・障害戦のレース名には「🧩 補正」チップを表示します。</div></div>';
     h += blocks;
+    if (settled){
+      var rate = got > 0 ? (settled > 0 ? Math.round(hits / (settled * 5) * 100) : 0) : 0;
+      h += '<div class="card"><b>📊 今日の合計</b>　結果照合 ' + settled + ' レースで印（◎〜△）の馬券内 ' +
+        hits + ' 頭' + (settled > 0 ? '（1レース平均 ' + (hits / settled).toFixed(1) + '頭／中率 ' + rate + '%）' : '') +
+        '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。レースごとの詳細は上の各カード。</div></div>';
+    }
   } else {
     h += '<div class="card"><b>📅 その日の全レース</b>' +
       '<div class="muted" style="margin-top:6px">まだ一括取得されたレースがありません。<br>' +
-      '①データ入力タブの <b>「📥 その日の出馬表を一括取得」</b> を押すと、その日の全レースがここに反映されます。</div></div>';
+      '①データ入力タブの <b>「📥 その日の出馬表を一括取得」</b> を押すと、その日の全レースの印がここに並びます。<br>' +
+      'レースが終了したら <b>「📥 その日の結果を取得」</b> で着順・払戻・展開を突き合わせ、AI振り返りが出ます。</div>' +
+      '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div></div>';
   }
-
-  /* ---- ② 現在のレース（自前統計） ---- */
-  var cur = aiCurRaceHTML();
+  var cur = aiCurRaceBlock();
   if (cur) h += cur;
-
   box.innerHTML = h + aiProposalHelpHTML();
 }
 function aiProposalInit(){
   var b = $('aiRefresh');
   if (b) b.addEventListener('click', function(){ try { aiProposalRender(); } catch(e){} });
+  var s = $('aiSettle');
+  if (s) s.addEventListener('click', function(){ try { aiSettleDay(); } catch(e){ aiSettleMsg('⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e))); } });
+  var xe = $('aiExcel');
+  if (xe) xe.addEventListener('click', function(){ try { aiExportExcel(); } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); } });
+  var xp = $('aiPdf');
+  if (xp) xp.addEventListener('click', function(){ try { aiExportPDF(); } catch(e){ aiSettleMsg('⚠ PDF(印刷)に失敗: ' + esc(String((e && e.message) || e))); } });
+  var rc = $('aiRecompute');
+  if (rc) rc.addEventListener('click', function(){ try { aiRecomputeDay(); } catch(e){ aiSettleMsg('⚠ 再計算に失敗: ' + esc(String((e && e.message) || e))); } });
   try { aiProposalRender(); } catch(e){}
 }
+
+function aiRaceGeom(b){
+  var mm = (b.rec && b.rec.meta) || {};
+  var raceName = String(mm.name || ''), distStr = String(mm.dist || '');
+  var m = parseInt((distStr.match(/(\d{3,4})/) || raceName.match(/(?:芝|ダート?|ダ)\s*右?左?内?外?直?(\d{3,4})/) || [])[1] || 0, 10) || 1600;
+  var surfKey = /障/.test(raceName + distStr) ? '障' : (/ダ/.test(raceName + distStr) ? 'ダ' : '芝');
+  return { m: m, surf: surfKey, venue: String(mm.place || '') };
+}
+/* ---------- 🎚 RL/CL・実況風展開予想（第36弾・Excel/PDFに同載） ----------
+   ・RL（レースランク）: クラス/格付けの基準値＋AI上位5頭の学習DB実績（複勝率・勝率）で
+     ±1.6まで補正した 1〜10。実績のある馬だけで補正します（薄い馬は無視）。
+   ・CL（コースランク）: その馬の 複勝率(全体)×面×距離帯(芝1600m等)×当該競馬場 の
+     加重blend（各セルは件数で収縮 n/(n+6)、実績3走未満は「—」）を 0〜10 に。
+   ・展開予想（実況風）: 脚質・AI確率・保存済みペース予想・トラックバイアス想定・
+     学習DB基準時計（tlBaseSec）から 隊列→600m通過→4角隊列→予想入線 を文章生成。
+     乱数なし・決定的（同じデータなら毎回同じ文章）。
+   ------------------------------------------------------------ */
+function aiClamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+function aiClockTxt(sec){
+  sec = Number(sec);
+  if (!(sec > 0)) return '';
+  var mi = Math.floor(sec / 60), s = sec - mi * 60;
+  var tt = (s < 10 ? '0' : '') + s.toFixed(1);
+  return (mi > 0 ? mi + '.' : '') + tt;
+}
+function aiRaceClsOf(txt){
+  txt = String(txt || '');
+  if (/G1|GI/.test(txt)) return { base: 8.6, note: 'G1級' };
+  if (/G2|GII/.test(txt)) return { base: 7.4, note: 'G2級' };
+  if (/G3|GIII|Jpn/.test(txt)) return { base: 6.4, note: 'G3・Jpn級' };
+  if (/リステッド|リストッド/.test(txt)) return { base: 6.0, note: 'リステッド級' };
+  if (/障害/.test(txt)) return { base: 5.0, note: '障害' };
+  if (/新馬/.test(txt)) return { base: 2.2, note: '新馬' };
+  if (/未勝利/.test(txt)) return { base: 3.2, note: '未勝利' };
+  if (/1勝|500万/.test(txt)) return { base: 4.2, note: '1勝クラス' };
+  if (/2勝|1000万/.test(txt)) return { base: 5.0, note: '2勝クラス' };
+  if (/3勝|1600万/.test(txt)) return { base: 5.8, note: '3勝クラス' };
+  if (/オープン|3000万/.test(txt)) return { base: 6.4, note: 'オープン級' };
+  return { base: 4.6, note: '基準' };
+}
+/* RL: レースランク（1〜10） */
+function aiRaceRL(b){
+  try {
+    var mm = (b.rec && b.rec.meta) || {};
+    var cl = aiRaceClsOf(String(mm.name || '') + ' ' + String(mm.grade || ''));
+    var acc = 0, n = 0;
+    (b.rows || []).slice(0, 5).forEach(function(r){
+      var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', r.name) : null;
+      if (st && (st.rides || 0) >= 5){
+        acc += (st.show / st.rides) * 0.65 + (st.win / st.rides) * 0.35;
+        n++;
+      }
+    });
+    var adj = n ? aiClamp((acc / n - 0.30) * 5.0, -1.6, 1.6) : 0;
+    var v = Math.round(aiClamp(cl.base + adj, 1, 10) * 10) / 10;
+    var lv = v >= 8 ? 'ハイレベル' : (v >= 6.4 ? '標準以上' : (v >= 4.6 ? '標準' : 'ローカル編成'));
+    return { v: v, txt: v.toFixed(1) + '（' + cl.note + '・' + lv + '）', n: n };
+  } catch(e){ return { v: null, txt: '—', n: 0 }; }
+}
+/* CL: コースランク（0〜10・馬別） */
+function aiCourseCL(hname, surfKey, m, venue){
+  try {
+    var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', hname) : null;
+    if (!st || (st.rides || 0) < 3) return null;
+    var n = st.rides;
+    var sf = (surfKey === 'ダ') ? 'dirt' : (surfKey === '障' ? 'jump' : 'turf');
+    function cell(x, w){
+      if (!x || (x.rides || 0) < 2) return null;
+      var k = x.rides;
+      return { r: (x.show || 0) / k, w: w * (k / (k + 6)) };
+    }
+    var cells = [
+      { r: (st.show || 0) / n, w: 0.40 * (n / (n + 8)) },
+      cell(st.bySurf && st.bySurf[sf], 0.24),
+      cell(st.byDistEx && st.byDistEx[surfKey + m + 'm'], 0.22),
+      cell(venue && st.byTrack && st.byTrack[venue], 0.14)
+    ];
+    var acc = 0, wt = 0;
+    cells.forEach(function(x){ if (x){ acc += x.r * x.w; wt += x.w; } });
+    if (!(wt > 0)) return null;
+    var r = acc / wt;
+    var v = Math.round(aiClamp(2 + (r - 0.10) * (8 / 0.55), 0, 10) * 10) / 10;
+    return { v: v, rate: r };
+  } catch(e){ return null; }
+}
+/* 展開予想（実況風）: b→{ lines:[..], top3:'9-1-5', m, surf } / 3頭未満は null */
+function aiStorySim(b){
+  try {
+    var mm = (b.rec && b.rec.meta) || {};
+    var raceName = String(mm.name || '');
+    var distStr = String(mm.dist || '');
+    var m = parseInt((distStr.match(/(\d{3,4})/) || raceName.match(/(?:芝|ダート?|ダ)\s*右?左?内?外?直?(\d{3,4})/) || [])[1] || 0, 10) || 1600;
+    var surfKey = /障/.test(raceName + distStr) ? '障' : (/ダ/.test(raceName + distStr) ? 'ダ' : '芝');
+    var venue = String(mm.place || '');
+    var d8 = String(b.snap.d8 || mm.date8 || '');
+    var probBy = {};
+    ((b.snap && b.snap.rows) || []).forEach(function(x){ if (x && x.no != null) probBy[String(x.no)] = (x.prob != null ? Number(x.prob) : 0); });
+    var hs = (b.rows || []).map(function(r, i){
+      var cls = (typeof styleClass === 'function') ? styleClass(r.style) : '';
+      return { no: String(r.no), name: String(r.name || ''), cls: cls, prob: probBy[String(r.no)] || (0.24 / (i + 1)) };
+    }).sort(function(x, y){ return y.prob - x.prob; });
+    if (hs.length < 3) return null;
+    /* 先発候補: 逃げ馬（無ければ先行上位1頭）、2〜3頭まで */
+    var leaders = hs.filter(function(x){ return x.cls === 'E'; }).slice(0, 3);
+    if (!leaders.length) leaders = hs.filter(function(x){ return x.cls === 'S'; }).slice(0, 1);
+    var lset = {};
+    leaders.forEach(function(x){ lset[x.no] = 1; });
+    var rest = hs.filter(function(x){ return !lset[x.no]; });
+    var midPack = rest.filter(function(x){ return x.cls !== 'C'; }).slice(0, 4);
+    var mset = {};
+    midPack.forEach(function(x){ mset[x.no] = 1; });
+    var tailPack = rest.filter(function(x){ return !mset[x.no]; });
+    /* ペース */
+    var pd = b.snap.pace || null;
+    var s0 = (pd && pd.score != null) ? Number(pd.score) : null;
+    var paceTxt = pd && pd.label ? String(pd.label) : '';
+    var fast = s0 != null && s0 >= 0.60, slow = s0 != null && s0 <= 0.40;
+    /* 基準時計→600m通過 */
+    var baseSec = null;
+    try { if (typeof tlBaseSec === 'function') baseSec = tlBaseSec(surfKey, m, raceName, venue, d8); } catch(e){}
+    var t600 = null;
+    if (baseSec && s0 != null){
+      var avgF = baseSec / (m / 200);
+      t600 = aiClamp(avgF * 3 + 0.15 - (s0 - 0.5) * 1.1, 32.8, 39.5);
+    }
+    /* 1行目: スタート・隊列 */
+    var l1;
+    var ln = leaders.map(function(x){ return x.no; });
+    if (ln.length >= 2){
+      var rival = (probBy[ln[0]] || 0) <= (probBy[ln[1]] || 0) * 1.65;
+      l1 = 'スタートから' + (rival ? (ln[0] + 'と' + ln[1] + 'が競り合って逃げ、') : (ln[0] + 'が単騎で逃げ、')) +
+        (midPack.length ? 'その後ろに' + midPack.map(function(x){ return x.no; }).join('と') + 'の塊、' : '') +
+        (tailPack.length ? 'やや離れて' + tailPack.slice(0, 4).map(function(x){ return x.no; }).join('と') + 'が追う展開を予想' : '');
+    } else if (ln.length === 1){
+      l1 = 'スタートは' + ln[0] + 'が楽にハナを切り、' +
+        (midPack.length ? '2番手以降に' + midPack.map(function(x){ return x.no; }).join('・') + '、' : '') +
+        (tailPack.length ? '後続は' + tailPack.slice(0, 4).map(function(x){ return x.no; }).join('・') + '一团' : '') + 'と予想';
+    } else {
+      l1 = 'ハナを主張しそうな馬が少なく、' + hs.slice(0, 2).map(function(x){ return x.no; }).join('と') + 'あたりが早目に押して先団を作る予想';
+    }
+    /* 2行目: ペース・600m */
+    var l2;
+    if (s0 != null){
+      l2 = 'ペースは' + (paceTxt || (fast ? 'ハイ' : (slow ? 'スロー' : '平均'))) + '想定';
+      if (t600 != null) l2 += '。' + m + 'm戦の600mは' + t600.toFixed(1) + '秒程度で通過と予想（基準勝ち時計 ' + aiClockTxt(baseSec) + '）';
+      else l2 += '（基準時計が未取得のため通過秒数は省略）';
+      if (pd && pd.manual) l2 += '※手動設定';
+    } else {
+      l2 = 'ペースの事前予想が未保存のため、隊列の崩れは中立ちで計算';
+    }
+    /* 3行目: 4角隊列（ペース差で決定的にドリフト） */
+    var posOf = {}, slot = 0;
+    hs.forEach(function(x){ if (lset[x.no]) posOf[x.no] = ++slot; });
+    midPack.forEach(function(x){ posOf[x.no] = ++slot; });
+    tailPack.forEach(function(x){ posOf[x.no] = ++slot; });
+    var drift = s0 == null ? 0 : Math.round((s0 - 0.5) * 3);
+    var fin = {};
+    hs.forEach(function(x){
+      var d2 = (x.cls === 'E' || x.cls === 'S') ? Math.floor(drift / 2) : Math.ceil(-drift / 2);
+      fin[x.no] = Math.max(1, (posOf[x.no] || slot) + d2);
+    });
+    var byPos = hs.slice().sort(function(x, y){ return (fin[x.no] - fin[y.no]) || (y.prob - x.prob); });
+    var groups = [];
+    byPos.forEach(function(x){
+      var last = groups[groups.length - 1];
+      if (last && fin[x.no] - last.lastP <= 1){ last.nos.push(x.no); last.lastP = fin[x.no]; }
+      else groups.push({ nos: [x.no], firstP: fin[x.no], lastP: fin[x.no] });
+    });
+    var gtxt = groups.slice(0, 5).map(function(g, i){
+      var head = g.nos.slice(0, 3).join('-') + (g.nos.length > 3 ? '…' : '');
+      if (i === 0) return head;
+      var gap = g.firstP - groups[i - 1].lastP;
+      return (gap >= 3 ? '、離れて' : '、') + head;
+    });
+    var l3 = '4コーナー通過隊列は ' + gtxt.join('') + ' の想定';
+    /* 4行目: バイアス */
+    var bs = b.snap.bias || null;
+    var fs = null, biasTxt = '';
+    if (bs && (bs.posLabel || bs.frontScore != null)){
+      if (bs.frontScore != null) fs = Number(bs.frontScore);
+      biasTxt = 'トラックバイアス想定: ' + (bs.posLabel ? String(bs.posLabel) : '—') +
+        (fs != null ? '（先行傾向 ' + fs.toFixed(2) + '）' : '');
+    }
+    /* 5行目: 結論・予想入線 */
+    var scored = hs.map(function(x){
+      var adj = 0;
+      if (s0 != null) adj += (s0 - 0.5) * ((x.cls === 'E' || x.cls === 'S') ? -0.42 : 0.42);
+      if (fs != null && isFinite(fs)){
+        var front2 = (x.cls === 'E' || x.cls === 'S');
+        if (fs >= 0.55) adj += front2 ? 0.10 : -0.04;
+        else if (fs <= 0.45) adj += front2 ? -0.04 : 0.10;
+      }
+      return { no: x.no, name: x.name, sc: (x.prob || 0) * (1 + adj) };
+    }).sort(function(a, y){ return y.sc - a.sc; });
+    var l4 = '展開結論: ' + (fast ? 'ハイで前が苦しくなりやすく、' : (slow ? '前が残りやすい流れ、' : '実力関係がそのまま出やすい流れ、')) +
+      '予想入線は ' + scored.slice(0, 3).map(function(x){ return x.no + ' ' + x.name; }).join(' → ') +
+      '。馬券予想は ' + scored.slice(0, 3).map(function(x){ return x.no; }).join('-') + ' で入線';
+    var lines = [l1, l2, l3];
+    if (biasTxt) lines.push(biasTxt);
+    lines.push(l4);
+    return { lines: lines, top3: scored.slice(0, 3).map(function(x){ return x.no; }).join('-'), m: m, surf: surfKey };
+  } catch(e){ return null; }
+}
+
+/* ---------- 📤 その日の全レースをExcel/PDFで保存（第35弾） ----------
+   1枚のシートに 1レースぶんの出馬表ブロックを並べる（画像仕様準拠）:
+     見出し行: 20260905　中山 1R　3歳未勝利　｜　波乱度: D（波乱傾向・5段階）
+     列: 番 / 馬名 / 印 / オッズ / 特記(軸・妙味・穴・高確実) / 勝率 / 連対率 / 複勝率 / 出典
+   ・勝率・連対率・複勝率は AI数値化: 学習DBに10走以上の実績がある馬は
+     その実績率（勝率=1着率・連対率=2着内・複勝率=3着内）、
+     実績不足の馬は保存済みAI確率から倍率換算（連対×2.1／複勝×3.3、上限97/99%）。
+   ・波乱度5段階: 市場オッズのエントロピー(0.72)と1番人気オッズ(0.28)から
+     A=堅実・配当安 … E=大波乱傾向 に分類。
+   ------------------------------------------------------------ */
+var AI_WAVE_KEYS = ['A', 'B', 'C', 'D', 'E'];
+var AI_WAVE_NAMES = ['堅実（配当は安くなりやすい）', 'やや堅実', '平均的', '波乱傾向', '大波乱傾向'];
+function aiWaveGrade(oddsArr){
+  var inv = [], sum = 0, fav = 0;
+  (oddsArr || []).forEach(function(o){
+    o = parseFloat(o) || 0;
+    if (o > 1){ inv.push(1 / o); sum += 1 / o; if (!fav || o < fav) fav = o; }
+  });
+  var n = inv.length;
+  if (n < 2 || !(sum > 0)) return { lv: 0, key: '-', name: 'データ不足' };
+  var ent = 0;
+  inv.forEach(function(p){ var q = p / sum; if (q > 0) ent -= q * Math.log(q); });
+  ent = ent / Math.log(n);                       // 0=1頭突出 1=完全横一色
+  var favScore = Math.max(0, Math.min(1, (fav - 1.2) / 6.3));  // 人気薄1番人気ほど高い
+  var sc = 0.72 * ent + 0.28 * favScore;
+  var lv = sc < 0.42 ? 1 : (sc < 0.55 ? 2 : (sc < 0.66 ? 3 : (sc < 0.76 ? 4 : 5)));
+  return { lv: lv, key: AI_WAVE_KEYS[lv - 1], name: AI_WAVE_NAMES[lv - 1], score: Math.round(sc * 100) / 100 };
+}
+function aiRatesFor(hname, prob){
+  var out = { wr: null, pr: null, sr: null, src: '', n: 0 };
+  try {
+    var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', hname) : null;
+    if (st && (st.rides || 0) >= 10){
+      var n = st.rides;
+      out.wr = (st.win || 0) / n; out.pr = (st.place || 0) / n; out.sr = (st.show || 0) / n;
+      out.src = '学習DB ' + n + '走'; out.n = n;
+    }
+  } catch(e){}
+  if (out.wr == null && prob != null && prob > 0){
+    out.wr = Math.min(0.9, prob);
+    out.pr = Math.min(0.95, Math.max(out.wr, prob * 2.1));
+    out.sr = Math.min(0.98, Math.max(out.pr, prob * 3.3));
+    out.src = 'AI確率換算';
+  }
+  if (out.wr != null){ out.pr = Math.max(out.pr, out.wr); out.sr = Math.max(out.sr, out.pr); }
+  return out;
+}
+function aiSpecialNotes(no, mark, rate, picks){
+  var t = [];
+  try {
+    if (picks){
+      if (picks.hole && String(picks.hole.no) === String(no)) t.push('穴');
+      if (picks.value && String(picks.value.no) === String(no)) t.push('妙味');
+      if (picks.axis && String(picks.axis.no) === String(no) && !t.length) t.push('軸');
+    }
+  } catch(e){}
+  if (!t.length && mark === '◎') t.push('軸');
+  if (rate && rate.wr != null && rate.wr >= 0.28) t.push('高確実');
+  return t.join('・');
+}
+/* その日のエクスポート用モデル（保存済み予想のみ・通信なし） */
+function aiDayExportModel(){
+  var out = [];
+  try {
+    var items = aiDayItems();
+    items.forEach(function(it){
+      var b = aiRecBundle(it.rid);
+      if (!b) return;
+      var picks = b.snap.picks || null;
+      var odds = b.rows.map(function(r){ return r.odds; });
+      var wave = aiWaveGrade(odds);
+      var geom = aiRaceGeom(b);
+      var story = aiStorySim(b);
+      var rl = aiRaceRL(b);
+      var rows = b.rows.map(function(r){
+        var rate = aiRatesFor(r.name, (function(){ var pr = null; try { (b.snap.rows || []).forEach(function(x){ if (String(x.no) === String(r.no)) pr = (x.prob != null ? x.prob : null); }); } catch(e){} return pr; })());
+        return { no: r.no, name: r.name, mark: r.mark, odds: r.odds,
+                 wr: rate.wr, pr: rate.pr, sr: rate.sr, src: rate.src,
+                 note: aiSpecialNotes(r.no, r.mark, rate, picks),
+                 cl: (function(){ var cv = aiCourseCL(r.name, geom.surf, geom.m, geom.venue); return cv ? cv.v : null; })() };
+      });
+      out.push({
+        d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || ''), rnum: String(it.rnum || ''),
+        name: String(it.name || ''), rid: String(it.rid || ''), wave: wave, rows: rows,
+        rl: rl, story: (story && story.lines) ? story.lines : null, geom: geom,
+        settled: aiIsSettled(b),
+        resultMap: (function(){ var m = {}; try { (b.res && b.res.rows ? b.res.rows : []).forEach(function(x){ if (x && x.no != null) m[String(x.no)] = (parseInt(x.order, 10) || 0); }); } catch(e){} return m; })()
+      });
+    });
+  } catch(e){}
+  return out;
+}
+function aiPct1(v){ return v == null ? '' : (Math.round(v * 1000) / 10).toFixed(1) + '%'; }
+/* Excel読み込み対応HTML（.xls として保存） */
+function aiExportXlsHTML(model){
+  function td(t, s){ return '<td' + (s ? ' style="' + s + '"' : '') + '>' + String(t == null ? '' : t) + '</td>'; }
+  var h = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">' +
+    '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>' +
+    '<x:Name>その日の全レース</x:Name><x:WorksheetOptions><x:Print><x:ValidPrinterInfo/></x:Print></x:WorksheetOptions>' +
+    '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->' +
+    '<style>td,th{border:1px solid #999;font-family:Meiryo,sans-serif;font-size:10.5pt;padding:2px 7px;text-align:center}' +
+    'th{background:#efefef} tr.rh td{background:#e3f2fd;font-weight:700;text-align:left}' +
+    'td.note{color:#b25000;font-weight:700} td.wr{background:#fffde7}</style></head><body>';
+  h += '<table cellspacing="0" cellpadding="0">';
+  h += '<tr><td colspan="10" style="font-size:13pt;font-weight:700;background:#1a237e;color:#fff">競馬AIラボ｜' +
+    String((model[0] && model[0].d8) || '') + '　全' + model.length + 'レース（印・AI率・波乱度・RL/CL・展開予想）</td></tr>';
+  model.forEach(function(rc){
+    var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
+    h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
+      '<td colspan="3" style="text-align:left">RL ' + esc((rc.rl && rc.rl.txt) || '—') + '</td>' +
+      '<td colspan="3" style="text-align:left">' + (rc.settled ? '結果つき' : '出走前') + '</td></tr>';
+    h += '<tr>' + ['番', '馬名', '印', 'オッズ', '特記', '勝率', '連対率', '複勝率', 'CL', '出典'].map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    rc.rows.forEach(function(r){
+      var resNo = rc.resultMap[String(r.no)] || 0;
+      h += '<tr>' + td(r.no) + td(r.name, 'text-align:left') + td(r.mark, 'font-weight:700') +
+        td(r.odds == null ? '' : Number(r.odds).toFixed(1)) + td(r.note, 'color:#b25000;font-weight:700') +
+        td(aiPct1(r.wr), 'background:#fffde7') + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
+        td(r.cl == null ? '—' : Number(r.cl).toFixed(1)) +
+        td((r.src || '') + (resNo ? '／' + resNo + '着' : '')) + '</tr>';
+    });
+    if (rc.story && rc.story.length){
+      h += '<tr><td colspan="10" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
+        rc.story.map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
+    }
+    h += '<tr><td colspan="10"></td></tr>';
+  });
+  h += '</table></body></html>';
+  return h;
+}
+/* 印刷（PDF保存）用HTML */
+function aiExportPdfHTML(model){
+  function td(t, s){ return '<td' + (s ? ' class="' + s + '"' : '') + '>' + String(t == null ? '' : t) + '</td>'; }
+  var wcol = { A: '#c8e6c9', B: '#dcedc8', C: '#fff9c4', D: '#ffe0b2', E: '#ffcdd2' };
+  var h = '<!doctype html><html><head><meta charset="utf-8"><title>競馬AIラボ｜その日の全レース</title><style>' +
+    '@page{size:A4 landscape;margin:9mm} body{font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif;font-size:10px;color:#1c2430;margin:0}' +
+    'h1{font-size:15px;margin:0 0 8px} .race{border:1px solid #b9c4d6;border-radius:6px;margin:0 0 10px;padding:6px 8px;break-inside:avoid;page-break-inside:avoid;background:#fff}' +
+    '.rh{display:flex;gap:10px;align-items:center;font-weight:700;font-size:11.5px;margin-bottom:4px}' +
+    '.wave{padding:1px 8px;border-radius:9px;font-size:10px;border:1px solid #99a}' +
+    'table{border-collapse:collapse;width:100%} th,td{border:1px solid #c6cfdd;padding:2px 5px;text-align:center}' +
+    'th{background:#eef2f8} td.nm{text-align:left;white-space:nowrap} td.wr{background:#fffde7;font-weight:700}' +
+    'td.note{color:#b25000;font-weight:700} .muted{color:#7b8698;font-weight:400;font-size:9.5px}' +
+    '.story{margin-top:5px;padding:5px 8px;background:#f4f6fd;border-left:3px solid #7986cb;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0}' +
+    '@media print{.race{box-shadow:none}} .foot{color:#7b8698;font-size:9px;margin-top:6px}' +
+    '</style></head><body>';
+  h += '<h1>🐎 競馬AIラボ｜' + esc(String((model[0] && model[0].d8) || '')) + '　全' + model.length + 'レース出馬表（印・AI率・波乱度・RL/CL・展開予想）</h1>';
+  model.forEach(function(rc){
+    var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
+    h += '<div class="race"><div class="rh"><span>' + esc(label) + '</span>' +
+      '<span class="wave" style="background:' + (wcol[rc.wave.key] || '#eee') + '">波乱度 ' + esc(rc.wave.key || '-') + '（' + esc(rc.wave.name) + '）</span>' +
+      '<span class="wave" style="background:#ede7f6">RL ' + esc((rc.rl && rc.rl.v != null ? rc.rl.v.toFixed(1) : '—')) + '</span>' +
+      '<span class="muted">' + (rc.settled ? '結果つき' : '出走前') + '</span></div>';
+    h += '<table><tr><th>番</th><th>馬名</th><th>印</th><th>オッズ</th><th>特記</th><th>勝率(AI)</th><th>連対率</th><th>複勝率</th><th>CL</th>' + (rc.settled ? '<th>結果</th>' : '') + '</tr>';
+    rc.rows.forEach(function(r){
+      var resNo = rc.resultMap[String(r.no)] || 0;
+      h += '<tr>' + td(r.no) + '<td class="nm">' + esc(r.name) + '</td>' + td(r.mark) + td(r.odds == null ? '' : Number(r.odds).toFixed(1)) +
+        td(r.note, 'note') + '<td class="wr">' + aiPct1(r.wr) + '</td>' + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
+        td(r.cl == null ? '—' : Number(r.cl).toFixed(1)) +
+        (rc.settled ? td(resNo ? resNo + '着' : '—') : '') + '</tr>';
+    });
+    if (rc.story && rc.story.length){
+      h += '<div class="story"><b>🔮 展開予想（実況風）</b>' +
+        rc.story.map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
+    }
+    h += '</table></div>';
+  });
+  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。波乱度は市場オッズのエントロピー＋1番人気オッズの5段階。RL=クラス基準値+上位5頭の実績補正(1〜10)、CL=複勝率の面×距離帯×競馬場blend(0〜10)。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '</body></html>';
+  return h;
+}
+function aiExportNeed(){
+  var model = aiDayExportModel();
+  if (!model.length){ aiSettleMsg('⚠ エクスポート対象がありません。①で「📥 その日の出馬表を一括取得」してから開いてください。'); return null; }
+  return model;
+}
+function aiExportExcel(){
+  var model = aiExportNeed();
+  if (!model) return;
+  try {
+    var html = aiExportXlsHTML(model);
+    var blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'keiba_' + (AI_DAY_D8 || 'export') + '.xls';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
+    aiSettleMsg('✅ Excel（keiba_' + (AI_DAY_D8 || '') + '.xls）を保存しました。開けない場合はブラウザの「この種のダウンロードを保存」を許可してください。');
+  } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); }
+}
+function aiExportPDF(){
+  var model = aiExportNeed();
+  if (!model) return;
+  try {
+    var f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:1100px;height:780px;border:0';
+    f.srcdoc = aiExportPdfHTML(model);
+    f.onload = function(){
+      setTimeout(function(){
+        try { f.contentWindow.focus(); f.contentWindow.print(); aiSettleMsg('🖨 印刷ダイアログで「PDFに保存」を選ぶとそのままPDF保存できます。'); }
+        catch(e){ aiSettleMsg('⚠ 印刷ダイアログを開けませんでした（Excel保存をお試しください）'); }
+      }, 220);
+    };
+    document.body.appendChild(f);
+    setTimeout(function(){ try { document.body.removeChild(f); } catch(e){} }, 240000);
+  } catch(e){ aiSettleMsg('⚠ PDF（印刷）に失敗: ' + esc(String((e && e.message) || e))); }
+}
+
+/* ============================================================
+   ★2026-09-19 第38弾: 前日予想の「再計算」と、補正チップ
+   ------------------------------------------------------------
+   ①の前日一括取得で保存した予想(rec.pre)は、保存した時点のエンジン値です。
+   第37弾の新馬戦・障害戦補正のようなエンジン更新を反映したいとき、
+   「🔁 再計算」を押すと【通信ゼロ】で作り直します：
+     端末の出馬表キャッシュ → 出走馬を再パース → オッズは保存済み rec.pre の値を
+     そのまま使用 → analyzeRace() 再実行 → rec.pre を更新。
+   結果が確定済みのレースは上書きしません（＝前日予想の検証記録を守る）。
+   出馬表キャッシュが無い/期限切れのレースは「キャッシュなし」でスキップ
+   （取り直したいときは①の一括取得を再実行してください）。
+   ============================================================ */
+var AI_RECOMP = { busy: false, n: 0, done: 0, ok: 0, skipDone: 0, noCache: 0, fail: 0 };
+/* レース名から「新馬戦/障害」の限定補正が効くかを示すチップ文言 */
+function aiCtxChip(name){
+  var nm = String(name || '');
+  if (/障害/.test(nm)) return '🧩 障害補正';
+  if (/新馬/.test(nm)) return '🧩 新馬戦補正';
+  return '';
+}
+/* 1レースぶん: キャッシュ出馬表＋保存済みオッズでローカル再計算 → rec.pre 更新 */
+function aiRecomputeOne(rid, d8){
+  rid = String(rid || '');
+  return Promise.resolve().then(function(){
+    if (!rid) return { rid: '', st: 'skip' };
+    try {
+      if (typeof apPreAllowed === 'function' && !apPreAllowed(rid)) return { rid: rid, st: 'done' };
+      if (typeof preHasCard !== 'function' || !preHasCard(rid)) return { rid: rid, st: 'nocache' };
+      if (typeof nkFetchCardText !== 'function' || typeof nkParseShutuba !== 'function') return { rid: rid, st: 'ng' };
+    } catch(e){ return { rid: rid, st: 'ng' }; }
+    return nkFetchCardText(rid, { d8: String(d8 || '') }).then(function(html){
+      var parsed = null;
+      try { parsed = nkParseShutuba(html) || []; } catch(e){ parsed = []; }
+      if (!parsed.length) return { rid: rid, st: 'parse' };
+      var rec = (typeof apGet === 'function') ? apGet(rid) : null;
+      var snap = rec && (rec.pre || rec.preBt);
+      var oddsMap = {};
+      ((snap && snap.rows) || []).forEach(function(x){
+        if (x && x.no != null && x.odds != null && x.odds !== '') oddsMap[String(x.no)] = { odds: String(x.odds) };
+      });
+      var hs = null;
+      if (typeof preBuildHorses === 'function'){
+        try { hs = preBuildHorses(parsed, oddsMap, d8); } catch(e){ hs = null; }
+      }
+      if (!hs || !hs.length){
+        hs = parsed.map(function(p){
+          var o = oddsMap[String(p.no)];
+          return { no: String(p.no || ''), frame: p.frame || '', name: p.name || '', sexAge: p.sexAge || '',
+                   weight: p.weight || '', jockey: p.jockey || '', nk: p.nk || '',
+                   odds: (o && o.odds) || '', style: '', mark: '', yobi: '', time: '' };
+        });
+      }
+      var mm = (rec && rec.meta) || {};
+      var raceObj = { name: String(mm.name || ''), place: String(mm.place || ''), baba: String(mm.baba || ''),
+                      dist: String(mm.dist || ''), grade: String(mm.grade || ''), time: String(mm.time || '') };
+      if (typeof preWithState !== 'function' || typeof analyzeRace !== 'function') return { rid: rid, st: 'ng' };
+      var res = preWithState(raceObj, hs, d8, rid, function(){ return analyzeRace(); });
+      if (!res || !res.ok || !res.rows || !res.rows.length) return { rid: rid, st: 'analyze' };
+      var mm2 = null;
+      try {
+        mm2 = preWithState(raceObj, hs, d8, rid, function(){ return (typeof apMetaCur === 'function') ? apMetaCur() : null; });
+      } catch(e){ mm2 = null; }
+      var rec2 = (typeof apSnapPred === 'function') ? apSnapPred(rid, res, mm2) : null;
+      if (!rec2 || !rec2.pre) return { rid: rid, st: 'blocked' };
+      try {
+        if (typeof preNoteFetched === 'function'){
+          preNoteFetched(rid, d8, { place: mm.place || '', rnum: mm.rnum || '', name: mm.name || '',
+            n: res.rows.length, pre: true, oddsN: Object.keys(oddsMap).length });
+        }
+      } catch(e){}
+      return { rid: rid, st: 'ok', n: res.rows.length,
+               top: res.rows[0] ? (res.rows[0].h.name + res.rows[0].mark) : '',
+               ctx: aiCtxChip(mm.name || '') };
+    }).catch(function(){ return { rid: rid, st: 'net' }; });
+  });
+}
+/* その日の再計算（順次・通信ゼロ） */
+function aiRecomputeDay(){
+  if (AI_RECOMP.busy) return Promise.resolve(null);
+  var items = aiDayItems();
+  if (!items.length){ aiSettleMsg('⚠ 再計算対象がありません（①でその日の一括取得をしてください）。'); return Promise.resolve(null); }
+  AI_RECOMP = { busy: true, n: items.length, done: 0, ok: 0, skipDone: 0, noCache: 0, fail: 0 };
+  var btn = (typeof $ === 'function') ? $('aiRecompute') : null;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ 再計算中…'; }
+  var d8 = AI_DAY_D8;
+  function finish(){
+    AI_RECOMP.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = '🔁 再計算（現エンジン）'; }
+    aiSettleMsg('🔁 再計算: ' + AI_RECOMP.ok + ' レース更新' +
+      (AI_RECOMP.skipDone ? '／結果確定済み ' + AI_RECOMP.skipDone + ' は保護' : '') +
+      (AI_RECOMP.noCache ? '／出馬表キャッシュなし ' + AI_RECOMP.noCache + '（①の再取得で反映可）' : '') +
+      (AI_RECOMP.fail ? '／失敗 ' + AI_RECOMP.fail : '') + '（通信ゼロ・保存済みオッズ使用）');
+    try { if (typeof aiProposalRender === 'function') aiProposalRender(); } catch(e){}
+  }
+  aiSettleMsg('再計算中… 0 / ' + items.length + ' レース');
+  var seq = Promise.resolve();
+  items.forEach(function(it){
+    seq = seq.then(function(){
+      return aiRecomputeOne(it.rid, d8).then(function(r){
+        AI_RECOMP.done++;
+        if (r.st === 'ok') AI_RECOMP.ok++;
+        else if (r.st === 'done') AI_RECOMP.skipDone++;
+        else if (r.st === 'nocache') AI_RECOMP.noCache++;
+        else AI_RECOMP.fail++;
+        aiSettleMsg('再計算中… ' + AI_RECOMP.done + ' / ' + items.length + ' レース');
+        return (typeof preSleep === 'function') ? preSleep(10) : null;
+      });
+    });
+  });
+  return seq.then(finish).catch(function(){ finish(); });
+}
+
 /* ============================================================
    🌍 海外競馬タブ（第32弾: JRA海外馬券発売レース → 出馬表検出）
    ------------------------------------------------------------
