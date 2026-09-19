@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>競馬AIラボ｜展開予想・AI印・レースシミュレーター</title>
-<meta name="description" content="競馬AIラボ — 展開予想・AI印・レースシミュレーター。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
+<title>競馬AIラボ｜展開予想・AI印・netkeiba AI展開予測</title>
+<meta name="description" content="競馬AIラボ — 展開予想・AI印・netkeiba AI展開予測ビュー。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
 <meta name="theme-color" content="#0b3a2a">
 <meta name="color-scheme" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
@@ -914,7 +914,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
     <div class="logo">🐎</div>
     <div>
       <div class="b1">競馬AIラボ</div>
-      <div class="b2">展開予想 ・ AI印 ・ レースシミュレーター</div>
+      <div class="b2">展開予想 ・ AI印 ・ netkeiba AI展開予測</div>
     </div>
   </div>
   <div class="hd">
@@ -942,7 +942,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <button class="tab" data-t="t-top">🏠 トップ</button>
   <button class="tab active" data-t="t-input">① データ入力</button>
   <button class="tab" data-t="t-kentai">② 展開予想・AI印</button>
-  <button class="tab" data-t="t-sim">③ レースシミュレーター</button>
+  <button class="tab" data-t="t-sim">③ AI展開予測</button>
   <button class="tab" data-t="t-horse">④ 馬ノート(短評DB)</button>
   <button class="tab" data-t="t-jravideo">⑤ JRA映像</button>
   <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
@@ -958,7 +958,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   <div class="page-top-hero">
     <div class="hb">🐎</div>
     <h1>競馬AIラボ</h1>
-    <div class="sub">出馬表の入力・AI印・展開予想・レースシミュレーション・重賞データ分析まで、この1ページで。<br>各機能は下のメニュー（または左上「☰ 目次」）から移動します。<br><span class="small muted">旧「過去データ」タブと旧「血統」タブは⑥重賞データ分析に、旧「レースを選ぶ」タブは①データ入力に統合しました。</span></div>
+    <div class="sub">出馬表の入力・AI印・展開予想・netkeiba AI展開予測・重賞データ分析まで、この1ページで。<br>各機能は下のメニュー（または左上「☰ 目次」）から移動します。<br><span class="small muted">旧「過去データ」タブと旧「血統」タブは⑥重賞データ分析に、旧「レースを選ぶ」タブは①データ入力に統合しました。</span></div>
     <div class="quick">
       <button type="button" class="btn" data-goto="t-input">📥 データ入力（URL取込・レース選択）</button>
       <button type="button" class="btn" data-goto="t-kentai">🧠 展開予想・AI印</button>
@@ -1192,7 +1192,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <div class="small muted" style="margin:2px 0 6px">
             🥇 <b>学習DB（④で取り込んだ過去データ）と AI予想の学習データは第一優先</b>で残します。
             保存領域（目安5MB）が足りなくなったときは、♻️<b>また取り直せるキャッシュ（馬柱・血統・⑥分析・カレンダー・天気など）を自動で削除</b>して、学習データの保存を優先します。<br>
-            📊 シミュレーションの合計集計は<b>③のタブを開いている間だけのメモリ集計</b>になったので、保存領域は使いません。<br>
+            🤖 ③のAI展開予測は<b>保存済み出馬表HTMLの解析だけ</b>（メモリのみ・旧シミュレーションの合計集計は第40弾で廃止）で、保存領域は使いません。<br>
             何がどれだけ入っているかを確認して、<b>取得し直せるキャッシュ</b>から手動でも消せます。
           </div>
           <div id="storeUse" class="small" style="margin:2px 0 6px"></div>
@@ -2073,85 +2073,25 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
   </div>
 </section>
 
-<!-- ================= ③ シミュレーター ================= -->
+<!-- ================= ③ AI展開予測（netkeiba） ================= -->
 <section class="page" id="t-sim">
-  <div class="card empty" id="simEmpty">
-    <div class="big">②で予想がまだ計算されていません</div>
-    <p>「② 展開予想・AI印」に移動して出馬表を確認してから戻ってきてください。<br>印エンジンの勝率を使ってレースを再現します。</p>
-    <button class="btn primary" data-goto="t-kentai">展開・AI予想へ</button>
-  </div>
-  <div class="hid" id="simBody">
-    <div class="card">
-      <div class="simrow">
-        <button class="btn primary" id="btnRun">⚡ 結果を出す</button>
-        <button class="btn" id="btnRerun">🔄 もう一度</button>
-        <label style="display:flex;align-items:center;gap:5px">まとめて
-          <select id="simRuns">
-            <option value="3">3回</option><option value="5">5回</option><option value="10" selected>10回</option><option value="20">20回</option><option value="50">50回</option>
-          </select>
-        </label>
-        <button class="btn" id="btnMulti">⏩ まとめて実行</button>
-        <button class="btn small red" id="btnAggReset" type="button" title="「📊 合計集計」をこのレースぶんだけ消す（③のタブを開いている間だけのメモリ集計です）">🗑 集計リセット</button>
-        <span class="small muted">※ 実行するたびに下の「📊 シミュレーション合計集計」へ積み上がります。<b>③のタブを開いている間だけ</b>のメモリ集計で、別のタブに移るとリセットされます（端末の保存領域は使いません）。</span>
-      </div>
-      <div id="simMsg" class="small" style="margin-top:6px;color:var(--ok-ink)"></div>
-      <div id="simHint" class="small muted" style="margin-top:6px"></div>
-      <div id="simRunState" class="small" style="margin-top:6px;color:var(--mut)"></div>
-    </div>
-
-    <div class="row2" style="grid-template-columns:1.35fr .9fr">
-      <div class="card" style="min-width:0">
-        <h2>🏁 このレースの結果想定</h2>
-        <div id="finMeta" class="small muted" style="margin:2px 0 8px"></div>
-        <div class="hid" id="simResultWrap">
-          <div class="tblwrap">
-            <table style="min-width:600px">
-              <thead><tr>
-                <th>着順</th><th>馬番</th><th style="text-align:left">馬名</th><th>タイム</th><th>着差</th><th style="text-align:right">単勝参考</th><th style="text-align:right">AI勝率</th>
-              </tr></thead>
-              <tbody id="finBody"></tbody>
-            </table>
-          </div>
+      <div class="card adw" id="adCard">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <h2 style="margin:0">🤖 netkeiba AI展開予測<span class="small muted" style="font-weight:400;margin-left:8px">スタート後／3コーナー／4コーナーと4コーナーポジション別の複勝率(%)。一括取得したレースはボタン化され、クリックで即表示（保存済み出馬表HTMLだけを解析・通信ゼロ）</span></h2>
+          <button type="button" class="btn ghost" id="adBtnLoad" onclick="aiDepLoad(1)" title="出馬表を取り直してAIセクションを読み込みます。netkeibaのAI公開はレース前日14時頃なので、前日午前に一括取得したキャッシュだけではまだ入っていません">🔄 出馬表を取り直してAI読込</button>
         </div>
-        <div id="simResultEmpty" class="small muted" style="margin-top:4px">「⚡ 結果を出す」を押すと、この1走行の全頭の着順・タイム・着差とレース展開がすぐに表示されます（映像は廃止したので一瞬で終わり、何度でも実行できます）。実行するたびに下の「📊 合計集計」に積み上がります。</div>
+        <div id="adSub" class="small muted" style="margin-top:2px"></div>
+        <div id="adDayBar" style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+        <div id="adRaceBar" style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+        <div id="adMsg" class="small" style="margin-top:4px;color:var(--warn-ink)"></div>
+        <div id="adStage"></div>
+        <div class="small muted" style="margin-top:8px;line-height:1.8">出典は netkeiba 出馬表ページ下部の「AI展開予測（マスター）」セクションです。馬名の省略（イムホ・レアン…）まで<b>netkeibaと同じデータ・同じ位置・同じ数値</b>で再現しています（ヒートマップ＝複勝率0/1〜25/26〜50/51〜75/76〜100%の5段階、※集計期間はページ記載のまま）。<br>
+        　・「出遅れ率考慮」「騎手傾向考慮」のチェックは netkeiba と同じく表示位置が動き、4コーナーでは加速/減速マークも出ます<br>
+        　・<b>各レースのボタン（第41弾）</b>: ①一括取得済みの日が📅で並び、押すと即表示。✓=解析済み・⏳=開いた順に裏で解析中（すぐ✓になる）・⛔=AI未公開（前日14時以降に🔄で取り直し）・📥=出馬表未取得<br>
+        　・対象レースが重賞でなくても（OP特別などでも）出馬表が取れていれば表示されます<br>
+        　・障害戦は netkeiba 側が旧版表示に切り替わるためセクションが無いことがあります<br>
+        　※2026-09-19 第40弾で<b>旧・物理シミュレーション（⚡結果を出す／まとめて実行／📊合計集計）を全面置き換え</b>しました。展開の机上検証は🔮実況風展開予想（AI提案タブ⑦）をご利用ください。</div>
       </div>
-      <div class="card">
-        <h2>レース展開</h2>
-        <div id="simExp" class="small" style="line-height:1.85"></div>
-        <hr style="border:none;border-top:1px dashed var(--line2);margin:14px 0 10px">
-        <h2 style="margin-top:0">1着予想（AI印の順）</h2>
-        <div id="simMarkLine" class="marks-line"></div>
-        <div class="small muted" style="margin-top:6px">AI印エンジンの勝率(全馬の和=100%に補正)が、そのまま各馬の実力差としてレースに反映されます。</div>
-      </div>
-    </div>
-
-    <details class="card fold" open id="simAggCard">
-      <summary class="foldhead">
-        <span class="fmark"></span>
-        <h2 style="margin:0">📊 シミュレーションの合計集計</h2>
-        <span class="chip">③タブを開いている間だけ・メモリ集計</span>
-        <span class="sp"></span><span class="foldhint"></span>
-      </summary>
-      <div class="foldbody">
-      <div id="simAggSummary" class="small" style="margin:2px 0 8px"></div>
-      <div class="tblwrap" style="max-height:380px">
-        <table>
-          <thead><tr>
-            <th>馬番</th><th style="text-align:left">馬名</th><th>単勝</th><th>AI勝率</th><th>回数</th>
-            <th>1着<br><span class="muted" style="font-weight:400">率</span></th>
-            <th>連対<br><span class="muted" style="font-weight:400">率</span></th>
-            <th>複勝<br><span class="muted" style="font-weight:400">率</span></th>
-            <th>平均着順<br><span class="muted" style="font-weight:400">最高〜最低</span></th>
-            <th>出遅れ率<br><span class="muted" style="font-weight:400">②で入力</span></th>
-            <th>脚質のブレ<br><span class="muted" style="font-weight:400">馬柱から</span></th>
-          </tr></thead>
-          <tbody id="simAggBody"></tbody>
-        </table>
-      </div>
-      <div class="small muted" style="margin-top:8px">💡 「出遅れ率」は②で入力した値、「脚質のブレ」は馬柱（過去戦績の4角通過順）から自動判定したものです。ブレが大きい馬は毎回ちがう脚質で走るとして結果の振れ幅を広げています。集計はこのレースぶんだけ保存され、他のレースを切り替えても消えません。</div>
-      </div>
-    </details>
-  </div>
 </section>
 
 <section class="page" id="t-horse">
@@ -2675,7 +2615,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
 
 <footer>
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
-  ※本ページは入力・予想・シミュレーションをすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
+  ※本ページは入力・予想・AI展開表示をすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
   <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
 </footer>
@@ -5180,692 +5120,476 @@ function initAnalysisTab(){
   if (typeof initLearn === 'function') initLearn();
 }
 
-/* =========================================================
-   タブ③：レースシミュレーター（映像なし・結果と集計だけ）
-   ---------- 2026-09-11 変更 ----------
-   ・「速さ」「映像(アニメーション)」「100回集計」のUIとコードは削除しました。
-   ・⚡結果を出す / 🔄もう一度 / ⏩まとめて(3〜50回) だけで、着順・タイム・着差・展開を即時表示。
-   ・実行結果は「📊 シミュレーション合計集計」に積み上がり、端末に保存されます（集計リセット可能）。
-   ・出遅れ率(％)と「過去戦績で脚質が安定しない馬」を反映して着順をサンプルします。
-   ========================================================= */
-var sim = { running:false, raf:0, parts:[], final:[], follow:null };
+/* =====================================================================
+   2026-09-19 第40弾: ③タブ = netkeiba「AI展開予測」ビュー（旧・物理シミュレーション廃止の代替）
+   ---------------------------------------------------------------------
+   netkeiba の出馬表ページの下部にある
+     ・AI展開予測（スタート後／3コーナー／4コーナーの各馬位置＋SpeedUp/Down）
+     ・4コーナーポジション別の複勝率(%)（前/中/後 × 内/中/外 のヒートマップ）
+     ・推定ポジション有利馬／トラックバイアス（内・中・外 有利/普通/不利）
+   は、**出馬表HTML（アプリが既に保存している khl_nkc_v1 の同じページ）に静的埋め込み**
+   されている（コーナー切替の座標はページ内インラインJSの switch 文に入っている）。
+   よってこのタブは追加の通信をせず、保存済みHTMLの解析だけで netkeiba と同じ
+   位置・数値・ラベルを表示する。AIセクションは「レース前日14時頃公開」なので、
+   それより前のキャッシュに含まれないときは再取得を案内する。
+   ===================================================================== */
+var AI_DEP = { rid: '', html: '', data: null, corner: 'C1', oso: false, kishi: false, loading: false };
+/* ★第41弾: 一括取得した日は「レースボタン」で即切替にする。
+   解析済みのデータはメモリキャッシュ（AI_DEP_CACHE）に保持し、二度目のクリックは通信・解析ゼロで描画。
+   未クリックのレースはタブを開いた後バックグラウンドで順に解析（1件ずつ setTimeout でUIを止めない）しておく。 */
+var AI_DEP_CACHE = {};   // rid → aiDepParse 結果
+var AI_DEP_D8 = '';      // ③で選んでいる開催日（AI提案タブとは独立）
+var AI_DEP_WARM = { on: false, q: [] };
 
-/* 「最後の直線」再生を始めるゴールまでの残距離(m)。会場の直線長+4コーナー残り。 */
-function simFinalStartRem(D){
-  /* 展開ログ（4コーナー想定隊列）を作る「ゴールまでの残距離」。
-     映像は廃止したので会場別の直線長は使わず、距離から概算する。 */
-  D = Math.max(200, parseFloat(D) || 2000);
-  return Math.max(200, Math.min(D * 0.94, Math.max(240, D * 0.3)));
+/* ---------- 小物 ---------- */
+function aiDepEsc(s){ try { return esc(s); } catch(e){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); } }
+function aiDepNum(x){ var n = parseFloat(String(x)); return isFinite(n) ? n : 0; }
+function aiDepRid(){
+  try { if (typeof state !== 'undefined' && state && state.raceId) return String(state.raceId); } catch(e){}
+  return '';
 }
-
-
-/* 指数分布サンプルで1レースの着順を生成 */
-function sampleOneOrder(ps){
-  var n = ps.length, arr = [];
-  for (var i=0;i<n;i++){
-    var rate = Math.max(ps[i], 0.0005);
-    arr.push([ -Math.log(1 - Math.random()) / rate, i ]);
-  }
-  arr.sort(function(a,b){ return a[0]-b[0]; });
-  return arr.map(function(x){ return x[1]; });
+function aiDepMsg(t, isErr){
+  var el = (typeof $ === 'function') ? $('adMsg') : null;
+  if (el) el.innerHTML = t ? ((isErr ? '⚠ ' : '') + aiDepEsc(t)) : '';
 }
-
-function getParticipants(){
-  var res = currentAnalysis();
-  if (!res.ok) return null;
-  return res.rows.map(function(r){
-    return { no:r.h.no, name:r.h.name||(''), frame:r.h.frame||'', mark:r.mark, odds:r.h.odds||'', prob:r.prob, idx:r.idx, slow:r.h.slow||'', style:r.h.style||'' };
-  });
-}
-
-function simResetResultUI(){
-  var fb = $('finBody'); if (fb) fb.innerHTML = '';
-  var fm = $('finMeta'); if (fm) fm.innerHTML = '';
-  var sW = $('simResultWrap'); if (sW) sW.classList.add('hid');
-  var sE = $('simResultEmpty'); if (sE) sE.classList.remove('hid');
-  var sx = $('simExp'); if (sx) sx.innerHTML = '';
-}
-function buildSimPanel(){
-  SIM_SV_CACHE = {};                    // 馬柱を取り直した可能性があるので脚質ブレの判定を作り直す
-  var parts = getParticipants();
-  $('simEmpty').style.display = parts ? 'none' : '';
-  $('simBody').classList.toggle('hid', !parts);
-  if (!parts) return;
-  var res = currentAnalysis();
-  var ml = $('simMarkLine');
-  if (ml){
-    ml.innerHTML = res.rows.slice(0,5).map(function(r){
-      return '<span><span class="mk0 ' + r.markCls + '">' + esc(r.mark) + '</span><b>' + esc(r.h.no) + '</b> ' + esc(r.h.name) + ' <span class="muted small">' + pct(r.prob) + '%</span></span>';
-    }).join('');
-  }
-  simSetHint();
-  simResetResultUI();
-  if (typeof simAggRender === 'function') simAggRender();
+function aiDepSub(t){
+  var el = (typeof $ === 'function') ? $('adSub') : null;
+  if (el) el.innerHTML = t || '';
 }
 
-
-/* ---- 展開モデル（脚質別ペース + 決着タイム固定） ---- */
-function simFlowStyle(str){
-  var t = String(str || '').replace(/自在.*/, '');
-  if (t.indexOf('逃') >= 0) return '逃げ';
-  if (t.indexOf('先') >= 0) return '先行';
-  if (t.indexOf('追') >= 0) return '追込';
-  if (t.indexOf('差') >= 0) return '差し';
-  return (Math.random() < 0.35) ? '先行' : '差し';
-}
-function simFlowSpeed(st, u, paceAdj){
-  // u = 走行割合(0..1)。基準速度に対する倍率。
-  // 実際の競走馬の速度差は数%程度。S字カーブ(滑らか)で緩やかに順位が動くようにし、
-  // 「ゴール直前だけ急加速/急失速」しない現実的な速度変化にする。
-  // 逃げ・先行の先行利はレース前半で緩やかに減衰し、差し・追込の伸びは
-  // 残り半分あたりからなだらかに現れてゴールへ向かう。
-  u = clamp(u, 0, 1);
-  function ss(a, b, x){ x = clamp((x - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); }
-  var s = 1;
-  // 加速・減速は「ゴール手前で完結」させる(ssの終端を1.0より手前=0.9前後に置く)。
-  // そうすることで「ゴール直前にまだ急加速/急失速している」見た目が消え、
-  // 逃げ・先行は最後に失速しきった速さで流し込み、差し・追込は加速しきってゴールへ持続する。
-  if (st === '逃げ'){
-    s = 1 + 0.045 * (1 - ss(0.0, 0.60, u)) - (0.050 + 0.020 * paceAdj) * ss(0.50, 0.94, u);
-  } else if (st === '先行'){
-    s = 1 + 0.032 * (1 - ss(0.0, 0.55, u)) - (0.033 + 0.012 * paceAdj) * ss(0.50, 0.94, u);
-  } else if (st === '差し'){
-    s = 1 - 0.030 * ss(0.0, 0.45, u) + (0.035 + 0.015 * paceAdj) * ss(0.38, 0.90, u);
-  } else if (st === '追込'){
-    s = 1 - 0.048 * ss(0.0, 0.38, u) + (0.048 + 0.020 * paceAdj) * ss(0.30, 0.88, u);
-  } else {
-    s = 1;
-  }
-  // ゲート直後はどの馬もわずかに遅い(共通なので隊列への影響は小さい)
-  var accel = (u < 0.06) ? (0.95 + 0.05 * (u / 0.06)) : 1;
-  return accel * s;
-}
-/* 脚質st・決着タイムF(秒)・ハイペース度paceAdj(0..1)から、0..1の位置テーブルを生成 */
-function simBuildPlan(st, F, paceAdj){
-  var KPLAN = 1400, M = 900, If = 0, fv = new Array(KPLAN);
-  var prev = simFlowSpeed(st, 0, paceAdj);
-  for (var q = 1; q <= M; q++){
-    var uu = q / M, ff = simFlowSpeed(st, uu, paceAdj);
-    If += (1 / Math.max(0.2, ff) + 1 / Math.max(0.2, prev)) * (0.5 / M);
-    prev = ff;
-  }
-  var u = 0, du;
-  for (var k = 0; k < KPLAN; k++){
-    fv[k] = Math.min(1, u);
-    du = (If / KPLAN) * Math.max(0.2, simFlowSpeed(st, Math.min(0.999, u), paceAdj));
-    u += du;
-  }
-  return { st: st, F: Math.max(0.5, parseFloat(F) || 1), u: fv, n: KPLAN };
-}
-function simPlanU(pl, real){
-  // 各馬は同時刻スタートで、自分の決着タイムFの瞬間にゴール(u=1)する
-  var r = (real / pl.F);
-  if (r <= 0) return 0;
-  if (r >= 1) return 1;
-  var k = Math.round(r * (pl.n - 1));
-  return pl.u[k];
-}
-
-/* 出遅れ率(slow%)から「この1走でスタートに出遅れるか」を抽選。
-   不利になったら実力(勝率)を下げて着順へ反映(0.5〜1.0倍)。不利なし=1 */
-function simSlowRate(p){
-  var sl = slowPctOf(p && p.slow);        // 出遅れ率は0〜100%（#2026-09-12 第15弾）
-  if (!(sl >= 6)) return 1;
-  return (Math.random() * 100 < Math.min(90, sl)) ? (0.5 + Math.random() * 0.5) : 1;
-}
-
-/* 距離から基準平均時速(m/s)を決める */
-function simAvgVw(D){
-  return (D > 2600 ? 15.8 : D > 2000 ? 16.4 : D > 1500 ? 16.8 : D >= 1000 ? 17.2 : 16.4);
-}
-/* 分析のペース予想から「ハイペース度」(0..1) を取り出す */
-function simPaceAdjOf(){
-  var paceAdj = 0.5;
+/* ---------- パーサ（純粋関数・テスト可能） ---------- */
+/* netkeiba 出馬表HTML → AI展開予測データ。セクション自体が無いHTMLなら null を返す。 */
+function aiDepParse(html){
+  html = String(html || '');
+  if (html.indexOf('DevelopImg01') < 0 && html.indexOf('PositionMapBlock') < 0) return null;
+  var d = { title: '', surface: '', turn: '', pattern: '', biasTxt: [], horses: {},
+            variants: { none: { C1: {}, C2: {}, C3: {} }, oso: { C1: {}, C2: {}, C3: {} },
+                        kishi: { C1: {}, C2: {}, C3: {} }, both: { C1: {}, C2: {}, C3: {} } },
+            heat: null, pickup: [] };
+  try { var mT = html.match(/<title>\s*([^<\n]*)/); if (mT && mT[1]) d.title = String(mT[1]).replace(/\s+/g, ' ').trim(); } catch(e){}
+  /* ① 初期マーカー（スタート後）＋面・バイアスパターン */
+  var mPane = html.match(/class="DevelopImg01\s+(\w+)(?:\s+BiasPattern(\d{3}))?"/);
+  if (mPane){ d.surface = mPane[1] || ''; d.pattern = mPane[2] || ''; }
   try {
-    var _an0 = currentAnalysis();
-    if (_an0 && _an0.pace && _an0.pace.score != null) paceAdj = clamp(+_an0.pace.score, 0.05, 0.95);
+    var mB = html.match(/<div class="DevelopBiasTxt">([\s\S]{0,400}?)<\/div>/);
+    if (mB) d.biasTxt = (mB[1].match(/有利|普通|不利/g) || []).slice(0, 3);
   } catch(e){}
-  if (state.paceOverride != null) paceAdj = clamp(parseFloat(state.paceOverride) || 0.5, 0.05, 0.95);
-  return paceAdj;
-}
-/* 1レース分の決着をサンプル: 着順order・着差m・決着タイムfinT を返す。
-   出遅れ率(slow%)の高い馬は一定確率でスタート不利になり、その分だけ着順が落ちる。
-   着差は現実的な「1着から順に 平均1頭1.7m前後」で、離れた馬も 0〜4% 程度の範囲に収める。 */
-function simSampleFinish(parts, D){
-  var n = parts.length;
-  var probs = parts.map(function(p){
-    var pb = (p && isFinite(p.prob)) ? Math.max(p.prob, 0.0005) : 0.0005;
-    var f = simSlowRate(p);                    // 出遅れ率(％) → 一定確率でスタート不利
-    var sv = simStyleVarOf(p);                 // 脚質が安定しない馬 → 結果の振れ幅を大きくする
-    if (simUnstable(sv)){
-      f *= 1 + (Math.random() - 0.5) * 2 * Math.min(0.6, sv.sd * 1.2);
-    }
-    return pb * f;
-  });
-  var order = sampleOneOrder(probs);
-  var vw = simAvgVw(D);
-  var mar = new Array(n), mmax = 0, m = 0;
-  order.forEach(function(idx, rank){
-    if (rank === 0){ mar[idx] = 0; }
-    else {
-      m += 0.7 + Math.random() * 2.1;   // 1着から数えて平均1.75m/頭(現実的な着差)
-      m = Math.min(m, D * 0.04);        // 最大でも4%差まで(同着を避けるため僅かな最小差は確保)
-      if (m <= mar[order[rank - 1]]) m = mar[order[rank - 1]] + 0.05;
-      mar[idx] = m;
-    }
-    mmax = Math.max(mmax, mar[idx]);
-  });
-  // 基準(1着想定)タイムに毎回わずかな変動を加え、同じレースでも僅かに時計が変わるようにする
-  var baseT = D / vw + (Math.random() - 0.5) * 0.6;
-  var finT = new Array(n);
-  order.forEach(function(idx){ finT[idx] = baseT + mar[idx] / vw; });
-  return { order: order, mar: mar, mmax: mmax, vw: vw, finT: finT };
-}
-
-sim._bt = 0;
-
-function simTimeFmt(sec){
-  // 先に小数1桁へ丸めてから分秒に割る（9.97秒→"010.0"のような桁ズレを防ぐ）
-  var s = Math.round((parseFloat(sec) || 0) * 10) / 10;
-  var mm = Math.floor(s / 60), ss = s - mm * 60;
-  return mm + ':' + (ss < 10 ? '0' : '') + ss.toFixed(1);
-}
-/* 着差(m)を競馬表記へ（ハナ/クビ/半馬身/馬身） */
-function simMarginText(m){
-  if (m == null || m <= 0.05) return '';
-  if (m < 0.3) return 'ハナ';
-  if (m < 0.7) return 'クビ';
-  var bod = m / 2.4;
-  var half = Math.round(bod * 2) / 2;
-  if (half <= 0.5) return '半馬身';
-  var whole = Math.floor(half), remH = half - whole;
-  return whole + '馬身' + (remH > 0 ? '半' : '');
-}
-/* 道中の隊列記録(sim._log)から「レース展開」の文章を組み立てる */
-function simExpHTML(parts, order, D){
-  var STAGES = { 0.12:'序盤', 0.35:'向正面', 0.6:'3コーナー', 0.8:'4コーナー', 0.94:'直線残り少なく' };
-  var html = '<div style="margin-bottom:4px;font-weight:800">🏇 この1走の道中（残り距離ごとの隊列）</div>';
-  var logs = (sim && sim._log || []).slice().sort(function(a, b){ return a.g - b.g; });
-  logs.forEach(function(L){
-    var lab = L.lab || STAGES[L.g] || ('残り' + (L.rem || 0) + 'm');
-    var names = L.top.slice(0, 4).map(function(ii, k){
-      var p = parts[ii]; var rl = (k === 0 ? '先頭' : (k === 1 ? '2番手' : (k === 2 ? '3番手' : '4番手')));
-      return '<span style="white-space:nowrap">' + frameChipHTML(p.frame, esc(p.no)) + ' ' + esc(p.name || '') + '</span>';
+  var reH = /class="HorseIcon\s+Color0(\d)"\s+id="Horse(\d+)"\s+style="top:([-\d.]+)%;left:([-\d.]+)%">\s*<span class="Waku\s+Waku(\d)">(\d+)<\/span>\s*<span class="HorseName">([^<]*)<\/span>/g;
+  var mh, nH = 0;
+  while ((mh = reH.exec(html))){
+    d.horses[String(mh[2])] = { no: String(mh[2]), color: parseInt(mh[1], 10) || 1,
+      top: aiDepNum(mh[3]), left: aiDepNum(mh[4]), waku: String(mh[5]), num: String(mh[6] || mh[2]),
+      name: String(mh[7] || '').replace(/\s+/g, ' ').trim() };
+    nH++;
+  }
+  if (!nH) return null;
+  /* ② ページ内JSの switch から各コーナー位置（4モード）を取り出す */
+  var iF = html.indexOf('function updateHorsePosition');
+  if (iF >= 0){
+    var js = html.slice(iF, iF + 120000);
+    var anchors = [
+      { k: 'none',  s: 'チェックなし', e: 'switch (cornerCheck)' },
+      { k: 'oso',   s: '出遅れ率チェック', e: 'switch (cornerCheck)' },
+      { k: 'kishi', s: '騎手傾向チェック', e: 'switch (cornerCheck)' },
+      { k: 'both',  s: '出遅れ騎手傾向チェック', e: 'switch (cornerCheck)' }
+    ];
+    var idxs = anchors.map(function(a){ var i = js.indexOf(a.s); return i; });
+    anchors.forEach(function(a, ai){
+      if (idxs[ai] < 0) return;
+      var from = idxs[ai];
+      var to = js.length;
+      for (var bi = ai + 1; bi < anchors.length; bi++){ if (idxs[bi] >= 0){ to = idxs[bi]; break; } }
+      var seg = js.slice(from, to);
+      var reCase = /case 'Corner0([123])':([\s\S]*?)break;/g, mc;
+      while ((mc = reCase.exec(seg))){
+        var ck = 'C' + mc[1];
+        var body = mc[2];
+        var reP = /\$\("#Horse(\d+)"\)\.css\(\{\s*'top':'([-\d.]+)%',\s*'left':'([-\d.]+)%'\s*,?\s*\}\)([\s\S]*?)(?=\$\("#Horse\d+"|break;)/g, mp;
+        while ((mp = reP.exec(body))){
+          var spd = (String(mp[4]).match(/class="(Speed(?:Up|Down)_0\d)"/) || [])[1] || '';
+          d.variants[a.k][ck][String(mp[1])] = { top: aiDepNum(mp[2]), left: aiDepNum(mp[3]), spd: spd };
+        }
+      }
     });
-    html += '<div style="margin:2px 0">・<b>' + lab + '</b>（残り約' + (L.rem || 0) + 'm）— ' + names.join(' / ') + '</div>';
-  });
-  var w = parts[order[0]], s2 = parts[order[1]], s3 = parts[order[2]];
-  var winT = (sim._finT && sim._finT[order[0]]) ? simTimeFmt(sim._finT[order[0]]) : '';
-  var d2 = simMarginText((sim._finT && sim._finT[order[1]] != null && sim._finT[order[0]] != null) ? (sim._finT[order[1]] - sim._finT[order[0]]) * sim._vw : 0);
-  var d3 = simMarginText((sim._finT && sim._finT[order[2]] != null && sim._finT[order[0]] != null) ? (sim._finT[order[2]] - sim._finT[order[0]]) * sim._vw : 0);
-  // 脚質的な結末の説明
-  var flow = '追い込み・差しが届く形';
-  if (logs.length){
-    var first = logs[0], last = logs[logs.length - 1];
-    var ledAll = logs.every(function(L){ return L.top[0] === order[0]; });
-    if (ledAll) flow = '先頭を譲らない逃げ切り';
-    else if (first.top.indexOf(order[0]) >= 0 && first.top.indexOf(order[0]) <= 1) flow = '好位から抜け出す形';
-    else if (last.top.indexOf(order[0]) <= 1) flow = '中団から直線で浮上する形';
   }
-  html += '<hr style="border:none;border-top:1px dashed var(--line2);margin:10px 0 8px">' +
-    '<div><b>決着</b>：<span style="color:var(--err-ink);font-weight:900">' + esc(w.no) + ' ' + esc(w.name) + '</span>（' + winT + (d2 ? '、' + s2.no + '着差' + d2 : '') + (d3 ? '・' + s3.no + '着差' + d3 : '') + '）— ' + flow + '</div>' +
-    '<div style="margin-top:6px;color:var(--mut)">※ この「結果想定」は1回のシミュレーション例です。複数回の傾向は下の「📊 シミュレーション合計集計」に積み上がります。</div>';
-  return html;
+  /* スタート後・チェックなし は初期マーカーと同じ＝欠けていれば補完 */
+  ['C1', 'C2', 'C3'].forEach(function(ck){
+    Object.keys(d.horses).forEach(function(no){
+      if (!d.variants.none[ck][no]) d.variants.none[ck][no] = { top: d.horses[no].top, left: d.horses[no].left, spd: '' };
+    });
+  });
+  /* ③ 4コーナーポジション別の複勝率（ヒートマップ） */
+  var iHM = html.indexOf('Position_HeatMap');
+  if (iHM >= 0){
+    var segHM = html.slice(iHM, iHM + 6000);
+    var rows = [], mLis = segHM.match(/<li>[\s\S]*?<\/li>/g) || [];
+    mLis.slice(0, 3).forEach(function(li, ri){
+      var lab = (li.match(/<!--\s*([前中後])\s*-->/) || [])[1] || ['前', '中', '後'][ri];
+      var cells = [], mc2, reC = /<div class="Heat0(\d)"><span>(\d+)%<\/span><\/div>(?:\s*<!--\s*([内中外])\s*-->)?/g;
+      while ((mc2 = reC.exec(li))) cells.push({ heat: parseInt(mc2[1], 10) || 0, pct: parseInt(mc2[2], 10) || 0, side: mc2[3] || ['内', '中', '外'][cells.length] });
+      if (cells.length >= 3) rows.push({ label: lab, cells: cells.slice(0, 3) });
+    });
+    if (rows.length){
+      d.heat = { rows: rows,
+        sub: (html.slice(iHM - 600, iHM).match(/<dt>([^<]*)<\/dt>/) || [])[1] || '',
+        notice: ((html.slice(iHM, iHM + 4000).match(/※集計期間：([^<(＜\n]*)/) || [])[1] || '').trim() };
+      var mDD = html.slice(iHM - 400, iHM).match(/<dd class="([^"]*)"/);
+      if (mDD){ d.heat.layout = mDD[1]; if (mDD[1].indexOf('AntiClockwise') >= 0) d.turn = 'AntiClockwise'; else if (mDD[1].indexOf('Clockwise') >= 0) d.turn = 'Clockwise'; }
+    }
+  }
+  /* ④ 推定ポジション有利馬 */
+  var iPK = html.indexOf('PositionPickupHorseWrap');
+  if (iPK >= 0){
+    var segPK = html.slice(iPK, iPK + 3000);
+    var mpk, rePK = /<span class="Waku(\d) Umaban_Num">(\d+)<\/span><a[^>]*>([^<]+)<\/a>/g;
+    while ((mpk = rePK.exec(segPK))) d.pickup.push({ waku: String(mpk[1]), no: String(mpk[2]), name: String(mpk[3]).trim() });
+  }
+  return d;
 }
 
-/* ===== 映像なし「結果だけ」即時シミュレーション ===== */
-/* 1回分のサンプリング（映像用のプラン・ログは必要時のみ作る） */
-function simInstantOnce(withLogs){
-  var parts = getParticipants();
-  if (!parts) return null;
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  var F = simSampleFinish(parts, D);
-  var n = parts.length;
-  sim._finT = F.finT.slice();
-  sim._mar = F.mar.slice();
-  sim._vw = F.vw;
-  sim._mmax = F.mmax;
-  if (withLogs !== false){
-    var paceAdj = (typeof simPaceAdjOf === 'function') ? simPaceAdjOf() : {};
-    var PLAN = new Array(n);
-    for (var i = 0; i < n; i++){
-      PLAN[i] = simBuildPlan(simFlowStyleFor(parts[i]), F.finT[i] || 1, paceAdj);
-    }
-    sim._plan = PLAN;
-    sim._log = simBuildLogs(parts, F, D, PLAN);
-  }
-  return { parts: parts, D: D, F: F, order: F.order.slice() };
+/* ---------- 表示 ---------- */
+var AI_DEP_CSS =
+  '<style>.adw .adTabs{display:inline-flex;gap:2px;background:#eee;border-radius:8px;padding:2px}' +
+  '.adw .adDt,.adw .adRc{border:1px solid #cbb7e6;background:#f7f2fb;border-radius:999px;padding:2px 10px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;color:#4b2e83;line-height:1.5}' +
+  '.adw .adDt.on,.adw .adRc.on{background:#5b3a8f;color:#fff;border-color:#5b3a8f}' +
+  '.adw .adRc b.st{margin-left:5px;font-size:.68rem;font-weight:700}' +
+  '.adw .adTab{border:0;background:transparent;font:inherit;font-weight:700;font-size:.8rem;padding:3px 12px;border-radius:6px;cursor:pointer;color:#555}' +
+  '.adw .adTab.on{background:#5b3a8f;color:#fff}' +
+  '.adw .adTrack{position:relative;width:100%;padding-top:69.27%;border-radius:10px;margin-top:8px;overflow:hidden}' +
+  '.adw .adTrack .adRing{position:absolute;inset:7% 3%;border:2px solid rgba(255,255,255,.9);border-radius:46%/52%;pointer-events:none}' +
+  '.adw .adTrack .adMid{position:absolute;left:3%;right:3%;top:50%;border-top:2px dashed rgba(255,255,255,.7);pointer-events:none}' +
+  '.adw .adTrack .adGoal{position:absolute;right:2.6%;top:40%;width:4px;height:20%;background:repeating-linear-gradient(45deg,#333 0 3px,#fff 3px 6px);pointer-events:none}' +
+  '.adw .adHorse{position:absolute;width:10.5%;height:16%;transition:top .35s ease,left .35s ease;transform:translateY(-25%);text-align:center;z-index:2}' +
+  '.adw .adHorse .adBody{display:inline-block;width:26px;height:16px;border-radius:8px 10px 8px 8px;color:#fff;font-size:11px;line-height:16px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.25)}' +
+  '.adw .adHorse .adBody::after{content:"🐎";font-size:10px}' +
+  '.adw .adHorse .adWk{display:block;font-size:10px;color:#fff;border:1px solid #fff;text-align:center;border-radius:50%;width:17px;height:17px;line-height:16px;margin:1px auto 0;font-weight:700}' +
+  '.adw .adHorse .adNm{display:block;font-size:10px;font-weight:700;color:#555;text-align:center;background:rgba(255,255,255,.75);border-radius:4px;padding:0 2px;margin:1px auto 0;max-width:96%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}' +
+  '.adw .adSpd{display:inline-block;margin-left:2px;vertical-align:middle}' +
+  '.adw .adSpd i{display:inline-block;width:0;height:0;border-bottom:7px solid #1a9e3f;border-left:4px solid transparent;border-right:4px solid transparent;margin-left:-2px}' +
+  '.adw .adSpd.dn i{border-bottom:0;border-top:7px solid #c23b22}' +
+  '.adw .adHeat{margin-top:10px}' +
+  '.adw .adHeat h3{margin:0 0 4px;font-size:.9rem}' +
+  '.adw table.adHM{border-collapse:collapse;font-size:.84rem}' +
+  '.adw table.adHM th,.adw table.adHM td{border:1px solid #ddd;padding:4px 14px;text-align:center}' +
+  '.adw table.adHM th{background:#faf8fc;font-weight:700}' +
+  '.adw .h0{background:#f4f4f4;color:#999}.adw .h4{background:#e8f5e9}.adw .h3{background:#c8e6c9}.adw .h2{background:#81c784;color:#0b3d10}.adw .h1{background:#2e7d32;color:#fff}' +
+  '.adw .adLG{display:inline-flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}' +
+  '.adw .adLG b{display:inline-block;width:14px;height:14px;border:1px solid #ddd;vertical-align:-2px;margin-right:2px}' +
+  '.adw .adPick{display:inline-flex;align-items:center;gap:4px;border:1px solid #d8cbea;background:#f7f2fb;border-radius:999px;padding:2px 10px 2px 2px;margin:2px 4px 2px 0;font-weight:700;font-size:.82rem}' +
+  '.adw .adPick .adWk{border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;color:#fff;font-size:11px}' +
+  '.adw .adBias span{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.76rem;font-weight:700;margin-right:3px}' +
+  '.adw .b1{background:#8cc939;color:#123}.adw .b2{background:#c2e648;color:#345}.adw .b3{background:#f4faaf;color:#777}' +
+  '.adw .w1{background:#fff;color:#333;border:1px solid #bbb!important}.adw .w2{background:#333}.adw .w3{background:#2e5cd5}.adw .w4{background:#e83c3c}' +
+  '.adw .w5{background:#e6c000;color:#333}.adw .w6{background:#29a459}.adw .w7{background:#f58a00}.adw .w8{background:#f27cb0}' +
+  '.adw .c1 .adBody{background:#e0555f}.adw .c2 .adBody{background:#3f78c9}.adw .c3 .adBody{background:#45a04d}.adw .c4 .adBody{background:#e6a23c}' +
+  '.adw .c5 .adBody{background:#7b5fc9}.adw .c6 .adBody{background:#37a8a0}.adw .c7 .adBody{background:#8f9aa8}' +
+  '@media (max-width:640px){.adw .adHorse{width:12%;height:18%}.adw .adHorse .adBody{width:20px;height:13px;line-height:13px}.adw .adHorse .adNm{font-size:8px}}</style>';
+
+/* netkeiba develop.css の BiasPattern ルールをそのまま再現:
+   各帯（内→外＝上→下）は 1=有利→濃い色 / 2=普通→基色 / 3=不利→薄い色。
+   全面 111・333 は濃い色単色（333＝馬場悪化の強調）、222 は基色単色（実測で確認済み）。 */
+function aiDepBand(d){
+  var pal = (String(d.surface).indexOf('Turf') >= 0)
+    ? { s: '#8cc939', b: '#c2e648', l: '#f4faaf' }
+    : { s: '#d9b95c', b: '#f2dc9d', l: '#fef0c7' };
+  var pat = /^\d{3}$/.test(String(d.pattern || '')) ? String(d.pattern) : '222';
+  if (pat === '222') return pal.b;
+  if (pat === '111' || pat === '333') return pal.s;
+  var map = { '1': pal.s, '2': pal.b, '3': pal.l };
+  var c = pat.split('').map(function(x){ return map[x] || pal.b; });
+  return 'linear-gradient(180deg,' + c[0] + ' 0 33.33%,' + c[1] + ' 33.33% 66.66%,' + c[2] + ' 66.66% 100%)';
 }
-/* 映像を描かずに、道中の隊列ログをプランの位置から合成する */
-function simBuildLogs(parts, F, D, PLAN){
-  var logs = [];
-  var n = parts.length;
-  var leaderF = F.finT[F.order[0]] || 1;
-  var sRem = simFinalStartRem(D);
-  var tS = Math.max(0, (1 - sRem / D)) * leaderF;
-  function distAt(t){
-    return PLAN.map(function(pl){ return Math.min(D, Math.max(0, simPlanU(pl, t) * D)); });
-  }
-  function snap(t, rem, lab){
-    var dists = distAt(t);
-    var top = dists.map(function(v, i){ return i; }).sort(function(a, b){ return dists[b] - dists[a]; });
-    logs.push({ g: (logs.length === 0 ? 0 : (1000 + (1000 - rem))), lab: lab, rem: Math.max(0, Math.round(rem)), top: top });
-  }
-  snap(tS, sRem, '4コーナー（想定隊列）');
-  [300, 200, 100, 50].forEach(function(rem){
-    if (rem >= sRem) return;
-    var lo = tS, hi = leaderF, t = tS;
-    for (var k = 0; k < 14; k++){
-      t = (lo + hi) / 2;
-      var d = distAt(t), dmax = 0;
-      for (var i = 0; i < n; i++) dmax = Math.max(dmax, d[i]);
-      if (D - dmax > rem) lo = t; else hi = t;
-    }
-    snap((lo + hi) / 2, rem, (rem <= 50 ? 'ゴール前' : ('残り' + rem + 'm')));
+function aiDepModeKey(){ return (AI_DEP.oso ? (AI_DEP.kishi ? 'both' : 'oso') : (AI_DEP.kishi ? 'kishi' : 'none')); }
+function aiDepApply(){
+  var d = AI_DEP.data;
+  var wrap = (typeof $ === 'function') ? $('adTrack') : null;
+  if (!d || !wrap) return;
+  var ck = AI_DEP.corner, mode = AI_DEPModeSafe();
+  var V = (d.variants[mode] && d.variants[mode][ck]) || {};
+  wrap.querySelectorAll('.adHorse').forEach(function(el){
+    var no = el.getAttribute('data-no');
+    var p = V[no] || (d.variants.none[ck] && d.variants.none[ck][no]) || { top: d.horses[no].top, left: d.horses[no].left, spd: '' };
+    /* netkeiba 本体も AntiClockwise で座標はミラーしない（CSS側でアイコンを反転するだけ）なのでそのまま使う */
+    el.style.top = p.top + '%';
+    el.style.left = p.left + '%';
+    var sp = el.querySelector('.adSpd');
+    if (sp) sp.innerHTML = aiDepSpdHtml(p.spd);
   });
-  return logs;
+  var lab = { C1: 'スタート後', C2: '3コーナー', C3: '4コーナー' }[ck];
+  var md = mode === 'none' ? '' : (mode === 'oso' ? '／出遅れ率考慮' : mode === 'kishi' ? '／騎手傾向考慮' : '／出遅れ率＋騎手傾向考慮');
+  var cap = (typeof $ === 'function') ? $('adCap') : null;
+  if (cap) cap.innerHTML = aiDepEsc('📍 ' + lab + md + '（' + Object.keys(d.horses).length + '頭・netkeiba保存HTMLより・通信ゼロ）');
 }
-/* 結果（着順表・展開・印）を画面へ描く。映像なしでもそのまま使う */
-function simRenderOutcome(parts, order, D){
-  var meta = readRaceMeta();
-  var fm = $('finMeta');
-  if (fm) fm.innerHTML = esc((meta && meta.name) || 'レース') +
-    ((meta && meta.place) ? ('　' + esc(String(meta.place).split(/[\s　]/)[0])) : '') +
-    ((meta && meta.dist) ? ('　' + esc(meta.dist) + 'm') : '') +
-    ((meta && meta.grade) ? ('　' + esc(meta.grade)) : '') +
-    '<span style="margin-left:10px">この1走行の再現（ランダム要素を含む）</span>';
-  var vw = sim._vw || 16.5;
-  var html = '';
-  var res = (typeof currentAnalysis === 'function') ? currentAnalysis() : { rows: [] };
-  var mrow = {}; (res.rows || []).forEach(function(r){ mrow[r.idx] = r; });
-  order.forEach(function(pi, rank){
-    var p = parts[pi]; if (!p) return;
-    var finS = (sim._finT && sim._finT[pi] != null) ? sim._finT[pi] : null;
-    var gapM = (rank > 0 && finS != null && sim._finT[order[0]] != null) ? (finS - sim._finT[order[0]]) * vw : 0;
-    var tCell = (rank === 0 && finS != null) ? '<b>' + simTimeFmt(finS) + '</b>' : (finS != null ? simTimeFmt(finS) : '');
-    var odds = p.odds ? String(p.odds).replace(/[^\d.,]/g, '') : '';
-    var r = mrow[p.idx] || {};
-    html += '<tr><td><b>' + (rank + 1) + '</b></td><td>' + esc(p.no) + '</td>' +
-      '<td style="text-align:left;font-weight:700">' + esc(p.name) + '</td>' +
-      '<td>' + tCell + '</td>' +
-      '<td>' + (rank === 0 ? '—' : simMarginText(gapM)) + '</td>' +
-      '<td style="text-align:right">' + (odds ? esc(odds) : '—') + '</td>' +
-      '<td style="text-align:right">' + pct(r.prob != null ? r.prob : p.prob) + '%</td></tr>';
+function AI_DEPModeSafe(){ try { return aiDepModeKey(); } catch(e){ return 'none'; } }
+function aiDepSpdHtml(cls){
+  if (!cls) return '';
+  var m = String(cls).match(/Speed(Up|Down)_0(\d)/); if (!m) return '';
+  var n = Math.min(3, parseInt(m[2], 10) || 1), h = '';
+  for (var i = 0; i < n; i++) h += '<i></i>';
+  return '<span class="adSpd' + (m[1] === 'Down' ? ' dn' : '') + '" title="4コーナーで' + (m[1] === 'Up' ? '加速' : '減速') + '気味">' + h + '</span>';
+}
+function aiDepRender(){
+  var box = (typeof $ === 'function') ? $('adStage') : null;
+  if (!box) return;
+  var d = AI_DEP.data;
+  if (!d){ box.innerHTML = ''; return; }
+  var hs = '';
+  Object.keys(d.horses).sort(function(a, b){ return (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0); }).forEach(function(no){
+    var h = d.horses[no];
+    hs += '<div class="adHorse c' + h.color + '" data-no="' + aiDepEsc(no) + '" style="top:' + h.top + '%;left:' + h.left + '%">' +
+      '<span class="adBody"></span><span class="adWk w' + aiDepEsc(h.waku) + '">' + aiDepEsc(h.num) + '</span>' +
+      '<span class="adNm">' + aiDepEsc(h.name) + '</span><span class="adSpd"></span></div>';
   });
-  var fb = $('finBody'); if (fb) fb.innerHTML = html;
-  var sW = $('simResultWrap'); if (sW) sW.classList.remove('hid');
-  var sE = $('simResultEmpty'); if (sE) sE.classList.add('hid');
-  var sx = $('simExp'); if (sx) sx.innerHTML = simExpHTML(parts, order, D);
+  var heat = '';
+  if (d.heat){
+    var tr = d.heat.rows.map(function(r){
+      return '<tr><th>' + aiDepEsc(r.label) + '</th>' + r.cells.map(function(c){
+        return '<td class="h' + c.heat + '">' + c.pct + '%</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    heat = '<div class="adHeat"><h3>4コーナーポジション別の複勝率(%)' +
+      (d.heat.sub ? ' <span class="small muted">（' + aiDepEsc(d.heat.sub) + '）</span>' : '') + '</h3>' +
+      '<table class="adHM"><tr><th></th><th>内</th><th>中</th><th>外</th></tr>' + tr + '</table>' +
+      '<div class="adLG"><span><b class="h0"></b>0%</span><span><b class="h4"></b>1〜25%</span><span><b class="h3"></b>26〜50%</span>' +
+      '<span><b class="h2"></b>51〜75%</span><span><b class="h1"></b>76〜100%</span>' +
+      (d.heat.notice ? '<span class="small muted">※' + aiDepEsc(d.heat.notice) + '</span>' : '') + '</div></div>';
+  }
+  var pk = '';
+  if (d.pickup && d.pickup.length){
+    pk = '<div style="margin-top:8px"><span class="small" style="font-weight:700">推定ポジション有利馬</span> ' +
+      d.pickup.map(function(p){ return '<span class="adPick"><span class="adWk w' + aiDepEsc(p.waku) + '">' + aiDepEsc(p.no) + '</span>' + aiDepEsc(p.name) + '</span>'; }).join('') + '</div>';
+  }
+  var bs = '';
+  if (d.biasTxt && d.biasTxt.length === 3){
+    var name = { '有利': 'b1', '普通': 'b2', '不利': 'b3' };
+    bs = '<div class="adBias" style="margin-top:6px"><span class="small muted" style="margin-right:4px">トラックバイアス</span>' +
+      d.biasTxt.map(function(t, i){ return '<span class="' + (name[t] || 'b2') + '">' + ['内', '中', '外'][i] + ' ' + aiDepEsc(t) + '</span>'; }).join('') + '</div>';
+  }
+  box.innerHTML = AI_DEP_CSS +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">' +
+    '<div class="adTabs">' +
+      '<button type="button" class="adTab' + (AI_DEP.corner === 'C1' ? ' on' : '') + '" onclick="aiDepTab(\'C1\')">スタート後</button>' +
+      '<button type="button" class="adTab' + (AI_DEP.corner === 'C2' ? ' on' : '') + '" onclick="aiDepTab(\'C2\')">3コーナー</button>' +
+      '<button type="button" class="adTab' + (AI_DEP.corner === 'C3' ? ' on' : '') + '" onclick="aiDepTab(\'C3\')">4コーナー</button>' +
+    '</div>' +
+    '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="adChkOso"' + (AI_DEP.oso ? ' checked' : '') + ' onchange="aiDepChk()"> 出遅れ率考慮</label>' +
+    '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="adChkKishi"' + (AI_DEP.kishi ? ' checked' : '') + ' onchange="aiDepChk()"> 騎手傾向考慮</label>' +
+    '</div>' +
+    '<div id="adTrack" class="adTrack" style="background:' + aiDepBand(d) + '">' +
+      '<div class="adRing"></div><div class="adMid"></div><div class="adGoal"></div>' + hs +
+    '</div>' +
+    '<div class="small muted" id="adCap" style="margin-top:4px"></div>' + heat + pk + bs;
+  aiDepApply();
 }
-/* N回まとめて実行（合計集計にも自動で積み上がる） */
-/* ★第28弾: 複数回実行をチャンク分割してメインスレッドを固めない（重い→軽く） */
-function simRunInstant(times){
-  times = Math.max(1, Math.min(500, parseInt(times, 10) || 1));
-  if (times <= 1) return simRunInstantSync(1);   // 1回実行は従来どおり同期（即座に結果表示）
-  // 複数回は20回ずつ刻んで setTimeout で譲る（UIがフリーズしない）
-  var parts = getParticipants();
-  if (!parts){ buildSimPanel(); return; }
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  var meta = readRaceMeta();
-  var key = [meta.name, meta.dist, parts.length, parts[0] && parts[0].name].join('|');
-  if (sim._rsKey !== key){ sim._rsKey = key; sim._rs = null; }
-  if (!sim._rs){ sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} }; }
-  var orders = [], last = null, done = 0;
-  var CHUNK = 20;
+function aiDepTab(c){ AI_DEP.corner = c; aiDepRender(); }
+function aiDepChk(){
+  var o = $('adChkOso'), k = $('adChkKishi');
+  AI_DEP.oso = !!(o && o.checked); AI_DEP.kishi = !!(k && k.checked);
+  aiDepRender();
+}
+
+/* ---------- 取込（日付・レースボタン → キャッシュ即表示） ---------- */
+function aiDepRenderTitle(){
+  var d = AI_DEP.data;
+  var ttl = d && d.title ? d.title.replace(/ - netkeiba\s*$/, '').replace(/[|｜]\s*$/, '').trim() : '';
+  if (!ttl){ try { if (state && state.race && state.race.name) ttl = String(state.race.name); } catch(e){} }
+  var it = AI_DEP.rid ? aiDepRec(AI_DEP.rid) : null;
+  if (!ttl && it) ttl = (it.place || '') + (it.rnum ? ' ' + it.rnum + 'R' : '') + (it.name ? ' ' + it.name : '');
+  aiDepSub((ttl ? aiDepEsc(ttl) + '　' : '') + (AI_DEP.rid ? '<span class="small muted">race_id ' + aiDepEsc(AI_DEP.rid) + '・' + (AI_DEP_CACHE[AI_DEP.rid] ? '解析済みキャッシュから表示（通信・解析ゼロ）' : '保存済み出馬表から解析') + '</span>' : ''));
+}
+/* 一括取得済みの開催日（新しい順） */
+function aiDepDays(){
+  var days = [], seen = {};
+  try {
+    if (typeof preListAll !== 'function') return days;
+    (preListAll() || []).forEach(function(it){
+      if (it && /^\d{8}$/.test(String(it.d8 || '')) && !seen[it.d8]){ seen[it.d8] = 1; days.push(String(it.d8)); }
+    });
+  } catch(e){}
+  days.sort(); days.reverse();
+  return days;
+}
+function aiDepRnum(n){ var m = String(n == null ? '' : n).match(/(\d+)/); return m ? parseInt(m[1], 10) : 99; }
+function aiDepDayItems(d8){
+  var out = [];
+  try {
+    if (typeof preListAll !== 'function') return out;
+    out = (preListAll() || []).filter(function(it){ return it && it.rid && String(it.d8) === String(d8); });
+  } catch(e){}
+  out.sort(function(a, b){
+    var pa = String(a.place || ''), pb = String(b.place || '');
+    if (pa !== pb) return pa < pb ? -1 : 1;
+    return aiDepRnum(a.rnum) - aiDepRnum(b.rnum);
+  });
+  return out;
+}
+function aiDepRec(rid){
+  var out = null;
+  try {
+    if (typeof preListAll !== 'function') return out;
+    (preListAll() || []).forEach(function(it){ if (it && String(it.rid) === String(rid)) out = it; });
+  } catch(e){}
+  return out;
+}
+/* 2=解析済み(即表示) 1=出馬表アリ未解析 0=出馬表にAIセクション無し -1=出馬表キャッシュ無し */
+function aiDepState(rid){
+  if (AI_DEP_CACHE[rid]) return 2;
+  try {
+    var h = (typeof nkCardGet === 'function') ? nkCardGet(String(rid)) : null;
+    if (!h) return -1;
+    return String(h).indexOf('DevelopImg01') >= 0 ? 1 : 0;
+  } catch(e){ return -1; }
+}
+/* HTML→解析→（表示中なら）描画。force再取得やワーム共通の入口。 */
+function aiDepUseText(rid, t){
+  rid = String(rid);
+  var d = null;
+  try { d = aiDepParse(t); } catch(e){ d = null; }
+  if (!d){
+    try { delete AI_DEP_CACHE[rid]; } catch(e){}
+    if (rid === String(AI_DEP.rid)){
+      AI_DEP.data = null; aiDepRender();
+      aiDepMsg('その出馬表HTMLにAI展開予測セクションが見つかりませんでした。netkeibaのAI公開は「レース前日14時頃」です。公開後に🔄で取り直すと入ります。', true);
+    }
+    return false;
+  }
+  AI_DEP_CACHE[rid] = d;
+  if (rid === String(AI_DEP.rid)){
+    AI_DEP.data = d; AI_DEP.corner = 'C1'; AI_DEP.oso = false; AI_DEP.kishi = false;
+    aiDepRender(); aiDepRenderTitle(); aiDepMsg('');
+  }
+  return true;
+}
+/* レースボタン押下：解析済み＝その場で描画／未解析＝キャッシュから1回だけ解析して以後即表示 */
+function aiDepPick(rid){
+  rid = String(rid || '');
+  if (!rid) return;
+  AI_DEP.rid = rid;
+  if (AI_DEP_CACHE[rid]){
+    AI_DEP.data = AI_DEP_CACHE[rid]; AI_DEP.corner = 'C1'; AI_DEP.oso = false; AI_DEP.kishi = false;
+    aiDepRender(); aiDepRenderTitle(); aiDepMsg(''); aiDepBar(); return;
+  }
+  var h = '';
+  try { h = (typeof nkCardGet === 'function') ? (nkCardGet(rid) || '') : ''; } catch(e){}
+  if (!h){
+    AI_DEP.data = null; aiDepRender(); aiDepRenderTitle();
+    aiDepMsg('このレースの出馬表がキャッシュにありません（一括取得に含まれていない可能性）。右上「🔄」でこのレースだけ取得できます。', true);
+    aiDepBar(); return;
+  }
+  aiDepUseText(rid, h); aiDepBar();
+}
+function aiDepDay(d8){ AI_DEP_D8 = String(d8 || ''); AI_DEP.rid = ''; aiDepEnter(); }
+/* バックグラウンド予備解析：この日の未解析レースを1件ずつ（UIを止めない） */
+function aiDepWarm(){
+  try {
+    var q = aiDepDayItems(AI_DEP_D8).map(function(it){ return String(it.rid); })
+      .filter(function(rid){ return !AI_DEP_CACHE[rid] && aiDepState(rid) === 1; });
+    if (AI_DEP.rid && q.indexOf(String(AI_DEP.rid)) >= 0){   // 表示中は後回し（クリックで先に解析される）
+      q = q.filter(function(rid){ return rid !== String(AI_DEP.rid); });
+    }
+    AI_DEP_WARM.q = q;
+    if (AI_DEP_WARM.on || !q.length){ if (!q.length) aiDepBar(); return; }
+  } catch(e){ return; }
+  AI_DEP_WARM.on = true;
   function step(){
-    var end = Math.min(done + CHUNK, times);
-    for (; done < end; done++){
-      var one = simInstantOnce(done === times - 1);   // 道中ログは最後の1回だけ作る
-      if (!one) return;
-      last = one;
-      orders.push(one.order);
-      sim._rs.runs++;
-      one.order.forEach(function(pi, rank){
-        sim._rs.sumPos[pi] = (sim._rs.sumPos[pi] || 0) + (rank + 1);
-        if (rank === 0) sim._rs.first[pi] = (sim._rs.first[pi] || 0) + 1;
-        if (rank <= 2) sim._rs.top3[pi] = (sim._rs.top3[pi] || 0) + 1;
-      });
-    }
-    if (done < times){
-      var sp = $('simMsg'); if (sp) sp.innerHTML = '⏳ シミュレーション中… ' + done + '/' + times;
-      setTimeout(step, 0);
-    } else {
-      simFinishRun(parts, last, orders, times);
-    }
+    if (!AI_DEP_WARM.q.length){ AI_DEP_WARM.on = false; aiDepBar(); return; }
+    var rid = AI_DEP_WARM.q.shift();
+    try {
+      var h = (typeof nkCardGet === 'function') ? nkCardGet(rid) : null;
+      if (h) aiDepUseText(rid, h);
+    } catch(e){}
+    aiDepBar();
+    setTimeout(step, 0);
   }
   step();
 }
-function simRunInstantSync(times){
-  var parts = getParticipants();
-  if (!parts){ buildSimPanel(); return; }
-  times = Math.max(1, Math.min(500, parseInt(times, 10) || 1));
-  var D = parseFloat(readRaceMeta().dist) || 2000;
-  var meta = readRaceMeta();
-  var key = [meta.name, meta.dist, parts.length, parts[0] && parts[0].name].join('|');
-  if (sim._rsKey !== key){ sim._rsKey = key; sim._rs = null; }
-  if (!sim._rs){ sim._rs = { runs: 0, first: {}, top3: {}, sumPos: {}, best: {} }; }
-  var last = null, orders = [];
-  for (var k = 0; k < times; k++){
-    var one = simInstantOnce(k === times - 1);
-    if (!one) return;
-    last = one;
-    orders.push(one.order);
-    sim._rs.runs++;
-    one.order.forEach(function(pi, rank){
-      sim._rs.sumPos[pi] = (sim._rs.sumPos[pi] || 0) + (rank + 1);
-      if (rank === 0) sim._rs.first[pi] = (sim._rs.first[pi] || 0) + 1;
-      if (rank <= 2) sim._rs.top3[pi] = (sim._rs.top3[pi] || 0) + 1;
-    });
+/* 日付・レースボタンのバー描画 */
+function aiDepBar(){
+  var bar = (typeof $ === 'function') ? $('adDayBar') : null;
+  var rb = (typeof $ === 'function') ? $('adRaceBar') : null;
+  if (bar){
+    var days = aiDepDays();
+    bar.innerHTML = days.length ? ('<span class="small muted" style="margin-right:2px">📅 一括取得済みの日:</span>' + days.map(function(d8){
+      var n = aiDepDayItems(d8).length;
+      return '<button type="button" class="adDt' + (d8 === AI_DEP_D8 ? ' on' : '') + '" onclick="aiDepDay(\'' + d8 + '\')">' +
+        d8.slice(4, 6) + '/' + d8.slice(6, 8) + '<span style="font-weight:400">（' + n + 'R）</span></button>';
+    }).join('')) : '';
   }
-  simFinishRun(parts, last, orders, times);
-  return last;
-}
-function simFinishRun(parts, last, orders, times){
-  if (!last) return;
-  sim._log = sim._log || [];
-  simRenderOutcome(last.parts, last.order, last.D);
-  simRenderRunState(last.parts);
-  var agg = null, aggErr = '';
-  try { orders.forEach(function(o){ agg = simAggAdd(parts, o); }); } catch(e){ aggErr = String((e && e.message) || e); }
-  try { simAggRender(); } catch(e){ if (!aggErr) aggErr = String((e && e.message) || e); }
-  var sx = $('simMsg');
-  if (sx){
-    sx.innerHTML = '⚡ ' + times + '回の結果を出しました。最後の1走を着順表・展開に表示しています。1着: ' +
-      esc(last.parts[last.order[0]].no) + ' ' + esc(last.parts[last.order[0]].name) +
-      '（📊 合計集計: 累計 <b>' + ((agg && agg.runs) || 0) + '</b>回）' +
-      (aggErr ? '<br><span style="color:var(--bad-ink,#c00)">⚠️ 集計でエラー: ' + esc(aggErr) + '</span>' : '') +
-      '<br><span class="small muted">📊 合計集計は<b>③のタブを開いている間だけ</b>のメモリ集計です（端末の保存領域は使いません）。' +
-      '別のタブに移るとリセットされ、③に戻ると新しい集計から始まります。</span>';
-  }
-  saveNow();
-}
-/* 連続実行の累計を表示 */
-function simRenderRunState(parts){
-  var el = $('simRunState'); if (!el || !sim._rs) return;
-  parts = parts || getParticipants() || [];
-  var rs = sim._rs;
-  var best = -1, bestN = -1;
-  parts.forEach(function(p, i){
-    var c = rs.first[i] || 0;
-    if (c > bestN){ bestN = c; best = i; }
-  });
-  var lines = [];
-  lines.push('<b>このレースの実行累計: ' + rs.runs + '回</b>（📊 合計集計は下の表をご覧ください）');
-  if (best >= 0 && bestN > 0){
-    lines.push('最多1着: <b>' + esc(parts[best].no) + ' ' + esc(parts[best].name) + '</b>（' + bestN + '回 / ' + pct(bestN / rs.runs) + '%）');
-  }
-  lines.push(['<button type="button" class="btn ghost" id="simResetRuns" style="font-size:.74rem;padding:2px 9px">累計をリセット</button>'].join(''));
-  el.innerHTML = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' + lines.join('<span class="muted">｜</span>') + '</div>';
-}
-function simRunsCount(){
-  var el = $('simRuns');
-  var v = el ? parseInt(el.value, 10) : 10;
-  return (v >= 1 && v <= 500) ? v : 10;
-}
-
-/* ===== 脚質の安定度（馬柱の過去戦績から） =====
-   過去レースの4角通過順 → 脚質（逃げ/先行/差し/追込）を復元し、
-   バラつきが大きい馬は「毎回ちがう脚質で走る」ものとしてシミュレーションに反映する。 */
-var SIM_SV_CACHE = {};
-function simStyleHistOf(p){
-  if (!p) return null;
-  var h = null;
-  try { h = (state.horses || [])[p.idx] || null; } catch(e){}
-  if (!h || !h.nk || typeof tlStyleHist !== 'function') return null;
-  if (SIM_SV_CACHE[h.nk] !== undefined) return SIM_SV_CACHE[h.nk];
-  var r = null;
-  try { r = tlStyleHist(h); } catch(e){ r = null; }
-  SIM_SV_CACHE[h.nk] = r;
-  return r;
-}
-function simStyleVarOf(p){
-  var r = simStyleHistOf(p);
-  return (r && r.n >= 3) ? r : null;
-}
-/* 脚質が安定しない馬かどうか（判定は p47 の tlStyleUnstable に集約） */
-function simUnstable(sv){
-  if (!sv) return false;
-  if (typeof tlStyleUnstable === 'function') return tlStyleUnstable(sv);
-  return !!(sv.n >= 3 && sv.sd >= 0.22);
-}
-/* その馬の今回の脚質（ブレる馬は過去に出した脚質から抽選） */
-function simFlowStyleFor(p){
-  var sv = simStyleVarOf(p);
-  if (simUnstable(sv) && sv.styles && sv.styles.length){
-    return sv.styles[Math.floor(Math.random() * sv.styles.length)];   // 過去に出した脚質から抽選
-  }
-  return simFlowStyle(p && p.style);
-}
-function simStyleNote(){
-  var parts = getParticipants() || [];
-  var out = [];
-  parts.forEach(function(p){
-    var sv = simStyleVarOf(p);
-    if (simUnstable(sv)) out.push({ p: p, sv: sv });
-  });
-  if (!out.length) return '';
-  return '　⚠️ <b>脚質が安定しない馬 ' + out.length + '頭</b>（過去戦績の4角通過順から判定・毎回ちがう脚質で走るとして振れ幅を大きくしています）: ' +
-    out.slice(0, 6).map(function(x){
-      return esc(x.p.no) + ' ' + esc(x.p.name) + '（4角 ' + x.sv.styles.join('→') + '・バラつき±' + Math.round(x.sv.sd * 100) + '%）';
-    }).join(' / ') + (out.length > 6 ? ' ほか' + (out.length - 6) + '頭' : '');
-}
-
-/* ===== シミュレーションの合計集計（③のタブを開いている間だけ＝メモリのみ。端末の保存領域は使いません） ===== */
-var SIMAGG_LS = 'khl_simagg_v1';   // 旧バージョンが使っていたキー（起動時に消して空きを作る → simAggDropOld）
-/* 2026-09-11 第11弾: 端末の保存領域(localStorage)がいっぱいだと setItem が黙って失敗し、simAggCur() が
-   読み直したときに null → 着順表は出るのに📊合計集計が「まだ集計がありません」のまま、になっていた。
-   2026-09-11 第12弾: ご指定どおり「③のタブを開いている間だけ集計を保持し、別のタブに移ったら全部消して、
-   また新しく集計し直す」方式に変更した。
-   → localStorage には一切書かないので、端末の保存領域(目安5MB)を圧迫しません。
-   → あわせて 学習DB・AI予想の学習データを第一優先で保存するようにした（safeSetItem / storeMakeRoom）。 */
-var SIMAGG_MEM = null;
-var SIMAGG_SAVE_OK = true;      // メモリ保持なので常に true（描画コードとの互換のため残している）
-var SIMAGG_SAVE_ERR = '';
-var SIMAGG_LIVE = false;        // ③のタブを開いている間だけ true
-function simAggLs(){
-  if (!SIMAGG_MEM) SIMAGG_MEM = {};
-  return SIMAGG_MEM;            // メモリだけを見る（localStorage は読まない）
-}
-function simAggSave(o){
-  if (o) SIMAGG_MEM = o;
-  if (!SIMAGG_MEM) SIMAGG_MEM = {};
-  SIMAGG_SAVE_OK = true; SIMAGG_SAVE_ERR = '';
-  return true;                  // メモリにしか書かないので失敗しない
-}
-/* ③のタブを開いた／離れたときの扱い */
-function simAggEnter(){ SIMAGG_LIVE = true; }
-function simAggDropAll(){
-  var n = 0; try { n = Object.keys(simAggLs()).length; } catch(e){}
-  SIMAGG_MEM = {}; SIMAGG_LIVE = false;
-  return n;                     // 消したレース数（goTab が案内に使う）
-}
-var SIMAGG_DROPPED = 0;         // ③を離れて消したレース数（③に戻ったときの案内に使う）
-/* ③に戻ったとき「前の集計はリセットしました」と知らせる */
-function simAggNoteDropped(){
-  if (!SIMAGG_DROPPED) return;
-  var n = SIMAGG_DROPPED; SIMAGG_DROPPED = 0;
-  var sx = $('simMsg');
-  if (sx) sx.innerHTML = '🔄 別のタブに移ったので、前の<b>合計集計（' + n + ' レースぶん）はリセット</b>しました。' +
-    'ここから新しい集計を始めます（③のタブを開いている間だけ保持します）。';
-}
-/* 旧バージョンが localStorage に残した集計を消して、端末の保存領域を空ける */
-function simAggDropOld(){
-  try {
-    var v = localStorage.getItem(SIMAGG_LS);
-    if (v != null){ localStorage.removeItem(SIMAGG_LS); return (SIMAGG_LS.length + v.length) * 2; }
-  } catch(e){}
-  return 0;
-}
-/* 端末の保存領域の使用量（診断用） */
-function storeUse(){
-  var tot = 0, keys = [];
-  try {
-    for (var i = 0; i < localStorage.length; i++){
-      var k = localStorage.key(i); if (k == null) continue;
-      var v = ''; try { v = localStorage.getItem(k) || ''; } catch(e){}
-      var n = (k.length + v.length) * 2;      // JS文字列はUTF-16＝2byte/字
-      tot += n; keys.push({ k: k, n: n });
-    }
-  } catch(e){}
-  keys.sort(function(a, b){ return b.n - a.n; });
-  return { bytes: tot, mb: tot / 1048576, keys: keys };
-}
-function storeText(){
-  var u = storeUse();
-  var lim = 5;                                   // 多くのブラウザの目安（5MB）
-  var pctv = Math.min(999, Math.round(u.mb / lim * 100));
-  return '💾 端末の保存領域: <b>' + u.mb.toFixed(2) + 'MB</b>／目安 ' + lim + 'MB（' + pctv + '%）' +
-    (u.mb >= lim * 0.9 ? ' <span style="color:var(--bad-ink,#c00)"><b>⚠️ いっぱいです</b></span>' : '') +
-    (u.keys.length ? '　多い順: ' + u.keys.slice(0, 4).map(function(x){ return x.k + '(' + (x.n / 1048576).toFixed(2) + 'MB)'; }).join(' / ') : '');
-}
-function simAggKey(parts){
-  var meta = {};
-  try { meta = readRaceMeta() || {}; } catch(e){}
-  var rid = '';
-  try { rid = String(state.raceId || ''); } catch(e){}
-  var sig = [meta.name || '', meta.dist || '', (parts || []).map(function(p){ return p.no + ':' + p.name; }).join(',')].join('|');
-  return rid || sig;
-}
-function simAggAdd(parts, order){
-  if (!parts || !order) return null;
-  var ls = simAggLs();
-  var k = simAggKey(parts);
-  var meta = {};
-  try { meta = readRaceMeta() || {}; } catch(e){}
-  var a = ls[k] || (ls[k] = { key: k, name: '', dist: '', runs: 0, at: '', horses: {} });
-  a.name = meta.name || a.name || '';
-  a.dist = meta.dist || a.dist || '';
-  a.runs = (a.runs || 0) + 1;
-  a.at = new Date().toISOString();
-  order.forEach(function(pi, rank){
-    var p = parts[pi]; if (!p) return;
-    var id = p.no + ':' + p.name;
-    var h = a.horses[id] || (a.horses[id] = { no: p.no, name: p.name, runs: 0, w: 0, t2: 0, t3: 0, sum: 0, best: 99, worst: 0, odds: '', prob: 0, slow: '', sv: null });
-    h.runs++; h.sum += (rank + 1);
-    if (rank === 0) h.w++;
-    if (rank <= 1) h.t2++;
-    if (rank <= 2) h.t3++;
-    h.best = Math.min(h.best, rank + 1);
-    h.worst = Math.max(h.worst, rank + 1);
-    h.odds = p.odds || h.odds; h.prob = p.prob;
-    try {
-      var hh = (state.horses || [])[p.idx] || {};
-      h.slow = hh.slow || h.slow;
-    } catch(e){}
-    var sv = null;
-    try { sv = simStyleVarOf(p); } catch(e){ sv = null; }
-    h.sv = sv ? { sd: sv.sd, n: sv.n, dom: sv.dom, styles: sv.styles, bad: simUnstable(sv) } : h.sv;
-  });
-  ls[k] = a;
-  simAggSave(ls);
-  return a;
-}
-function simAggCur(){
-  var parts = getParticipants();
-  if (!parts) return null;
-  var ls = simAggLs();
-  return ls[simAggKey(parts)] || null;
-}
-function simAggRender(){
-  var box = $('simAggBody');
-  var sum = $('simAggSummary');
-  var a = simAggCur();
-  if (sum) sum.innerHTML = '';
-  if (!box) return;
-  if (!a || !a.runs){
-    box.innerHTML = '<tr><td colspan="11" class="muted">まだ集計がありません。「⚡ 結果を出す」や「⏩ まとめて実行」を押すと、' +
-      'その結果がこのレースの<b>合計集計</b>に積み上がります。' +
-      '<br><span class="small">📊 合計集計は<b>③のタブを開いている間だけ</b>のメモリ集計です（端末の保存領域は使いません）。' +
-      '別のタブに移るとリセットされ、③に戻ると新しい集計から始まります。</span></td></tr>';
+  if (!rb) return;
+  if (!AI_DEP_D8){
+    var cur = '';
+    try { cur = aiDepRid(); } catch(e){}
+    rb.innerHTML = cur ? '<button type="button" class="adRc on" onclick="aiDepPick(\'' + aiDepEsc(cur) + '\')">現在のレース ' +
+      aiDepMark(aiDepState(cur)) + '</button>' : '';
     return;
   }
-  var rows = Object.keys(a.horses).map(function(k){ return a.horses[k]; });
-  rows.sort(function(x, y){
-    return (y.w / y.runs) - (x.w / x.runs) || (y.t3 / y.runs) - (x.t3 / x.runs) ||
-      (x.sum / x.runs) - (y.sum / y.runs) || String(x.no).localeCompare(String(y.no));
-  });
-  var html = rows.map(function(h){
-    var r1 = h.w / h.runs, r2 = h.t2 / h.runs, r3 = h.t3 / h.runs, avg = h.sum / h.runs;
-    var slow = slowPctOf(h.slow);
-    var sv = (h.sv && (h.sv.bad || (h.sv.sd != null && h.sv.sd >= 0.22))) ? h.sv : null;
-    return '<tr' + (r1 >= 0.2 ? ' class="leadcol"' : '') + '>' +
-      '<td>' + esc(h.no) + '</td><td style="text-align:left;font-weight:700">' + esc(h.name) + '</td>' +
-      '<td style="text-align:right">' + (h.odds ? esc(String(h.odds)) : '−') + '</td>' +
-      '<td style="text-align:right">' + pct(h.prob) + '%</td>' +
-      '<td>' + h.runs + '</td>' +
-      '<td><b>' + h.w + '</b><br><span class="muted">' + pct(r1) + '%</span></td>' +
-      '<td>' + h.t2 + '<br><span class="muted">' + pct(r2) + '%</span></td>' +
-      '<td>' + h.t3 + '<br><span class="muted">' + pct(r3) + '%</span></td>' +
-      '<td>' + avg.toFixed(1) + '<br><span class="muted">' + h.best + '〜' + h.worst + '着</span></td>' +
-      '<td>' + (slow > 0 ? '<span class="tlchip slow">' + slow + '%</span>' : '<span class="muted">−</span>') + '</td>' +
-      '<td style="text-align:left">' + (sv
-        ? '<span class="tlchip slow" title="直近' + esc(String(sv.n || 0)) + '走の4角: ' + esc((sv.styles || []).join('→')) + '">±' + Math.round((sv.sd || 0) * 100) + '%</span>'
-        : (h.sv ? '<span class="muted" title="直近' + esc(String(h.sv.n || 0)) + '走の4角: ' + esc((h.sv.styles || []).join('→')) + '">安定</span>' : '<span class="muted">−</span>')) + '</td>' +
-      '</tr>';
+  var items = aiDepDayItems(AI_DEP_D8);
+  rb.innerHTML = items.map(function(it){
+    var rid = String(it.rid);
+    var lbl = (it.place || '') + (it.rnum ? ' ' + it.rnum + 'R' : '') + (it.name ? ' ' + it.name : '');
+    var tip = { 2: '解析済み＝クリックで即表示', 1: '未解析（バックグラウンドで先に済みます）', 0: 'このHTMLにAIセクション無し（前日14時公開後にもう一度🔄）', '-1': '出馬表キャッシュ無し（🔄でこのレースだけ取得可）' };
+    return '<button type="button" class="adRc' + (rid === String(AI_DEP.rid) ? ' on' : '') + '" title="' + aiDepEsc(tip[aiDepState(rid)] || '') + '・race_id ' + aiDepEsc(rid) + '" onclick="aiDepPick(\'' + aiDepEsc(rid) + '\')">' +
+      aiDepEsc(lbl.trim()) + '<b class="st">' + aiDepMark(aiDepState(rid)) + '</b></button>';
   }).join('');
-  box.innerHTML = html;
-  if (sum){
-    var top = rows[0];
-    sum.innerHTML = '<div class="small">📊 <b>' + esc(a.name || 'このレース') + '</b>' + (a.dist ? '（' + esc(String(a.dist)) + 'm）' : '') +
-      '　累計 <b>' + a.runs + '</b> 回　｜　最多1着: <b>' + esc(top.no + ' ' + top.name) + '</b>（' + top.w + '回 / ' + pct(top.w / top.runs) + '%）' +
-      '　<span class="muted">更新 ' + esc(String(a.at || '').slice(0, 16).replace('T', ' ')) + '</span>' +
-      '　<span class="muted small">（③のタブを開いている間だけの集計）</span></div>';
+}
+function aiDepMark(st){ return st === 2 ? '✓' : st === 1 ? '⏳' : st === 0 ? '⛔' : '📥'; }
+/* 🔄（選択中レースだけForce再取得）*/
+function aiDepLoad(force){
+  var rid = String(AI_DEP.rid || aiDepRid() || '');
+  if (!rid){
+    AI_DEP.data = null; aiDepRender(); aiDepBar();
+    aiDepMsg('一括取得済みのレースがありません。先にAI提案タブや①で📥一括取得すると、この上にレースボタンが並び、クリック即表示で使えます。', true);
+    return Promise.resolve(false);
   }
-}
-/* 集計の実削除（確認なし） */
-function simAggClear(){
-  var parts = getParticipants();
-  var ls = simAggLs();
-  var k = simAggKey(parts || []);
-  var had = ls[k] ? (ls[k].runs || 0) : 0;
-  delete ls[k];
-  simAggSave(ls);
-  sim._rs = null; sim._rsKey = null;
-  simAggRender();
-  if (parts) simRenderRunState(parts);
-  return had;
-}
-/* 集計リセットボタン（確認してから simAggClear） */
-function simAggReset(){
-  var a = simAggCur();
-  var fn = function(){ simAggClear(); };
-  if (typeof showConfirm === 'function'){
-    showConfirm('このレースのシミュレーション合計集計（' + ((a && a.runs) || 0) + '回ぶん）をリセットしますか？', fn);
-  } else fn();
-}
-
-/* ===== ③タブの説明文と初期化 ===== */
-function simSetHint(){
-  var el = $('simHint'); if (!el) return;
-  var parts = getParticipants();
-  var n = parts ? parts.length : 0;
-  var slowN = 0;
-  if (parts) parts.forEach(function(p){
-    var sl = slowPctOf(p.slow);
-    if (sl >= 6) slowN++;
+  AI_DEP.rid = rid;
+  function done(t){ var r = aiDepUseText(rid, t); aiDepBar(); aiDepWarm(); return r; }
+  if (!force){
+    var cached = '';
+    try { cached = (typeof nkCardGet === 'function') ? (nkCardGet(rid) || '') : ''; } catch(e){}
+    if (cached) return Promise.resolve(done(cached));
+  }
+  if (typeof nkFetchCardText !== 'function'){ aiDepMsg('出馬表取得モジュールが見つかりません', true); return Promise.resolve(false); }
+  AI_DEP.loading = true; aiDepMsg('⏳ そのレースの出馬表を取り直しています…');
+  return nkFetchCardText(rid, { force: !!force }).then(function(t){
+    AI_DEP.loading = false;
+    return done(t);
+  }).catch(function(e){
+    AI_DEP.loading = false;
+    aiDepMsg('出馬表の取得に失敗しました: ' + ((e && e.message) || e), true);
+    return false;
   });
-  el.innerHTML = '💡 出走馬 <b>' + n + '</b>頭を、AI印の勝率（全馬の和=100%）を実力差として1走ずつ再現します。' +
-    '「⚡ 結果を出す」=1走、「⏩ まとめて」=選んだ回数だけ連続で走らせて、<b>下の「📊 合計集計」に積み上げ</b>ます。' +
-    (slowN ? '　🐢 <b>出遅れ率6%以上の馬 ' + slowN + '頭</b>は、その確率でスタート不利（実力0.5〜1.0倍）になります。' : '') +
-    simStyleNote();
 }
-function simRunPrimary(){ simRunInstant(1); }
-function initSimTab(){
-  var primary = function(){ simRunPrimary(); };
-  on('btnRun', 'click', primary);
-  on('btnRerun', 'click', primary);
-  on('btnMulti', 'click', function(){ simRunInstant(simRunsCount()); });
-  on('btnAggReset', 'click', function(){ simAggReset(); });
-  // 累計リセット（動的に差し替わるので委譲で拾う）
-  document.addEventListener('click', function(e){
-    if (e.target && e.target.id === 'simResetRuns'){
-      e.preventDefault();
-      sim._rs = null; sim._rsKey = null;
-      simRenderRunState();
+/* ③タブを開いたときに呼ばれる（p10_main の goTab から） */
+function aiDepEnter(){
+  var days = aiDepDays();
+  if (!AI_DEP_D8 || (days.length && days.indexOf(AI_DEP_D8) < 0)){
+    var want = '';
+    if (days.length){
+      try { if (typeof apMetaCur === 'function') want = String(apMetaCur().date8 || ''); } catch(e){}
+      if (!(want && days.indexOf(want) >= 0)){ try { if (typeof nkTodayD8 === 'function') want = String(nkTodayD8() || ''); } catch(e){} }
+      AI_DEP_D8 = days.indexOf(want) >= 0 ? want : days[0];
+    } else AI_DEP_D8 = '';
+  }
+  if (AI_DEP_D8){
+    var items = aiDepDayItems(AI_DEP_D8);
+    var keep = AI_DEP.rid && aiDepRec(AI_DEP.rid) && String(aiDepRec(AI_DEP.rid).d8) === AI_DEP_D8;
+    if (!keep){
+      var curRid = '';
+      try { curRid = aiDepRid(); } catch(e){}
+      var pref = items.filter(function(it){ return String(it.rid) === String(curRid) && aiDepState(it.rid) > 0; })[0];
+      var any = items.filter(function(it){ return aiDepState(it.rid) > 0; })[0];
+      var pick0 = pref || any || items[0];
+      AI_DEP.rid = pick0 ? String(pick0.rid) : '';
     }
-  });
-  simSetHint();
-  simAggRender();
+    if (!AI_DEP.rid){ AI_DEP.data = null; aiDepRender(); aiDepBar(); aiDepMsg('この日のレースは出馬表キャッシュにありません（①の一括取得を先に）。', true); return; }
+    aiDepLoad(false);
+    aiDepBar(); aiDepWarm();
+  } else {
+    var r0 = '';
+    try { r0 = aiDepRid(); } catch(e){}
+    if (r0){ AI_DEP.rid = r0; aiDepLoad(false); }
+    else { AI_DEP.data = null; aiDepRender(); aiDepBar(); aiDepMsg('まず①または④・AI提案タブでレースを選んで出馬表を取り込んでください（このタブは保存済みHTMLだけを使い、勝手に通信はしません）。', true); }
+  }
 }
 
 /* =========================================================
@@ -6448,7 +6172,7 @@ var STORE_DESC = [
   ['khl_jdb_ent',    '🏇 騎手・調教師DB（成績・得意コース・今週の騎乗）', 'keep', '🥇 第一優先'],
   ['khl_jdb_combo',  '🏇 騎手×調教師の相性成績（回収率・馬券内率）', 'keep', '🥇 第一優先']
   /* khl_simagg_v1（📊合計集計）は第12弾で localStorage をやめて「③タブを開いている間だけのメモリ保持」に
-     変更したので、この一覧には出しません（起動時に simAggDropOld() が旧データを削除します）。 */
+     変更したので、この一覧には出しません（第40弾で③は netkeiba AI展開予測ビューに置換・起動時に khl_simagg_v1 を掃除）。 */
 ];
 /* 2026-09-11 第12弾: 保存の優先順位（STORE_LIMIT / storeMakeRoom / safeSetItem / storeTrimText）は
    p3_core.js に置きました（単体テストのように p12 を読み込まない環境でも動くようにするため）。
@@ -6525,7 +6249,7 @@ function storeUseRender(){
     '<span class="small muted">削除後は<b>ページを再読み込み</b>してください（メモリに残っている分を書き戻さないようにするため）。</span></div>' +
     '<div class="small muted" style="margin-top:6px">🥇 <b>学習DB（④で取り込んだ過去データ）と AI予想の学習データは第一優先</b>で残します。' +
     '保存領域が足りなくなったときは、♻️<b>また取り直せるキャッシュ（馬柱・血統・⑥分析・カレンダー・天気など）を自動で削除</b>して、' +
-    '学習データの保存を優先します。<br>📊 シミュレーションの合計集計は<b>③のタブを開いている間だけのメモリ集計</b>になったので、保存領域は使いません。</div>' +
+    '学習データの保存を優先します。<br>🤖 ③のAI展開予測は<b>保存済み出馬表HTMLの解析だけ</b>（第40弾で旧・合計集計は廃止）で、保存領域は使いません。</div>' +
     '<div class="small" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px">' + storeDiWhere() + '<br>' +
     (typeof cmpText === 'function' && cmpText() ? cmpText() + '（♻️また取り直せるキャッシュは <b>zlib 圧縮</b>して保存しています。実測で1レースぶん 9.8KB → 1.9KB、馬柱 42KB → 3KB）'
       : '♻️また取り直せるキャッシュは <b>zlib 圧縮</b>して保存します（この環境では圧縮ライブラリが使えないため生のままです）') + '</div>');
@@ -19578,7 +19302,7 @@ function initHd(){
 var NAV_ITEMS = [
   { t:'t-input',    icon:'📥', name:'データ入力',            sub:'netkeiba URL取込・レース選択・出馬表・全馬データ', cur:true },
   { t:'t-kentai',   icon:'🧠', name:'展開予想・AI印',        sub:'ペース診断・AI印・買い目・トラックバイアス・自己学習' },
-  { t:'t-sim',      icon:'🏇', name:'レースシミュレーター',  sub:'着順サンプル・📊合計集計（出遅れ率・脚質のブレを反映）' },
+  { t:'t-sim',      icon:'🤖', name:'netkeiba AI展開予測',   sub:'スタート後/3角/4角の位置マップ＋4コーナーポジション別の複勝率(%)（保存済み出馬表から・通信ゼロ）' },
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
   { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・年指定自動取込' },
   { t:'t-aiprop',   icon:'🤖', name:'AI提案',                sub:'価値馬・EV・人気乖離・条件別鮮度' },
@@ -37357,7 +37081,6 @@ function ovInit(){
   if (b) b.addEventListener('click', function(){ ovDetect(); });
 }
 
-var SIMAGG_DROP_N = 0;   // ③を離れて消した集計のレース数
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
@@ -37397,18 +37120,8 @@ function setNav(){
   });
 }
 function goTab(id){
-  // シミュを離れるとき走行中を止める
-  if (sim && sim.running && id !== 't-sim'){
-    sim.running = false;
-    if (sim.raf) cancelAnimationFrame(sim.raf);
-    $('btnRun').disabled = false; $('btnRerun').disabled = false;
-  }
-  /* 2026-09-11 第12弾: ③のタブを離れるとシミュレーションの合計集計は全部消す。
-     集計はメモリだけで持つ方式に変えたので、端末の保存領域(localStorage)は一切使いません。
-     → 学習DB・AI予想の学習データを第一優先で保存できるようになった。 */
-  if (id !== 't-sim' && _curTab === 't-sim'){
-    try { if (typeof simAggDropAll === 'function') SIMAGG_DROP_N = simAggDropAll(); } catch(e){}
-  }
+  /* ★2026-09-19 第40弾: ③は netkeiba AI展開予測ビュー（保存済み出馬表HTMLの解析のみ）。
+     走行中のアニメもメモリ集計も無くなったので、離れるときの後始末は不要。 */
   _curTab = id;
   setNav();
   if (id === 't-kentai'){ renderKentaiFull(); if (typeof rnRefresh === 'function') rnRefresh(); try { if (typeof pfPaint === 'function') pfPaint(); } catch(e){}
@@ -37418,14 +37131,7 @@ function goTab(id){
     try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('②AI予想タブを開きました'); } catch(e){}
   }
   if (id === 't-sim'){
-    buildSimPanel();
-    try { if (typeof simAggEnter === 'function') simAggEnter(); } catch(e){}
-    try {                                   // ③を離れて消えた分があれば知らせる
-      if (typeof SIMAGG_DROP_N !== 'undefined' && SIMAGG_DROP_N){
-        if (typeof simAggNoteDropped === 'function'){ window.SIMAGG_DROPPED = SIMAGG_DROP_N; simAggNoteDropped(); }
-        SIMAGG_DROP_N = 0;
-      }
-    } catch(e){}
+    try { if (typeof aiDepEnter === 'function') aiDepEnter(); } catch(e){}
   }
   if (id === 't-horse' && typeof hbRefresh === 'function') hbRefresh();
   if (id === 't-input'){ if (typeof hbSyncInputBadges === 'function') hbSyncInputBadges(); if (typeof kaiHistRender === 'function') kaiHistRender(); if (typeof rkRender === 'function') rkRender();
@@ -37545,19 +37251,9 @@ function boot(){
       } catch(e){}
     });
   } catch(e){}
-  /* 2026-09-11 第12弾: 📊シミュレーションの合計集計は「③のタブを開いている間だけのメモリ保持」に
-     変更したので、旧バージョンが localStorage に残した khl_simagg_v1 を削除して保存領域を空ける。 */
-  try {
-    if (typeof simAggDropOld === 'function'){
-      var _freed = simAggDropOld();
-      if (_freed > 2048) setTimeout(function(){
-        try {
-          storeMsg('🧹 旧バージョンの<b>📊合計集計（' + (_freed / 1048576).toFixed(2) + 'MB）</b>を削除して保存領域を空けました。' +
-            '合計集計は<b>③のタブを開いている間だけ</b>のメモリ保持に変わったので、端末の保存領域は使いません。' + storeText(), false);
-        } catch(e){}
-      }, 1200);
-    }
-  } catch(e){}
+  /* ★2026-09-19 第40弾: 旧・物理シミュレーションの📊合計集計は廃止。
+     過去バージョンが localStorage に残した khl_simagg_v1 は起動時に掃除して保存領域を空ける。 */
+  try { if (typeof localStorage !== 'undefined') localStorage.removeItem('khl_simagg_v1'); } catch(e){}
   // タブ
   document.querySelectorAll('nav.tabs .tab').forEach(function(b){
     b.addEventListener('click', function(){ goTab(b.dataset.t); });
@@ -37598,7 +37294,7 @@ function boot(){
   if (typeof initRn === 'function') safeInit('initRn', initRn);
   if (typeof initBias === 'function') safeInit('initBias', initBias);
   safeInit('initAnalysisTab', initAnalysisTab);
-  safeInit('initSimTab', initSimTab);
+  /* 第40弾: 旧 initSimTab(p9_sim) は廃止。③=AI展開予測は onclick と aiDepEnter で動く */
   if (typeof initHist === 'function') safeInit('initHist', initHist);
   if (typeof initStyleAI === 'function') safeInit('initStyleAI', initStyleAI);
   if (typeof initUmasiru === 'function') safeInit('initUmasiru', initUmasiru);
