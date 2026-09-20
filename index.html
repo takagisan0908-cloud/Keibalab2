@@ -1653,7 +1653,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       <div id="tlBox"></div>
     </div>
     <div class="card" style="padding:10px 16px">
-      <div class="small muted">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。<b>印の順位は人気（オッズ列）を抜いた純モデル点</b>で決めます（★第45弾：人気順の焼き直し防止）。◎○が必ずしも1〜2番人気になるとは限らず、<b>🎯軸=モデル上位+強いデータ2項目</b>、<b>⚡=モデルが高評価なのに人気3つ以下</b>、▼=逆方向の乖離の旗を印セルに出します。材料が無いレースでは従来どおり市場基準の印に自動で戻ります。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
+      <div class="small muted">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。<b>印の順位は総合評価U（＝人気も重みどおり内包）が基準</b>です（★第50弾: 第45弾の「人気を完全に抜いた純モデル印」は信用性が下がるとの指摘で方針転換）。<b>来そうな人気馬にはそのまま◎○が乗る</b>／調教・時計・展開・馬場などの<b>強いデータが2項目以上</b>揃い、データ評価が人気を3位以上上回る人気薄だけが順位アップして印を獲ります。<b>🎯軸=データ上位+強いデータ2項目</b>、<b>⚡=市場が過小評価（根拠あり）</b>、▼=過大人気の懸念の旗を印セルに出します。材料が無いレースでは従来どおり市場基準の印に自動で戻ります。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
     </div>
     <div class="row2">
       <div class="card">
@@ -1723,7 +1723,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <table class="ktbl">
           <thead><tr>
             <th>印</th><th>着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
-            <th>調教</th><th>持ちタイム</th><th>展開適性</th><th>バ場好走</th><th>洋芝・<br>コース適性</th><th title="調教・持ちタイム・展開適性・バ場好走・洋芝コース適性などのデータ列を0〜1に正規化し、エンジン重み（枠3/騎手2など）で加重平均→血統で微調整した総合点（0〜100）。数字が大きいほど「データ上の条件面がgood」を意味します。勝率そのものではありません（勝率は『AI勝率』列＝市場オッズ75%+モデル25%の別物。印◎◯▲は総合点からオッズ差分を控除した純モデル順位）">総合 ⓘ</th>
+            <th>調教</th><th>持ちタイム</th><th>展開適性</th><th>バ場好走</th><th>洋芝・<br>コース適性</th><th title="調教・持ちタイム・展開適性・バ場好走・洋芝コース適性などのデータ列を0〜1に正規化し、エンジン重み（枠3/騎手2など）で加重平均→血統で微調整した総合点（0〜100）。数字が大きいほど「データ上の条件面がgood」を意味します。勝率そのものではありません（勝率は『AI勝率』列＝市場オッズ75%+モデル25%の別物。印◎◯▲は総合点（人気込み）の順位で、データ評価が人気を大差で上回る人気薄だけ繰り上げ）">総合 ⓘ</th>
           </tr></thead>
           <tbody id="aiTbl"></tbody>
         </table>
@@ -3974,14 +3974,19 @@ function analyzeRace(){
 
   var order = hs.map(function(h,i){ return i; }).sort(function(a,b){ return prob[b]-prob[a]; });
 
-  /* ★2026-09-20 第45弾: 「印=モデル順位（人気順の焼き直しにしない）」
-     ・モデル順位 = ソフトマックス前の総合評価U（市場ブレンドなし）の順位。印はこれで作る。
-     ・ただしデータに緩急が無いレース（調教・時計・展開以外の材料が薄く U の開きが小さい）では
-       無根拠に人気を無視した印にならないよう、従来どおりブレンド順位（市场基準）へ自動で戻す。
-     ・馬人気順位(oRankOf)との差で「⚡市場が過小評価 / ▼市場が過大評価」旗、
-       強いデータ本数(strongN)で Win5 軸の適否(axisOk)を出す。 */
-  /* モデル順位 = U からオッズ列（市場）だけを取り除いた純度高点 */
+  /* ★2026-09-20 第50弾: 第45弾の「印=純モデル順位（人気を抜く）」を改訂 — ユーザー指摘
+     「印は人気どころにつかなくなったが、逆に信用性がなくなる。来そうなところは普通に人気でもいいし、
+       人気なくて本当に来そうなのであれば印をそこに打つ、くらいでいい」に対応。
+     ・印順位の基準 = 総合評価Uそのもの（単勝オッズ列＝人気も重みどおり内包）。
+       → データ良好な人気馬はそのまま ◎○▲ になる（人気順の完全焼き直しではないが、尊重する）。
+     ・純モデル順位(markArr=Uからオッズ列を抜いた点)は「旗」と「根拠ある上振れ」だけに使う:
+       - 人気薄(mRank≤3)で、人気との差3位以上、かつ強いデータ2項目以上 → 印順位を +0.16 の上振れで押し上げ
+         （＝「本当に来そう」のときだけ人気薄の印が上がる）
+       - 人気馬(oRank≤4)で、モデル評価が3位以上下、かつ（弱データ2項目以上／強いデータが無く1〜2番人気）→ -0.08 の穏やかな降格
+     ・材料に緩急が無いレース（Uの開きが小さい/ファクター無）は従来どおり市場基準順位へフォールバック。
+     ・⚡/▼旗と🎯軸適(axisOk)は据え置き。 */
   var wOddsFrac = (w.odds || 0) / sumW;
+  /* 純モデル点（オッズ列を抜いた評価）— 印の順位そのものには使わず、旗・上振れ判定に使う（第50弾） */
   var markArr = U.map(function(u, i){ return u - wOddsFrac * colO[i]; });
   var mOrder = hs.map(function(h,i){ return i; }).sort(function(a,b){ return markArr[b]-markArr[a]; });
   var mRankOf = {}; mOrder.forEach(function(ix, r){ mRankOf[ix] = r + 1; });
@@ -4002,7 +4007,26 @@ function analyzeRace(){
   });
   var uMinU = Math.min.apply(null, markArr), uMaxU = Math.max.apply(null, markArr);
   var modelFirst = (uMaxU - uMinU) >= 0.045 && facN >= 1;
-  var markOrder = modelFirst ? mOrder : order;
+  /* ★第50弾: 印順位＝U（人気込み）基準。強いデータで支えられた人気薄だけ上振れ、根拠の無い過大人気だけ降格 */
+  function facStatOf(i){
+    var st = 0, wk = 0;
+    facCols.forEach(function(c){ if (!c) return; var x = c[i]; if (x == null) return; if (x >= 0.62) st++; else if (x <= 0.38) wk++; });
+    return { strong: st, weak: wk };
+  }
+  var markScore = null;
+  if (modelFirst){
+    markScore = U.slice();
+    hs.forEach(function(h, i){
+      var mRk = mRankOf[i] || 0, oRk = oRankOf[i] || 0;
+      if (!oRk || !mRk) return;
+      var fs = facStatOf(i);
+      if (mRk <= 3 && (oRk - mRk) >= 3 && fs.strong >= 2) markScore[i] += 0.16;
+      else if (oRk <= 4 && (mRk - oRk) >= 3 && (fs.weak >= 2 || (oRk <= 2 && fs.strong === 0))) markScore[i] -= 0.08;
+    });
+  }
+  var markOrder = modelFirst
+    ? hs.map(function(h, i){ return i; }).sort(function(a1, b1){ return (markScore[b1] - markScore[a1]) || (U[b1] - U[a1]) || ((oRankOf[a1] || 99) - (oRankOf[b1] || 99)); })
+    : order;
 
   // オッズ比較(妙味)
   function mine(h, p){ var o = num(h.odds); return (o && o>1) ? o * p : null; }
@@ -4065,9 +4089,9 @@ function analyzeRace(){
       if (pace.score > 0.65 && (sc==='K'||sc==='C')) t.push('ハイペースで' + styleLabel(h.style) + '有利');
     }
     if (r.mineFlag && o != null) t.push('妙味' + (+r.mine.toFixed(2)));
-    if (r.axisOk) t.push('🎯軸適：モデル評価' + r.modelRank + '位・強いデータ' + r.strongN + '項目');
-    if (r.gapFlag === '⚡') t.push('⚡モデル' + r.modelRank + '位≧人気' + r.mktRank + '位（市場過小評価）');
-    if (r.gapFlag === '▼') t.push('▼モデル' + r.modelRank + '位＜人気' + r.mktRank + '位（過大人気）');
+    if (r.axisOk) t.push('🎯軸適：データ評価' + r.modelRank + '位・強いデータ' + r.strongN + '項目');
+    if (r.gapFlag === '⚡') t.push('⚡データ評価' + r.modelRank + '位が人気' + r.mktRank + '位を大幅上回る（市場過小評価・根拠あり）');
+    if (r.gapFlag === '▼') t.push('▼データ評価' + r.modelRank + '位は人気' + r.mktRank + '位を下回る（過大人気の懸念）');
     r.comment = t.join(' / ') || '—';
     r.mineStr = r.mine != null ? (+r.mine.toFixed(2)).toFixed(2) : '—';
   });
@@ -4080,7 +4104,7 @@ function analyzeRace(){
   res.facN = facN;
   res.ok = true;
   res.note = '';
-  if (!modelFirst) res.note += '（印：モデル材料のばらつきが小さいため市場基準の順位で付与）';
+  if (!modelFirst) res.note += '（印：データ材料のばらつきが小さいため市場基準（人気込み）の順位で付与）';
   if (!hs.some(function(h){ return num(h.odds) != null; })) res.note = '単勝オッズが未入力のため、人気要素は使われていません。';
   if (!hs.some(function(h){ return h.style; })) res.note += ' 脚質が未入力のため展開適性は全馬均等扱いです。';
   if (!timeUsable && hs.some(function(h){ return h.time; })) res.note += ' 距離が未入力のため持ちタイム比較をスキップしました。';
@@ -4912,7 +4936,7 @@ function renderTables(res){
     if (res.selfLearnNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + esc(res.selfLearnNote) + '</div>');
     if (res.markSrc) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.markSrc === 'model' ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' +
       (res.markSrc === 'model'
-        ? '🎯 今走の印は<b>モデル順位</b>です（単勝オッズ・人気をブレンドせず、調教/時計/展開/馬場/学習DBの総合点で◎〜△を決定。強いデータ' + (res.facN || 0) + '項目が反映）'
+        ? '🎯 今走の印は<b>データ×人気ブレンド順位</b>です（★第50弾: 来そうな人気馬にはそのまま印／調教・時計・展開などの強いデータが2項目以上揃う人気薄だけが順位アップ。反映データ ' + (res.facN || 0) + '項目）'
         : 'ℹ️ モデル材料のばらつきが小さいため、印は市場基準（ブレンド）順位で付いています') + '</div>');
     if (res.note) parts.push('<div class="warnbox">' + esc(res.note) + '</div>');
     if (typeof hbKentaiNoteHTML === 'function'){
@@ -4936,7 +4960,7 @@ function renderTables(res){
       (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') +
       (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') + '</span>';
     html += '<tr' + (r.rank===1 ? ' class="leadcol"' : '') + '>' +
-      '<td class="vm" title="' + esc((r.markSrc === 'model' ? '印=モデル順位（人気ブレンドなし）' : '印=市場基準順位（データが薄いため）')) + (r.modelRank ? ' / モデル' + r.modelRank + '位・人気' + (r.mktRank || '—') + '位' : '') + (r.strongN ? '・強いデータ' + r.strongN + '項目' : '') + '"><span class="mk0 ' + (r.markCls||'') + '">' + esc(r.mark||'') + '</span>' +
+      '<td class="vm" title="' + esc((r.markSrc === 'model' ? '印=データ×人気ブレンド順位（第50弾：人気尊重・根拠ある乖離のみ）' : '印=市場基準順位（データが薄いため）')) + (r.modelRank ? ' / モデル' + r.modelRank + '位・人気' + (r.mktRank || '—') + '位' : '') + (r.strongN ? '・強いデータ' + r.strongN + '項目' : '') + '"><span class="mk0 ' + (r.markCls||'') + '">' + esc(r.mark||'') + '</span>' +
         (r.axisOk ? '<span style="display:block;font-size:.6rem;font-weight:800;color:#0d6a3d">🎯軸</span>' : '') +
         (r.gapFlag === '⚡' ? '<span style="display:block;font-size:.62rem;font-weight:800;color:#b35a00">⚡' + r.mktRank + '人気</span>' : (r.gapFlag === '▼' ? '<span style="display:block;font-size:.62rem;font-weight:800;color:#666">▼人気' + (r.mktRank || '?') + '</span>' : '')) + '</td>' +
       '<td class="vm">' + r.rank + '</td>' +
