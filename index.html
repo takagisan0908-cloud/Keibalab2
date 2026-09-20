@@ -2122,6 +2122,15 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <button type="button" class="btn ghost" id="btnHbUrlClear" title="入力欄のURL（リンク）を消します">🗑 入力リンクを消す</button>
         <button type="button" class="btn primary" id="btnHbNewsOpen" title="貼り付けた記事ページを取得し、「N着＋馬名（騎手）コメント」を抽出してプレビューします">📄 この記事から馬コメントを抽出</button>
       </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;border-top:1px dashed var(--line2);padding-top:8px">
+        <span class="small" style="font-weight:700">🔎 ニュース索引から自動検出:</span>
+        <input id="hbNewsIdxUrl" value="https://dir.netkeiba.com/keibamatome/topics/postracecomment.html" style="flex:1;min-width:300px"
+          title="netkeiba競馬まとめの「レース後コメント」トピック（一覧）ページ。空欄ならこの既定URLを使います">
+        <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="ON: 検出した記事を順に取得し、プレビュー→割当→「選択した馬に登録」まで自動で進めます。OFF: プレビュー表示で止めます"><input type="checkbox" id="hbIdxAuto" checked>取込後そのまま自動登録</label>
+        <button type="button" class="btn primary" id="btnHbIdxScan" title="索引ページを取得し、「【〇〇レース後コメント】」をレース名ごとに検出。現在のレース（場+R・レース名）と一致する記事を自動で取り込みます">🔎 索引からレース名を検出して取込</button>
+      </div>
+      <div class="small muted" style="margin-top:2px">索引ページ（netkeiba競馬まとめのトピックス一覧）から「【〇〇レース後コメント】」を<b>レース名ごとに自動検出</b>し（サイトの直近トピック約100件＝実測で約2日前頃まで）、現在のレース（場+R／レース名が一致、S⇔ステークス表記ゆれも吸収）の記事をそのまま取り込みます。一致が無ければ一覧から選んで取り込めます。中継（api/race.js 等）経由で取得します。</div>
+      <div class="small muted" style="margin-top:4px" id="hbIdxOut"></div>
       <div class="small muted" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
         <label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer">
           <input type="checkbox" id="arNetChk" checked style="margin-top:2px">
@@ -12171,6 +12180,174 @@ function hbFetchFirst(urls){
     })();
   });
 }
+
+/* =========================================================
+   ★2026-09-21 第52弾: netkeiba競馬まとめの「レース後コメント」索引ページから
+   レース名ごとに記事を自動検出 → 現在のレース（場+R／レース名一致）の記事を
+   自動で取り込み、従来フロー（記事取得→レース名検出→割当→登録）へ繋ぐ。
+   索引例: https://dir.netkeiba.com/keibamatome/topics/postracecomment.html
+   ========================================================= */
+var HB_IDX_DEFAULT = 'https://dir.netkeiba.com/keibamatome/topics/postracecomment.html';
+function hbIdxNormRace(n){
+  var s = String(n == null ? '' : n);
+  s = s.replace(/第\d+回/g, '').replace(/[（(][^()（）]*[)）]/g, '');
+  s = s.replace(/\s+/g, '').replace(/[・・＿_]/g, '').replace(/[－—–‐‑-]/g, '');
+  s = s.replace(/ステークス/g, 'S').replace(/カップ/g, 'C');
+  return s.toUpperCase();
+}
+function hbIdxCurRace(){
+  var rc = (typeof state !== 'undefined' && state && state.race) ? state.race : {};
+  var raw = String(rc.name || '') + ' ' + String(rc.place || '') + ' ' + String(rc.rnum || '');
+  var vm = raw.match(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)[ 　]*(\d{1,2})R/);
+  var m2 = String(rc.name || '').match(/\d{1,2}R[ 　]*(.+)$/);
+  var nm = (m2 ? m2[1] : String(rc.name || '')).replace(/^\d{4}年\d{1,2}月\d{1,2}日\s*/, '');
+  return { venue: vm ? vm[1] : '', rnum: vm ? vm[2] : '', name: hbIdxNormRace(nm), label: (vm ? vm[1] + vm[2] + 'R ' : '') + nm };
+}
+/* JSONP/ラップ文字列 → 中のHTMLを取り出す（api_get_sort.html は ("...") 形式で返る） */
+function hbIdxUnjson(txt){
+  var t = String(txt || '').trim();
+  var m = t.match(/^[\w$]*\(([\s\S]*)\)\s*;?\s*$/);
+  if (m) t = m[1];
+  try { var v = JSON.parse(t); if (typeof v === 'string') return v; } catch(e){}
+  return t;
+}
+/* 索引ページがJS描画だけで本文が無い場合のフォールバック：netkeiba 側のトピックスAPI（JSONP）を叩く
+   （dir.netkeiba.com/keibamatome/topics/*.html の一覧は実質このAPIの中身と同じ）
+   limit=100 は実測で1リクエストで通る（30件の上位互換／レース後コメントが約2日前分まで増える） */
+function hbIdxApiUrl(pageUrl){
+  return 'https://dir.netkeiba.com/sort/api_get_sort.html?input=UTF-8&output=jsonp' +
+    '&template=6&first_view=100&limit=100&page=1&contents=&keyword=&photo_flg=1&type=l&rf=kmatome';
+}
+/* 索引HTML → 「【〇〇レース後コメント】」記事リスト */
+function hbIdxParse(html){
+  var raw = hbIdxUnjson(String(html || ''));
+  var out = [], seen = {};
+  var re = /<a\b[^>]*href="((?:https?:)?\/\/[^"]*news[^"]*news_view[^"]*)"[^>]*>([\s\S]{0,4200}?)<\/a>/gi;
+  var m;
+  while ((m = re.exec(raw))){
+    var url = m[1].replace(/&amp;/g, '&');
+    if (/^\/\//.test(url)) url = 'https:' + url;
+    var noM = url.match(/[?&]no=(\d+)/);
+    if (!noM) continue;
+    var tt = (m[0].match(/title="([^"]+)"/) || [])[1] || '';
+    var hay = hbText(tt + ' ' + m[2]);
+    if (hay.indexOf('レース後コメント') < 0) continue;
+    var rm0 = hay.match(/【([^】]*?)レース後コメント】/);
+    if (!rm0) continue;
+    var key = noM[1];
+    if (seen[key]) continue;
+    seen[key] = 1;
+    var vr = hay.match(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)\s*(\d{1,2})R/);
+    var ago = (hay.match(/(\d+\s*分前|\d+\s*時間前|\d+\s*日前)/) || [])[1] || '';
+    out.push({ no: key, url: url, rname: rm0[1].trim(), norm: hbIdxNormRace(rm0[1]),
+               venue: vr ? vr[1] : '', rnum: vr ? vr[2] : '', ago: ago, matched: false });
+  }
+  return out;
+}
+function hbIdxMark(list, cur){
+  /* レース名一致を優先する（索引は複数日を横跨するため、場+Rだけだと別日の同R番号に誤爆する）
+     レース名が1本も一致しないときだけ、場+R一致を補助候補として使う */
+  var nameHits = [], venueHits = [];
+  list.forEach(function(it){
+    it.matched = false;
+    var nameOk = !!(it.norm && cur.name && (it.norm === cur.name || cur.name.indexOf(it.norm) === 0 || it.norm.indexOf(cur.name) === 0));
+    var vrOk = !!(cur.venue && it.venue === cur.venue && cur.rnum && String(it.rnum) === String(cur.rnum));
+    if (nameOk) nameHits.push(it);
+    else if (vrOk) venueHits.push(it);
+  });
+  var pick = nameHits.length ? nameHits : venueHits;
+  pick.forEach(function(it){ it.matched = true; });
+  return pick;
+}
+/* 1本ぶん：記事URLを従来の取り込みフローへ流す（auto=true ならプレビュー→割当→登録まで自動） */
+function hbIdxOne(it, auto){
+  var inp = $('hbNewsUrl');
+  if (inp) inp.value = it.url;
+  return Promise.resolve().then(function(){ return hbOpenNewsArticle(); }).then(function(){
+    if (!auto) return null;
+    try {
+      if (hbPreviewState && hbPreviewState.entries && hbPreviewState.entries.length){
+        hbUsePreview();
+        hbSaveAssign();
+      }
+    } catch(e){}
+    return null;
+  });
+}
+function hbIdxRun(){
+  var el = $('hbIdxOut');
+  function say(t, err){ if (el) el.innerHTML = '<span' + (err ? ' style="color:#c33"' : '') + '>' + t + '</span>'; }
+  var inp = $('hbNewsIdxUrl');
+  var url = (inp ? String(inp.value || '').trim() : '') || HB_IDX_DEFAULT;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  var auto = !!($('hbIdxAuto') && $('hbIdxAuto').checked);
+  var cur = hbIdxCurRace();
+  say('📡 索引ページを取得中…（' + esc(url) + '）');
+  hbFetchFirst([url]).then(function(r0){
+    var list = hbIdxParse(r0.html);
+    if (!list.length && /netkeiba/i.test(url)){
+      /* ページ本体に記事リンクが無い（JS描画）→ トピックスAPIへフォールバック */
+      return hbFetchFirst([hbIdxApiUrl(url)]).then(function(r1){ return hbIdxParse(r1.html); });
+    }
+    return list;
+  }).then(function(list){
+    if (!list.length){
+      say('⚠ 索引ページから「…レース後コメント」記事を検出できませんでした（netkeiba側のレイアウト変更の可能性）。' +
+          '従来どおり記事URLの直接貼り付けは使えます。', 1);
+      return;
+    }
+    var pick = hbIdxMark(list, cur);
+    var h = '<b>🏁 索引から ' + list.length + ' 本のレース後コメントを検出</b>　現在のレース「' + esc(cur.label || '（未設定）') + '」と一致: <b>' + pick.length + ' 本</b>' +
+      '<div style="margin-top:3px;max-height:180px;overflow:auto;border:1px dashed var(--line2);border-radius:8px;padding:4px 8px;background:var(--card)">' +
+      list.map(function(it, i){
+        return '<label style="display:block;font-size:.78rem;margin:2px 0;cursor:pointer">' +
+          '<input type="checkbox" class="hbIdxChk" data-i="' + i + '"' + (it.matched ? ' checked' : '') + '> ' +
+          (it.venue ? '<b>' + esc(it.venue + it.rnum + 'R') + '</b> ' : '') + esc(it.rname) +
+          (it.ago ? ' <span class="muted">（' + esc(it.ago) + '）</span>' : '') +
+          (it.matched ? ' <b style="color:var(--ok-ink)">✓一致</b>' : '') + '</label>';
+      }).join('') + '</div>' +
+      '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+      '<button type="button" class="btn primary" id="btnHbIdxGo" style="font-size:.78rem;padding:3px 12px">📥 チェック済みを取り込む' + (auto ? '（自動登録）' : '（プレビュー）') + '</button>' +
+      '<button type="button" class="btn ghost" id="btnHbIdxAll" style="font-size:.74rem;padding:2px 8px">全選択</button>' +
+      '<button type="button" class="btn ghost" id="btnHbIdxHit" style="font-size:.74rem;padding:2px 8px">一致のみ</button>' +
+      '<span class="small muted">チェックを外せばそのレースは取り込みません。</span></div>';
+    el.innerHTML = h;
+    function setAll(on){
+      var cks = document.querySelectorAll('.hbIdxChk');
+      for (var i = 0; i < cks.length; i++){
+        var ix = parseInt(cks[i].getAttribute('data-i'), 10);
+        cks[i].checked = on ? true : !!(list[ix] && list[ix].matched);
+      }
+    }
+    var bA = $('btnHbIdxAll'); if (bA) bA.addEventListener('click', function(){ setAll(true); });
+    var bH = $('btnHbIdxHit'); if (bH) bH.addEventListener('click', function(){ setAll(false); });
+    var go = $('btnHbIdxGo');
+    if (go) go.addEventListener('click', function(){
+      var cks = document.querySelectorAll('.hbIdxChk');
+      var picks = [];
+      for (var i = 0; i < cks.length; i++){
+        var ix = parseInt(cks[i].getAttribute('data-i'), 10);
+        if (cks[i].checked && list[ix]) picks.push(list[ix]);
+      }
+      if (!picks.length){ say('⚠ レースが選ばれていません（一致が無い場合は「全選択」から選べます）。', 1); return; }
+      var n = 0;
+      var q = Promise.resolve();
+      picks.forEach(function(it){
+        q = q.then(function(){
+          n++;
+          say('📥 (' + n + ' / ' + picks.length + ')「' + esc(it.rname) + '」の記事を取得中…');
+          return hbIdxOne(it, auto).catch(function(){ return null; });
+        });
+      });
+      q.then(function(){
+        say('✅ 索引取込完了（' + picks.length + ' 本）' + (auto ? '。該当馬の馬ノートへ「📝短評」を登録しました（割当が見つからなかった馬はスキップ）。' : '。プレビューを確認して「この内容を割当表へ入れる」→「選択した馬に登録」を押してください。'));
+      });
+    });
+  }).catch(function(e){
+    say('⚠ 索引の取得に失敗: ' + esc(String((e && e.message) || e)) +
+      '<br><span class="small">中継（api/race.js 等）が必要なページです。ローカルで開いている場合は記事URLの直接貼り付けをご利用ください。</span>', 1);
+  });
+}
 /* レース後コメント記事 → 各馬エントリ(馬名リンク無し/SPにも対応) */
 function hbParseCommentArticle(html){
   var raw = String(html || '');
@@ -12735,6 +12912,7 @@ function initHorseBook(){
     });
   })();
   on('btnHbNewsUse', 'click', hbUsePreview);
+  on('btnHbIdxScan', 'click', function(){ hbIdxRun(); });
   on('btnHbNewsClosePrev', 'click', function(){ var b=$('hbNewsPreview'); if (b) b.classList.add('hid'); });
   // 「📋 貼り付け」: クリップボードのURLを記事URL欄へ
   on('btnHbUrlPaste', 'click', function(){
