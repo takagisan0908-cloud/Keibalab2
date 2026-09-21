@@ -960,6 +960,10 @@ nav.tabs .tab:focus-visible{outline:2px solid var(--green2);outline-offset:2px}
   table{font-size:.87rem}
   th,td{padding:7px 6px}
   thead th{position:sticky;top:calc(var(--hd-h) + var(--nav-h));z-index:3;box-shadow:0 1px 0 var(--line2)}
+  /* ★第62弾: .tblwrapはoverflow-x:autoのためstickyの基準がその中のスクロールポートになる。
+     外側と同じ --hd-h/--nav-h オフセットを掛けるとヘッダが表の途中に浮き、行が上へ漏れる
+     （②のAI印と総合評価が「壊れて」見えた実体）。ラップ内は必ず top:0 に座らせる。 */
+  .tblwrap thead th{top:0}
   .small{font-size:.86rem}
 }
 /* ヘッダー高さに応じてJSが --nav-h も更新（計測値が入る） */
@@ -3101,7 +3105,7 @@ var LS_KEY = 'keiba-lab-v1';
 function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:0, baba:4, yoso:5,
   abl:6,  /* ★2026-09-12 第17弾・提案3: 学習DB履歴の総合能力(過去戦の3着内率・上り順位・同距離・騎手) */
   waku:3, jockey:2, fieldLv:2,  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */
-  pos:5  /* ★第60弾: 位置係数（netkeiba4角実位置×枠優劣×同型重複／学習DBコース統計フォールバック）。出馬表HTML・学習DBどちら也无効なときは自動で使われない */ }; }
+  pos:3  /* ★第60弾→61弾で既定5→3・片側ボーナスに再調整（位置は加点中心。人気を追い越しすぎない））。出馬表HTML・学習DBどちら也无効なときは自動で使われない */ }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'' };
 }
@@ -4529,9 +4533,14 @@ function posNkCols(hs, nd){
   var grp = {};
   items.forEach(function(x){ if (x && x.band >= 0 && x.lane >= 0){ var k = x.band + '-' + x.lane; (grp[k] || (grp[k] = [])).push(x); } });
   Object.keys(grp).forEach(function(k){ var a = grp[k]; if (a.length >= 3) a.forEach(function(x){ x.v -= 0.05 * (a.length - 2); }); });
-  var any = false; items.forEach(function(x){ if (x) any = true; });
-  if (!any) return null;
-  return { cols: normCol(items.map(function(x){ return x ? x.v : null; }), false, 0.5),
+  var nMatch = 0; items.forEach(function(x){ if (x) nMatch++; });
+  /* ★第61弾①: 入力の出走頭数の6割以上が位置マップと照合できないときは「別レース/入力不足」
+     の証拠。係数を使わず中立のままにする（はずれ混入で印が壊れるのを防ぐ） */
+  if (!nMatch || nMatch < Math.ceil(hs.length * 0.6)) return null;
+  var colsP = normCol(items.map(function(x){ return x ? x.v : null; }), false, 0.5);
+  /* ★第61弾②: 片側ボーナス（0.40〜0.75）。良い位置は加点、悪い位置は減点せず0.40止まり。
+     0.3〜1.0満幅だった第60弾は、僅差の組み合わせで印の組替えを起こしすぎて回収率を毀損した */
+  return { cols: colsP.map(function(c){ return 0.5 + (c - 0.5) * 0.5; }),
            detail: items.map(function(x){ return x ? { band: x.band, lane: x.lane, v: Math.round(x.v * 100) / 100 } : null; }) };
 }
 function posLearnBands(){
@@ -4572,10 +4581,10 @@ function posLearnBands(){
     var B = null;
     if (wantSurf){ B = buckets[wantSurf] || null; }
     else {
-      var ks = Object.keys(buckets).filter(function(s){ return buckets[s].n >= 10; });
+      var ks = Object.keys(buckets).filter(function(s){ return buckets[s].n >= 15; });
       if (ks.length === 1) B = buckets[ks[0]]; else return null;   /* 芝とダ両方溜まってる場は判定不可 → 使わない */
     }
-    if (!B || B.n < 10) return null;
+    if (!B || B.n < 15) return null;   /* ★第61弾③: 10→15R。少サンプルのノイズで印を動かさない */
     var rate = [0,1,2].map(function(b){ return B.cnt[b] >= 5 ? B.hit[b] / B.cnt[b] : null; });
     var anyR = false; rate.forEach(function(v){ if (v != null) anyR = true; });
     if (!anyR) return null;
@@ -5313,6 +5322,9 @@ function renderTables(res){
 
   var tb = $('aiTbl'); if (!tb) return;
   var html = '';
+  /* ★第61弾: 行数があるのに描画HTMLが空（=表がヘッダだけになって「壊れて」見える状態）の自己防御。
+     通常ここは通らないが、通過すると tbody が空白になり表全体が消えたように見える */
+  if (!res.rows || !res.rows.length){ $('aiTbl').innerHTML = '<tr><td colspan="13"><span class="small muted">表示する馬がありません。①で出走馬を入力/取込してください</span></td></tr>'; return; }
   res.rows.forEach(function(r){
     var h = r.h;
     var fc = frameColor(h.frame);
@@ -15539,7 +15551,8 @@ function apSnapPred(rid, res, meta, opt){
     if (mm) rec.meta = Object.assign({}, mm, rec.meta || {});
     var d8 = (rec.meta && rec.meta.date8) || '';
     var snap = {
-      at: apNow(), d8: d8, engine: 'v18',
+      at: apNow(), d8: d8, engine: 'v19',   /* v19=第61弾: 位置係数(片側ボーナス)込みのエンジン。事前予想がどの版で作られたか判別できる */
+      posMode: (res && res.posMode) || '', posW: (typeof state !== 'undefined' && state.weights && state.weights.pos) || 0,
       synthetic: isBt, src: (isBt ? 'backtest' : 'live'),
       firstAt: (rec[PK] && rec[PK].firstAt) || apNow(),
       n: res.rows.length,
@@ -16614,7 +16627,7 @@ function apModelMarksHTML(){
         (on ? ' <span style="color:var(--ok-ink);font-size:.7rem">◀ AI印に反映中</span>' : '') + '</td>' + cell + '</tr>');
     });
     return '<div style="overflow-x:auto"><table class="lr-tbl mmtbl"><thead><tr><th style="text-align:left">モデル</th><th>◎</th><th>○</th><th>▲</th><th>☆</th><th>△</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
-      '<div class="small muted" style="margin-top:2px">この表は「AI印と総合評価」表とは別系統の「3モデル」比較です。総合評価表はオッズ(人気)を軸に、調教・持ちタイム・展開適性・バ場・あなたの印・出遅れ率を加えて本命印を算出します（馬名は長いと省略表示・マウスで全名表示）。</div>';
+      '<div class="small muted" style="margin-top:2px">この表は「AI印と総合評価」表とは別系統の「3モデル」比較です。総合評価表はオッズ(人気)を軸に、調教・持ちタイム・展開適性・バ場・🐎位置係数（第61弾〜・netkeiba4角実位置/学習DBコース統計）・出遅れ率を加えて本命印を算出します（あなたの印は計算に入れません。馬名は長いと省略表示・マウスで全名表示）。</div>';
   } catch(e){ return ''; }
 }
 function apConceptPreview(){
