@@ -904,11 +904,230 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
 .ovcand{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:6px}
 .ovcbtn{display:block;width:100%;padding:10px 12px;line-height:1.5;white-space:normal;height:auto}
 .ovcbtn:hover{border-color:var(--g3);background:#f2fbf5}
+/* =========================================================
+   ★第54弾: UIスキン（デザインのみ・挙動不変）— スマホ中心
+   ・タブバーがヘッダーに隠れていた不具合を解消（--hd-h はJSで計測）
+   ・タブは横スクロール＋スナップ、スマホでは括弧ラベルを短縮
+   ・タッチ目標44px級・入力欄は16pxでiOS自動ズーム防止
+   ・表ヘッダー粘着・カード見出しの統一・折りたたみ欄(.kfold)
+   ========================================================= */
+:root{--hd-h:0px;--nav-h:52px}
+nav.tabs{
+  top:var(--hd-h);gap:4px;padding:6px 10px 0;
+  max-width:100%;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity;
+  box-shadow:0 1px 0 var(--line2),0 6px 14px -10px rgba(20,40,24,.18);
+  backdrop-filter:saturate(1.15) blur(6px);
+}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs .tab{
+  flex:0 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;
+  padding:10px 14px;min-height:44px;font-size:.92rem;border-radius:12px 12px 0 0;
+}
+nav.tabs .tab.active{border-bottom:3px solid var(--green2)}
+nav.tabs .tab:focus-visible{outline:2px solid var(--green2);outline-offset:2px}
+.tsub{}
+@media (max-width:880px){ .tsub{display:none} }
+/* カード見出しの統一 */
+.card>h2{font-size:1.06rem;letter-spacing:.01em}
+.card>h3{font-size:.98rem}
+/* 折りたたみ欄（④索引など長めの操作欄） */
+.kfold{margin-top:8px;border:1px dashed var(--line2);border-radius:10px;background:var(--card2);padding:0 10px}
+.kfold>summary{cursor:pointer;font-weight:700;font-size:.86rem;color:var(--ok-ink);min-height:40px;display:flex;align-items:center;list-style:none}
+.kfold>summary::-webkit-details-marker{display:none}
+.kfold>summary::before{content:"▸";margin-right:6px;transition:transform .15s}
+.kfold[open]>summary::before{transform:rotate(90deg)}
+.kfold>summary:hover{color:var(--green2)}
+.kfold[open]{padding-bottom:10px}
+.kfold>div:first-of-type{border-top:none !important}
+/* スマホ最適化 */
+@media (pointer:coarse),(max-width:880px){
+  body{font-size:15.5px}
+  header.topbar{padding:8px 12px;gap:8px}
+  header.topbar .hd .btn{min-height:36px;padding:6px 11px;font-size:.82rem}
+  .savest{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:.68rem;line-height:1.25}
+  .b1{font-size:1.08rem}
+  .b2{display:none}
+  nav.tabs .tab{padding:11px 12px}
+  main{padding:10px 10px calc(46px + env(safe-area-inset-bottom))}
+  .card{padding:13px 12px;border-radius:12px}
+  .btn{min-height:44px;padding:10px 16px;font-size:.95rem}
+  .btn.ghost,.btn.dashed{min-height:40px}
+  select,input:not([type="checkbox"]):not([type="radio"]),textarea{min-height:44px;font-size:16px;padding:9px 12px}
+  textarea{font-size:14px;min-height:64px}
+  input[type="checkbox"],input[type="radio"]{width:20px;height:20px;accent-color:var(--green)}
+  label{font-size:.9rem;line-height:1.75}
+  table{font-size:.87rem}
+  th,td{padding:7px 6px}
+  thead th{position:sticky;top:calc(var(--hd-h) + var(--nav-h));z-index:3;box-shadow:0 1px 0 var(--line2)}
+  .small{font-size:.86rem}
+}
+/* ヘッダー高さに応じてJSが --nav-h も更新（計測値が入る） */
+/* =========================================================
+   ★第55弾: netkeiba風スキン（実測palette #dc2b05/#fccc37/#edece7/#d2d1cb/#333）
+   デザインのみ。ID・結線・機能・⑤書出CSSは不変。第54弾の利便性（44px・粘着・折り畳み）は維持。
+   ========================================================= */
+html[data-theme="light"]{
+  --bg:#f2f1ec; --bg-top:#faf8f4;
+  --card:#ffffff; --card2:#faf8f4; --tint:#f4f2ea; --tint2:#edece7;
+  --ink:#333333; --mut:#666666;
+  --line:#dedcd4; --line2:#c9c7bd;
+  --green:#dc2b05; --green2:#e36a5c; --green3:#fdeee9;
+  --ok-ink:#0a7a3f; --warn-ink:#8a5a1a; --err-ink:#c0392b; --info-ink:#1a4f8f; --acc-ink:#6d45b8;
+  --gold:#c8860a; --goldbg:#fdf3d7;
+  --topbar:#ffffff; --topbar-ink:#333333;
+  --hd-btn-bg:#f1efe9; --hd-btn-bd:#c9c7bd; --hd-btn-hover:#e8e5dc;
+  --shadow:none;
+  --row-alt:#faf9f5; --row-hover:#fdf1ec; --thead:#edece7;
+}
+/* ヘッダー: 白地に赤オレンジロゴ帯＋黄色ライン（netkeibaの看板感） */
+header.topbar{border-bottom:1px solid #dedcd4;box-shadow:0 2px 0 #fccc37}
+header.topbar .brand .logo{background:#dc2b05;box-shadow:none;border-radius:8px}
+header.topbar .b1{color:#333}
+header.topbar .savest{color:#666}
+header.topbar .nbtn,header.topbar .hd .btn{color:#333;border:1px solid #c9c7bd}
+header.topbar .nbtn:hover,header.topbar .hd .btn:hover{background:#e8e5dc;border-color:#b9b7ad}
+/* タブ: 白背景・べた足・アクティブは赤橙下線（globalnavi風） */
+nav.tabs{background:#fff;border-bottom:1px solid #dedcd4;box-shadow:none;padding:2px 10px 0}
+nav.tabs .tab{border-radius:6px 6px 0 0;color:#444;font-weight:700;padding:11px 14px;border-bottom:4px solid transparent}
+nav.tabs .tab:hover{color:#dc2b05;background:#faf8f4}
+nav.tabs .tab.active{color:#dc2b05;background:#fff;border-color:#dedcd4 #dedcd4 transparent;box-shadow:inset 0 2px 0 #dc2b05;border-bottom:4px solid #dc2b05}
+html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#dc2b05;border-bottom:4px solid #dc2b05;box-shadow:inset 0 2px 0 #dc2b05}
+/* ボタン: 角丸3px・グレー基調、primaryはnetkeibaCTAの赤橙 */
+.btn{border-radius:3px;background:#f1efe9;color:#333;border:1px solid #c9c7bd;font-weight:700}
+.btn:hover{background:#e8e5dc;border-color:#b9b7ad}
+.btn.primary{background:#dc2b05;border-color:#b3220a;color:#fff}
+.btn.primary:hover{background:#c22605;border-color:#9c1e08}
+.btn.ghost{background:#fff;color:#3a3a3a;border-color:#c9c7bd}
+.btn.ghost:hover{background:#faf8f4}
+.btn.dashed{background:#faf8f4;color:#666;border-color:#c9c7bd}
+/* 入力: 角3px、フォーカスで赤橙 */
+select,input,textarea{border-radius:3px;border-color:#c9c7bd;background:#fff}
+select:focus,input:focus,textarea:focus{border-color:#dc2b05;box-shadow:0 0 0 2px rgba(220,43,5,.14)}
+/* カード: 角を落とし細枠に（影なし） */
+html[data-theme="light"] .card{border:1px solid #dedcd4;border-radius:4px;box-shadow:none}
+.card>h2{border-left:4px solid #dc2b05;padding-left:9px;color:#2f2f2f;font-weight:800}
+html[data-theme="light"] .hm-tile{border:1px solid #dedcd4;border-radius:4px;box-shadow:none;background:#fff}
+html[data-theme="light"] .hm-tile:hover{border-color:#dc2b05}
+/* 表: 方眼・グレーベージュのヘッダー（netkeibaのレース表風） */
+table{border-collapse:collapse;border:1px solid #dedcd4}
+th,td{border:1px solid #e6e4dc}
+thead th{background:#edece7;color:#333;border-bottom:2px solid #c9c7bd}
+tbody tr:hover td{background:#fdf1ec}
+/* 詳細(折り畳み)・チップ類を角に寄せる */
+.kfold{border-radius:4px;background:#faf8f4;border-color:#dedcd4}
+.kfold>summary{color:#333;font-weight:800}
+.kfold>summary::before{color:#dc2b05}
+.chip{border-radius:3px}
+body{background:linear-gradient(180deg,#faf8f4 0,#f2f1ec 420px) no-repeat,#f2f1ec}
+/* トップページhero: 旧緑テーマの黒背景カードを netkeiba 風お白紙へ（第55弾） */
+.page-top-hero{
+  background:
+    radial-gradient(560px 200px at 90% -14%, rgba(252,204,55,.22), transparent 62%),
+    #ffffff;
+  border:1px solid #dedcd4;border-top:5px solid #dc2b05;border-radius:8px;
+  box-shadow:0 1px 0 #efece4;
+}
+html[data-theme="light"] .page-top-hero{color:#333}
+html[data-theme="light"] .page-top-hero h1{color:#2f2f2f}
+html[data-theme="light"] .page-top-hero .sub{color:#4a4a4a}
+html[data-theme="light"] .page-top-hero .quick .btn{background:#f1efe9;border:1px solid #c9c7bd;color:#333;font-weight:800}
+html[data-theme="light"] .page-top-hero .quick .btn:hover{background:#e8e5dc;border-color:#dc2b05;color:#b3220a}
+.bstamp{color:#666;background:#f6f4ee;border:1px solid #dedcd4;border-radius:3px;padding:2px 8px}
+.bstamp b{color:#333}
+/* =========================================================
+   ★第56弾: netkeiba実測準拠スキン（本家ページをheadless実描画してcomputed style・色頻度を計測し移植）
+   実測値: グロナビ #3251bc(白反転active) / 枠 #d9d8ce / ボックス地 #f4f2ec / 表ヘッダ #f1f2f3
+           本文メイリオ14px #444 / リンク #0033aa / 強調青 #3178e1 / hover赤 #e36a5c / 白地フラット
+   デザインのみ。結線・機能・⑤書出CSS・第54弾の利便性（44px/粘着/折り畳み）は維持。
+   ========================================================= */
+html[data-theme="light"]{
+  --bg:#ffffff; --bg-top:#ffffff;
+  --card:#ffffff; --card2:#f7f6f1; --tint:#f1f2f3; --tint2:#f4f2ec;
+  --ink:#444444; --mut:#777777;
+  --line:#d9d8ce; --line2:#c8c7bc;
+  --green:#3178e1; --green2:#2461c4; --green3:#eaf1fd;
+  --on-accent:#ffffff; --on-green:#ffffff;
+  --ok-ink:#0f7a3d; --warn-ink:#8a5a1a; --err-ink:#c0392b; --info-ink:#0033aa; --acc-ink:#6d45b8;
+  --gold:#c8860a; --goldbg:#fdf6df;
+  --red:#d33f31; --blue:#0033aa; --orange:#b45319;
+  --topbar:#ffffff; --topbar-ink:#444444;
+  --hd-btn-bg:#ffffff; --hd-btn-bd:#d7d8d9; --hd-btn-hover:#f6f6f6;
+  --shadow:none;
+  --row-alt:#f7f8f9; --row-hover:#f4f8ff; --thead:#f1f2f3;
+  --radius:4px; --radius-sm:3px;
+}
+html[data-theme="light"] body{
+  font-size:14px; background:#fff; color:var(--ink);
+  font-family:Meiryo,"メイリオ",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+}
+/* ヘッダー: 本家と同じ「白・細罫・左ロゴ」構成（黄色帯は廃止） */
+html[data-theme="light"] header.topbar{background:#fff;border-bottom:1px solid #d7d8d9;box-shadow:none}
+html[data-theme="light"] header.topbar .brand .logo{background:#3251bc}
+html[data-theme="light"] header.topbar .b1{color:#333;font-size:1.2rem}
+html[data-theme="light"] header.topbar .savest{color:#777}
+html[data-theme="light"] header.topbar .nbtn,
+html[data-theme="light"] header.topbar .hd .btn{background:#fff;border:1px solid #d7d8d9;color:#444;border-radius:4px;font-weight:700}
+html[data-theme="light"] header.topbar .nbtn:hover,
+html[data-theme="light"] header.topbar .hd .btn:hover{background:#f6f6f6;border-color:#c8c7bc}
+/* グローバルナビ: 青地に文字白・activeは白タブ反転（netkeibaの顔） */
+html[data-theme="light"] nav.tabs{background:#3251bc;border-bottom:none;box-shadow:none;gap:2px;padding:4px 10px 0}
+html[data-theme="light"] nav.tabs .tab{
+  background:transparent;border:none;border-radius:0;color:rgba(255,255,255,.92);
+  padding:10px 16px;font-size:.93rem;font-weight:700;
+}
+html[data-theme="light"] nav.tabs .tab:hover{background:rgba(255,255,255,.14);color:#fff}
+html[data-theme="light"] nav.tabs .tab.active{
+  background:#fff;color:#3251bc;border-radius:6px 6px 0 0;box-shadow:none;
+  border-bottom:0 solid transparent;
+}
+/* ボタン: netkeiba実測「白地細枠・角3〜4px」中心。CTAは青 */
+html[data-theme="light"] .btn{background:#f7f7f7;border:1px solid #d5d2c8;color:#444;border-radius:4px;padding:7px 14px}
+html[data-theme="light"] .btn:hover{background:#efeeea;border-color:#c8c5ba}
+html[data-theme="light"] .btn.primary{background:#3178e1;border-color:#2461c4;color:#fff;font-weight:800}
+html[data-theme="light"] .btn.primary:hover{background:#2461c4}
+html[data-theme="light"] .btn.red{background:#fff;color:#d33f31;border-color:#d8d5ca}
+html[data-theme="light"] .btn.red:hover{background:#fdf0ee;border-color:#d33f31}
+html[data-theme="light"] .btn.ghost{background:#fff;color:#444;border-color:#d5d2c8}
+html[data-theme="light"] .btn.ghost:hover{background:#f6f6f6}
+html[data-theme="light"] .btn.dashed{background:#faf9f5;color:#777;border-color:#d5d2c8}
+/* 入力: 細枠灰・フォーカス青 */
+html[data-theme="light"] select,html[data-theme="light"] input,html[data-theme="light"] textarea{
+  border-color:#d7d8d9;border-radius:3px;background:#fff;
+}
+html[data-theme="light"] select:focus,html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{
+  border-color:#3178e1;box-shadow:0 0 0 2px rgba(49,120,225,.15);
+}
+/* カード: 白箱+細枠。見出しは本家の箱ヘッダ風ベージュ帯 */
+html[data-theme="light"] .card{border:1px solid #d9d8ce;border-radius:4px}
+html[data-theme="light"] .card>h2{
+  background:#f4f2ec;color:#444;font-size:.98rem;font-weight:700;
+  border-left:none;padding:7px 10px;border-radius:4px;margin:0 0 10px;
+}
+/* 表: 方眼#d9d8ce・ヘッダ#f1f2f3 */
+html[data-theme="light"] table{border-color:#d9d8ce}
+html[data-theme="light"] th,html[data-theme="light"] td{border-color:#e3e2da}
+html[data-theme="light"] thead th{background:#f1f2f3;color:#555;border-bottom:1px solid #d9d8ce;font-weight:700}
+html[data-theme="light"] tbody tr:hover td{background:#f4f8ff}
+/* リンク: #03a（本家 computed 実測） */
+html[data-theme="light"] a{color:#0033aa}
+html[data-theme="light"] a:hover{text-decoration:underline}
+/* 折り畳みとhero */
+html[data-theme="light"] .kfold{background:#f7f6f1;border-color:#dedcd4}
+html[data-theme="light"] .kfold>summary{color:#444}
+html[data-theme="light"] .kfold>summary::before{color:#3178e1}
+html[data-theme="light"] .page-top-hero{
+  background:radial-gradient(560px 200px at 90% -14%, rgba(49,120,225,.10), transparent 62%),#fff;
+  border:1px solid #d9d8ce;border-top:3px solid #3251bc;box-shadow:none;
+}
+
+
+
 
 </style>
 
 </head><body>
-<header class="topbar">
+<header class="topbar" id="topbarHd">
   <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
   <div class="brand">
     <div class="logo">🐎</div>
@@ -941,11 +1160,11 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
 <nav class="tabs">
   <button class="tab" data-t="t-top">🏠 トップ</button>
   <button class="tab active" data-t="t-input">① データ入力</button>
-  <button class="tab" data-t="t-kentai">② 展開予想・AI印</button>
+  <button class="tab" data-t="t-kentai">② 展開予想<span class="tsub">・AI印</span></button>
   <button class="tab" data-t="t-sim">③ AI展開予測</button>
-  <button class="tab" data-t="t-horse">④ 馬ノート(短評DB)</button>
+  <button class="tab" data-t="t-horse">④ 馬ノート<span class="tsub">(短評DB)</span></button>
   <button class="tab" data-t="t-jravideo">⑤ JRA映像</button>
-  <button class="tab" data-t="t-grade">⑥ 重賞データ分析</button>
+  <button class="tab" data-t="t-grade">⑥ 重賞<span class="tsub">データ分析</span></button>
   <button class="tab" data-t="t-tenki">⑦ 天気予報</button>
   <button class="tab" data-t="t-database">🗄 データベース</button>
   <button class="tab" data-t="t-aiprop">🤖 AI提案</button>
@@ -1199,7 +1418,11 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
             <button type="button" class="btn ghost" id="btnStoreUse">💾 使用量を確認</button>
             <button type="button" class="btn ghost" id="btnStoreTrim" title="馬柱・血統・⑥分析・カレンダーなど、また取り直せるキャッシュだけを削除します">🧹 安全に空きを作る</button>
+            <button type="button" class="btn primary" id="btnMigOut" title="短評(馬ノート)・メモ・レース日・学習DB・AI印学習など、この端末の保存データを全部1ファイルに。版の差し替え後や別端末で「📥読み込み」すればそのまま戻ります">📦 まるごと保存（引っ越し用）</button>
+            <button type="button" class="btn" id="btnMigIn" title="📦保存した移行ファイルを読み込み、全データをこの端末へ復元します（既存は上書き・マージ）">📥 読み込み</button>
+            <input type="file" id="fileMig" accept="application/json,.json" hidden>
           </div>
+          <div class="small muted" style="margin-top:3px">※同じURLへのアップデートでは保存データ（短評含む）は消えません。これは<b>URL・端末・ブラウザが変わる引っ越し</b>と、更新前の安心バックアップ用です。学習DBが大きすぎる場合（1.5万件超）は自動的に省略されます（⑤年指定取込で再構築可）。</div>
           <div id="storeTbl" class="small" style="margin-top:6px;overflow-x:auto"></div>
         </div>
         <div style="margin-top:8px"><button class="btn primary" id="btnRelayDiag">🔧 中継を診断（今デプロイしたURLで確認）</button>
@@ -2122,7 +2345,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
         <button type="button" class="btn ghost" id="btnHbUrlClear" title="入力欄のURL（リンク）を消します">🗑 入力リンクを消す</button>
         <button type="button" class="btn primary" id="btnHbNewsOpen" title="貼り付けた記事ページを取得し、「N着＋馬名（騎手）コメント」を抽出してプレビューします">📄 この記事から馬コメントを抽出</button>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;border-top:1px dashed var(--line2);padding-top:8px">
+      <details class="kfold"><summary>🔎 ニュース索引から自動検出（現レースのレース後コメントを1発で取込）</summary>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px">
         <span class="small" style="font-weight:700">🔎 ニュース索引から自動検出:</span>
         <input id="hbNewsIdxUrl" value="https://dir.netkeiba.com/keibamatome/topics/postracecomment.html" style="flex:1;min-width:300px"
           title="netkeiba競馬まとめの「レース後コメント」トピック（一覧）ページ。空欄ならこの既定URLを使います">
@@ -2131,6 +2355,7 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
       </div>
       <div class="small muted" style="margin-top:2px">索引ページ（netkeiba競馬まとめのトピックス一覧）から「【〇〇レース後コメント】」を<b>レース名ごとに自動検出</b>し（サイトの直近トピック約100件＝実測で約2日前頃まで）、現在のレース（場+R／レース名が一致、S⇔ステークス表記ゆれも吸収）の記事をそのまま取り込みます。一致が無ければ一覧から選んで取り込めます。中継（api/race.js 等）経由で取得します。</div>
       <div class="small muted" style="margin-top:4px" id="hbIdxOut"></div>
+      </details>
       <div class="small muted" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
         <label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer">
           <input type="checkbox" id="arNetChk" checked style="margin-top:2px">
@@ -2875,7 +3100,8 @@ var LS_KEY = 'keiba-lab-v1';
    古い保存データに mark>0 が残っていても loadFromLS で 0 に落とします。 */
 function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:0, baba:4, yoso:5,
   abl:6,  /* ★2026-09-12 第17弾・提案3: 学習DB履歴の総合能力(過去戦の3着内率・上り順位・同距離・騎手) */
-  waku:3, jockey:2, fieldLv:2  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */ }; }
+  waku:3, jockey:2, fieldLv:2,  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */
+  pos:5  /* ★第60弾: 位置係数（netkeiba4角実位置×枠優劣×同型重複／学習DBコース統計フォールバック）。出馬表HTML・学習DBどちら也无効なときは自動で使われない */ }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'' };
 }
@@ -3934,7 +4160,23 @@ function analyzeRace(){
       }
     }
   } catch(e){ ctxN = null; wCtxN = 0; }
-  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0) + (ctxN ? wCtxN : 0)) || 1;
+  /* ★第60弾: 位置係数（netkeiba4角実位置×枠優劣×同型重複 → 無ければ学習DBのコース統計） */
+  var colPos = null, posOn = false;
+  try {
+    var posX = posNkCols(hs, posNkData());
+    if (posX){ colPos = posX.cols; res.posMode = 'netkeiba'; res.posDetail = posX.detail; }
+    else {
+      var posY = posLearnCols(hs, posLearnBands());
+      if (posY){ colPos = posY.cols; res.posMode = 'learn'; res.posLearnN = posY.n; }
+    }
+    posOn = !!colPos && (w.pos || 0) > 0;
+    res.posNote = res.posMode === 'netkeiba'
+      ? '🐎 位置係数を適用（netkeiba4コーナー実位置×枠優劣×同型重複・重み' + ((w.pos||0)) + '/10）'
+      : (res.posMode === 'learn'
+        ? '🐎 位置係数を適用（学習DB: この場・距離±200mの' + (res.posLearnN || 0) + 'Rから4角バンド→3着内率・重み' + ((w.pos||0)) + '/10）'
+        : '');
+  } catch(e){ colPos = null; posOn = false; }
+  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0) + (ctxN ? wCtxN : 0) + (posOn ? (w.pos||0) : 0)) || 1;
   var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   var U = hs.map(function(h, i){
     var score = w.odds*colO[i] + w.yobi*colY[i] + w.time*colT[i] + wK*colK[i] + (w.mark||0)*colM[i];
@@ -3946,6 +4188,7 @@ function analyzeRace(){
     if (jockeyOn) score += (w.jockey||0) * (colJ[i] != null ? colJ[i] : 0.5);
     if (fieldLvOn) score += (w.fieldLv||0) * (colF[i] != null ? colF[i] : 0.5);
     if (ctxN) score += wCtxN * (ctxN[i] != null ? ctxN[i] : 0.5);
+    if (posOn) score += (w.pos||0) * (colPos[i] != null ? colPos[i] : 0.5);   /* ★第60弾 */
     var u = score / sumW;
     if (bfA && bfA[i] > 0) u += 0.05;   // 🧬 血統ファクター(⑥でON)の僅かな加点（オカルト反映）
     // 出遅れ率も「評価点」に直接効かせる(脚質経由だけでなく総合評価自体を逓減)
@@ -4238,6 +4481,117 @@ function analyzeRace(){
 }
 
 /* 買い目・妙味のサマリ */
+/* ---------- ★第60弾: 位置係数 colPos ----------
+   netkeibaの精度の核は「4コーナー位置×枠優位×同型重複」。同じ出馬表HTML（khl_nkc）から
+   ③が解析済みの座標・ヒートマップ・BiasPattern文言を取り、②のエンジン印にも掛ける。
+   未取得なら学習DB（⑤）の同コース・同距離「4角バンド→3着内率」で代替。どちらも保存済み
+   データのみ＝通信ゼロ。オッズ重みはそのまま（市場を嫌わない）で、位置は上乗せ要因。 */
+function posNkData(){
+  try {
+    var rid = (typeof state !== 'undefined' && state && state.raceId) ? String(state.raceId) : '';
+    if (!rid) return null;
+    if (typeof AI_DEP_CACHE !== 'undefined' && AI_DEP_CACHE && AI_DEP_CACHE[rid]) return AI_DEP_CACHE[rid];
+    if (typeof nkCardGet === 'function' && typeof aiDepParse === 'function'){
+      var t = nkCardGet(rid) || '';
+      if (t && String(t).indexOf('PositionMapBlock') >= 0){
+        var d = aiDepParse(t);
+        if (d){ try { AI_DEP_CACHE[rid] = d; } catch(e){} return d; }
+      }
+    }
+  } catch(e){}
+  return null;
+}
+function posBandLane(px){
+  var left = Number(px && px.left), top = Number(px && px.top);
+  var band = isNaN(left) ? -1 : (left <= 28 ? 0 : (left <= 72 ? 1 : 2));  /* 0=前 1=差 2=追 */
+  var lane = isNaN(top) ? -1 : (top <= 12 ? 0 : (top <= 46 ? 1 : 2));      /* 0=内 1=中 2=外 */
+  return { band: band, lane: lane };
+}
+function posNkCols(hs, nd){
+  if (!nd || !nd.horses) return null;
+  var V3p = (nd.variants && nd.variants.none && nd.variants.none.C3) || {};
+  var hr = (nd.heat && nd.heat.rows) ? nd.heat.rows : null;
+  var bt3 = (nd.biasTxt && nd.biasTxt.length === 3) ? nd.biasTxt : null;
+  var pk = {}; (nd.pickup || []).forEach(function(p){ if (p && p.no != null) pk[String(p.no)] = 1; });
+  var items = hs.map(function(hh){
+    var noS = String(hh.no == null ? '' : hh.no);
+    var pos = V3p[noS] || nd.horses[noS] || null;
+    if (!pos) return null;
+    var bl = posBandLane(pos); var v = 0.5;
+    if (hr && hr[bl.band] && hr[bl.band].cells){
+      var cell = hr[bl.band].cells[bl.lane];
+      if (cell && cell.pct != null && !isNaN(cell.pct)) v = (Number(cell.pct) / 100) * 0.8;
+    }
+    if (bt3 && bl.lane >= 0) v += (bt3[bl.lane] === '有利') ? 0.12 : (bt3[bl.lane] === '不利') ? -0.12 : 0;
+    if (pk[noS]) v += 0.08;
+    return { v: v, band: bl.band, lane: bl.lane };
+  });
+  var grp = {};
+  items.forEach(function(x){ if (x && x.band >= 0 && x.lane >= 0){ var k = x.band + '-' + x.lane; (grp[k] || (grp[k] = [])).push(x); } });
+  Object.keys(grp).forEach(function(k){ var a = grp[k]; if (a.length >= 3) a.forEach(function(x){ x.v -= 0.05 * (a.length - 2); }); });
+  var any = false; items.forEach(function(x){ if (x) any = true; });
+  if (!any) return null;
+  return { cols: normCol(items.map(function(x){ return x ? x.v : null; }), false, 0.5),
+           detail: items.map(function(x){ return x ? { band: x.band, lane: x.lane, v: Math.round(x.v * 100) / 100 } : null; }) };
+}
+function posLearnBands(){
+  /* 学習DB(⑤)の同場・同距離(±200m)・同芝ダから「4角バンド→3着内率」。
+     通過順の末尾数字(無ければ3角)を頭数で三分割。10R未満・特定不能(芝ダ混在)は使わない。 */
+  try {
+    var all = (typeof diLs === 'function') ? diLs() : null;
+    var races = all && all.races; if (!races) return null;
+    var meta = readRaceMeta();
+    var nd = parseFloat(String(meta.dist || '').replace(/[^0-9.]/g, '')); if (!(nd > 0)) return null;
+    var np = normText(meta.place || '').replace(/競馬場$/, '');
+    if (!np) return null;
+    var nm = normText(meta.name || '') + normText(meta.grade || '');
+    var wantSurf = /障/.test(nm) ? '障' : (/ダ/.test(nm) ? 'ダ' : (/芝/.test(nm) ? '芝' : ''));
+    var buckets = {};
+    Object.keys(races).forEach(function(k){
+      var rec = races[k]; if (!rec || !rec.rows || !rec.meta) return;
+      var mp = normText(rec.meta.place || '').replace(/競馬場$/, '');
+      if (mp !== np) return;
+      var mds = String(rec.meta.dist || '');
+      var md = parseFloat(mds.replace(/[^0-9.]/g, '')); if (!(md > 0)) return;
+      if (Math.abs(md - nd) > 200) return;
+      var surf = /障/.test(mds) ? '障' : (/ダ/.test(mds) ? 'ダ' : '芝');
+      if (wantSurf && surf !== wantSurf) return;
+      var B = buckets[surf] || (buckets[surf] = { cnt: [0,0,0], hit: [0,0,0], n: 0 });
+      var n = rec.rows.length; if (!n) return;
+      B.n++;
+      rec.rows.forEach(function(r){
+        if (!r) return;
+        var ord = parseInt(r.order, 10); if (!(ord >= 1)) return;
+        var ps = String(r.passing || '').split(/[-–−ー,、\s]+/).filter(function(x){ return /^\d+$/.test(x); });
+        if (!ps.length) return;
+        var rank = parseInt(ps.length >= 4 ? ps[3] : ps[ps.length - 1], 10); if (!(rank >= 1)) return;
+        var b = rank <= Math.ceil(n * 0.34) ? 0 : (rank > Math.ceil(n * 0.67) ? 2 : 1);
+        B.cnt[b]++; if (ord <= 3) B.hit[b]++;
+      });
+    });
+    var B = null;
+    if (wantSurf){ B = buckets[wantSurf] || null; }
+    else {
+      var ks = Object.keys(buckets).filter(function(s){ return buckets[s].n >= 10; });
+      if (ks.length === 1) B = buckets[ks[0]]; else return null;   /* 芝とダ両方溜まってる場は判定不可 → 使わない */
+    }
+    if (!B || B.n < 10) return null;
+    var rate = [0,1,2].map(function(b){ return B.cnt[b] >= 5 ? B.hit[b] / B.cnt[b] : null; });
+    var anyR = false; rate.forEach(function(v){ if (v != null) anyR = true; });
+    if (!anyR) return null;
+    return { n: B.n, rate: rate };
+  } catch(e){ return null; }
+}
+function posLearnCols(hs, lb){
+  if (!lb || !lb.rate) return null;
+  var raw = hs.map(function(hh){
+    var c = styleClass(hh.style);
+    var b = (c === 'E' || c === 'S') ? 0 : (c === 'K' ? 1 : (c === 'C' ? 2 : -1));
+    return (b < 0 || lb.rate[b] == null) ? null : lb.rate[b];
+  });
+  var any = false; raw.forEach(function(v){ if (v != null) any = true; });
+  return any ? { cols: normCol(raw, false, 0.5), n: lb.n || 0 } : null;
+}
 function buildBets(res){
   var rows = res.rows;
   if (!rows.length) return [];
@@ -4708,6 +5062,7 @@ var WEIGHT_DEFS = [
   { k:'yobi',  label:'🏇 調教タイム',        hint:'最終追い切り等の時計' },
   { k:'time',  label:'⏱ 持ちタイム',        hint:'実力の裏付け(同距離)' },
   { k:'tenkai',label:'🧭 展開・脚質',        hint:'ペース適性・ポジション' },
+  { k:'pos',   label:'🐎 位置(4コーナー)',   hint:'★第60弾。netkeiba出馬表HTMLに埋まった4コーナー実位置（位置別複勝率ヒートマップ×枠の有利/不利×同型重複のかぶり）を優先適用。未取得のレースでは学習DBの「同場・同距離±200m・同芝ダ10R以上」で4角バンド→3着内率を自動算出して代替。どちらも保存済みデータのみ（通信ゼロ）、該当データ無しは自動で使われません' },
   { k:'baba',  label:'🏟 バ場好走率',        hint:'同開催場×同馬場(良/稍重/重/不良)での過去3着内率。馬柱データを取得すると自動で使えます' },
   { k:'yoso',  label:'🏔 洋芝・コース適性',  hint:'今回と同じコース種別(洋芝=札幌・函館/野芝=他場)・同じ距離±200mでの最速持ちタイムと最速上がり3Fを比較。洋芝開催では洋芝での持ちタイムが最重要材料。馬柱データが必要です' },
   { k:'waku',  label:'🎯 枠順(重賞のみ)',   hint:'⑥重賞データ分析で集めた【この重賞の過去10年】の歴代結果から、有利な枠順を判定して使います。頭数が違う年を混ぜても公平になるよう「その頭数での3着内期待確率」で補正し、有利度=実際の3着内数÷期待3着内数（1.00=平均）で評価します。重賞以外、または⑥の分析データが無いときは自動的に使われません（学習DBの場×距離統計は使いません）' },
@@ -4943,6 +5298,7 @@ function renderTables(res){
     if (res.fieldLvAppliedNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.fieldLvOn ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' + res.fieldLvAppliedNote + '</div>');
     if (res.yosoAppliedNote) parts.push('<div style="background:' + (res.yosoOn ? 'var(--card2)' : 'var(--card2)') + ';border:1px solid ' + (res.yosoOn ? 'var(--line2)' : 'var(--line2)') + ';border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.yosoOn ? 'var(--ok-ink)' : 'var(--warn-ink)') + ';font-weight:600">' + res.yosoAppliedNote + '</div>');
     if (res.selfLearnNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--info-ink);font-weight:600">' + esc(res.selfLearnNote) + '</div>');
+    if (res.posNote) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:var(--ok-ink);font-weight:600">' + esc(res.posNote) + '</div>');
     if (res.markSrc) parts.push('<div style="background:var(--card2);border:1px solid var(--line2);border-radius:8px;padding:5px 9px;font-size:.82rem;color:' + (res.markSrc === 'model' ? 'var(--ok-ink)' : 'var(--muted)') + ';font-weight:600">' +
       (res.markSrc === 'model'
         ? '🎯 今走の印は<b>データ×人気ブレンド順位</b>です（★第50弾: 来そうな人気馬にはそのまま印／調教・時計・展開などの強いデータが2項目以上揃う人気薄だけが順位アップ。反映データ ' + (res.facN || 0) + '項目）'
@@ -5296,6 +5652,13 @@ function aiDepParse(html){
     var mB = html.match(/<div class="DevelopBiasTxt">([\s\S]{0,400}?)<\/div>/);
     if (mB) d.biasTxt = (mB[1].match(/有利|普通|不利/g) || []).slice(0, 3);
   } catch(e){}
+  /* ★第59弾: 枠別の権威はBiasPatternの3桁数字（1=有利 2=普通 3=不利／内→中→外順）。
+     netkeiba自身もこの語をコメントで明記（"BiasPattern123 インから有利普通不利"）。
+     文言divだけ頼りにすると非会員クリア(hideTrackBias)等で欠けるため、数字があれば常に再導出する。 */
+  if (/^[123]{3}$/.test(String(d.pattern || ''))){
+    var BMAP123 = { '1': '有利', '2': '普通', '3': '不利' };
+    d.biasTxt = String(d.pattern).split('').map(function(c){ return BMAP123[c]; });
+  }
   var reH = /class="HorseIcon\s+Color0(\d)"\s+id="Horse(\d+)"\s+style="top:([-\d.]+)%;left:([-\d.]+)%">\s*<span class="Waku\s+Waku(\d)">(\d+)<\/span>\s*<span class="HorseName">([^<]*)<\/span>/g;
   var mh, nH = 0;
   while ((mh = reH.exec(html))){
@@ -5757,7 +6120,10 @@ function aiDepRender(){
   });
   var bias = '';
   if (d.biasTxt && d.biasTxt.length === 3){
-    bias = '<div class="DevelopBiasTxt">' + d.biasTxt.map(function(t, i){ return '<span class="Txt0' + (i + 1) + '">' + aiDepEsc(t) + '</span>'; }).join('') + '</div>';
+    /* ★第59弾: 3つとも class="Txt01"（本物netkeibaの実マークアップと同じ）。走路の帯は
+       .DevelopBiasTxt>span.Txt01{height:33.33%;display:flex} が1〜3行目を内枠順に自動配置するため、
+       Txt02/Txt03 の別クラスを付けると样式なしで左上に固まり「ずれ」になっていた（修正済） */
+    bias = '<div class="DevelopBiasTxt">' + d.biasTxt.map(function(t){ return '<span class="Txt01">' + aiDepEsc(t) + '</span>'; }).join('') + '</div>';
   }
   var tabs = '<ul class="PositionTab">' + [['C1', 'スタート後'], ['C2', '3コーナー'], ['C3', '4コーナー']].map(function(x, i){
     return '<li' + (AI_DEP.corner === x[0] ? ' class="Active"' : '') + '><a onclick="aiDepTab(\'' + x[0] + '\')"><span class="Btn">' + x[1] + '</span><span class="Pointer"></span></a></li>';
@@ -6864,6 +7230,7 @@ var STORE_DESC = [
   ['khl_memo_v1',    '📝 メモ', 'keep', '📌 今の作業'],
   ['khl_rnotes_v1',  '📝 レースのメモ・結果メモ', 'keep', '📌 今の作業'],
   ['khl_horsebook_v1','📔 馬ノート（手入力）', 'keep', '📌 今の作業'],
+  ['khl_hb_draft_v1','📒 馬ノートの下書き（未登録のプレビュー・割当表。登録/キャンセルで自動消去）', 'keep', '📌 今の作業'],
   ['khl_theme_v1',   '🎨 画面の色（テーマ）の設定', 'keep', '📌 今の作業'],
   ['khl_hd_v1',      '🐎 馬柱キャッシュ（過去戦績・取得し直せます）', 'safe', '♻️ また取れます'],
   ['khl_bf_v1',      '🧬 血統・血統ファクターのキャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
@@ -7516,6 +7883,132 @@ function nkAutoPickRelay(){
   }
   tryNext();
 }
+/* ===== ★第58弾: まるごとバックアップ/復元（短評・馬ノート・学習DB等、全ブラウザ保存データの一つ目移行） =====
+   背景: 保存データ(localStorage/IndexedDB)は「同じURL」への更新では消えないが、
+   URL・端末・ブラウザが変わると引き継げない。本番差し替え前に「📦まるごと保存」、
+   新版で「📥読み込み」すれば、短評(馬ノート)もレース日・学習・メモも一括で戻せる。 */
+var MIG_IDB_MAX = 15000;   /* IDB(学習DB)がこの件数超なら自動で省く（⑤年指定取込で再構築できるため） */
+function migCollectLS(){
+  var out = {}, n = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i); if (!k) continue;
+      var v = localStorage.getItem(k); if (v == null) continue;
+      out[k] = v; n++;
+    }
+  } catch(e){}
+  return { ls: out, n: n };
+}
+function migIDBCount(idb){
+  var c = 0;
+  if (!idb || idb._skip) return 0;
+  try { Object.keys(idb).forEach(function(dn){ var st = idb[dn] && idb[dn].stores; if (!st) return;
+    Object.keys(st).forEach(function(sn){ c += (st[sn] || []).length; }); }); } catch(e){}
+  return c;
+}
+function migBuild(ls, idb){
+  return { app: 'keiba-lab-migrate', ver: 1, at: new Date().toISOString(), ls: ls, idb: idb || null };
+}
+function migDumpIDB(cb){
+  var finDone = false;
+  function fin(o){ if (finDone) return; finDone = true; cb(o || {}); }
+  try {
+    if (!window.indexedDB || !indexedDB.databases){ fin({}); return; }
+    indexedDB.databases().then(function(dbs){
+      var out = {}, left = (dbs || []).length;
+      if (!left){ fin({}); return; }
+      var tmo = setTimeout(function(){ fin(out); }, 8000);
+      function dec(){ if (--left === 0){ clearTimeout(tmo); fin(out); } }
+      (dbs || []).forEach(function(d){
+        try {
+          var rq = indexedDB.open(d.name);
+          rq.onsuccess = function(){
+            var idb = rq.result;
+            var names = Array.prototype.slice.call(idb.objectStoreNames || []);
+            if (!names.length){ try { idb.close(); } catch(e0){} dec(); return; }
+            try {
+              var t = idb.transaction(names, 'readonly'), pend = names.length, od = {};
+              names.forEach(function(sn){
+                var cr; try { cr = t.objectStore(sn).getAll(); } catch(eG){ od[sn] = []; if (--pend === 0) wrap(); return; }
+                cr.onsuccess = function(){ od[sn] = cr.result || []; if (--pend === 0) wrap(); };
+                cr.onerror  = function(){ od[sn] = []; if (--pend === 0) wrap(); };
+              });
+              function wrap(){ try { idb.close(); } catch(e1){}
+                out[d.name] = { stores: od, meta: { name: d.name, version: idb.version } }; dec(); }
+            } catch(e2){ dec(); }
+          };
+          rq.onerror = rq.onblocked = function(){ dec(); };
+        } catch(e3){ dec(); }
+      });
+    }).catch(function(){ fin({}); });
+  } catch(e){ fin({}); }
+}
+function migExportRun(){
+  var el = $('storeUse');
+  function say(m){ if (el) el.innerHTML = m; }
+  say('📦 端末内の保存データをまとめています…');
+  var c = migCollectLS();
+  migDumpIDB(function(idb){
+    var n = migIDBCount(idb), note = '';
+    if (n > MIG_IDB_MAX){ idb = { _skip: 1, count: n }; note = '・学習DB(' + n + '件)は大きいので省略（⑤年指定自動取込で再構築可）'; }
+    try {
+      var txt = JSON.stringify(migBuild(c.ls, idb));
+      var blob = new Blob([txt], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      var d = new Date(), p2 = function(x){ return ('0' + x).slice(-2); };
+      a.download = 'keiba-mig-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e2){} }, 2000);
+      say('✅ まるごと保存を書き出しました（ストレージ ' + c.n + 'キー' + (n > MIG_IDB_MAX ? note : (n ? '・学習DBなどIDB ' + n + '件も同梱' : '')) + '）。<b>このファイルを新しい版の「📥読み込み」で復元できます。</b>');
+    } catch(e){ say('⚠ 書き出せません: ' + esc(String(e.message || e))); }
+  });
+}
+function migApplyFile(file, say){
+  var rd = new FileReader();
+  rd.onload = function(){
+    try {
+      var o = JSON.parse(rd.result);
+      if (!o || !o.ls || typeof o.ls !== 'object') throw new Error('移行ファイルの形式ではありません');
+      var ok = 0, ng = 0;
+      Object.keys(o.ls).forEach(function(k){ try { localStorage.setItem(k, String(o.ls[k])); ok++; } catch(e){ ng++; } });
+      var idb = o.idb;
+      var jobs = [];
+      if (idb && !idb._skip){ Object.keys(idb).forEach(function(dn){ if (idb[dn] && idb[dn].stores) jobs.push([dn, idb[dn]]); }); }
+      function finish(){
+        say('✅ 復元しました（ストレージ ' + ok + 'キー' + (ng ? '・容量不足で ' + ng + 'キースキップ' : '') + (jobs.length ? '・学習DBなど ' + jobs.length + 'DB も復元' : '') + '）。この後ページを再読込します…');
+        setTimeout(function(){ try { location.reload(); } catch(e){} }, 1600);
+      }
+      if (!jobs.length){ finish(); return; }
+      var done = 0;
+      function dec(){ if (++done === jobs.length) finish(); }
+      jobs.forEach(function(jb){
+        var dn = jb[0], ent = jb[1];
+        try {
+          var rq = ent.meta && ent.meta.version ? indexedDB.open(dn, ent.meta.version) : indexedDB.open(dn);
+          rq.onupgradeneeded = function(){ var idb2 = rq.result;
+            Object.keys(ent.stores).forEach(function(sn){ try { if (!idb2.objectStoreNames.contains(sn)) idb2.createObjectStore(sn); } catch(eC){} }); };
+          rq.onsuccess = function(){
+            var idb2 = rq.result;
+            try {
+              var names = Object.keys(ent.stores).filter(function(sn){ try { return idb2.objectStoreNames.contains(sn); } catch(eF){ return false; } });
+              if (!names.length){ try { idb2.close(); } catch(e0){} dec(); return; }
+              var t = idb2.transaction(names, 'readwrite');
+              names.forEach(function(sn){ var st = t.objectStore(sn);
+                try { st.clear(); } catch(e1){}
+                (ent.stores[sn] || []).forEach(function(r){ try { st.put(r); } catch(e2){ try { st.add(r); } catch(e3){} } }); });
+              t.oncomplete = function(){ try { idb2.close(); } catch(e4){} dec(); };
+              t.onerror = t.onabort = function(){ try { idb2.close(); } catch(e5){} dec(); };
+            } catch(e6){ dec(); }
+          };
+          rq.onerror = rq.onblocked = function(){ dec(); };
+        } catch(e7){ dec(); }
+      });
+    } catch(e){ say('⚠ 読込失敗: ' + esc(String(e.message || e))); }
+  };
+  rd.onerror = function(){ say('⚠ ファイルを読めませんでした'); };
+  rd.readAsText(file);
+}
 function initUrlImport(){
   var inp = $('urlRelayInp');
   if (inp) inp.value = state.urlRelay || '';
@@ -7524,6 +8017,17 @@ function initUrlImport(){
   on('btnUrlBoth', 'click', nkImportBoth);
   on('btnStoreUse', 'click', function(){ storeUseRender(); });
   on('btnStoreTrim', 'click', function(){ storeDelChecked(true); });
+  /* ★第58弾: まるごと保存/読込（版差替・引っ越し用） */
+  on('btnMigOut', 'click', function(){ migExportRun(); });
+  on('btnMigIn', 'click', function(){ var f = $('fileMig'); if (f) f.click(); });
+  var fmig = $('fileMig');
+  if (fmig) fmig.addEventListener('change', function(){
+    var el = $('storeUse');
+    if (fmig.files && fmig.files[0]){
+      migApplyFile(fmig.files[0], function(m){ if (el) el.innerHTML = m; });
+    }
+    try { fmig.value = ''; } catch(e){}
+  });
   try { storeUseRender(); } catch(e){}
   on('urlImport', 'keydown', function(e){ if (e.key === 'Enter') nkImportCard(); });
   on('btnRelaySave', 'click', function(){
@@ -12142,6 +12646,7 @@ function hbStartAssign(text){
   var ctx = hbRaceCtx();
   var ri = $('hbRaceInfo'); if (ri) ri.textContent = ctx.label ? ('登録先レース情報: ' + ctx.label) : '（レース情報が未入力。短評の付記には使われません）';
   hbRenderAssignRows(null);
+  try { hbDraftSave(); } catch(eD){}
 }
 
 /* =========================================================
@@ -12580,7 +13085,11 @@ function hbOpenNewsArticle(){
        1頭も居なかったレースだけ、netkeiba から出馬表を取りに行って再照合します。 */
     return hbResolveMissingRaces();
   }).catch(function(e){
+    /* ★第53弾: 更新の取得に失敗しても、前回取り込んでいた内容は消さずに再表示する */
+    var had = !!(hbPreviewState && hbPreviewState.entries && hbPreviewState.entries.length);
+    if (had){ try { hbRenderNewsPreview(); } catch(eR){} }
     hbLog('⚠ 記事取得に失敗: ' + esc(String((e && e.message) || e)) +
+      (had ? '<br><span class="small">前回取得済みのプレビュー内容をそのまま表示しています（下書き保存済）。</span>' : '') +
       '<br><span class="small">（ローカルで開いている場合は取得できません。Vercel なら api/race.js、Cloudflare Pages なら functions/api/race.js を同梱して公開するか、「URL取込の通信設定」で中継を設定してください）</span>', 'err');
   });
 }
@@ -12641,6 +13150,7 @@ function hbRenderNewsPreview(){
   var cntEl = $('hbNewsPrevCnt');
   if (btn) btn.style.display = st.entries.length ? '' : 'none';
   if (cntEl) cntEl.textContent = st.entries.length ? st.entries.length + '件のコメントを割当表へ入れます' : '';
+  try { hbDraftSave(); } catch(eD){}
 }
 /* プレビューの内容を割当表(hbAssignRows)へ入れる */
 function hbUsePreview(){
@@ -12663,6 +13173,7 @@ function hbUsePreview(){
   var ri = $('hbRaceInfo');
   if (ri) ri.innerHTML = '取得記事: ' + esc(st.title) + (raceTxt ? '　🏁 ' + esc(raceTxt) : '') + raceHint;
   hbRenderAssignRows(intro);
+  try { hbDraftSave(); } catch(eD){}
   hbLog('💡 割当表に入れました。種類は「📝短評」がおすすめです（必要なら行を選び直し、最後に「選択した馬に登録」）。', '');
 }
 function hbCancelAssign(){
@@ -12670,6 +13181,7 @@ function hbCancelAssign(){
   hbAssignCtx = null;
   var aw = $('hbAssignWrap'); if (aw) aw.classList.add('hid');
   var box = $('hbAssignRows'); if (box) box.innerHTML = '';
+  try { hbDraftClear(); } catch(eD){}   /* ★第53弾: 明示キャンセル＝下書きも破棄 */
 }
 function hbSaveAssign(){
   var rows = hbAssignRows;
@@ -12848,6 +13360,105 @@ function hbSyncInputBadges(){
 }
 
 
+/* ---------- ★第53弾: 下書きの自動保存（更新・再読込で消えないように） ----------
+   取得プレビュー(hbPreviewState)と割当表(hbAssignRows/hbAssignCtx)を localStorage に退避。
+   ・保存のタイミング: プレビュー描画時／割当表投入時／ページを閉じる直前
+   ・消すタイミング: 「選択した馬に登録」成功→キャンセル（＝本保存されたので不要）／明示的キャンセル
+   ・起動時(initHorseBook)に未登録分があれば自動復元                                  */
+var HB_DRAFT_LS = 'khl_hb_draft_v1';
+function hbDraftPack(){
+  var st = (hbPreviewState && hbPreviewState.entries && hbPreviewState.entries.length) ? {
+    title: hbPreviewState.title || '', url: hbPreviewState.url || '',
+    date: hbPreviewState.date || '', year: hbPreviewState.year || 0,
+    entries: hbPreviewState.entries || [], races: hbPreviewState.races || [],
+    groups: hbPreviewState.groups || []
+  } : null;
+  return { at: new Date().toISOString(), prev: st,
+    rows: (hbAssignRows || []).slice(), ctx: hbAssignCtx || null };
+}
+function hbDraftSave(){
+  try { safeSetItem(HB_DRAFT_LS, JSON.stringify(hbDraftPack())); } catch(e){}
+}
+function hbDraftClear(){ try { localStorage.removeItem(HB_DRAFT_LS); } catch(e){} }
+function hbDraftRead(){
+  try {
+    var o = JSON.parse(localStorage.getItem(HB_DRAFT_LS) || 'null');
+    if (o && (o.prev || (o.rows && o.rows.length))) return o;
+  } catch(e){}
+  return null;
+}
+/* テキストエリアの編集内容を割当表へ書き戻してから保存する（beforeunload用） */
+function hbDraftSyncDom(){
+  try {
+    if (!hbAssignRows || !hbAssignRows.length) return;
+    hbAssignRows.forEach(function(r, i){
+      var s1 = document.querySelector('[data-hbsel="' + i + '"]');
+      if (s1 && typeof s1.value === 'string') r.val = s1.value;
+      var t1 = document.querySelector('[data-hbtxt="' + i + '"]');
+      if (t1 && typeof t1.value === 'string') r.text = t1.value;
+    });
+  } catch(e){}
+}
+function hbDraftRestore(){
+  var d = hbDraftRead(); if (!d) return '';
+  var n = 0;
+  if (d.prev && d.prev.entries && d.prev.entries.length && !hbPreviewState){
+    hbPreviewState = { no: '', title: d.prev.title || '保存済みのプレビュー', url: d.prev.url || '', html: '',
+      date: d.prev.date || '', year: d.prev.year || 0,
+      entries: d.prev.entries || [], races: d.prev.races || [], groups: d.prev.groups || [] };
+    hbRenderNewsPreview(); n += (d.prev.entries || []).length;
+  }
+  if (d.rows && d.rows.length && (!hbAssignRows || !hbAssignRows.length)){
+    hbAssignCtx = d.ctx || null;
+    hbAssignRows = d.rows.slice();
+    hbRenderAssignRows('📒 前回の内容（下書き）を復元しました。確認して「選択した馬に登録」で馬ノートに確定、' +
+      '「キャンセル」で破棄します。');
+    n += d.rows.length;
+  }
+  return n ? ('未登録の内容を復元しました（' + n + '件' +
+    (d.at ? '・自動保存 ' + String(d.at).slice(0, 16).replace('T', ' ') + '時点' : '') + '）') : '';
+}
+/* 「💾保存(書出)」ファイルに同梱された馬ノートを、現DBへマージ（既存は壊さない） */
+function hbMergeFromImport(obj){
+  var res = { added: 0, notes: 0 };
+  if (!obj || !Array.isArray(obj.horses)) return res;
+  var db = hbLoad();
+  var byId = {}, byNk = {}, byNm = {};
+  (db.horses || []).forEach(function(e){
+    if (e.id) byId[e.id] = e;
+    if (e.nk) byNk[e.nk] = e;
+    (e.names || []).forEach(function(n){ var k = hbNorm(n); if (k) byNm[k] = e; });
+  });
+  (obj.horses || []).forEach(function(x){
+    if (!x) return;
+    var e = (x.id && byId[x.id]) || (x.nk && byNk[x.nk]) || null;
+    if (!e && x.names && x.names.length) e = byNm[hbNorm(x.names[0])] || null;
+    if (!e){
+      if (!Array.isArray(x.notes) || !x.notes.length) return;
+      e = { id: x.id || ('n' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36)),
+            nk: x.nk || '', names: (x.names || []).slice(0, 3), notes: [], memo: '',
+            updatedAt: new Date().toISOString() };
+      db.horses.push(e); res.added++;
+      if (e.id) byId[e.id] = e;
+      if (e.nk) byNk[e.nk] = e;
+      (e.names || []).forEach(function(n){ var k = hbNorm(n); if (k) byNm[k] = e; });
+    }
+    if (!Array.isArray(e.notes)) e.notes = [];
+    var seen = {};
+    e.notes.forEach(function(nt){ seen[(nt.kind || '') + '|' + (nt.date || '') + '|' + String(nt.text || '')] = 1; });
+    if (x.memo && !e.memo) e.memo = String(x.memo);
+    (x.notes || []).forEach(function(nt){
+      if (!nt || !String(nt.text || '').trim()) return;
+      var k = (nt.kind || '') + '|' + (nt.date || '') + '|' + String(nt.text || '');
+      if (seen[k]) return;
+      seen[k] = 1; e.notes.push(nt); res.notes++;
+    });
+    e.updatedAt = new Date().toISOString();
+  });
+  hbCommit(db);
+  return res;
+}
+
 /* ---------- バックアップ（出力 / 復元） ---------- */
 function hbBackup(){
   if (typeof showModal !== 'function') return;
@@ -12860,8 +13471,9 @@ function hbBackup(){
 }
 function hbRestore(){
   if (typeof showModal !== 'function') return;
-  showModal('<h2>馬ノートDBを復元</h2>' +
-    '<p class="small muted">バックアップしたJSONを貼り付けて「復元」を押すと、現在の内容に置き換わります。</p>' +
+    showModal('<h2>馬ノートDBを復元</h2>' +
+    '<p class="small muted">バックアップしたJSONを貼り付けて「復元」を押します。既存の内容は残して<b>マージする方が安全</b>です（完全に置き換えたい時だけ☐に）。</p>' +
+    '<label class="small" style="display:block;margin:2px 0 6px"><input type="checkbox" id="hbRestoreMerge" checked> 既存の内容とマージする（馬ごとに既存メモは保持し、無いメモだけ追加）</label>' +
     '<textarea id="hbRestoreTxt" rows="8" style="width:100%" placeholder=\'{ "horses": [...] }\'></textarea>' +
     '<div style="text-align:right;margin-top:8px;display:flex;gap:6px;justify-content:flex-end">' +
     '<button type="button" class="btn ghost" data-mno>キャンセル</button>' +
@@ -12873,9 +13485,16 @@ function hbRestore(){
         try {
           var o = JSON.parse(raw.value);
           if (!o || !Array.isArray(o.horses)) throw new Error('形式が不正です');
-          safeSetItem(HB_LS, JSON.stringify(o));
+          var doMg = false;
+          try { var mc = document.getElementById('hbRestoreMerge'); doMg = !!(mc && mc.checked); } catch(eM){}
+          if (doMg){
+            var rr = hbMergeFromImport(o);
+            hbLog('♻ 既存の内容とマージしました（新規 ' + rr.added + '頭・メモ ' + rr.notes + '件を追加）。');
+          } else {
+            safeSetItem(HB_LS, JSON.stringify(o));
+            hbLog('♻ 復元しました（' + o.horses.length + '頭・全面置換）。');
+          }
           closeModal();
-          hbLog('♻ 復元しました（' + o.horses.length + '頭）。');
           hbRefresh();
           hbAfterChange();
         } catch(e){
@@ -12931,6 +13550,13 @@ function initHorseBook(){
   });
   on('btnHbBackup', 'click', hbBackup);
   on('btnHbRestore', 'click', hbRestore);
+  /* ★第53弾: 下書きの自動保存 — 起動時に未登録分を復元／ページを閉じる直前に最新stateを保存 */
+  try {
+    window.addEventListener('beforeunload', function(){ try { hbDraftSyncDom(); hbDraftSave(); } catch(e0){} });
+    var msgD = hbDraftRestore();
+    if (msgD) hbLog('📒 ' + msgD +
+      '　<span class="small muted">この欄の未登録内容は自動保存されます。馬ノートに登録すれば本保存されます（アプリの「💾保存」JSONにも馬ノートは同梱）。</span>', '');
+  } catch(eD0){}
   var sr = $('hbSearch');
   if (sr) sr.addEventListener('input', function(){ hbShownReset(); hbRefresh(); });
   // 「さらに表示」ボタン（件数が増えてもページが伸びないように段階表示）
@@ -20344,8 +20970,39 @@ function navClose(){
   if (bk) bk.classList.remove('show');
   try { document.body.style.overflow = ''; } catch(e){}
 }
+/* ★第54弾: ヘッダー実測高さをCSS変数へ（タブバーがヘッダーに隠れないため・デザイン専用）。
+   initNav（idle遅延）を待たず、DOM準備完了直後・リサイズ・ヘッダー高さ変化で即反映する。
+   ヘッダーが非粘着（スマホ幅）の時は --hd-h=0 → タブバーは画面最上部に固定（旧仕様踏襲）。 */
+var _khlHdPx = -1, _khlNvPx = -1;
+function navSyncSticky(){
+  try {
+    var hd = document.getElementById('topbarHd') || document.querySelector('header.topbar');
+    var h1 = 0;
+    if (hd && window.getComputedStyle && getComputedStyle(hd).position === 'sticky') h1 = hd.offsetHeight;
+    var nv = document.querySelector('nav.tabs');
+    var h2 = nv ? nv.offsetHeight : 52;
+    if (h1 !== _khlHdPx){ _khlHdPx = h1; document.documentElement.style.setProperty('--hd-h', h1 + 'px'); }
+    if (h2 !== _khlNvPx){ _khlNvPx = h2; document.documentElement.style.setProperty('--nav-h', h2 + 'px'); }
+    /* アクティブタブが見切れている時だけ中央へ（毎回は揺らさない） */
+    if (nv){ var a = nv.querySelector('.tab.active');
+      if (a && typeof a.scrollIntoView === 'function'){
+        var vl = nv.scrollLeft, vr = vl + nv.clientWidth, al = a.offsetLeft, ar = al + a.offsetWidth;
+        if (al < vl || ar > vr){ try { a.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' }); } catch(eI){} }
+      } }
+  } catch(e){}
+}
+try {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', navSyncSticky);
+  else navSyncSticky();
+  window.addEventListener('resize', navSyncSticky);
+  if (window.ResizeObserver){
+    var _khlHdEl = document.getElementById('topbarHd');
+    if (_khlHdEl) new window.ResizeObserver(navSyncSticky).observe(_khlHdEl);
+  }
+} catch(e){}
 function initNav(){
   navRender();
+  try { setInterval(navSyncSticky, 1500); } catch(e2){}
   // ハンバーガー → 開く
   var nb = $('navBtn');
   if (nb) nb.addEventListener('click', function(){ navOpen(); });
@@ -38222,7 +38879,13 @@ function doExport(){
     biasOverride: state.biasOverride || '',
     horses: state.horses.map(function(h){
       return Object.assign({}, h);
-    })
+    }),
+    /* ★第53弾: 馬ノート（短評・有利不利・メモ）を保存バックアップに同梱。
+       更新でローカル保存が消えた時も、このJSONから復元できる。 */
+    horsebook: (function(){ try {
+      var o = JSON.parse(localStorage.getItem('khl_horsebook_v1') || 'null');
+      return (o && Array.isArray(o.horses)) ? o : null;
+    } catch(e){ return null; } })()
   };
   var blob = new Blob([JSON.stringify(obj, null, 1)], { type:'application/json' });
   var a = document.createElement('a');
@@ -38256,13 +38919,19 @@ function doImport(file){
       state.paceOverride = (o.paceOverride == null) ? null : o.paceOverride;
       state.biasOverride = (o.biasOverride == null) ? '' : String(o.biasOverride);
       state.horses = o.horses.map(function(p){ return mkHorse(p); });
+      /* ★第53弾: 馬ノート（短評等）は既存内容とマージして復元（上書きしない） */
+      var hbMsg = '';
+      if (o.horsebook && Array.isArray(o.horsebook.horses) && typeof hbMergeFromImport === 'function'){
+        var hr = hbMergeFromImport(o.horsebook);
+        hbMsg = '📔 馬ノートを復元しました（新規 ' + hr.added + '頭・メモ ' + hr.notes + '件を追加／既存は保持）。';
+      }
       var wb = $('weightSliders'); if (wb) wb.dataset.built = '';
       var rli = $('urlRelayInp'); if (rli) rli.value = state.urlRelay;
       syncRaceDomFromState(); refreshRaceLine();
       rebuildHorseTable();
       saveNow();
       goTab('t-input');
-      showModal('<h2>✅ 読込完了</h2><p>' + state.horses.length + '頭のデータを復元しました。</p><button class="btn primary" data-mcl>閉じる</button>', function(root){
+      showModal('<h2>✅ 読込完了</h2><p>' + state.horses.length + '頭のデータを復元しました。' + (hbMsg ? '<br><span class="small">' + hbMsg + '</span>' : '') + '</p><button class="btn primary" data-mcl>閉じる</button>', function(root){
         root.querySelector('[data-mcl]').addEventListener('click', closeModal);
       });
     } catch(e){
