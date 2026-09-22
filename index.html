@@ -914,16 +914,20 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
 :root{--hd-h:0px;--nav-h:52px}
 nav.tabs{
   top:var(--hd-h);gap:4px;padding:6px 10px 0;
-  max-width:100%;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity;
+  max-width:100%;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;align-items:center;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none; /* ★第65弾②: scroll-snap削除＝スライド後に勝手に戻さない */
   box-shadow:0 1px 0 var(--line2),0 6px 14px -10px rgba(20,40,24,.18);
   backdrop-filter:saturate(1.15) blur(6px);
 }
 nav.tabs::-webkit-scrollbar{display:none}
 nav.tabs .tab{
-  flex:0 0 auto;scroll-snap-align:center;display:inline-flex;align-items:center;
+  flex:0 0 auto;display:inline-flex;align-items:center;
   padding:10px 14px;min-height:44px;font-size:.92rem;border-radius:12px 12px 0 0;
 }
+/* ★第65弾②: 目次ボタンはタブバーの左上に常駐（横スライドでも sticky で左端に残る） */
+nav.tabs #navBtn{position:sticky;left:0;z-index:3;margin-right:6px;padding:7px 10px;font-size:.82rem;
+  background:var(--card);color:var(--ink);border:1px solid var(--line2);border-radius:10px;box-shadow:2px 0 6px -4px rgba(20,40,24,.25)}
+nav.tabs #navBtn:hover{background:var(--tint);border-color:var(--g3)}
 nav.tabs .tab.active{border-bottom:3px solid var(--green2)}
 nav.tabs .tab:focus-visible{outline:2px solid var(--green2);outline-offset:2px}
 .tsub{}
@@ -1132,7 +1136,6 @@ html[data-theme="light"] .page-top-hero{
 
 </head><body>
 <header class="topbar" id="topbarHd">
-  <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
   <div class="brand">
     <div class="logo">🐎</div>
     <div>
@@ -1162,6 +1165,7 @@ html[data-theme="light"] .page-top-hero{
 </aside>
 
 <nav class="tabs">
+  <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
   <button class="tab" data-t="t-top">🏠 トップ</button>
   <button class="tab active" data-t="t-input">① データ入力</button>
   <button class="tab" data-t="t-kentai">② 展開予想<span class="tsub">・AI印</span></button>
@@ -1863,7 +1867,9 @@ html[data-theme="light"] .page-top-hero{
         <span class="sp"></span>
         <span class="small muted">同条件の過去の勝ち時計と比較（距離・クラス・馬場を換算／着差から勝ち時計を復元）</span>
       </div>
-      <p class="small muted" style="margin:2px 0 6px">
+      <details class="kfold" style="margin:2px 0 6px">
+        <summary>📖 タイムレベル評価のしくみ<span class="muted" style="font-weight:400">（同条件の勝ち時計と比較／着差から勝ち時計を復元／📒馬ノートに自動登録）</span></summary>
+        <p class="small muted" style="margin:6px 0 2px">
         出走馬それぞれの<b>直近の走り（まずは前走）</b>の時計を、<b>1着かどうかに関係なく</b>評価します。<br>
         比べるのは <b>同競馬場・同馬場(芝/ダ)・同距離帯・同じ時期の「過去の勝ち時計」</b>。
         馬柱の<b>着差（＝勝ち馬までの秒差）</b>から負けレースの勝ち時計も復元するので、
@@ -1876,11 +1882,15 @@ html[data-theme="light"] .page-top-hero{
         <b>⚠️は「1着の勝ち時計が遅い」場合だけ</b>（負け馬の時計が勝ち馬より遅いのは着差のぶんなのでマークしません）。
         次々走以降はマークを付けず、📒の短評（メモ）で確認できます。<br>
         <b>勝ち馬には2着差</b>（同じレースを走った他馬の馬柱から復元）、<b>負け馬には勝ち馬からの着差</b>を表示します。
-      </p>
+        </p>
+      </details>
       <div id="tlBox"></div>
     </div>
     <div class="card" style="padding:10px 16px">
-      <div class="small muted">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。<b>印の順位は総合評価U（＝人気も重みどおり内包）が基準</b>です（★第50弾: 第45弾の「人気を完全に抜いた純モデル印」は信用性が下がるとの指摘で方針転換）。<b>来そうな人気馬にはそのまま◎○が乗る</b>／調教・時計・展開・馬場などの<b>強いデータが2項目以上</b>揃い、データ評価が人気を3位以上上回る人気薄だけが順位アップして印を獲ります。<b>🎯軸=データ上位+強いデータ2項目</b>、<b>⚡=市場が過小評価（根拠あり）</b>、▼=過大人気の懸念の旗を印セルに出します。材料が無いレースでは従来どおり市場基準の印に自動で戻ります。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
+      <details class="kfold" style="margin:0">
+        <summary>🔍 AI印の計算ロジック<span class="muted" style="font-weight:400">（①オッズ②調教③持ちタイム④展開⑤あなたの印 → AI勝率。印の順位は総合評価U基準）</span></summary>
+        <div class="small muted" style="margin-top:6px">🔍 <b>AI印の計算ロジック</b>: ①単勝オッズ(人気) ②調教タイム(最終追切等の1F平均) ③持ちタイム(距離入力時のみ) ④展開適性(脚質×ペース診断×トラックバイアス) ⑤あなたの印、を重み付きで合算し、ソフトマックス変換で「AI勝率」にしています。<b>印の順位は総合評価U（＝人気も重みどおり内包）が基準</b>です（★第50弾: 第45弾の「人気を完全に抜いた純モデル印」は信用性が下がるとの指摘で方針転換）。<b>来そうな人気馬にはそのまま◎○が乗る</b>／調教・時計・展開・馬場などの<b>強いデータが2項目以上</b>揃い、データ評価が人気を3位以上上回る人気薄だけが順位アップして印を獲ります。<b>🎯軸=データ上位+強いデータ2項目</b>、<b>⚡=市場が過小評価（根拠あり）</b>、▼=過大人気の懸念の旗を印セルに出します。材料が無いレースでは従来どおり市場基準の印に自動で戻ります。AIは<u>確率の推定</u>であり、実際の競走結果を保証するものではありません。</div>
+      </details>
     </div>
     <div class="row2">
       <div class="card">
@@ -2322,6 +2332,24 @@ html[data-theme="light"] .page-top-hero{
          ・<b>ペース/コース情報バー＋AI推奨馬の直近実績（第47弾）</b>: ペースはnetkeiba内の2系統（AI展開予測マスターと展開予想tab）を並記し、食い違っていれば注記付きでマスター値を軸判定に採用。コース情報（場・距離・芝ダ）と、AI推奨馬の直近実績（1着/2着バッジ付き・無料範囲の全件）も同じ保存HTMLから追加通信ゼロで表示します<br>
         　・障害戦は netkeiba 側が旧版表示に切り替わるためセクションが無いことがあります<br>
         　※2026-09-19 第40弾で<b>旧・物理シミュレーション（⚡結果を出す／まとめて実行／📊合計集計）を全面置き換え</b>しました。展開の机上検証は🔮実況風展開予想（AI提案タブ⑦）をご利用ください。</div>
+      </div>
+      <div class="card" id="tiCard">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <h2 style="margin:0">📷 タイム指数スクショ取込<span class="small muted" style="font-weight:400;margin-left:8px">スクショを貼る→数値を自動読取して実物そっくりの表を再現（通信ゼロ・画像は保存しません）</span></h2>
+          <label class="btn ghost" style="cursor:pointer;margin:0">🖼️ 画像を選ぶ<input type="file" id="tiFile" accept="image/*" style="display:none"></label>
+        </div>
+        <details class="kfold" style="margin-top:6px">
+          <summary>📖 使い方・読取の仕組み<span class="muted" style="font-weight:400">（並び替え／怪しいセルの直し方／どこまで自動で、どこを画像のまま貼るか）</span></summary>
+          <div class="small muted" style="margin-top:4px;line-height:1.8">
+            ・<b>取込</b>: 下の枠にスクショをドラッグ ／ このタブ表示中に <b>⌘V・Ctrl+V ペースト</b> ／ 「🖼️ 画像を選ぶ」。ダーク・ライトどちらのテーマもOK（地色・文字色は各セル実測でそのまま再現）。表全体が写っていればよい（iPhone/Android/PC截图対応）。<br>
+            ・<b>並び替え</b>: 数値列（最高・5走平均・距離・コース・近走・斤量・単勝オッズ・人気）の見出しクリックで <b>降順→昇順→元順</b>。馬名・騎手など画像セルは元の行と一緒に並び替わります。<br>
+            ・<b>怪しいセルの直し方</b>: 読取確度が低いセルは<b>赤枠</b>表示。数値セルは<b>ダブルクリックで直接入力</b>できます（✎マーク付き。入力値はソートにも反映）。<br>
+            ・<b>仕組み</b>: 数値だけをテンプレート照合で自動読取。馬名・予想印・騎手・性齢は読み違えないよう<b>元画像の切り抜きをそのまま貼って</b>います（＝実物と完全に同じ見え方）。解析は端末内だけで完結し、画像データは保存しません。
+          </div>
+        </details>
+        <div id="tiDrop" class="small muted" style="margin-top:8px;border:1.5px dashed var(--line2);border-radius:10px;padding:14px;text-align:center">ここにスクショをドラッグ ／ このタブ表示中に ⌘V・Ctrl+V ペースト（ダーク・ライトどちらもOK。iPhone/Android/PC截图対応・表全体が写っていればよい）</div>
+        <div id="tiMsg" class="small" style="margin-top:6px;color:var(--ok-ink)"></div>
+        <div id="tiOut" style="margin-top:8px"></div>
       </div>
 </section>
 
@@ -2860,6 +2888,10 @@ html[data-theme="light"] .page-top-hero{
   ※本ページは入力・予想・AI展開表示をすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
   <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
+</footer>
+
+<div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
+�が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -21018,6 +21050,7 @@ function navClose(){
    initNav（idle遅延）を待たず、DOM準備完了直後・リサイズ・ヘッダー高さ変化で即反映する。
    ヘッダーが非粘着（スマホ幅）の時は --hd-h=0 → タブバーは画面最上部に固定（旧仕様踏襲）。 */
 var _khlHdPx = -1, _khlNvPx = -1;
+var _khlLastActive = null;   /* ★第65弾②: 「アクティブタブが変わった時だけ」中央へ寄せる（手動スライドの自動復帰防止） */
 function navSyncSticky(){
   try {
     var hd = document.getElementById('topbarHd') || document.querySelector('header.topbar');
@@ -21027,9 +21060,12 @@ function navSyncSticky(){
     var h2 = nv ? nv.offsetHeight : 52;
     if (h1 !== _khlHdPx){ _khlHdPx = h1; document.documentElement.style.setProperty('--hd-h', h1 + 'px'); }
     if (h2 !== _khlNvPx){ _khlNvPx = h2; document.documentElement.style.setProperty('--nav-h', h2 + 'px'); }
-    /* アクティブタブが見切れている時だけ中央へ（毎回は揺らさない） */
+    /* ★第65弾②: アクティブタブが「変わった時だけ」見切れていれば中央へ。
+       以前は1.5秒周期で毎回直していたため、ユーザーがタブバーを横スライドすると
+       勝手に元へ戻された。変更時のみなら手動スライドは尊重される。 */
     if (nv){ var a = nv.querySelector('.tab.active');
-      if (a && typeof a.scrollIntoView === 'function'){
+      if (a && a !== _khlLastActive && typeof a.scrollIntoView === 'function'){
+        _khlLastActive = a;
         var vl = nv.scrollLeft, vr = vl + nv.clientWidth, al = a.offsetLeft, ar = al + a.offsetWidth;
         if (al < vl || ar > vr){ try { a.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' }); } catch(eI){} }
       } }
@@ -21050,6 +21086,16 @@ function initNav(){
   // ハンバーガー → 開く
   var nb = $('navBtn');
   if (nb) nb.addEventListener('click', function(){ navOpen(); });
+  // ★第65弾②: タブクリック時はその場でアクティブタブ位置だけ同期（スライド追従はしない）
+  try {
+    var tabsEl = document.querySelector('nav.tabs');
+    if (tabsEl && !tabsEl.__khlC){ tabsEl.__khlC = 1;
+      tabsEl.addEventListener('click', function(ev){
+        var t = ev.target && ev.target.closest ? ev.target.closest('.tab') : null;
+        if (t){ _khlLastActive = null; setTimeout(navSyncSticky, 0); }
+      });
+    }
+  } catch(eNc){}
   // 閉じる（✕ / 背景 / Esc）
   var cx = $('drawerClose'); if (cx) cx.addEventListener('click', navClose);
   var bk = $('drawerBack'); if (bk) bk.addEventListener('click', navClose);
@@ -37681,6 +37727,36 @@ function aiRaceBlock(it){
     '　<span class="muted small">' + b.rows.length + '頭／</span><span class="small" style="' + chipCol + '">' + chip + '</span>' +
     '</summary>' + aiRowsTable(b.rows) + aiRecapHTML(b) + '</details>';
 }
+/* ---------- ★第65弾⑤: 結果を「今後の予想に活かす」学習へのフィードバック ----------
+   ①一括取得時に保存した事前予想（rec.pre: オッズ・脚質・出遅れ率・ファクター値）と
+   結果ページの着順を結合して自己検証DB（apEval）へ渡す。
+   ・apEval は rec.pre のAI印と結果を照合して rec.preMarks ＋ 年月別集計に反映
+   ・ファクター別学習（p54 flRaces）は rec.pre のファクター値×結果をリフト学習 → 次回のAI印の重みへ
+   ・diSaveOne 内部の apEval は「上位着順しかオッズが無い行」で呼ばれるため、
+     ここを先に実行して全頭ぶんの材料で評価させ、diSaveOne 側は result 済みスキップにする（二重計上なし）。 */
+function aiSettleFeed(rid, pr){
+  try {
+    if (typeof apEval !== 'function') return '';
+    var b = aiRecBundle(rid);
+    if (!b || !b.rows || !b.rows.length) return '';   /* 事前予想(rec.pre)が無いレースは対象外 */
+    var preByNo = {};
+    ((b && b.rows) || []).forEach(function(x){ if (x && x.no != null) preByNo[String(x.no)] = x; });
+    var rows = ((pr && pr.rows) || []).filter(function(r){ return r && r.order >= 1 && r.no; });
+    if (rows.length < 3) return '';
+    var slowMap = [], p2rows = rows.map(function(r){
+      var pre = preByNo[String(r.no)] || {};
+      if (pre.slow != null && pre.slow !== '') slowMap.push({ no: r.no, slow: pre.slow });
+      return { no: r.no, name: r.name || pre.name || '', order: r.order,
+        odds: (r.odds != null && r.odds !== '') ? r.odds : (pre.odds != null ? pre.odds : ''),
+        pop: r.pop || '', style: pre.style || '', slow: pre.slow, passing: r.passing || '' };
+    });
+    var p2 = { rows: p2rows, slowMap: slowMap.length ? slowMap : null,
+      payout: (pr && pr.payout) || null, payouts: (pr && pr.payouts) || null,
+      date8: (pr && pr.meta && pr.meta.date8) || AI_DAY_D8 || '', meta: (pr && pr.meta) || null };
+    var rec = apEval(p2, String(rid), true);
+    return (rec && rec.result) ? 'fed' : '';
+  } catch(e){ return ''; }
+}
 /* ---------- 📥 その日の結果を取得（終わったレースだけ・順次） ---------- */
 var AI_MSG = '';
 function aiSettleMsg(txt){
@@ -37710,7 +37786,10 @@ function aiSettleDay(){
     AI_SETTLE.busy = false;
     if (btn){ btn.disabled = false; btn.textContent = '📥 その日の結果を取得'; }
     aiSettleMsg('完了: 結果 ' + AI_SETTLE.ok + ' レースを追加' + (AI_SETTLE.err ? '／失敗 ' + AI_SETTLE.err : '') +
+      (AI_SETTLE.feed ? '／✅ 今後の予想への学習反映 ' + AI_SETTLE.feed + ' レース' : '') +
       (AI_SETTLE.skip ? '（払戻確定済み ' + AI_SETTLE.skip + ' レースはスキップ）' : ''));
+    /* ★第65弾⑤: ファクター学習のキャッシュを落として、次回のAI印計算から結果反映を効かせる */
+    try { if (typeof flDrop === 'function') flDrop(); } catch(e){}
     try { if (typeof aiProposalRender === 'function') aiProposalRender(); } catch(e){}
   }
   if (!jobs.length){
@@ -37729,6 +37808,8 @@ function aiSettleDay(){
         if (!pr || !pr.rows || !pr.rows.length || pr.n < 3){ AI_SETTLE.err++; return null; }  // 未確定/取れず
         var xd = null;
         try { if (typeof diExtractXD === 'function') xd = diExtractXD(html, pr); } catch(e){}
+        /* ★第65弾⑤: 先に学習へフィードバック（事前予想のオッズ・脚質・出遅れ率を結合した全頭ぶんで評価） */
+        if (aiSettleFeed(it.rid, pr) === 'fed') AI_SETTLE.feed++;
         try {
           if (typeof diSaveOne === 'function'){
             diSaveOne({ rid: it.rid }, d8, pr, xd, { ok: 0, dup: 0, upg: 0, skip: 0, errors: 0, limit: 0, evicted: 0, xdExtra: 0 }, function(){});
@@ -37806,6 +37887,18 @@ function aiProposalRender(){
       h += '<div class="card"><b>📊 今日の合計</b>　結果照合 ' + settled + ' レースで印（◎〜△）の馬券内 ' +
         hits + ' 頭' + (settled > 0 ? '（1レース平均 ' + (hits / settled).toFixed(1) + '頭／中率 ' + rate + '%）' : '') +
         '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。レースごとの詳細は上の各カード。</div></div>';
+      /* ★第65弾⑤: 結果が「今後の予想」にどう活きるかを表示（事前予想との照合済みレース数つき） */
+      var fedN = 0;
+      try { items.forEach(function(it){
+        var rr = (typeof apGet === 'function') ? apGet(it.rid) : null;
+        if (rr && rr.preMarks && rr.preMarks.length) fedN++;
+      }); } catch(e){}
+      h += '<div class="card"><b>📚 結果 → 今後の予想へのフィードバック</b>　<span class="chip">事前予想と照合済み ' + fedN + ' レース</span>' +
+        '<div class="muted small" style="margin-top:4px;line-height:1.8">結果取得したレースは振り返って終わりにせず、次の3つへ<b>自動で蓄積</b>されます:<br>' +
+        '　① <b>自己検証DB</b>: ①一括取得時に保存したAI印（◎〜△）と実際の着順を照合 → 🔬AI予想の診断・年月別集計に反映<br>' +
+        '　② <b>ファクター別学習</b>: 調教・持ちタイム・展開・バ場などの「どの材料を持つ馬が来たか」をリフト学習 → <b>次回のAI印計算の重みへ自動補正</b>（材料に差があるレースが30以上で補正開始）<br>' +
+        '　③ <b>学習DB・タイム学習</b>: 勝ち時計・ラップ・通過順が蓄積 → ⏱前走タイムのレベル判定・バイアス判定がより正確に<br>' +
+        '反映は<b>次に①で出馬表を取得／🔄最新情報を取得したとき</b>から効きます（すでに予想したレースの印は変えません）。</div></div>';
     }
   } else {
     h += '<div class="card"><b>📅 その日の全レース</b>' +
@@ -38836,6 +38929,640 @@ function ovInit(){
   var b = $('ovDetect');
   if (b) b.addEventListener('click', function(){ ovDetect(); });
 }
+
+/* ★2026-09-22 第64弾: 📷 netkeiba「タイム指数」スクショ認識（③AI展開予測タブ）
+   ユーザー要望「スクショをアップしたら自動で数値を読み取って、全く同じ表を作り、列でソートできるように」。
+   方式: 画像をCanvasに描画→彩度プロファイルで表グリッドを自動検出→セルごとに
+   ・数値(指数/オッズ/斤量/人気…)は 0-9・.・*・未・- のテンプレ照合（NCC）で文字起こし
+   ・馬名/印/騎手/性齢などの和文・記号セルは OCRせず「切り抜き画像」としてそのまま貼る（＝見た目が完全に一致）
+   ・セル背景色と文字色も実測して再現。ヘッダークリックで列ソート（降順→昇順→原順）。
+   制約: 単一HTML・非通信のまま（ライブラリ追加なし・Tesseract不採用）。低確信セルは赤枠→ダブルクリックで修正可。 */
+'use strict';
+var TI64 = { img: null, res: null, sortCol: -1, sortDir: 0, fileSet: false };
+var TI64_LABELS15 = ['馬番','予想印','馬名','最高','5走平均','距離','コース','3走','2走','前走','性齢','斤量','騎手','単勝オッズ','人気'];
+var TI64_NUM15 = [1,0,0,1,1,1,1,1,1,1,0,1,0,1,1];  /* 数値ソート可フラグ（印・馬名・性齢・騎手は画像セル） */
+
+function ti64Canvas(w, h){ var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function ti64Ctx(c){ return c.getContext('2d', { willReadFrequently: true }); }
+
+/* ---- テンプレ辞書（桁は実行環境のフォントで描いて正規化） ---- */
+var TI64_TPL = null;
+function ti64Templates(hpx){
+  if (hpx < 7) hpx = 7;
+  if (TI64_TPL && TI64_TPL.h === hpx) return TI64_TPL;
+  var c = ti64Canvas(hpx * 3, hpx * 2), x = ti64Ctx(c), N = 16, out = {};
+  x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
+  var keys = ['0','1','2','3','4','5','6','7','8','9','未','*','.','-','牡','セ','牝','1s','7s'];
+  keys.forEach(function(k){
+    x.clearRect(0, 0, c.width, c.height); x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#fff';
+    var ff = (k === '1s' || k === '7s') ? '700 ' + Math.round(hpx * 1.02) + 'px Georgia,"Times New Roman",serif'
+         : '700 ' + Math.round(hpx * (k === '*' || k === '.' ? 1.25 : 1.02)) + 'px -apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif';
+    if (k === '1s') k = '1s';
+    x.font = ff;
+    var key0 = k === '1s' ? '1' : (k === '7s' ? '7' : k);
+    x.fillText = x.fillText; /* noop */
+    var kk = key0;
+    x.textBaseline = 'middle'; x.textAlign = 'left';
+    x.fillText(kk, 2, c.height / 2);
+    /* 前景bbox → 16×16 二値マスク */
+    var id = x.getImageData(0, 0, c.width, c.height).data, w2 = c.width, h2 = c.height;
+    var x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+    for (var yy = 0; yy < h2; yy++) for (var xx = 0; xx < w2; xx++){ if (id[(yy * w2 + xx) * 4] > 110){ if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }
+    if (x1 < 0){ out[k] = null; return; }
+    var gw = x1 - x0 + 1, gh0 = y1 - y0 + 1;
+    out[k] = { m: ti64Norm(id, w2, x0, y0, gw, gh0, N), ar: gw / gh0, h0: gh0 };
+  });
+  TI64_TPL = { h: hpx, map: out };
+  return TI64_TPL;
+}
+/* イメージデータ一部分を 16×16 の正規化グレーマスクへ（アスペクト保持・中央寄せ） */
+function ti64Norm(id, rowLen, x0, y0, w, h, N){
+  var c = ti64Canvas(w || 1, h || 1), x = ti64Ctx(c);
+  var img = x.createImageData(w, h);
+  for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++){
+    var p = ((yy + y0) * rowLen + (xx + x0)) * 4;
+    var g = (id[p] * 77 + id[p + 1] * 150 + id[p + 2] * 29) >> 8;
+    img.data[(yy * w + xx) * 4] = img.data[(yy * w + xx) * 4 + 1] = img.data[(yy * w + xx) * 4 + 2] = g;
+    img.data[(yy * w + xx) * 4 + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  var oc = ti64Canvas(N, N), ox = oc.getContext('2d');
+  ox.imageSmoothingEnabled = true; ox.imageSmoothingQuality = 'high';
+  var s = N / Math.max(w, h), dw = Math.max(2, Math.round(w * s)), dh = Math.max(2, Math.round(h * s));
+  ox.drawImage(c, ((N - dw) / 2) | 0, ((N - dh) / 2) | 0, dw, dh);
+  var d2 = ox.getImageData(0, 0, N, N).data, m = new Float32Array(N * N);
+  for (var i = 0; i < N * N; i++) m[i] = d2[i * 4] / 255;
+  /* NCC用に平均0・単位ノルム化 */
+  var mu = 0; for (i = 0; i < m.length; i++) mu += m[i]; mu /= m.length;
+  var nn = 0; for (i = 0; i < m.length; i++){ m[i] -= mu; nn += m[i] * m[i]; }
+  nn = Math.sqrt(nn) || 1; for (i = 0; i < m.length; i++) m[i] /= nn;
+  return m;
+}
+function ti64Ncc(a, b){ if (!a || !b) return -1; var s = 0; for (var i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+
+/* ---- 本体スキャン ---- */
+function nkTidxScan(img, onDone){
+  var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  if (W * H > 40e6){ var k = Math.sqrt(40e6 / (W * H)); W = Math.round(W * k); H = Math.round(H * k); }
+  var cv = ti64Canvas(W, H), cx = ti64Ctx(cv);
+  cx.drawImage(img, 0, 0, W, H);
+  var id = cx.getImageData(0, 0, W, H).data;
+  var L = new Float32Array(W * H), S = new Float32Array(W * H);
+  for (var i = 0, p = 0; i < W * H; i++, p += 4){
+    var r = id[p], g = id[p + 1], b = id[p + 2];
+    L[i] = (r * 77 + g * 150 + b * 29) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    S[i] = mx > 24 ? (mx - mn) / mx : 0;
+  }
+  /* 1) テーブル帯検出: 行ごとの彩度画素数（セル地色の帯） */
+  var rowSat = new Int32Array(H);
+  for (var y = 0; y < H; y++){ var cnt = 0, o = y * W; for (var x = 0; x < W; x += 2) if (S[o + x] > 0.30) cnt += 2; rowSat[y] = cnt; }
+  var thR = W * 0.045, best = null, cur = null;
+  for (y = 0; y < H; y++){
+    if (rowSat[y] >= thR){ if (cur){ if (y - cur.e <= 30) { cur.e = y; continue; } best = ti64Long(best, cur); } cur = { s: y, e: y }; }
+    else if (cur && y - cur.e <= 30) { }
+    else { best = ti64Long(best, cur); cur = null; }
+  }
+  best = ti64Long(best, cur);
+  if (!best || (best.e - best.s) < 60) return onDone({ err: '表の帯（色付きセル）が見つかりませんでした。タイム指数テーブル全体が写ったスクショを貼ってください' });
+  /* 上下にグリッド線1〜2pxがあるので少し伸ばす */
+  var yA = Math.max(0, best.s - 3), yB = Math.min(H - 1, best.e + 3);
+  /* 2) 横範囲: 列ごとの彩度（ブロック内） */
+  var bh = yB - yA + 1, colSat = new Int32Array(W);
+  for (x = 0; x < W; x++){ cnt = 0; for (y = yA; y <= yB; y += 2) if (S[y * W + x] > 0.30) cnt += 2; colSat[x] = cnt; }
+  var thC = bh * 0.10, x0 = -1, x1 = -1;
+  for (x = 0; x < W; x++) if (colSat[x] >= thC){ if (x0 < 0) x0 = x; x1 = x; }
+  if (x0 < 0 || x1 - x0 < W * 0.35) return onDone({ err: '表の横幅を特定できませんでした' });
+  /* 3) 境界検出（実測ベース改）: netkeibaタイム指数表はセル地色同士の境目に濃い罫線が
+     無い（1px地色差のみ）。よって「隣画素差の行/列中央値」で段差境界を出す。
+     行は等間隔ピッチでフィット、列は境界スコアのピーク＋広い隙間は暗線/白抜きギャップで分割。 */
+  function medianStepY(yA2, yB2, xA2, xB2){   /* b[y]: |row(y)-row(y+1)| の x方向中央値 */
+    var out2 = new Float32Array(H), buf = [];
+    for (var y = Math.max(0, yA2); y <= Math.min(H - 2, yB2); y++){
+      buf.length = 0;
+      for (var x = xA2; x <= xB2; x += 2){
+        var p = (y * W + x) * 4, p2 = ((y + 1) * W + x) * 4;
+        buf.push(Math.abs(id[p] - id[p2]) + Math.abs(id[p + 1] - id[p2 + 1]) + Math.abs(id[p + 2] - id[p2 + 2]));
+      }
+      buf.sort(function(a2, b2){ return a2 - b2; });
+      out2[y] = buf[buf.length >> 1];
+    }
+    return out2;
+  }
+  function medianStepX(xA2, xB2, yA2, yB2){    /* b[x]: |col(x)-col(x+1)| の y方向中央値 */
+    var out2 = new Float32Array(W), buf = [];
+    for (var x = Math.max(0, xA2); x <= Math.min(W - 2, xB2); x++){
+      buf.length = 0;
+      for (var y = yA2; y <= yB2; y += 2){
+        var p = (y * W + x) * 4, p2 = (y * W + x + 1) * 4;
+        buf.push(Math.abs(id[p] - id[p2]) + Math.abs(id[p + 1] - id[p2 + 1]) + Math.abs(id[p + 2] - id[p2 + 2]));
+      }
+      buf.sort(function(a2, b2){ return a2 - b2; });
+      out2[x] = buf[buf.length >> 1];
+    }
+    return out2;
+  }
+  function peaks(f, a, b, minT, minSep){
+    var ps = [];
+    for (var t = Math.max(a, 1); t <= Math.min(b, f.length - 2); t++){
+      if (f[t] < minT) continue;
+      var lo = Math.max(a, t - 3), hi = Math.min(f.length - 2, t + 3), isMax = true;
+      for (var q = lo; q <= hi; q++) if (f[q] > f[t]){ isMax = false; break; }
+      if (!isMax) continue;
+      if (ps.length && t - ps[ps.length - 1] < minSep) { if (f[t] > f[ps[ps.length - 1]]) ps[ps.length - 1] = t; continue; }
+      ps.push(t);
+    }
+    return ps;
+  }
+  var bY = medianStepY(yA - 6, yB + 6, x0 + 4, x1 - 4);
+  var rT = Math.max(16, Math.min(40, ti64Pct(bY, 0.98) * 0.45));
+  var rowPeaks = peaks(bY, yA - 6, yB + 6, rT, 12);
+  /* 行ピッチフィット: ギャップ中央値から等間隔グリッドを再構成 */
+  var g2 = []; for (i = 1; i < rowPeaks.length; i++) g2.push(rowPeaks[i] - rowPeaks[i - 1]);
+  g2.sort(function(a2, b2){ return a2 - b2; });
+  var pitch = g2.length ? g2[g2.length >> 1] : 0;
+  var rb;
+  if (pitch >= 14){
+    var nR = Math.max(2, Math.round((yB - yA) / pitch));
+    var bestOff = 0, bestScore = -1;
+    for (var off = 0; off < pitch; off++){
+      var sc = 0;
+      for (i = 0; i <= nR; i++){ var yy3 = yA + off + i * pitch; if (yy3 >= 0 && yy3 < H) sc += bY[yy3] || 0; }
+      if (sc > bestScore){ bestScore = sc; bestOff = off; }
+    }
+    rb = [];
+    for (i = 0; ; i++){ var yb3 = yA + bestOff + i * pitch; if (yb3 > yB + pitch * 0.5) break; rb.push(yb3 > H - 1 ? H - 1 : (yb3 | 0)); }
+    if (rb.length < 3) rb = [yA, (yA + yB) >> 1, yB];
+    var tops = rb[0], bots = rb[rb.length - 1];
+    if (bots - tops < (yB - yA) * 0.7) rb = rowPeaks.length >= 3 ? rowPeaks : [yA, yB]; /* フィット失敗→ピーク直使い */
+  } else rb = rowPeaks.length >= 3 ? rowPeaks : [yA, yB];
+  rb = rb.filter(function(v, ix){ return ix === 0 || v - rb[ix - 1] > Math.max(10, pitch * 0.45 || 12); });
+  if (rb.length < 3) return onDone({ err: '行を区切れませんでした（テーブル全体が写ったスクショで再試行してください）' });
+  var bX = medianStepX(x0 - 6, x1 + 6, rb[0] + 3, rb[rb.length - 1] - 3);
+  var cT = Math.max(16, Math.min(40, ti64Pct(bX, 0.98) * 0.38));
+  var cb = peaks(bX, Math.max(0, x0 - 6), Math.min(W - 2, x1 + 6), cT, 24);
+  var cands = [x0]; cb.forEach(function(v){ if (v > x0 + 12) cands.push(v); }); if (cands[cands.length - 1] < x1 - 12) cands.push(x1);
+  /* 広い隙間（列幅中央値の2.1倍超）は暗線→無ければ白文字ギャップで分割 */
+  var fracCol = new Float32Array(W);
+  for (x = 0; x < W; x++){ cnt = 0; for (y = rb[0]; y <= rb[rb.length - 1]; y += 2) if (S[y * W + x] > 0.3) cnt += 2; fracCol[x] = cnt / ((rb[rb.length - 1] - rb[0]) + 1); }
+  var medCol = (cands[cands.length - 1] - cands[0]) / (cands.length - 1);
+  var lightCol = new Float32Array(W);
+  for (x = x0; x <= x1; x++){ cnt = 0; for (y = rb[0]; y < rb[rb.length - 1]; y++) if (L[y * W + x] > 0.55) cnt++; lightCol[x] = cnt / ((rb[rb.length - 1] - rb[0]) || 1); }
+  function darkThinCol(a2, b2){ var r2 = [], run = -1;
+    for (var t = a2; t <= b2; t++){
+      if (fracCol[t] < 0.02 && (function(){ for (var yq = rb[0]; yq < rb[rb.length - 1]; yq += 3){ var pp = (yq * W + t) * 4; if (L[yq * W + t] > 0.2) return false; } return true; })()){ if (run < 0) run = t; }
+      else { if (run >= 0){ if (t - run <= 3) r2.push((run + t - 1) >> 1); run = -1; } }
+    } return r2;
+  }
+  var cbF = [cands[0]];
+  for (i = 1; i < cands.length; i++){
+    var L2 = cbF[cbF.length - 1], Rr = cands[i];
+    while (Rr - L2 > medCol * 2.1){
+      var mids = darkThinCol(L2 + Math.round(medCol * 0.4), Rr - Math.round(medCol * 0.4));
+      if (!mids.length){
+        var g0 = -1, g1 = -1, bg0 = -1, bg1 = -1, bw = 0;
+        for (x = L2 + 6; x <= Rr - 6; x++){
+          if (lightCol[x] < 0.015){ if (g0 < 0) g0 = x; g1 = x; if (g1 - g0 > bw){ bw = g1 - g0; bg0 = g0; bg1 = g1; } } else g0 = -1;
+        }
+        if (bw >= 3) mids.push((bg0 + bg1) >> 1);
+      }
+      mids = mids.filter(function(v){ return v > L2 + 14 && v < Rr - 14; }).sort(function(a2, b2){ return a2 - b2; });
+      if (!mids.length) break;
+      cbF.push(mids[0]); L2 = mids[0];
+    }
+    cbF.push(Rr);
+  }
+  cb = cbF;
+  var R = rb.length - 1, C = cb.length - 1;
+  if (R < 2) return onDone({ err: 'データ行が少なすぎます' });
+  var rowH = (rb[rb.length - 1] - rb[0]) / R, colW = (cb[cb.length - 1] - cb[0]) / C;
+  /* 4) セル解析 */
+  var cells = [];
+  for (var rr = 0; rr < R; rr++){
+    for (var cc = 0; cc < C; cc++){
+      cells.push(ti64Cell(id, W, cb[cc], rb[rr], cb[cc + 1], rb[rr + 1], rowH, rr, cc));
+    }
+  }
+  /* 5) 見出し band（最初の境界より上、行高ぶんの白文字帯） */
+  var headCrop = null, hy1 = rb[0], hy0 = Math.max(0, hy1 - Math.round(rowH * 1.1));
+  for (var hy = hy0; hy < hy1; hy++){ var lit = 0; for (x = x0; x <= x1; x += 3) if (L[hy * W + x] > 0.5) lit++; if (lit > 12){ hy0 = hy; break; } }
+  if (hy1 - hy0 > 10){
+    var hc = ti64Canvas(x1 - x0 + 1, hy1 - hy0);
+    var hx = ti64Ctx(hc); var im2 = hx.createImageData(x1 - x0 + 1, hy1 - hy0);
+    for (var yy = hy0; yy < hy1; yy++) for (var xx = x0; xx <= x1; xx++){
+      var sp = (yy * W + xx) * 4, dp = ((yy - hy0) * (x1 - x0 + 1) + (xx - x0)) * 4;
+      im2.data[dp] = id[sp]; im2.data[dp + 1] = id[sp + 1]; im2.data[dp + 2] = id[sp + 2]; im2.data[dp + 3] = 255;
+    }
+    hx.putImageData(im2, 0, 0);
+    headCrop = hc.toDataURL('image/png');
+  }
+  /* 6) 列メタ（数値率） */
+  var cols = [];
+  for (cc = 0; cc < C; cc++){
+    var nNum = 0, nFilled = 0;
+    for (rr = 0; rr < R; rr++){ var cl = cells[rr * C + cc]; if (cl.kind !== 'empty'){ nFilled++; if (cl.kind === 'num') nNum++; } }
+    cols.push({ idx: cc, numeric: nFilled > 0 && nNum / nFilled >= 0.6 });
+  }
+  /* ★第66弾: imgData（全画素147MB）はscan後誰も使わないため結果に含めない（メモリ・キャッシュ重量対策） */
+  onDone({ err: null, W: W, H: H, x0: x0, x1: x1, rb: rb, cb: cb, R: R, C: C, rowH: rowH, colW: colW, cells: cells, cols: cols, headCrop: headCrop });
+}
+function ti64Pct(f, q){ var a2 = []; for (var i = 0; i < f.length; i++) if (f[i] > 0) a2.push(f[i]); a2.sort(function(x, y){ return x - y; }); return a2.length ? a2[Math.min(a2.length - 1, (a2.length * q) | 0)] : 40; }
+function ti64Long(a, b){ if (!a) return b; if (!b) return a; return (a.e - a.s) >= (b.e - b.s) ? a : b; }
+function ti64Uniq(arr, minGap){
+  arr.sort(function(a, b){ return a - b; });
+  var out2 = [];
+  for (var i = 0; i < arr.length; i++) if (!out2.length || arr[i] - out2[out2.length - 1] > minGap) out2.push(arr[i]);
+  return out2;
+}
+function ti64FillGaps(bs, med, a, b, sub, minGap){
+  /* med の2.1倍超ギャップがあれば sub(y1,y2) の線候補で埋める（行用） */
+  var out2 = [bs[0]];
+  for (var i = 1; i < bs.length; i++){
+    if (bs[i] - out2[out2.length - 1] > med * 2.1){
+      var cands = sub(Math.max(a, out2[out2.length - 1] + Math.round(med * 0.5)), Math.min(b, bs[i] - Math.round(med * 0.5)));
+      cands.forEach(function(v){ if (v - out2[out2.length - 1] > med * 0.5 && bs[i] - v > med * 0.5) out2.push(v); });
+    }
+    out2.push(bs[i]);
+  }
+  return out2;
+}
+function ti64SplitWide(cb, maxW, a, b, lightCol, darkColF){
+  /* 隣境界间距が maxW 超なら追加分割: 細濃色線 → 無ければ白文字の空白ギャップ */
+  var out2 = [cb[0]];
+  for (var i = 1; i < cb.length; i++){
+    var L2 = out2[out2.length - 1], Rr = cb[i];
+    while (Rr - L2 > maxW){
+      var mids = [], t, bestScore = -1, bestX = -1;
+      /* ギャップ探索: L2〜Rr のlightColが最小の連続区間（暗列）をスキャン幅4pxで */
+      var runs = darkThin(darkColF, L2 + Math.round(maxW * 0.3), Rr - Math.round(maxW * 0.3));
+      var x;
+      if (runs.length){
+        /* 中央に近い細線を選ぶ */
+        var mid = (L2 + Rr) / 2;
+        runs.sort(function(p, q){ return Math.abs(p - mid) - Math.abs(q - mid); });
+        mids.push(runs[0]);
+      } else {
+        var g0 = -1, g1 = -1, bg0 = -1, bg1 = -1, bw = 0;
+        for (x = L2 + 4; x <= Rr - 4; x++){
+          if (lightCol[x] < 0.015){ if (g0 < 0) g0 = x; g1 = x; if (g1 - g0 > bw){ bw = g1 - g0; bg0 = g0; bg1 = g1; } }
+          else { g0 = -1; }
+        }
+        if (bw >= 3) mids.push((bg0 + bg1) >> 1);
+      }
+      var added = mids.filter(function(v){ return v > L2 + 12 && v < Rr - 12; });
+      if (!added.length) break;
+      added.sort(function(p, q){ return p - q; });
+      out2.push(added[0]); L2 = added[0];
+    }
+    out2.push(Rr);
+  }
+  return out2;
+}
+
+/* 1セル: 背景色実測→マスク→列グループ化→等幅k窓テンプレ照合（第64弾・クリーン版） */
+function ti64Cell(id, W, xa, ya, xb, yb, rowH, r, c){
+  var pad = Math.min(5, Math.max(2, Math.round(Math.min(xb - xa, yb - ya) / 14)));
+  var x0 = xa + pad, x1 = xb - pad, y0 = ya + pad, y1 = yb - pad;
+  if (x1 - x0 < 4 || y1 - y0 < 4) return { r: r, c: c, kind: 'empty' };
+  /* 地色: 4辺実測の中央値 */
+  var bs = [], i, p;
+  for (var yy = y0; yy <= y1; yy += 2){ bs.push([id[(yy * W + x0) * 4], id[(yy * W + x0) * 4 + 1], id[(yy * W + x0) * 4 + 2], id[(yy * W + x1) * 4], id[(yy * W + x1) * 4 + 1], id[(yy * W + x1) * 4 + 2]]); }
+  var med = [0, 1, 2].map(function(q){ var v = []; for (i = 0; i < bs.length; i++){ v.push(bs[i][q * 2]); v.push(bs[i][q * 2 + 1]); } v.sort(function(a, b){ return a - b; }); return v[v.length >> 1]; });
+  var br = med[0], bg = med[1], bb = med[2];
+  var bgL = (br * 77 + bg * 150 + bb * 29) / 255;
+  var cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+  var mask = new Uint8Array(cw * ch), mc = 0;
+  var mx0 = 1e9, mx1 = -1, my0 = 1e9, my1 = -1, inkPx = [];
+  for (yy = y0; yy <= y1; yy++) for (var xx = x0; xx <= x1; xx++){
+    p = (yy * W + xx) * 4;
+    var dl = Math.abs((id[p] * 77 + id[p + 1] * 150 + id[p + 2] * 29) / 255 - bgL);
+    if (dl > 64){
+      mask[(yy - y0) * cw + (xx - x0)] = 1; mc++;
+      if (xx < mx0) mx0 = xx; if (xx > mx1) mx1 = xx;
+      if (yy < my0) my0 = yy; if (yy > my1) my1 = yy;
+      inkPx.push([dl, id[p], id[p + 1], id[p + 2]]);   /* ★第65弾①: 文字色を実測するために収集 */
+    }
+  }
+  var cell = { r: r, c: c, bg: [br, bg, bb], kind: 'img' };
+  if (mc < 8 || mx1 < 0){ cell.kind = 'empty'; return cell; }
+  /* ★第65弾①: 文字色＝マスク画素のうち輝度差が強い上位25%の平均色（JPEGハロの薄い縁を除いて実物の文字色を再現）。
+     認識マスク本体は第64弾版Eのまま変更なし（ok105/110の調整を壊さない）。 */
+  inkPx.sort(function(a, b){ return b[0] - a[0]; });
+  var take = Math.max(4, Math.ceil(mc * 0.25)), tr = 0, tg = 0, tb = 0, i2;
+  for (i2 = 0; i2 < take && i2 < inkPx.length; i2++){ tr += inkPx[i2][1]; tg += inkPx[i2][2]; tb += inkPx[i2][3]; }
+  var nTake = Math.min(take, inkPx.length);
+  cell.ink = [Math.round(tr / nTake), Math.round(tg / nTake), Math.round(tb / nTake)];
+  var gh = my1 - my0 + 1;
+  var tpr = ti64Templates(Math.max(10, Math.min(26, gh))).map;
+  /* 未・ハイフンゲート（数字より先に全体照合） */
+  var tAll = ti64NormMask(mask, cw, mx0 - x0, my0 - y0, mx1 - mx0 + 1, gh);
+  var scU = tpr['未'] ? ti64Ncc(tAll, tpr['未'].m) : -1;
+  if (scU >= 0.50 && mx1 - mx0 <= gh * 1.45 && mc >= (mx1 - mx0 + 1) * gh * 0.26){ cell.kind = 'num'; cell.text = '未'; cell.value = null; cell.conf = scU; return cell; }
+  if (gh <= 8){ var scD = tpr['-'] ? ti64Ncc(tAll, tpr['-'].m) : -1; if (scD >= 0.6){ cell.kind = 'empty'; cell.text = '-'; return cell; } }
+  if (gh > rowH * 0.80 || gh < 7){ cell.crop = ti64Crop(id, W, x0, y0, x1, y1); return cell; }
+  /* 列グループ（1pxギャップは橋渡し） */
+  var inkC = new Int32Array(cw);
+  for (var yq = 0; yq < ch; yq++) for (var xq = 0; xq < cw; xq++) if (mask[yq * cw + xq]) inkC[xq]++;
+  var segs = [], a = -1, gap = 0;
+  for (xq = Math.max(0, mx0 - x0); xq <= Math.min(cw - 1, mx1 - x0); xq++){
+    if (inkC[xq] > 0){ if (a < 0) a = xq; gap = 0; }
+    else if (a >= 0){ gap++; if (gap >= 2){ segs.push([a, xq - gap]); a = -1; gap = 0; } }
+  }
+  if (a >= 0) segs.push([a, Math.min(cw - 1, mx1 - x0)]);
+  if (!segs.length){ cell.crop = ti64Crop(id, W, x0, y0, x1, y1); return cell; }
+  /* グループごとに tight な y 範囲 */
+  var items = [];
+  for (i = 0; i < segs.length; i++){
+    var sa = segs[i][0], sb = segs[i][1];
+    var sy0 = 1e9, sy1 = -1, ar2 = 0;
+    for (yq = 0; yq < ch; yq++) for (xq = sa; xq <= sb; xq++) if (mask[yq * cw + xq]){ if (yq < sy0) sy0 = yq; if (yq > sy1) sy1 = yq; ar2++; }
+    if (sy1 < 0) continue;
+    var sh = sy1 - sy0 + 1, sw = sb - sa + 1;
+    var rel0 = my0 - y0;
+    if (sh <= Math.max(5, Math.round(gh * 0.52)) && sw <= Math.max(6, Math.round(gh * 0.52)) && ar2 <= 44){
+      if (sy1 - rel0 <= Math.round(gh * 0.62) && sy0 - rel0 <= Math.round(gh * 0.30) && ar2 >= 4) items.push({ t: 'star', x0: sa });
+      else if (sy0 - rel0 >= Math.round(gh * 0.48)) items.push({ t: 'dot', x0: sa });
+      /* 中央の微片（ハロ欠片）は無視＝セル全体を壊さない */
+      continue;
+    }
+    items.push({ t: 'd', x0: sa, x1: sb, sy0: sy0, sy1: sy1 });
+  }
+  /* 連続 'd' を連結して run 化 → 等幅k窓マッチ */
+  var str = '', star = false, conf = 99, numDigits = 0, ok = true;
+  var estW = Math.max(4, Math.round(gh * 0.58));
+  var idx = 0;
+  while (idx < items.length){
+    var it0 = items[idx];
+    if (it0.t === 'dot'){ str += '.'; idx++; continue; }
+    if (it0.t === 'star'){ star = true; idx++; continue; }
+    var j = idx;
+    while (j + 1 < items.length && items[j + 1].t === 'd' && items[j + 1].x0 - items[j].x1 <= 2) j++;
+    var ra = it0.x0, rb2 = items[j].x1;
+    var ry0 = 1e9, ry1 = -1;
+    for (var q2 = idx; q2 <= j; q2++){ ry0 = Math.min(ry0, items[q2].sy0); ry1 = Math.max(ry1, items[q2].sy1); }
+    var wd = rb2 - ra + 1;
+    var kTry = Math.min(4, Math.max(1, Math.round(wd / estW)));
+    var kEnd = Math.min(4, Math.max(kTry, Math.ceil(wd / (estW * 0.74))));
+    var bestRun = null;
+    for (var kk = 1; kk <= kEnd; kk++){
+      if (wd / kk < estW * 0.52 || wd / kk > estW * 2.4) continue;
+      var win = wd / kk, resCh = [], mins = 99, okr = true;
+      for (var wi = 0; wi < kk; wi++){
+        var wa2 = Math.round(ra + wi * win), wb2 = Math.round(ra + (wi + 1) * win) - 1;
+        var bb2 = null;
+        for (var shf = -2; shf <= 2; shf += 1){
+          var xs0 = Math.max(ra, wa2 + shf), xs1 = Math.min(rb2, wb2 + shf);
+          if (xs1 - xs0 < 3) continue;
+          var tgt = ti64NormMask(mask, cw, xs0, ry0, xs1 - xs0 + 1, ry1 - ry0 + 1);
+          var bch = null, bsc = -2;
+          for (var k in tpr){
+            if (k === '-' || k === '未' || k === '牡' || k === 'セ' || k === '牝' || k === '1s' || k === '7s') continue;
+            var sc = ti64Ncc(tgt, tpr[k].m);
+            if (k === '1' && tpr['1s']){ var s1 = ti64Ncc(tgt, tpr['1s'].m); if (s1 > sc) sc = s1; }
+            if (k === '7' && tpr['7s']){ var s7 = ti64Ncc(tgt, tpr['7s'].m); if (s7 > sc) sc = s7; }
+            if ((k === '.' || k === '*') && sc < 0.685) continue;   /* dot/*は高めの閾で誤食防止 */
+            if (sc > bsc){ bsc = sc; bch = k; }
+          }
+          if (bb2 === null || bsc > bb2[2]) bb2 = [xs0, xs1, bsc, bch];
+        }
+        if (!bb2 || !bb2[3] || bb2[2] < (bb2[3] === '.' || bb2[3] === '*' ? 0.685 : 0.60)){ okr = false; break; }
+        resCh.push(bb2[3]);
+        if (bb2[2] < mins) mins = bb2[2];
+      }
+      if (okr && (!bestRun || mins > bestRun[1] + 0.015)){
+        var sstr = '', sstar = false, sdig = 0;
+        resCh.forEach(function(zz){ if (zz === '.') sstr += '.'; else if (zz === '*') sstar = true; else { sstr += zz; sdig++; } });
+        bestRun = [sstr, mins, sstar, sdig];
+      }
+    }
+    if (!bestRun || !bestRun[3]){ ok = false; break; }
+    str += bestRun[0]; numDigits += bestRun[3];
+    if (bestRun[2]) star = true;
+    if (bestRun[1] < conf) conf = bestRun[1];
+    idx = j + 1;
+  }
+  if (ok && str.charAt(0) === '.') str = str.slice(1);
+  if (ok && numDigits >= 1){
+    var fv = parseFloat(str);
+    if (isFinite(fv)){
+      cell.kind = 'num'; cell.text = str + (star ? '*' : ''); cell.value = fv; cell.conf = conf;
+      return cell;
+    }
+  }
+  if (numDigits === 0 && scU >= 0.46){ cell.kind = 'num'; cell.text = '未'; cell.value = null; cell.conf = scU; return cell; }
+  cell.crop = ti64Crop(id, W, x0, y0, x1, y1);
+  return cell; /* 画像セル */
+}
+function ti64Crop(id, W, x0, y0, x1, y1){
+  var px = x1 - x0 + 1, py = y1 - y0 + 1;
+  var cv = ti64Canvas(px, py), cx = ti64Ctx(cv), im = cx.createImageData(px, py);
+  for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++){
+    var sp = (y * W + x) * 4, dp = ((y - y0) * px + (x - x0)) * 4;
+    im.data[dp] = id[sp]; im.data[dp + 1] = id[sp + 1]; im.data[dp + 2] = id[sp + 2]; im.data[dp + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0);
+  return cv.toDataURL('image/png');
+}
+function ti64NormMask(mask, cw, x0, y0, w, h){
+  var N = 16, cv = ti64Canvas(w, h), cx = ti64Ctx(cv), im = cx.createImageData(w, h);
+  for (var y = 0; y < h; y++) for (var x = 0; x < w; x++){
+    var v = mask[(y + y0) * cw + (x + x0)] ? 255 : 0; var q = (y * w + x) * 4;
+    im.data[q] = im.data[q + 1] = im.data[q + 2] = v; im.data[q + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0);
+  var oc = ti64Canvas(N, N), ox = oc.getContext('2d');
+  ox.imageSmoothingEnabled = true; ox.imageSmoothingQuality = 'high';
+  var s = N / Math.max(w, h), dw = Math.max(2, Math.round(w * s)), dh = Math.max(2, Math.round(h * s));
+  ox.drawImage(cv, ((N - dw) / 2) | 0, ((N - dh) / 2) | 0, dw, dh);
+  var d2 = ox.getImageData(0, 0, N, N).data, m = new Float32Array(N * N), i;
+  for (i = 0; i < N * N; i++) m[i] = d2[i * 4] / 255;
+  var mu = 0; for (i = 0; i < m.length; i++) mu += m[i]; mu /= m.length;
+  var nn = 0; for (i = 0; i < m.length; i++){ m[i] -= mu; nn += m[i] * m[i]; }
+  nn = Math.sqrt(nn) || 1; for (i = 0; i < m.length; i++) m[i] /= nn;
+  return m;
+}
+
+/* ================= UI（③タブのカード） ================= */
+function nkTidxEnter(){ /* タブ表示時フック（現状やることなし） */ }
+function ti64Wire(){
+  var file = document.getElementById('tiFile'), drop = document.getElementById('tiDrop');
+  if (!file || TI64.fileSet) return; TI64.fileSet = true;
+  file.addEventListener('change', function(){ if (file.files && file.files[0]) ti64LoadFile(file.files[0]); });
+  ['dragover','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('on'); if (ev === 'drop' && e.dataTransfer.files[0]) ti64LoadFile(e.dataTransfer.files[0]); }); });
+  drop.addEventListener('dragleave', function(){ drop.classList.remove('on'); });
+  document.addEventListener('paste', function(e){
+    var pg = document.getElementById('t-sim'); if (!pg || !pg.classList.contains('active')) return;
+    var ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++){ if (items[i].type.indexOf('image/') === 0){ var f = items[i].getAsFile(); if (f){ e.preventDefault(); ti64LoadFile(f); return; } } }
+  });
+  ti64LoadCache();   /* ★第66弾: 前回取り込んだ当週分があれば復元（期限切れはここで自動削除） */
+}
+function ti64LoadFile(f){
+  var st = document.getElementById('tiMsg'); if (st) st.textContent = '読取中…';
+  var url = URL.createObjectURL(f), im = new Image();
+  im.onload = function(){
+    ti64Msg('');
+    try { nkTidxScan(im, function(res){
+      URL.revokeObjectURL(url);
+      if (res.err){ ti64Msg('⚠️ ' + res.err); return; }
+      TI64.res = res; TI64.sortCol = -1; TI64.sortDir = 0; TI64.img = im;
+      var low = 0; res.cells.forEach(function(cl){ if (cl.kind === 'num' && cl.conf != null && cl.conf < 0.68) low++; });
+      ti64Msg('✅ ' + res.R + '行×' + res.C + '列 を読み取りました（低確信セル ' + low + ' 個＝赤枠。ダブルクリックで修正）');
+      ti64SaveCache();   /* ★第66弾: 当週分として保存（8日後に自動削除・再取り込みで上書き） */
+      ti64Render();      /* 保存状態（📌注記）を含めて描画 */
+    }); } catch(e){ ti64Msg('⚠️ 解析でエラー: ' + (e && e.message || e)); }
+  };
+  im.onerror = function(){ URL.revokeObjectURL(url); ti64Msg('⚠️ 画像を開けませんでした（PNG/JPEGで）'); };
+  im.src = url;
+}
+function ti64Msg(s){ var el = document.getElementById('tiMsg'); if (el) el.textContent = s; }
+/* ---------- ★第66弾: 当週開催ぶんのキャッシュ（8日後に自動削除・新しい取り込みで上書き） ---------- */
+var TI64_KEY = 'khl_ti64';
+var TI64_KEEP_MS = 8 * 86400 * 1000;   /* 取り込み日から8日＝当週の土日＋祝月曜まで確実に残る */
+function ti64SaveCache(){
+  try {
+    if (!TI64.res || !TI64.res.cells || !TI64.res.cells.length) return;
+    var at = Date.now();
+    TI64.purgeAt = at + TI64_KEEP_MS; TI64.cached = true;
+    var o = { at: at, purgeAt: TI64.purgeAt, res: TI64.res };
+    try { localStorage.setItem(TI64_KEY, JSON.stringify(o)); }
+    catch(eQ){   /* 容量不足なら画像cropだけ落として数値・ソート・色は残す */
+      try {
+        var slim = JSON.parse(JSON.stringify(o));
+        slim.res.headCrop = null;
+        slim.res.cells.forEach(function(cl){ if (cl && cl.kind === 'img') cl.crop = null; });
+        slim.slim = true;
+        localStorage.setItem(TI64_KEY, JSON.stringify(slim));
+      } catch(e2){ try { localStorage.removeItem(TI64_KEY); } catch(e3){} TI64.cached = false; }
+    }
+  } catch(e){ TI64.cached = false; }
+}
+function ti64LoadCache(){
+  try {
+    var raw = null;
+    try { raw = localStorage.getItem(TI64_KEY); } catch(eL){ return; }
+    if (!raw) return;
+    var o = null;
+    try { o = JSON.parse(raw); } catch(eP){ try { localStorage.removeItem(TI64_KEY); } catch(e2){} return; }
+    if (!o || !o.res || !o.res.cells || !o.res.cells.length){ try { localStorage.removeItem(TI64_KEY); } catch(e2){} return; }
+    if (Date.now() > (o.purgeAt || (o.at || 0) + TI64_KEEP_MS)){   /* 当週開催の終了後 → キャッシュを残さない */
+      try { localStorage.removeItem(TI64_KEY); } catch(e2){}
+      return;
+    }
+    TI64.res = o.res; TI64.sortCol = -1; TI64.sortDir = 0; TI64.img = null;
+    TI64.purgeAt = o.purgeAt || (o.at || 0) + TI64_KEEP_MS; TI64.cached = true;
+    var d = new Date(TI64.purgeAt);
+    ti64Msg('📌 前回取り込んだ表を復元しました（当週分・' + (d.getMonth() + 1) + '/' + d.getDate() + ' に自動削除）');
+    ti64Render();
+  } catch(e){ /* 復元失敗は無視（次の取り込みで上書きされる） */ }
+}
+function ti64DropCache(){
+  try { localStorage.removeItem(TI64_KEY); } catch(e){}
+  TI64.res = null; TI64.cached = false; TI64.purgeAt = 0;
+  var out = document.getElementById('tiOut'); if (out) out.innerHTML = '';
+  ti64Msg('スクショの保存を削除しました（再取り込みはいつでもできます）');
+}
+function ti64Render(){
+  var out = document.getElementById('tiOut'); if (!out || !TI64.res) return;
+  var res = TI64.res, R = res.R, C = res.C;
+  var C15 = C === 15, labels = C15 ? TI64_LABELS15 : null;
+  var numFlags = C15 ? TI64_NUM15 : res.cols.map(function(cl){ return cl.numeric ? 1 : 0; });
+  var order = []; for (var r = 0; r < R; r++) order.push(r);
+  if (TI64.sortCol >= 0 && TI64.sortDir !== 0){
+    var sc = TI64.sortCol, dir = TI64.sortDir;
+    order.sort(function(a, b){
+      var ca = res.cells[a * C + sc], cb = res.cells[b * C + sc];
+      var va = ca.value == null ? -1e9 : ca.value, vb = cb.value == null ? -1e9 : cb.value;
+      return (va - vb) * dir || a - b;
+    });
+  }
+  function rgb(a){ return 'rgb(' + a[0] + ',' + a[1] + ',' + a[2] + ')'; }
+  function inkOf(cl){ return cl.ink ? rgb(cl.ink) : '#fff'; }
+  var h = '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
+  if (res.headCrop){
+    h += '<tr><td colspan="' + C + '" style="padding:0"><img src="' + res.headCrop + '" style="display:block;width:100%;max-width:' + res.x1 + 'px"></td></tr>';
+  }
+  h += '<tr>';
+  for (var c = 0; c < C; c++){
+    var lab = labels ? labels[c] : ('列' + (c + 1));
+    var ar = TI64.sortCol === c ? (TI64.sortDir > 0 ? ' ▲' : ' ▼') : '';
+    var sortable = numFlags[c] && !res.headCrop;
+    h += '<th ' + (C15 || labels ? 'title="' + (numFlags[c] ? lab + '（クリックでソート）' : lab + '（画像セル＝ソート不可）') + '" ' : '') +
+      (numFlags[c] ? 'onclick="ti64Sort(' + c + ')" style="cursor:pointer;padding:3px 5px;background:#101010;border:1px solid #000;white-space:nowrap;color:#eaeaea" '
+                   : 'style="padding:3px 5px;background:#101010;border:1px solid #000;white-space:nowrap;color:#8a8a8a" ') + '>' + lab + ar + '</th>';
+  }
+  h += '</tr>';
+  order.forEach(function(rr){
+    h += '<tr>';
+    for (c = 0; c < C; c++){
+      var cl = res.cells[rr * C + c];
+      var lowc = cl.kind === 'num' && cl.conf != null && cl.conf < 0.68;
+      h += '<td ' + ((cl.kind === 'num' || numFlags[c]) ? 'ondblclick="ti64Edit(' + rr + ',' + c + ',this)" ' : '') +
+        'style="padding:4px 6px;border:1px solid #000;background:' + rgb(cl.bg) + ';color:' + inkOf(cl) +
+        ';text-align:' + (cl.kind === 'num' ? 'right' : 'center') + ';' + (lowc ? 'outline:2px solid #ff7b72;outline-offset:-2px;' : '') +
+        ';white-space:nowrap' + '">' +
+        (cl.kind === 'num' ? (cl.text == null ? '未' : cl.text) + (cl.edited ? ' ✎' : '')
+         : cl.kind === 'empty' ? '<span style="opacity:.55">-</span>'
+         : (numFlags[c] && cl.value != null) ? cl.text + ' ✎'
+         : numFlags[c] ? (cl.crop ? '<img src="' + cl.crop + '" style="display:block;max-height:20px;vertical-align:middle;opacity:.85" title="読取失敗：ダブルクリックで数値入力">'
+                                    : '<span style="opacity:.6" title="読取失敗：ダブルクリックで数値入力">✎?</span>')
+         : (cl.crop ? '<img src="' + cl.crop + '" style="display:block;max-width:150px;height:' + Math.max(18, Math.round(res.rowH * 0.62)) + 'px;margin:0 auto">'
+                    : '<span style="opacity:.4">（画像省略）</span>')) +
+        '</td>';
+    }
+    h += '</tr>';
+  });
+  h += '</table></div>';
+  var cacheNote = '';
+  if (TI64.cached && TI64.purgeAt){
+    var dd = new Date(TI64.purgeAt);
+    cacheNote = '<span style="margin-left:8px">📌 当週分を端末に保存中（' + (dd.getMonth() + 1) + '/' + dd.getDate() + ' に自動削除＝それ以降はキャッシュを残しません）' +
+      '<button type="button" class="btn ghost" style="margin-left:6px" onclick="ti64DropCache()">🗑 今すぐ消す</button></span>';
+  }
+  h += '<div class="small muted" style="margin-top:4px">※数値セルは自動読取（怪しいセルは赤枠＝ダブルクリックで直接編集）。馬名・印・騎手・性齢は読取らず**元の画像をそのまま貼って**います（＝ネットケイバ実物と完全に同じ見え方）。数値列の見出しクリックで並び替え（降順→昇順→元順）。' + cacheNote +
+    '<button type="button" class="btn ghost" style="margin-left:8px" onclick="ti64Csv()">📋 CSV</button>' +
+    '<button type="button" class="btn ghost" style="margin-left:6px" onclick="document.getElementById(\'tiOut\').innerHTML=\'\'">閉じる</button></div>';
+  out.innerHTML = h;
+}
+function ti64Sort(c){
+  if (TI64.sortCol === c) TI64.sortDir = TI64.sortDir > 0 ? -1 : TI64.sortDir < 0 ? 0 : 1;
+  else { TI64.sortCol = c; TI64.sortDir = 1; }
+  ti64Render();
+}
+function ti64Edit(r, c, td){
+  var res = TI64.res, cl = res.cells[r * res.C + c];
+  var inp = document.createElement('input'); inp.size = 5; inp.value = cl.text == null ? '' : cl.text.replace('✎','').trim();
+  inp.style.cssText = 'width:64px;font-size:12px;background:#fff;color:#111';
+  td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
+  function done(){
+    var v = inp.value.trim(); cl.edited = true;
+    if (v === '' || v === '-' || v === '未'){ cl.text = v || '未'; cl.value = null; }
+    else { var m = v.replace(/[*＊✎]/g, '').match(/-?\d+(\.\d+)?/); cl.value = m ? parseFloat(m[0]) : null; cl.text = v; }
+    cl.kind = 'num'; cl.conf = 1; ti64Render(); ti64SaveCache();   /* ★第66弾: 手修正も当週キャッシュへ反映 */
+  }
+  inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') done(); if (e.key === 'Escape') ti64Render(); });
+  inp.addEventListener('blur', done);
+}
+function ti64Csv(){
+  var res = TI64.res; if (!res) return;
+  var C15 = res.C === 15, labels = C15 ? TI64_LABELS15 : res.cells.length ? Array.from({ length: res.C }, function(_, i){ return 'col' + (i + 1); }) : [];
+  var lines = [labels.join('\t')];
+  for (var r = 0; r < res.R; r++){
+    var row = [];
+    for (var c = 0; c < res.C; c++){
+      var cl = res.cells[r * res.C + c];
+      row.push(cl.kind === 'num' ? (cl.text == null ? '未' : cl.text.replace('✎','').trim()) : cl.kind === 'empty' ? '-' : '');
+    }
+    lines.push(row.join('\t'));
+  }
+  var blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/plain' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'netkeibaタイム指数_' + (typeof state !== 'undefined' && state.race && state.race.name ? state.race.name : '取込') + '.txt';
+  a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ti64Wire); else ti64Wire();
 
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
