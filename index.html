@@ -15608,6 +15608,7 @@ function apSnapPred(rid, res, meta, opt){
         return {
           no: String(h.no == null ? '' : h.no), name: String(h.name || ''),
           odds: (h.odds == null ? '' : String(h.odds)), style: String(h.style || ''),
+          jockey: String(h.jockey || ''),   /* ★第70弾: コースLvの騎手要素（相性・騎手の得手不得手コース）に使う */
           slow: (h.slow == null ? '' : String(h.slow)),
           rank: r.rank || 0, mark: r.mark || '', prob: r.prob || 0, U: r.U || 0,
           mine: (r.mine == null ? null : r.mine),
@@ -15823,7 +15824,7 @@ function apMetaCur(){
 function apSnapHorses(){
   return ((state && state.horses) || []).map(function(h){
     return {
-      no: h.no || '', name: h.name || '', odds: h.odds || '', style: h.style || '',
+      no: h.no || '', name: h.name || '', odds: h.odds || '', style: h.style || '', jockey: h.jockey || '',
       mark: '', nk: h.nk || '', pedi: h.pedi ? { sire: h.pedi.sire || '', msire: h.pedi.msire || '' } : null
     };
   }).filter(function(x){ return x.no; });
@@ -36722,7 +36723,7 @@ function klFetchAllDetails(kind, onProgress){
    外部サイト(keibalab/netkeiba)を経由せず、diLs() のレース行(r.jockey/r.trainer/r.order/meta 等)から集計する。
    集計値は小さいので JSON.stringify で圧縮保存(khl_jdb_stats)。 */
 var klDbCache = null;
-var KL_STATS_V = 4;
+var KL_STATS_V = 5;   /* ★第70弾: jrにl3d(レース内最速上りとの差)・pass1(1角位置)を追加 */
 function klDistBand(d){ var n = parseInt(String(d).replace(/[^0-9]/g, ''), 10) || 0; if (n <= 0) return ''; if (n < 1400) return '~1399'; if (n < 1800) return '1400-1799'; if (n < 2000) return '1800-1999'; if (n < 2200) return '2000-2199'; if (n < 2400) return '2200-2399'; if (n < 3000) return '2400-2999'; return '3000~'; }
 function klDistRank(k){ var n = parseInt(String(k).replace(/[^0-9].*$/, ''), 10); return isNaN(n) ? 0 : n; }
 function klStatNew(n){ return { name: n, rides: 0, win: 0, place: 0, show: 0, winPrize: 0, bySurf: {}, byTrack: {}, byDist: {}, byDistEx: {}, byYear: {}, byPartner: {}, gr: { rides: 0, win: 0, place: 0, show: 0 }, races: [], recent: [], popSum: 0, popN: 0, pace: {} }; }
@@ -36762,6 +36763,13 @@ function klBuildFromDb(){
     var prizeOf = {};
     var po = (rec.payout && rec.payout.tan) || null;
     if (po && po.nos && po.pays){ for (var i = 0; i < po.nos.length; i++){ prizeOf[String(po.nos[i])] = po.pays[i]; } }
+    /* ★第70弾: このレースの「最速上り3F」（たいてい勝ち馬）を先に出しておく。
+       各馬の上りがそれより何秒遅いか(l3d)が、レースLvの時計裏付けに使える。 */
+    var minL3 = null;
+    rows.forEach(function(r){
+      var l3f = parseFloat(r.last3);
+      if (isFinite(l3f) && l3f > 25 && l3f < 55 && (minL3 == null || l3f < minL3)) minL3 = l3f;
+    });
     rows.forEach(function(r){
       var o = parseInt((r.order != null ? r.order : r[1]), 10);
       if (isNaN(o)) return;
@@ -36774,7 +36782,10 @@ function klBuildFromDb(){
       }
       var pace = (rec.xd && rec.xd.pace) ? rec.xd.pace : '';
       var jn = r.jockey, tn = r.trainer, hn = r.name;
-      var jr = { date: meta.date8 || meta.date || '', place: track, rnum: meta.rnum || '', name: meta.name || '', dist: meta.dist || '', surf: surf, order: o, odds: r.odds || '', pop: r.pop || '', jockey: jn, trainer: tn, weight: r.weight || '', passing: r.passing || '', last3: r.last3 || '', hw: r.weightChg || '' };
+      var l3f2 = parseFloat(r.last3);
+      var jr = { date: meta.date8 || meta.date || '', place: track, rnum: meta.rnum || '', name: meta.name || '', dist: meta.dist || '', surf: surf, order: o, odds: r.odds || '', pop: r.pop || '', jockey: jn, trainer: tn, weight: r.weight || '', passing: r.passing || '', last3: r.last3 || '', hw: r.weightChg || '',
+        l3d: (isFinite(l3f2) && minL3 != null) ? Math.round((l3f2 - minL3) * 10) / 10 : null,
+        pass1: parseInt(String(r.passing || '').split('-')[0], 10) || 0 };
       if (jn) klStatAdd(get(J, jn), o, surf, track, distB, distEx, parseInt(r.pop, 10) || 0, prize, pace, year, tn, isGr, null);
       if (tn) klStatAdd(get(T, tn), o, surf, track, distB, distEx, parseInt(r.pop, 10) || 0, prize, pace, year, jn, isGr, null);
       if (hn) klStatAdd(get(H, hn), o, surf, track, distB, distEx, 0, prize, pace, year, tn, isGr, jr);
@@ -37435,7 +37446,7 @@ var AI_HELP = [
   { k:'recap', t:'③ AI振り返りコメント',          d:'結果が揃ったレースごとに、展開予想（ペース・トラックバイアス）と実際の流れ、印の馬が来た／来なかった理由を1レースずつ自動でまとめます。' },
   { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。' },
   { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
-  { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・CL・波乱度・RL）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。レースごとに見出しで波乱度A〜EとRL（レースランク1〜10）を、馬ごとにCL（コースランク0〜10）を表示。' },
+  { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での相対評価（1.00が最高＝1.00に近いほど信用できる。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方1.00に近い馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
   { k:'recomp',t:'⑧  再計算（現エンジン）',       d:'エンジン更新（第37弾・新馬戦／障害戦の限定補正など）を、保存済みの前日予想(rec.pre)へ反映します。端末の出馬表キャッシュと保存済みオッズだけなので通信ゼロ。結果確定済みレースは上書きせず保護します。' }
 ];
@@ -37557,6 +37568,7 @@ function aiRecBundle(rid){
         mark: String(x.mark || (i < MO.length ? MO[i] : '')),
         odds: (x.odds == null || x.odds === '') ? null : (parseFloat(x.odds) || null),
         style: String(x.style || ''),
+        jockey: String(x.jockey || (rec.predHorses || []).reduce(function(a2, p2){ return a2 || (String(p2.no) === String(x.no) ? String(p2.jockey || '') : ''); }, '')),
         order: rr ? (parseInt(rr.order, 10) || 0) : 0,
         pop: rr ? String(rr.pop || '') : '',
         passing: rr ? String(rr.passing || '') : ''
@@ -37921,11 +37933,18 @@ function aiRaceGeom(b){
   var surfKey = /障/.test(raceName + distStr) ? '障' : (/ダ/.test(raceName + distStr) ? 'ダ' : '芝');
   return { m: m, surf: surfKey, venue: String(mm.place || '') };
 }
-/* ---------- 🎚 RL/CL・実況風展開予想（第36弾・Excel/PDFに同載） ----------
-   ・RL（レースランク）: クラス/格付けの基準値＋AI上位5頭の学習DB実績（複勝率・勝率）で
-     ±1.6まで補正した 1〜10。実績のある馬だけで補正します（薄い馬は無視）。
-   ・CL（コースランク）: その馬の 複勝率(全体)×面×距離帯(芝1600m等)×当該競馬場 の
-     加重blend（各セルは件数で収縮 n/(n+6)、実績3走未満は「—」）を 0〜10 に。
+/* ---------- 🎚 コースLv/レースLv・実況風展開予想（第36弾→★第69弾で仕様変更） ----------
+   ★第69弾: ユーザー指摘「コースレベル・レースレベルは“その出馬表にいる馬の中での比較”に
+   使う数値。1に近いほど信用できる形にしてほしい」→ 両方とも【同じレースの出走馬の中での
+   相対値 0.00〜1.00】に変更（1.00＝このメンバーの中で最上位）。
+   ・コースLv（馬別）: その馬の 複勝率(全体)×面×距離帯(芝1600m等)×当該競馬場 の
+     加重blend（各セルは件数で収縮 n/(n+6)）を出馬表内の最高値で割った相対値。
+     「この馬たちの中だと、この条件でどれだけ力を出せるか」。実績3走未満は「—」。
+   ・レースLv（馬別）: 学習DBにあるその馬の直近出走レースのクラス基準値
+     （G1=8.6〜新馬=2.2。馬券内に入ったレースを優先・新しいほど重く）を出馬表内の
+     最高値で割った相対値。「この馬たちの中で、どのレベルのレースで戦ってきたか」。
+     学習DBに2走以上無い馬は「—」。
+   ・レース見出しにはクラス表記（2勝クラス・標準 など）を文脈として残す（旧RLの名残）。
    ・展開予想（実況風）: 脚質・AI確率・保存済みペース予想・トラックバイアス想定・
      学習DB基準時計（tlBaseSec）から 隊列→600m通過→4角隊列→予想入線 を文章生成。
      乱数なし・決定的（同じデータなら毎回同じ文章）。
@@ -37969,11 +37988,11 @@ function aiRaceRL(b){
     var adj = n ? aiClamp((acc / n - 0.30) * 5.0, -1.6, 1.6) : 0;
     var v = Math.round(aiClamp(cl.base + adj, 1, 10) * 10) / 10;
     var lv = v >= 8 ? 'ハイレベル' : (v >= 6.4 ? '標準以上' : (v >= 4.6 ? '標準' : 'ローカル編成'));
-    return { v: v, txt: v.toFixed(1) + '（' + cl.note + '・' + lv + '）', n: n };
-  } catch(e){ return { v: null, txt: '—', n: 0 }; }
+    return { v: v, txt: v.toFixed(1) + '（' + cl.note + '・' + lv + '）', note: cl.note + '・' + lv, n: n };
+  } catch(e){ return { v: null, txt: '—', note: '—', n: 0 }; }
 }
-/* CL: コースランク（0〜10・馬別） */
-function aiCourseCL(hname, surfKey, m, venue){
+/* コースLvの元になる適性blend（複勝率ベース・0付近〜1）: 相対化は aiFieldLevels で行う */
+function aiCourseCL(hname, surfKey, m, venue, jockey){   /* ★第70弾: jockey=今回の騎手（相性・得手不得手コースに使用） */
   try {
     var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', hname) : null;
     if (!st || (st.rides || 0) < 3) return null;
@@ -37994,9 +38013,99 @@ function aiCourseCL(hname, surfKey, m, venue){
     cells.forEach(function(x){ if (x){ acc += x.r * x.w; wt += x.w; } });
     if (!(wt > 0)) return null;
     var r = acc / wt;
-    var v = Math.round(aiClamp(2 + (r - 0.10) * (8 / 0.55), 0, 10) * 10) / 10;
-    return { v: v, rate: r };
+    /* ★第70弾: 騎手要素（コースLvは「補足」なので小さめの補正にする）
+       ・その馬とこの騎手の過去の相性（2走以上一緒に走っていれば）
+       ・この騎手の「当該競馬場」での得手不得手（全体複勝率との差・5走以上） */
+    var jk = String(jockey || '');
+    if (jk){
+      try {
+        var withJ = (st.races || []).filter(function(jr){ return String(jr.jockey || '') === jk; });
+        if (withJ.length >= 2){
+          var w2 = 0, p2 = 0;
+          withJ.forEach(function(jr){ var o = parseInt(jr.order, 10) || 99; if (o === 1) w2++; if (o <= 3) p2++; });
+          var chem = (w2 + 0.5 * (p2 - w2)) / withJ.length;             /* この騎手との複勝換算 */
+          r += Math.max(-0.12, Math.min(0.12, (chem - 0.35) * 0.3));
+        }
+      } catch(eJ1){}
+      try {
+        var js = (typeof klStatsOf === 'function') ? klStatsOf('jockey', jk) : null;
+        if (js && (js.rides || 0) >= 30){
+          var all2 = (js.show || 0) / js.rides;
+          var tv = venue && js.byTrack && js.byTrack[venue];
+          if (tv && (tv.rides || 0) >= 5){
+            r += Math.max(-0.10, Math.min(0.10, ((tv.show || 0) / tv.rides - all2) * 0.4));
+          }
+        }
+      } catch(eJ2){}
+    }
+    return { r: Math.max(0, Math.min(1.15, r)), n: n, jk: jk ? 1 : 0 };
   } catch(e){ return null; }
+}
+/* ★第69弾→第70弾: レースLvの元になる「基本の強さ」スコア（馬別）
+   学習DBの直近出走（最大8走）から:
+   ・クラス基準値（G1=8.6〜新馬=2.2）＋ 馬券内（1〜3着）のレースを優先・新しいほど重く
+   ・★第70弾 時計で裏付け: 上がり3Fが「そのレースの最速上り」より何秒遅いか(l3d)で減点
+    （同レースの全馬が学習DBにいるので、勝ち馬の上りとの比較ができる）
+   ・★第70弾 テンの速さ: 1角3番手以内で運んで馬券内に残した走りは加点（前で粘れた＝強い）
+   2走未満は null。出馬表内での相対化は aiFieldLevels が行う。 */
+function aiRaceLvHorse(hname){
+  try {
+    var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', hname) : null;
+    if (!st || !Array.isArray(st.races) || st.races.length < 2) return null;
+    var rs = st.races.slice().sort(function(a, b){ return String(a.date || '').localeCompare(String(b.date || '')); }).slice(-8);
+    function runScore(jr){
+      var base = aiRaceClsOf(String(jr.name || '')).base;
+      var l3d = (jr.l3d != null && isFinite(Number(jr.l3d))) ? Number(jr.l3d) : null;
+      if (l3d != null) base -= Math.min(0.9, Math.max(0, l3d) * 0.22);   /* 上りが遅いぶんだけ減点（最大0.9） */
+      var p1 = parseInt(jr.pass1, 10) || parseInt(String(jr.passing || '').split('-')[0], 10) || 0;
+      var o = parseInt(jr.order, 10) || 0;
+      if (o >= 1 && o <= 3 && p1 >= 1 && p1 <= 3) base += 0.30;          /* テンの速さ: 前で運んで馬券内 */
+      return base;
+    }
+    var best3 = null, acc = 0, wt = 0;
+    for (var i = 0; i < rs.length; i++){
+      var jr = rs[i];
+      var sc = runScore(jr);
+      var w = 1 + i * 0.25;                       /* 新しい走ほど重く */
+      acc += sc * w; wt += w;
+      var o = parseInt(jr.order, 10) || 0;
+      if (o >= 1 && o <= 3){                      /* 馬券内に入ったレースは別枠で最良を記憶 */
+        var w2 = 1.4 + i * 0.25;
+        if (!best3 || sc * w2 > best3){ best3 = sc * w2; }
+      }
+    }
+    var v = acc / (wt || 1);
+    if (best3 != null) v = v * 0.55 + (best3 / 1.4) * 0.45;   /* 好走レースを約45%まで重視 */
+    return { v: v, n: rs.length };
+  } catch(e){ return null; }
+}
+/* ★第69弾: 出馬表の全馬ぶんの コースLv/レースLv を「同じ出走馬の中での相対値」にする。
+   生値を出馬表内の最高値で割る → 1.00＝このメンバーの中で最上位（1に近いほど信用できる）。
+   計測できる馬が2頭未満、または最高値が0以下のときは全員「—」（比較にならない）。 */
+function aiFieldLevels(rows, geom){
+  var out = { cl: {}, rl: {} };
+  try {
+    var hs = (rows || []).filter(function(r){ return r && r.name; });
+    var clRaw = {}, rlRaw = {};
+    hs.forEach(function(r){
+      var cv = aiCourseCL(r.name, geom.surf, geom.m, geom.venue, r.jockey);   /* ★第70弾: 騎手要素つき */
+      if (cv && cv.r != null && isFinite(cv.r)) clRaw[r.name] = cv.r;
+      var rv = aiRaceLvHorse(r.name);
+      if (rv && rv.v != null && isFinite(rv.v)) rlRaw[r.name] = rv.v;
+    });
+    function rel(map){
+      var vals = Object.keys(map).map(function(k){ return map[k]; });
+      if (vals.length < 2) return {};                    /* 比較相手がいない */
+      var mx = Math.max.apply(null, vals);
+      if (!(mx > 0)) return {};
+      var o = {};
+      Object.keys(map).forEach(function(k){ o[k] = Math.round(map[k] / mx * 100) / 100; });
+      return o;
+    }
+    out.cl = rel(clRaw); out.rl = rel(rlRaw);
+    out.clN = Object.keys(out.cl).length; out.rlN = Object.keys(out.rl).length;
+  } catch(e){ out = { cl: {}, rl: {} }; }
+  return out;
 }
 /* 展開予想（実況風）: b→{ lines:[..], top3:'9-1-5', m, surf } / 3頭未満は null */
 function aiStorySim(b){
@@ -38145,6 +38254,28 @@ function aiWaveGrade(oddsArr){
   var lv = sc < 0.42 ? 1 : (sc < 0.55 ? 2 : (sc < 0.66 ? 3 : (sc < 0.76 ? 4 : 5)));
   return { lv: lv, key: AI_WAVE_KEYS[lv - 1], name: AI_WAVE_NAMES[lv - 1], score: Math.round(sc * 100) / 100 };
 }
+/* ★第70弾: 荒れ/堅実を「レースLv（基本の強さ）×コースLv（適性・騎手）」の読み方から判定。
+   ・両方とも高い馬が上位（◎○）に固まっている → 堅実
+   ・強い馬（レースLv高）と適性馬（コースLv高）が食い違っている → 荒れる
+   上位5頭の平均乖離62%＋◎○の低い方の平均（堅実度）38%でスコア化。
+   両Lvが測れる馬が3頭未満のレースは null（呼び出し側でオッズの波乱度へフォールバック）。 */
+function aiWaveFromLv(b, lv){
+  try {
+    var rows = (b.rows || []).filter(function(r){ return r && r.name && lv.cl[r.name] != null && lv.rl[r.name] != null; });
+    if (rows.length < 3) return null;
+    var top = rows.slice(0, 5);
+    var avgDiv = top.reduce(function(s, x){ return s + Math.abs(lv.rl[x.name] - lv.cl[x.name]); }, 0) / top.length;
+    var core = rows.slice(0, 2);
+    var coreMin = core.reduce(function(s, x){ return s + Math.min(lv.rl[x.name], lv.cl[x.name]); }, 0) / core.length;
+    var sc = 0.62 * Math.max(0, Math.min(1, avgDiv / 0.45)) + 0.38 * (1 - Math.max(0, Math.min(1, coreMin)));
+    var lvv = sc < 0.42 ? 1 : (sc < 0.55 ? 2 : (sc < 0.66 ? 3 : (sc < 0.76 ? 4 : 5)));
+    var divs = rows.slice().sort(function(a, b2){ return Math.abs(lv.rl[b2.name] - lv.cl[b2.name]) - Math.abs(lv.rl[a.name] - lv.cl[a.name]); });
+    var why = divs.slice(0, 2).filter(function(x){ return Math.abs(lv.rl[x.name] - lv.cl[x.name]) >= 0.25; })
+      .map(function(x){ return x.no + ' ' + x.name + '（レースLv ' + lv.rl[x.name].toFixed(2) + '／コースLv ' + lv.cl[x.name].toFixed(2) + '）'; });
+    return { lv: lvv, key: AI_WAVE_KEYS[lvv - 1], name: AI_WAVE_NAMES[lvv - 1], score: Math.round(sc * 100) / 100,
+             why: why.length ? '荒れ要素: ' + why.join('、') : '', fromLv: 1 };
+  } catch(e){ return null; }
+}
 function aiRatesFor(hname, prob){
   var out = { wr: null, pr: null, sr: null, src: '', n: 0 };
   try {
@@ -38186,17 +38317,20 @@ function aiDayExportModel(){
       var b = aiRecBundle(it.rid);
       if (!b) return;
       var picks = b.snap.picks || null;
-      var odds = b.rows.map(function(r){ return r.odds; });
-      var wave = aiWaveGrade(odds);
       var geom = aiRaceGeom(b);
       var story = aiStorySim(b);
       var rl = aiRaceRL(b);
+      /* ★第69弾: コースLv/レースLv は同じ出走馬の中での相対値（1.00＝最上位） */
+      var lv = aiFieldLevels(b.rows, geom);
+      /* ★第70弾: 荒れ/堅実はレースLv×コースLvの読み方から（両Lvが揃わないレースはオッズ波乱度へ） */
+      var wave = aiWaveFromLv(b, lv) || aiWaveGrade(b.rows.map(function(r){ return r.odds; }));
       var rows = b.rows.map(function(r){
         var rate = aiRatesFor(r.name, (function(){ var pr = null; try { (b.snap.rows || []).forEach(function(x){ if (String(x.no) === String(r.no)) pr = (x.prob != null ? x.prob : null); }); } catch(e){} return pr; })());
         return { no: r.no, name: r.name, mark: r.mark, odds: r.odds,
                  wr: rate.wr, pr: rate.pr, sr: rate.sr, src: rate.src,
                  note: aiSpecialNotes(r.no, r.mark, rate, picks),
-                 cl: (function(){ var cv = aiCourseCL(r.name, geom.surf, geom.m, geom.venue); return cv ? cv.v : null; })() };
+                 cl: (lv.cl[r.name] != null ? lv.cl[r.name] : null),
+                 rlv: (lv.rl[r.name] != null ? lv.rl[r.name] : null) };
       });
       out.push({
         d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || ''), rnum: String(it.rnum || ''),
@@ -38221,29 +38355,33 @@ function aiExportXlsHTML(model){
     'th{background:#efefef} tr.rh td{background:#e3f2fd;font-weight:700;text-align:left}' +
     'td.note{color:#b25000;font-weight:700} td.wr{background:#fffde7}</style></head><body>';
   h += '<table cellspacing="0" cellpadding="0">';
-  h += '<tr><td colspan="10" style="font-size:13pt;font-weight:700;background:#1a237e;color:#fff">競馬AIラボ｜' +
-    String((model[0] && model[0].d8) || '') + '　全' + model.length + 'レース（印・AI率・波乱度・RL/CL・展開予想）</td></tr>';
+  h += '<tr><td colspan="11" style="font-size:13pt;font-weight:700;background:#1a237e;color:#fff">競馬AIラボ｜' +
+    String((model[0] && model[0].d8) || '') + '　全' + model.length + 'レース（印・AI率・波乱度・コースLv/レースLv・展開予想）</td></tr>';
   model.forEach(function(rc){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
-      '<td colspan="3" style="text-align:left">RL ' + esc((rc.rl && rc.rl.txt) || '—') + '</td>' +
+      '<td colspan="4" style="text-align:left">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</td>' +
       '<td colspan="3" style="text-align:left">' + (rc.settled ? '結果つき' : '出走前') + '</td></tr>';
-    h += '<tr>' + ['番', '馬名', '印', 'オッズ', '特記', '勝率', '連対率', '複勝率', 'CL', '出典'].map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    if (rc.wave && rc.wave.why){
+      h += '<tr><td colspan="11" style="text-align:left;background:#fdf6ec;font-size:9.5pt">⚠ ' + esc(rc.wave.why) + '（レースLv＝基本の強さ／コースLv＝適性・騎手。乖離が大きい馬が荒れ要素）</td></tr>';
+    }
+    h += '<tr>' + ['番', '馬名', '印', 'オッズ', '特記', '勝率', '連対率', '複勝率', 'コースLv', 'レースLv', '出典'].map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr>';
     rc.rows.forEach(function(r){
       var resNo = rc.resultMap[String(r.no)] || 0;
       h += '<tr>' + td(r.no) + td(r.name, 'text-align:left') + td(r.mark, 'font-weight:700') +
         td(r.odds == null ? '' : Number(r.odds).toFixed(1)) + td(r.note, 'color:#b25000;font-weight:700') +
         td(aiPct1(r.wr), 'background:#fffde7') + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
-        td(r.cl == null ? '—' : Number(r.cl).toFixed(1)) +
+        td(r.cl == null ? '—' : Number(r.cl).toFixed(2)) +
+        td(r.rlv == null ? '—' : Number(r.rlv).toFixed(2)) +
         td((r.src || '') + (resNo ? '／' + resNo + '着' : '')) + '</tr>';
     });
     if (rc.story && rc.story.length){
-      h += '<tr><td colspan="10" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
+      h += '<tr><td colspan="11" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
         rc.story.map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
     }
-    h += '<tr><td colspan="10"></td></tr>';
+    h += '<tr><td colspan="11"></td></tr>';
   });
-  h += '</table></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での相対評価</b>（1.00が最高＝このメンバーの中で最上位・<b>1.00に近いほど信用できる</b>。実績不足の馬は「—」）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。編成=レースのクラス表記。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -38261,19 +38399,23 @@ function aiExportPdfHTML(model){
     '.story{margin-top:5px;padding:5px 8px;background:#f4f6fd;border-left:3px solid #7986cb;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0}' +
     '@media print{.race{box-shadow:none}} .foot{color:#7b8698;font-size:9px;margin-top:6px}' +
     '</style></head><body>';
-  h += '<h1>🐎 競馬AIラボ｜' + esc(String((model[0] && model[0].d8) || '')) + '　全' + model.length + 'レース出馬表（印・AI率・波乱度・RL/CL・展開予想）</h1>';
+  h += '<h1>🐎 競馬AIラボ｜' + esc(String((model[0] && model[0].d8) || '')) + '　全' + model.length + 'レース出馬表（印・AI率・波乱度・コースLv/レースLv・展開予想）</h1>';
   model.forEach(function(rc){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<div class="race"><div class="rh"><span>' + esc(label) + '</span>' +
       '<span class="wave" style="background:' + (wcol[rc.wave.key] || '#eee') + '">波乱度 ' + esc(rc.wave.key || '-') + '（' + esc(rc.wave.name) + '）</span>' +
-      '<span class="wave" style="background:#ede7f6">RL ' + esc((rc.rl && rc.rl.v != null ? rc.rl.v.toFixed(1) : '—')) + '</span>' +
+      '<span class="wave" style="background:#ede7f6">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</span>' +
       '<span class="muted">' + (rc.settled ? '結果つき' : '出走前') + '</span></div>';
-    h += '<table><tr><th>番</th><th>馬名</th><th>印</th><th>オッズ</th><th>特記</th><th>勝率(AI)</th><th>連対率</th><th>複勝率</th><th>CL</th>' + (rc.settled ? '<th>結果</th>' : '') + '</tr>';
+    if (rc.wave && rc.wave.why){
+      h += '<div style="margin:2px 0 4px;font-size:9.5px;color:#8a5a00;background:#fdf6ec;padding:3px 6px;border-radius:4px">⚠ ' + esc(rc.wave.why) + '</div>';
+    }
+    h += '<table><tr><th>番</th><th>馬名</th><th>印</th><th>オッズ</th><th>特記</th><th>勝率(AI)</th><th>連対率</th><th>複勝率</th><th>コースLv</th><th>レースLv</th>' + (rc.settled ? '<th>結果</th>' : '') + '</tr>';
     rc.rows.forEach(function(r){
       var resNo = rc.resultMap[String(r.no)] || 0;
       h += '<tr>' + td(r.no) + '<td class="nm">' + esc(r.name) + '</td>' + td(r.mark) + td(r.odds == null ? '' : Number(r.odds).toFixed(1)) +
         td(r.note, 'note') + '<td class="wr">' + aiPct1(r.wr) + '</td>' + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
-        td(r.cl == null ? '—' : Number(r.cl).toFixed(1)) +
+        td(r.cl == null ? '—' : Number(r.cl).toFixed(2)) +
+        td(r.rlv == null ? '—' : Number(r.rlv).toFixed(2)) +
         (rc.settled ? td(resNo ? resNo + '着' : '—') : '') + '</tr>';
     });
     if (rc.story && rc.story.length){
@@ -38282,7 +38424,7 @@ function aiExportPdfHTML(model){
     }
     h += '</table></div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。波乱度は市場オッズのエントロピー＋1番人気オッズの5段階。RL=クラス基準値+上位5頭の実績補正(1〜10)、CL=複勝率の面×距離帯×競馬場blend(0〜10)。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での相対評価（1.00が最高・1.00に近いほど信用できる。実績不足は—）</b>。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   h += '</body></html>';
   return h;
 }
