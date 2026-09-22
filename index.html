@@ -16644,7 +16644,10 @@ function apLs(){
 
 /* ---------- 表示 ---------- */
 function apModelMarksHTML(){
-  /* 「各予想モデルの印」カード: 現在の出馬表を自己学習3モデルで印評価して表にする */
+  /* 「各予想モデルの印」カード: 現在の出馬表を自己学習3モデルで印評価して表にする
+     ★第68弾①: 旧レイアウトは6列テーブル（モデル名+◎○▲☆△ each 馬番+馬名）で幅600px超。
+     スマホ幅（カード約340px）では中身が潰れて横スクロール必須の「崩れ」状態だったため、
+     モデルごとのブロック＋印チップが折り返す構造に変更（情報は同じ・閲覧性を優先）。 */
   var hs = ((state && state.horses) || []).filter(function(h){ return h.no; });
   if (hs.length < 3){
     return '<div class="small muted">馬を3頭以上登録すると、3モデル（🎯的中率重視 / 💰回収率重視 / 🔰ハイブリッド）が「どの馬に印を打つか」の比較表を表示します。</div>';
@@ -16658,20 +16661,24 @@ function apModelMarksHTML(){
       .sort(function(a, b){ return apNum(a.odds) - apNum(b.odds); });
     withOdds.forEach(function(h, i){ oddsRankMap[String(h.no)] = i + 1; });
     var cur = apCurModel();
-    var rows = [];
+    var blocks = [];
     AP_CONCEPTS.forEach(function(cn){
       var mk = apMarksByU(feats, apUScores(feats, S, cn.id), orderMap, oddsRankMap);
       var on = (cn.id === cur);
-      var cell = AP_MARK_ORDER.map(function(mm, ri){
+      var chips = AP_MARK_ORDER.map(function(mm, ri){
         var m = mk[ri];
-        if (!m) return '<td>−</td>';
-        return '<td title="' + esc(m.name || '') + ' ' + esc(m.no) + '番"><span class="mm-no" style="color:' + cn.color + '"><b>' + esc(m.no) + '</b></span><span class="mm-name">' + esc(m.name || '') + '</span></td>';
+        if (!m) return '';
+        return '<span title="' + esc(m.name || '') + ' ' + esc(m.no) + '番" style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap;background:var(--card);border:1px solid var(--line2);border-radius:6px;padding:1px 6px;font-size:.78rem">' +
+          '<b>' + mm + '</b><span style="color:' + cn.color + ';font-weight:700">' + esc(m.no) + '</span>' +
+          '<span style="max-width:9em;overflow:hidden;text-overflow:ellipsis;vertical-align:middle">' + esc(m.name || '') + '</span></span>';
       }).join('');
       var cnSub = (cn.id === 'roi') ? ' <span style="font-size:.68rem;opacity:.85">（5番人気以下・中穴〜大穴）</span>' : '';
-      rows.push('<tr><td style="text-align:left;color:' + cn.color + ';white-space:normal"><b>' + cn.emoji + esc(cn.name) + '</b>' + cnSub +
-        (on ? ' <span style="color:var(--ok-ink);font-size:.7rem">◀ AI印に反映中</span>' : '') + '</td>' + cell + '</tr>');
+      blocks.push('<div style="border-left:4px solid ' + cn.color + ';background:var(--card2);border-radius:8px;margin:6px 0;padding:4px 8px">' +
+        '<div style="font-size:.8rem;line-height:1.5"><b style="color:' + cn.color + '">' + cn.emoji + esc(cn.name) + '</b>' + cnSub +
+        (on ? ' <span style="color:var(--ok-ink);font-size:.7rem">◀ AI印に反映中</span>' : '') + '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">' + (chips || '<span class="muted" style="font-size:.78rem">（印なし）</span>') + '</div></div>');
     });
-    return '<div style="overflow-x:auto"><table class="lr-tbl mmtbl"><thead><tr><th style="text-align:left">モデル</th><th>◎</th><th>○</th><th>▲</th><th>☆</th><th>△</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+    return blocks.join('') +
       '<div class="small muted" style="margin-top:2px">この表は「AI印と総合評価」表とは別系統の「3モデル」比較です。総合評価表はオッズ(人気)を軸に、調教・持ちタイム・展開適性・バ場・🐎位置係数（第61弾〜・netkeiba4角実位置/学習DBコース統計）・出遅れ率を加えて本命印を算出します（あなたの印は計算に入れません。馬名は長いと省略表示・マウスで全名表示）。</div>';
   } catch(e){ return ''; }
 }
