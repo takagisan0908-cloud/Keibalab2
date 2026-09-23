@@ -1967,6 +1967,7 @@ html[data-theme="light"] .page-top-hero{
         <table class="ktbl">
           <thead><tr>
             <th>印</th><th title="★第63弾: AI勝率（市場75%＋モデル）を軸に、データ評価で最大±35%補正した順位＝3着以内の的中期待が大きい順。純データ点の並べ替えではなくなりました（着順とAI勝率が食い違う旧来の不整合を解消）">着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
+            <th title="★第78弾: 純モデル確率÷市場確率（ブレンド前）。AI勝率は市場75%ブレンド値なので、モデルの見立てはEdgeで見ます。1.0=市場並み・1.5=モデルが5割上に評価。ホバーで モデル勝率・市場確率・差分（予想・順位には一切使われません）">Edge</th>
             <th title="★第75弾: AI勝率からHarville式＋決定的シミュレーションで導いた3着以内に入る確率。ホバーで連対率・5着以内率・平均着順も見られます。1着確率とは別の評価対象として校正レポートで個別検証できます（モデルの順位には影響しません）">3着内</th>
             <th>調教</th><th>展開適性</th><th>バ場好走</th><th title="調教・持ちタイム・展開適性・バ場好走・洋芝コース適性などのデータ列を0〜1に正規化し、エンジン重み（枠3/騎手2など）で加重平均→血統で微調整した総合点（0〜100）。数字が大きいほど「データ上の条件面がgood」を意味します。勝率そのものではありません（勝率は『AI勝率』列＝市場オッズ75%+モデル25%の別物。印◎◯▲は総合点（人気込み）の順位で、データ評価が人気を大差で上回る人気薄だけ繰り上げ）">総合 ⓘ</th>
           </tr></thead>
@@ -2897,6 +2898,18 @@ html[data-theme="light"] .page-top-hero{
     </div>
     <div id="fcMsg" class="small" style="margin-top:4px"></div>
     <div id="fcOut"></div>
+    <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
+      <div style="font-weight:700;margin-bottom:4px">🔍 組み合わせ・前走の計測（モデルは変えません）</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="ixRun" class="btn">🔀 組み合わせリフト（交互作用）</button>
+        <button id="ppRun" class="btn">📤 前走パフォーマンス計測</button>
+        <span class="muted small">保存済み予想のファクター値／学習DBの通過順から「追加情報の有無」を測ります</span>
+      </div>
+      <div id="ixMsg" class="small" style="margin-top:4px"></div>
+      <div id="ixOut"></div>
+      <div id="ppMsg" class="small" style="margin-top:6px"></div>
+      <div id="ppOut"></div>
+    </div>
   </div>
   <div class="card">
     <h2>📊 モデル比較表</h2>
@@ -2905,6 +2918,16 @@ html[data-theme="light"] .page-top-hero{
       <button id="fcMRun" class="btn primary">📊 モデル比較表を生成</button>
     </div>
     <div id="fcMOut"></div>
+    <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
+      <div style="font-weight:700;margin-bottom:4px">🚶 Walk-forward検証（時系列分割）</div>
+      <div class="small muted" style="margin-bottom:4px">期間を古い順に【学習60% → 検証40%】に分け、<b>学習期間だけで</b>🎯校正の倍率と🤖ロジスティック回帰（市場＋7ファクター）を学習し、検験期間で本物のアウトオブサンプル成績を比較します。人気ルール（1番人気／5番人気以下均等）の回収率も検証期間だけで測ります。</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="wfRun" class="btn primary">🚶 Walk-forward検証を実行</button>
+        <span class="muted small">通信ゼロ・モデルの変更なし・数秒かかることがあります</span>
+      </div>
+      <div id="wfMsg" class="small" style="margin-top:4px"></div>
+      <div id="wfOut"></div>
+    </div>
     <div class="small muted" style="margin-top:4px">改善モデルv2の行は「採用中の補正を同じデータに掛けた場合」のシミュレーションです（採用状態は変わりません）。均等予測・市場（オッズそのまま）は参考ライン。オッズがある馬に限定して全モデルを同一条件で比較しています。馬券の収支（回収率）は別管理にしてください。</div>
   </div>
   <div class="card">
@@ -4087,8 +4110,11 @@ function analyzeRace(){
      ※ odds は市場とのブレンド率(blend)にも使うのでここではスケールしない（利用者のスライダーに任せる）。 */
   try {
     /* ★第74弾: 改善モデルv2採用中で「自動補正を停止」選択時は自動ファクター補正を使わない（手動運用） */
+    /* ★第78弾: 🕰バックテスト等の検証中(BT_MODE)も自動ファクター補正を使わない。
+       apFactorScale は学習DB全レース（＝対象レースより未来を含む）から重みを学習するため、
+       検証経路で使うと in-sample 汚染（検証数字の楽観化）になります。ライブ予想では不変。 */
     var fsc = (typeof apFactorScale === 'function' && !(state.learn && state.learn.useFactor === false)
-               && !((typeof cbV2StopAuto === 'function') && cbV2StopAuto()))
+               && !((typeof cbV2StopAuto === 'function') && cbV2StopAuto()) && !(window.BT_MODE))
       ? apFactorScale() : null;
     /* ★2026-09-13 第21弾⑤: コピーは【常に】作る。state.weights を直接いじらないためと、
        「🧠 あなたの印」を AI 計算から外す（mark=0）ためです。 */
@@ -4398,6 +4424,9 @@ function analyzeRace(){
     if (csum2 > 0) prob = cprob2.map(function(q){ return q / csum2; });
     try { res.calibV2 = calibV2Info(); } catch(e){}
   }
+  /* ★第78弾: 市場確率（正規化）を行に残す。純モデル確率 pModel と対で②のEdge列・
+     スナップ保存に使う（「AI勝率＝市場75%ブレンド値」であることを分離して見せる） */
+  var pMktN = hs.map(function(h, i2){ return (pMkt[i2] != null && pMktSum > 0) ? (pMkt[i2] / pMktSum) : null; });
 
   var order = hs.map(function(h,i){ return i; }).sort(function(a,b){ return prob[b]-prob[a]; });
 
@@ -4500,6 +4529,7 @@ function analyzeRace(){
     }
     return {
       idx: idx, h: h, rank: rank+1, prob: p,
+      pMod: (pModel[idx] != null ? pModel[idx] : null), pMkt: (pMktN ? pMktN[idx] : null),   /* ★第78弾: 純モデル確率・市場確率（Edge表示用・予想には不使用） */
       mark: mk.s, markCls: mk.cls,
       modelRank: mRk, mktRank: oRk, strongN: strongN,
       axisOk: !!modelFirst && (rank+1) <= 2 && strongN >= 2,
@@ -5517,7 +5547,7 @@ function renderTables(res){
      renderKentaiFull は buildWeightSliders() → currentAnalysis() の順なので、
      ここで呼ばないと1回目表示が前のレースの補正値になります。 */
   try { if (typeof wtRender === 'function') wtRender(res); } catch(e){}
-  if (!res.ok){ $('aiTbl').innerHTML = '<tr><td colspan="12">' + esc(res.msg) + '</td></tr>'; return; }
+  if (!res.ok){ $('aiTbl').innerHTML = '<tr><td colspan="13">' + esc(res.msg) + '</td></tr>'; return; }
 
   var an = $('aiNote');
   if (an){
@@ -5570,7 +5600,7 @@ function renderTables(res){
   var html = '';
   /* ★第61弾: 行数があるのに描画HTMLが空（=表がヘッダだけになって「壊れて」見える状態）の自己防御。
      通常ここは通らないが、通過すると tbody が空白になり表全体が消えたように見える */
-  if (!res.rows || !res.rows.length){ $('aiTbl').innerHTML = '<tr><td colspan="12"><span class="small muted">表示する馬がありません。①で出走馬を入力/取込してください</span></td></tr>'; return; }
+  if (!res.rows || !res.rows.length){ $('aiTbl').innerHTML = '<tr><td colspan="13"><span class="small muted">表示する馬がありません。①で出走馬を入力/取込してください</span></td></tr>'; return; }
   res.rows.forEach(function(r){
     var h = r.h;
     var fc = frameColor(h.frame);
@@ -5592,6 +5622,7 @@ function renderTables(res){
       '<td class="vm" style="text-align:left">' + nameCell + '</td>' +
       '<td class="small vm">' + esc(h.odds || '−') + '</td>' +
       '<td class="vm"><b class="kt-p">' + pct(r.prob) + '%</b></td>' +
+      '<td class="small vm" title="' + ((r.pMod != null && r.pMkt != null && r.pMkt > 0) ? ('モデル勝率 ' + pct(r.pMod) + '%（オッズ非依存の純モデル評価）／市場確率 ' + pct(r.pMkt) + '%／Edge=モデル÷市場=×' + (r.pMod / r.pMkt).toFixed(2) + '（差 ' + ((r.pMod - r.pMkt) * 100).toFixed(1) + 'pt）／AI勝率は市場75%ブレンド値です・第78弾') : '') + '">' + ((r.pMod != null && r.pMkt != null && r.pMkt > 0) ? '<b style="color:' + (r.pMod / r.pMkt >= 1.3 ? 'var(--ok-ink)' : (r.pMod / r.pMkt < 0.75 ? 'var(--muted)' : '')) + '">×' + (r.pMod / r.pMkt).toFixed(2) + '</b>' : '—') + '</td>' +
       '<td class="small vm" title="' + (r.p3 != null ? ('連対 ' + pct(r.p2) + '%／5着以内 ' + pct(r.p5) + '%／平均着順 ' + (+r.pAvg).toFixed(1) + '（AI勝率から導出・第75弾）') : '') + '">' + (r.p3 != null ? '<b style="color:var(--info-ink)">' + pct(r.p3) + '%</b>' : '−') + '</td>' +
       '<td class="small vm" title="' + lapTxt + '">' + (r.ev && r.ev.per != null ? '<b>' + esc(r.ev.per) + '</b><span class="muted">s/F</span>' : '−') + '</td>' +
       '<td class="vm" title="' + esc(mkName) + 'の展開適性">' + (mkName !== '−' ? '<span class="nowrap">' + mkName + '</span>' + ktMinibar(r.fK*100, 'linear-gradient(90deg,#f2c14e,#c78f1f)') : '−') + '</td>' +
@@ -15832,6 +15863,8 @@ function apSnapPred(rid, res, meta, opt){
           slow: (h.slow == null ? '' : String(h.slow)),
           wtKg: (parseInt(h.wtKg, 10) || 0), wtChg: String(h.wtChg || ''),   /* ★第75弾: 当日馬体重（レース前発表の情報） */
           rank: r.rank || 0, mark: r.mark || '', prob: r.prob || 0, U: r.U || 0,
+          pMod: ((r.pMod != null && isFinite(r.pMod)) ? Math.round(r.pMod * 10000) / 10000 : null),   /* ★第78弾: 純モデル確率（将来の分析・ML比較用） */
+          fr: String(h.frame || ''), yb: String(h.yobi || ''),   /* ★第78弾: 枠・調教(生値)＝将来の組み合わせ計測用（モデルには使わない） */
           mine: (r.mine == null ? null : r.mine),
           // 各ファクターの正規化値（提案4: ファクター別学習で「どの材料が効いたか」を測るのに使う）
           f: { O: nz(r.fO), Y: nz(r.fY), T: nz(r.fT), K: nz(r.fK), B: nz(r.fB), Y2: nz(r.fY2), A: nz(r.fA) },
@@ -39905,7 +39938,7 @@ function cbCollect(src){
           if (!no || !(p > 0) || o < 1) return;
           withOrder++;
           var odV76 = parseFloat(r.odds); odV76 = (odV76 > 1) ? odV76 : 0;   /* ★第76弾: モデル比較表で市場(オッズ)ラインを出すため */
-          out.rows.push({ p: p, o: o, pop: popBy[no] || 99, wt: (parseInt(r.wtKg, 10) || 0), od: odV76 });   /* ★第75弾: 馬体重 */
+          out.rows.push({ p: p, o: o, pop: popBy[no] || 99, wt: (parseInt(r.wtKg, 10) || 0), od: odV76, no: no, f: (r.f || null) });   /* ★第75弾: 馬体重 ★第78弾: no=馬番・f=ファクター値（Walk-forward・交互作用用） */
         });
         if (withOrder < 2){ out.rows.length -= withOrder; return; }
         out.races++;
@@ -39915,8 +39948,13 @@ function cbCollect(src){
           else if (gap >= 1){ out.leak.preR++; out.leak.preN += withOrder; }
           else { out.leak.dayR++; out.leak.dayN += withOrder; }
         }
+        /* ★第78弾: d8=レース日・pay=単勝払戻（Walk-forward検証の時系列分割・ROIルール検証用） */
+        var d8w78 = String(snap.d8 || (meta && meta.date8) || (rec.meta && rec.meta.date8) || '').replace(/[^0-9]/g, '');
+        var payW78 = null;
+        try { if (db && db.payout && db.payout.win) payW78 = db.payout.win; } catch(e){}
+        if (!payW78 && rec.result && rec.result.payout && rec.result.payout.win) payW78 = rec.result.payout.win;
         out.rows[out.rows.length - 1]._meta = { surf: String((meta && meta.surface) || ''), m: parseInt(meta && meta.m, 10) || 0, n: nH,
-          wx: metaWx, babaC: metaBaba };   /* ★第75弾: 天候・馬場 */
+          wx: metaWx, babaC: metaBaba, d8: d8w78, pay: payW78 };   /* ★第75弾: 天候・馬場 */
         /* 行ごとに同じmetaを付け直す（最後の行だけでなく） */
         var mi = out.rows.length - 1;
         for (var k = mi; k > mi - withOrder; k--) out.rows[k]._meta = out.rows[mi]._meta;
@@ -40168,7 +40206,7 @@ function cbRender(rep){
       '</tbody></table></div>' +
       '<div class="small muted" style="margin-top:2px">保存タイミングはスナップの保存時刻とレース日の比較（時差で±1日の誤差があり、常に保守側＝事前に見える方向）。特徴量側のリーク防止は別途効いています: 📚履歴ファクターは「レース日より前の出走だけ」を使用（日付フィルタ）／🕰バックテストでは展開学習を自動OFF。⚠のレースは結果を見た後に予想が保存された可能性があるため検証から外しています（新規の事後保存はapPreAllowedが本来ブロックしますが、結果未取得のまま翌日以降に開いた場合は通ってしまいます）。</div>';
   } else if (rep.src === 'bt'){
-    h += '<div class="small muted" style="margin:8px 0 2px">🕰 バックテストデータ: 特徴は「レース日より前の出走だけ」から作成（日付フィルタ）・展開学習はBT_MODEで無効化済み。保存タイミングの分類は本番予想(rec.pre)のみの対象です。</div>';
+    h += '<div class="small muted" style="margin:8px 0 2px">🕰 バックテストデータ: 特徴は「レース日より前の出走だけ」から作成（日付フィルタ）・展開学習はBT_MODEで無効化済み・★第78弾より自動ファクター補正も検証中は無効化（それ以前に生成した予想は補正を含む可能性があります）。保存タイミングの分類は本番予想(rec.pre)のみの対象です。オッズは結果ページの<b>確定オッズ（発走時点）</b>ベースのため、前日夜の実運用とはオッズが動く分だけ条件が異なります。</div>';
   }
   /* 1着の確率帯別 */
   h += '<div style="margin:10px 0 4px;font-weight:700">① AI勝率（1着）の確率帯別 — 期待と実測が一致しているか</div>' +
@@ -40590,7 +40628,7 @@ function fcRender(rep){
     '<td>' + fcPct(mk.expW) + '／' + fcPct(mk.actW) + '</td>' +
     '<td>' + fcPct(mk.exp3) + '／' + fcPct(mk.act3) + '</td><td>参考</td></tr>';
   h += '</tbody></table></div>';
-  h += '<div class="small muted" style="margin-top:4px">ΔBrier ＝ そのファクターを抜いたときのBrierの変化（＋＝抜くと悪化＝効いている／−＝抜くと改善＝無効の疑い）。判定の閾値は±0.002。馬数240未満は△（統計誤差が大きい）。※オッズの重みを0にしても市場ブレンド（確率の主体）はエンジンの仕様として残るので、「市場だけ」の実力は下の📊モデル比較表の市場ラインで見てください。🕰バックテストと同じ条件（出馬表由来の入力のみ）での測定のため、調教タイム・持ちタイムなど手入力が揃う本番条件では効き方が変わることがあります。重みの自動変更は行いません（気になるファクターは自分でスライダーを調整）。</div>';
+  h += '<div class="small muted" style="margin-top:4px">ΔBrier ＝ そのファクターを抜いたときのBrierの変化（＋＝抜くと悪化＝効いている／−＝抜くと改善＝無効の疑い）。判定の閾値は±0.002。馬数240未満は△（統計誤差が大きい）。※オッズの重みを0にしても市場ブレンド（確率の主体）はエンジンの仕様として残るので、「市場だけ」の実力は下の📊モデル比較表の市場ラインで見てください。🕰バックテストと同じ条件（出馬表由来の入力のみ）での測定のため、調教タイム・持ちタイムなど手入力が揃う本番条件では効き方が変わることがあります。重みの自動変更は行いません（気になるファクターは自分でスライダーを調整）。オッズは学習DBの<b>確定オッズ（発走時点）</b>ベースです（前日夜の実運用とは条件が異なります）。</div>';
   box.innerHTML = h;
 }
 
@@ -40688,7 +40726,7 @@ function fcMRender(rep){
     h += '<tr><td style="text-align:left">改善モデルv2</td><td colspan="8"><span class="muted small">⚪ 未採用（🎯校正カードで💾採用すると、採用中の補正を掛けた場合の数字がここに並びます＝採用前に差を確認できます）</span></td></tr>';
   }
   h += '</tbody></table></div>';
-  h += '<div class="small muted" style="margin-top:4px">ΔBrier ＝ 現行モデルとのBrier差（−＝その行の方が良い）。全モデルとも同じレース・同じ馬（オッズがある馬）で計算しているので直接比較できます。v2の行は「今採用している補正を同じデータに掛けたらどうなるか」のシミュレーションで、採用状態そのものは変えません。回収率（馬券の収支）はこの表では扱いません＝予測精度と収支は分けて管理します。</div>';
+  h += '<div class="small muted" style="margin-top:4px">ΔBrier ＝ 現行モデルとのBrier差（−＝その行の方が良い）。全モデルとも同じレース・同じ馬（オッズがある馬）で計算しているので直接比較できます。v2の行は「今採用している補正を同じデータに掛けたらどうなるか」のシミュレーションで、採用状態そのものは変えません。回収率（馬券の収支）はこの表では扱いません＝予測精度と収支は分けて管理します。オッズは学習DBの<b>確定オッズ（発走時点）</b>ベースです。🕰バックテストぶんの保存済み予想は、第78弾より前に生成されたものは当時の自動ファクター補正を含む可能性があります（検証経路での補正は今回無効化済み・取り直すと新しい条件に揃います）。</div>';
   box.innerHTML = h;
 }
 
@@ -40699,7 +40737,452 @@ function fcInit(){
     if (b) b.addEventListener('click', function(){ try { fcBtRun(); } catch(e){ fcMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
     var b2 = (typeof $ === 'function') ? $('fcMRun') : null;
     if (b2) b2.addEventListener('click', function(){ try { fcMRun(); } catch(e){ fcMStatus('⚠ 失敗しました', 1); } });
+    var b3 = (typeof $ === 'function') ? $('wfRun') : null;   /* ★第78弾 */
+    if (b3) b3.addEventListener('click', function(){ try { wfRun(); } catch(e){ wfMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
+    var b4 = (typeof $ === 'function') ? $('ixRun') : null;
+    if (b4) b4.addEventListener('click', function(){ try { ixRun(); } catch(e){ ixMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
+    var b5 = (typeof $ === 'function') ? $('ppRun') : null;
+    if (b5) b5.addEventListener('click', function(){ try { ppRun(); } catch(e){ ppMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
   } catch(e){}
+}
+
+
+/* =========================================================
+   ★第78弾 — 検証インフラの強化（モデルは一切変えない）
+   A3+B4+B6: 🚶 Walk-forward検証
+     期間を古い順に 学習60%→検証40% に時系列分割し、
+     学習期間だけで ①🎯校正の帯別倍率（p74と同じ式）と
+     ②🤖ロジスティック回帰（市場logit＋7ファクター・決定的GD）を学習。
+     検証期間で 現行/市場/均等/校正WF/ML を同じレース・同じ馬で比較。
+     人気ルール（1番人気・5番人気以下均等・全頭均等）の回収率も検証期間だけで測定。
+   B5: 🔀 組み合わせリフト（交互作用）
+     保存済み予想のファクター値をレース内で高低に分け、
+     2因子の2×4セルで リフト（実勝率−市場期待勝率）を集計。
+     交互作用コントラスト = L(HH)−L(HL)−L(LH)+L(LL)。
+   B1: 📤 前走パフォーマンス計測
+     学習DBの通過順から「前走の4角位置」と「4角→ゴールの進脚」を復元し、
+     グループごとのリフトを測る（厳密に前走日 < レース日のみ使用）。
+   すべて計測・検証専用で、state.weights・保存予想・モデルには触れない。
+   ========================================================= */
+
+var WF_BUSY = false, IX_BUSY = false, PP_BUSY = false;
+var WF_LAST = null, IX_LAST = null, PP_LAST = null;
+
+function wfMsg(t, isErr){
+  var el = (typeof $ === 'function') ? $('wfMsg') : null;
+  if (el) el.innerHTML = (isErr ? '<span style="color:#b3261e">⚠ ' : '') + String(t || '') + (isErr ? '</span>' : '');
+}
+function ixMsg(t, isErr){
+  var el = (typeof $ === 'function') ? $('ixMsg') : null;
+  if (el) el.innerHTML = (isErr ? '<span style="color:#b3261e">⚠ ' : '') + String(t || '') + (isErr ? '</span>' : '');
+}
+function ppMsg(t, isErr){
+  var el = (typeof $ === 'function') ? $('ppMsg') : null;
+  if (el) el.innerHTML = (isErr ? '<span style="color:#b3261e">⚠ ' : '') + String(t || '') + (isErr ? '</span>' : '');
+}
+
+/* ---------- 共通: cbCollect の行をレースごとにまとめる ---------- */
+function wfChunks(src){
+  var data = (typeof cbCollect === 'function') ? cbCollect(src) : { races: 0, rows: [] };
+  var races = [], i = 0;
+  while (i < data.rows.length){
+    var n = (data.rows[i]._meta && data.rows[i]._meta.n) || 1;
+    var chunk = data.rows.slice(i, i + n);
+    i += n;
+    var hs = [];
+    chunk.forEach(function(r){
+      if ((r.od || 0) > 1) hs.push({ p: r.p, o: r.o, od: r.od, no: String(r.no || ''), f: (r.f || null) });
+    });
+    if (hs.length >= 2){
+      races.push({ d8: String((chunk[0]._meta && chunk[0]._meta.d8) || ''),
+        pay: (chunk[0]._meta && chunk[0]._meta.pay) || null, hs: hs });
+    }
+  }
+  return { races: races, leak: (data.leak || null) };
+}
+
+/* ---------- 🤖 ロジスティック回帰（決定的・フルバッチGD） ---------- */
+var WF_NFEAT = 9;   /* bias + O/Y/T/K/B/Y2/A + 市場logit(標準化) */
+function wfFeat(h, mi, st){
+  var f = h.f || {};
+  var g = function(k){ return (f[k] != null && isFinite(f[k])) ? f[k] : 0.5; };
+  var lg = Math.log(Math.max(1e-6, mi) / Math.max(1e-6, 1 - mi));
+  lg = Math.max(-6, Math.min(6, lg));
+  return [1, g('O'), g('Y'), g('T'), g('K'), g('B'), g('Y2'), g('A'), (lg - st.mu) / (st.sd || 1)];
+}
+function wfSig(z){ return 1 / (1 + Math.exp(-z)); }
+
+/* ---------- 🚶 Walk-forward検証 ---------- */
+function wfRun(){
+  if (WF_BUSY){ wfMsg('⏳ 実行中です…少しお待ちください'); return; }
+  if (typeof cbCollect !== 'function'){ wfMsg('⚠ 校正レポートの部品（cbCollect）が見つかりません', 1); return; }
+  var sel = (typeof $ === 'function') ? $('cbSrc') : null;
+  var src = (sel && String(sel.value || '') === 'bt') ? 'bt' : 'pre';
+  var cd = wfChunks(src);
+  var races = cd.races.filter(function(r){ return /^\d{8}$/.test(r.d8); });
+  var nNoD8 = cd.races.length - races.length;
+  races.sort(function(a, b){ return a.d8 < b.d8 ? -1 : (a.d8 > b.d8 ? 1 : 0); });
+  if (races.length < 8){
+    wfMsg('⚠ 期間分割には日付つきレースが8件以上必要です（現在 ' + races.length + '件）。' +
+      (src === 'bt' ? '🕰バックテストを実行すると学習DBのレースで検証できます。' : '①で前日一括取得→結果取得で本番予想が溜まります。'), 1);
+    return;
+  }
+  var nTr = Math.max(4, Math.floor(races.length * 0.6));
+  if (races.length - nTr < 3) nTr = races.length - 3;
+  var train = races.slice(0, nTr), test = races.slice(nTr);
+  WF_BUSY = true;
+  var t0 = Date.now();
+  wfMsg('⏳ 学習期間で🎯校正倍率を計算中…');
+  /* ① 校正WF: 学習期間だけで帯別倍率（p74と同じ式: 縮小25馬・0.55〜1.8・n≥40） */
+  var bands = [];
+  for (var bi = 0; bi < CB_BINS.length; bi++) bands.push({ n: 0, sw: 0, sp: 0 });
+  train.forEach(function(rc){
+    rc.hs.forEach(function(h){
+      var c = bands[cbBinIdx(h.p, CB_BINS)];
+      c.n++; c.sw += (h.o === 1 ? 1 : 0); c.sp += h.p;
+    });
+  });
+  var calMul = bands.map(function(c){
+    if (c.n < 40 || !(c.sp > 0.005 * c.n)) return 1;
+    var shr = (c.sw + 25) / (c.n + 25);
+    var exp = c.sp / c.n;
+    return Math.max(0.55, Math.min(1.8, shr / exp));
+  });
+  /* ② ML: 特徴行列（市場logitは学習期間の平均/標準偏差で標準化） */
+  function miOf(rc){
+    var s = 0; rc.hs.forEach(function(h){ s += 1 / h.od; });
+    return rc.hs.map(function(h){ return (s > 0 ? (1 / h.od) / s : 1 / rc.hs.length); });
+  }
+  var mu = 0, muN = 0, sd = 0;
+  train.forEach(function(rc){
+    var mi = miOf(rc);
+    rc.hs.forEach(function(h, i2){
+      var lg = Math.log(Math.max(1e-6, mi[i2]) / Math.max(1e-6, 1 - mi[i2]));
+      mu += lg; muN++;
+    });
+  });
+  if (muN) mu /= muN;
+  train.forEach(function(rc){
+    var mi = miOf(rc);
+    rc.hs.forEach(function(h, i2){
+      var lg = Math.log(Math.max(1e-6, mi[i2]) / Math.max(1e-6, 1 - mi[i2]));
+      sd += (lg - mu) * (lg - mu);
+    });
+  });
+  sd = Math.sqrt(sd / Math.max(1, muN));
+  var st = { mu: mu, sd: sd };
+  var X = [], Y = [];
+  train.forEach(function(rc){
+    var mi = miOf(rc);
+    rc.hs.forEach(function(h, i2){
+      X.push(wfFeat(h, mi[i2], st));
+      Y.push(h.o === 1 ? 1 : 0);
+    });
+  });
+  var w = [], gi;
+  for (gi = 0; gi < WF_NFEAT; gi++) w.push(0);
+  var LR = 0.3, EPOCH = 120, ep = 0;
+  function stepGD(){
+    for (var it = 0; it < 10 && ep < EPOCH; it++, ep++){
+      var gr = [];
+      for (var k = 0; k < WF_NFEAT; k++) gr.push(0);
+      for (var r = 0; r < X.length; r++){
+        var z = 0;
+        for (var k2 = 0; k2 < WF_NFEAT; k2++) z += w[k2] * X[r][k2];
+        var err = wfSig(z) - Y[r];
+        for (var k3 = 0; k3 < WF_NFEAT; k3++) gr[k3] += err * X[r][k3];
+      }
+      for (var k4 = 0; k4 < WF_NFEAT; k4++) w[k4] -= LR * gr[k4] / Math.max(1, X.length);
+    }
+    if (ep < EPOCH){
+      wfMsg('⏳ 🤖ロジスティック回帰を学習中… ' + ep + '/' + EPOCH + ' epoch（通信ゼロ・モデル変更なし）');
+      setTimeout(stepGD, 0);
+      return;
+    }
+    finishWF();
+  }
+  function evalSet(set, kind){
+    var acc = fcAccNew();
+    set.forEach(function(rc){
+      var mi = miOf(rc);
+      var ps;
+      if (kind === 'even'){ ps = rc.hs.map(function(){ return 1 / rc.hs.length; }); }
+      else if (kind === 'mkt'){ ps = mi.slice(); }
+      else if (kind === 'cur'){ ps = rc.hs.map(function(h){ return h.p; }); }
+      else if (kind === 'cal'){
+        ps = rc.hs.map(function(h){ return h.p * calMul[cbBinIdx(h.p, CB_BINS)]; });
+      } else {   /* ml */
+        ps = rc.hs.map(function(h, i3){
+          var z = 0, fv = wfFeat(h, mi[i3], st);
+          for (var k5 = 0; k5 < WF_NFEAT; k5++) z += w[k5] * fv[k5];
+          return wfSig(z);
+        });
+      }
+      var sm = 0; ps.forEach(function(v){ sm += v; });
+      if (sm > 0) ps = ps.map(function(v){ return v / sm; });
+      fcAccRace(acc, ps, rc.hs.map(function(h){ return h.o; }));
+    });
+    return fcAccFin(acc);
+  }
+  function finishWF(){
+    var models = [
+      { k: 'even', label: '均等予測（1/頭数）' },
+      { k: 'mkt',  label: '市場（オッズそのまま）' },
+      { k: 'cur',  label: '現行モデル（保存済み予想）' },
+      { k: 'cal',  label: '🎯校正（学習期間で倍率を学習）' },
+      { k: 'ml',   label: '🤖ロジスティック回帰（学習期間で学習・市場＋7ファクター）' }
+    ];
+    var rep = { src: src, nTrain: train.length, nTest: test.length, nNoD8: nNoD8,
+      dTr0: train[0].d8, dTr1: train[nTr - 1].d8, dTe0: test[0].d8, dTe1: test[test.length - 1].d8,
+      calMul: calMul, leak: cd.leak, rows: [], roi: null, ms: Date.now() - t0 };
+    models.forEach(function(m){
+      rep.rows.push({ label: m.label, tr: evalSet(train, m.k), te: evalSet(test, m.k) });
+    });
+    /* B6: 人気ルールの回収率（検証期間のみ・払戻データがあるレース） */
+    var nPay = 0, i1 = 0, r1 = 0, i5 = 0, r5 = 0, iA = 0, rA = 0;
+    test.forEach(function(rc){
+      if (!(rc.pay && rc.pay.nos && rc.pay.nos.length && rc.pay.pays && rc.pay.pays.length)) return;
+      var winNo = String(rc.pay.nos[0]);
+      var yen = Number(rc.pay.pays[0]) || 0;
+      var ord = rc.hs.slice().sort(function(a, b){ return a.od - b.od; });
+      var nosBy = {};
+      ord.forEach(function(h, i4){ nosBy[h.no] = i4 + 1; });
+      nPay++;
+      /* 1番人気単勝100円 */
+      i1 += 100;
+      if (nosBy[winNo] === 1) r1 += yen;
+      /* 5番人気以下の単勝均等100円 */
+      rc.hs.forEach(function(h){
+        if (nosBy[h.no] >= 5){ i5 += 100; if (h.no === winNo) r5 += yen; }
+      });
+      /* 全頭単勝均等100円 */
+      rc.hs.forEach(function(h){
+        iA += 100; if (h.no === winNo) rA += yen;
+      });
+    });
+    if (nPay){
+      rep.roi = { n: nPay, fav: (i1 ? Math.round(r1 / i1 * 100) : null), out: (i5 ? Math.round(r5 / i5 * 100) : null), all: (iA ? Math.round(rA / iA * 100) : null) };
+    }
+    WF_LAST = rep;
+    wfRender(rep);
+    WF_BUSY = false;
+    wfMsg('✅ Walk-forward検証が終わりました（学習 ' + train.length + 'レース→検証 ' + test.length + 'レース・所要 ' + (rep.ms / 1000).toFixed(1) + '秒・通信ゼロ・モデル変更なし）');
+  }
+  setTimeout(stepGD, 0);
+}
+function wfRender(rep){
+  var box = (typeof $ === 'function') ? $('wfOut') : null; if (!box) return;
+  function d8t(v){ return v ? v.slice(0, 4) + '/' + v.slice(4, 6) + '/' + v.slice(6, 8) : '—'; }
+  var h = '';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' +
+    '<span class="chip">' + (rep.src === 'bt' ? '🕰バックテスト' : '📌本番予想') + ' 対象 ' + (rep.nTrain + rep.nTest) + 'レース</span>' +
+    '<span class="chip">学習期間 ' + d8t(rep.dTr0) + '〜' + d8t(rep.dTr1) + '（' + rep.nTrain + 'レース）</span>' +
+    '<span class="chip">検証期間 ' + d8t(rep.dTe0) + '〜' + d8t(rep.dTe1) + '（' + rep.nTest + 'レース）</span>' +
+    (rep.nNoD8 ? '<span class="chip">日付なし ' + rep.nNoD8 + 'レースは除外</span>' : '') + '</div>';
+  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>モデル</th><th>学習期間 Brier</th><th>学習期間 LogLoss</th><th>検証期間 Brier</th><th>検証期間 LogLoss</th><th>検証 1着率 期/実</th></tr></thead><tbody>';
+  rep.rows.forEach(function(r2, ix){
+    h += '<tr' + (ix === 2 ? ' style="background:var(--card2)"' : '') + '><td style="text-align:left">' + r2.label + '</td>' +
+      '<td>' + fcF4(r2.tr.brier) + '</td><td>' + fcF4(r2.tr.logloss) + '</td>' +
+      '<td><b>' + fcF4(r2.te.brier) + '</b></td><td><b>' + fcF4(r2.te.logloss) + '</b></td>' +
+      '<td>' + fcPct(r2.te.expW) + '／' + fcPct(r2.te.actW) + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="small muted" style="margin-top:2px">太字＝検証期間（アウトオブサンプル）の成績。学習期間の数字はあてはめ具合の参考（良いのは当然）。🎯校正と🤖MLは<b>学習期間のデータだけ</b>で作り、検証期間には未来の情報を一切使っていません。現行モデルの検証期間の数字と比較して、校正/MLが検証期間でも良くなっている場合のみ導入を検討するのが正しい読み方です。</div>';
+  if (rep.roi){
+    h += '<div style="margin:8px 0 2px;font-weight:700">💰 人気ルールの回収率（検証期間のみ・払戻データがある ' + rep.roi.n + 'レース）</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0">' +
+      '<span class="chip">1番人気単勝 ' + rep.roi.fav + '%</span>' +
+      '<span class="chip">5番人気以下均等 ' + rep.roi.out + '%</span>' +
+      '<span class="chip">全頭均等 ' + rep.roi.all + '%</span></div>' +
+      '<div class="small muted">人気順位による固定ルール（＝5番人気以下だけ買う等）が本当にプラスかを検証期間だけで測ったものです。モデルの優劣とは無関係の、ルールの検証用数字です（回収率だけで判断しない）。</div>';
+  } else {
+    h += '<div class="small muted" style="margin-top:4px">※払戻データ（学習DBの単勝払戻）が無いため、人気ルールの回収率は計算していません。日付指定/年指定の一括取込で払戻つきのレースが入ると測れます。</div>';
+  }
+  h += '<div class="small muted" style="margin-top:4px">※オッズは学習DBの確定オッズ（発走時点）ベース。裁定数は少なめの△扱いで読んでください。検証期間が短い（30レース未満）場合は数字のブレが大きいので、データが増えてから再実行してください。この検証はモデル・保存データを一切変更しません。</div>';
+  box.innerHTML = h;
+}
+
+/* ---------- 🔀 組み合わせリフト（交互作用） ---------- */
+var IX_PAIRS = [
+  ['O', 'K', '📊人気 × 🧭脚質(展開)'],
+  ['K', 'B', '🧭脚質 × 🏟馬場好走'],
+  ['T', 'A', '⏱持ちタイム × 📚実績(前走内容)'],
+  ['Y', 'K', '🏇調教 × 🧭脚質'],
+  ['Y2', 'K', '🏔コース適性 × 🧭脚質'],
+  ['O', 'A', '📊人気 × 📚実績(モデル評価)']
+];
+function ixRun(){
+  if (IX_BUSY){ ixMsg('⏳ 実行中です…'); return; }
+  try {
+    if (typeof cbCollect !== 'function'){ ixMsg('⚠ 校正レポートの部品（cbCollect）が見つかりません', 1); return; }
+    var sel = (typeof $ === 'function') ? $('cbSrc') : null;
+    var src = (sel && String(sel.value || '') === 'bt') ? 'bt' : 'pre';
+    var data = cbCollect(src);
+    if (!data.rows.length){
+      ixMsg('⚠ 検証できるレースがありません（' + (src === 'bt' ? '🕰バックテストを実行すると測れます' : '①で前日一括取得→結果取得で溜まります') + '）', 1);
+      return;
+    }
+    var races = [], i = 0;
+    while (i < data.rows.length){
+      var n = (data.rows[i]._meta && data.rows[i]._meta.n) || 1;
+      races.push(data.rows.slice(i, i + n));
+      i += n;
+    }
+    var cells = [];
+    IX_PAIRS.forEach(function(){ cells.push({ HH: { n: 0, w: 0, e: 0 }, HL: { n: 0, w: 0, e: 0 }, LH: { n: 0, w: 0, e: 0 }, LL: { n: 0, w: 0, e: 0 } }); });
+    races.forEach(function(chunk){
+      IX_PAIRS.forEach(function(pr, pi){
+        var hs = [];
+        var s = 0;
+        chunk.forEach(function(r){
+          var f = r.f || {};
+          if ((r.od || 0) > 1 && f[pr[0]] != null && f[pr[1]] != null){
+            hs.push({ r: r, fa: f[pr[0]], fb: f[pr[1]], mi: 0 });
+            s += 1 / r.od;
+          }
+        });
+        if (hs.length < 4) return;
+        hs.forEach(function(h2){ h2.mi = (1 / h2.r.od) / s; });
+        /* レース内で中央値分割（位置ベース・決定的） */
+        var byA = hs.slice().sort(function(a, b){ return a.fa - b.fa; });
+        var byB = hs.slice().sort(function(a, b){ return a.fb - b.fb; });
+        var half = Math.ceil(hs.length / 2);
+        byA.forEach(function(h2, i2){ h2.ha = i2 >= half; });
+        byB.forEach(function(h2, i2){ h2.hb = i2 >= half; });
+        hs.forEach(function(h2){
+          var c = cells[pi][(h2.ha ? 'H' : 'L') + (h2.hb ? 'H' : 'L')];
+          c.n++;
+          if (h2.r.o === 1) c.w++;
+          c.e += h2.mi;
+        });
+      });
+    });
+    var rep = { src: src, pairs: [] };
+    IX_PAIRS.forEach(function(pr, pi){
+      var cs = cells[pi];
+      function lift(c){ return c.n ? (c.w / c.n - c.e / c.n) : null; }
+      var L = { HH: lift(cs.HH), HL: lift(cs.HL), LH: lift(cs.LH), LL: lift(cs.LL) };
+      var contrast = (L.HH != null && L.HL != null && L.LH != null && L.LL != null) ? (L.HH - L.HL - L.LH + L.LL) : null;
+      var minN = Math.min(cs.HH.n, cs.HL.n, cs.LH.n, cs.LL.n);
+      rep.pairs.push({ label: pr[2], cells: cs, lifts: L, contrast: contrast, minN: minN });
+    });
+    IX_LAST = rep;
+    ixRender(rep);
+    ixMsg('✅ ' + races.length + 'レースぶんの組み合わせリフトを計算しました（通信ゼロ・モデル変更なし）');
+  } catch(e){
+    ixMsg('⚠ 実行に失敗: ' + esc(String((e && e.message) || e)), 1);
+  }
+}
+function ixRender(rep){
+  var box = (typeof $ === 'function') ? $('ixOut') : null; if (!box) return;
+  function pt(v){ return (v == null) ? '—' : ((v >= 0 ? '+' : '') + (v * 100).toFixed(1) + 'pt'); }
+  function cell(c, lv){
+    var col = (lv == null) ? '' : (lv > 0.03 ? 'var(--ok-ink)' : (lv < -0.03 ? 'var(--warn-ink)' : ''));
+    return '<td>' + (c.n ? '<b style="color:' + col + '">' + pt(lv) + '</b><div class="muted small">' + c.n + '頭</div>' : '—') + '</td>';
+  }
+  var h = '<div class="small muted" style="margin:4px 0">各セル＝その組み合わせに当てはまる馬の「実勝率−市場期待勝率」（リフト）。プラスなら市場より当たるグループ＝追加情報。右端の交互作用＝<b>片方だけでは出ない、組み合わせ特有の効果</b>（|±5pt|以上かつ各セル100頭以上で「あり」判定）。</div>';
+  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>組み合わせ</th><th>低×低</th><th>低×高</th><th>高×低</th><th>高×高</th><th>交互作用</th><th>判定</th></tr></thead><tbody>';
+  rep.pairs.forEach(function(p){
+    var verdict;
+    if (p.contrast == null) verdict = '—';
+    else if (p.minN < 100) verdict = '<span class="muted small">データ不足△</span>';
+    else if (Math.abs(p.contrast) >= 0.05) verdict = '<b style="color:var(--ok-ink)">組み合わせで変わる</b>';
+    else verdict = '<span class="muted">単独効果でほぼ説明</span>';
+    h += '<tr><td style="text-align:left">' + esc(p.label) + '</td>' +
+      cell(p.cells.LL, p.lifts.LL) + cell(p.cells.LH, p.lifts.LH) + cell(p.cells.HL, p.lifts.HL) + cell(p.cells.HH, p.lifts.HH) +
+      '<td><b>' + pt(p.contrast) + '</b></td><td>' + verdict + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="small muted" style="margin-top:2px">※保存済み予想のファクター値（0〜1・レース内正規化）を使うため、今回以降に溜まったデータで正確になります。この計測はモデルに反映しません（追加情報がありそうな組み合わせを見つけたら、🧪ドロップワンやWalk-forwardで検証してから判断）。</div>';
+  box.innerHTML = h;
+}
+
+/* ---------- 📤 前走パフォーマンス計測（学習DBの通過順から） ---------- */
+function ppRun(){
+  if (PP_BUSY){ ppMsg('⏳ 実行中です…'); return; }
+  if (typeof hfCollectRaces !== 'function' || typeof hfLastPos !== 'function'){
+    ppMsg('⚠ 学習DBの部品（hfCollectRaces）が見つかりません', 1);
+    return;
+  }
+  var races = [];
+  try { races = hfCollectRaces() || []; } catch(e){ races = []; }
+  if (!races.length){ ppMsg('⚠ 学習DBにレースがありません。📚日付指定／年指定の一括取込で結果を取り込むと測れます。', 1); return; }
+  PP_BUSY = true;
+  var t0 = Date.now();
+  var groups = {
+    fAdv: { n: 0, w: 0, e: 0 }, fHold: { n: 0, w: 0, e: 0 },
+    bAdv: { n: 0, w: 0, e: 0 }, bHold: { n: 0, w: 0, e: 0 }
+  };
+  var byHorse = {};
+  var usedRaces = 0, i = 0;
+  function step(){
+    var lim = Math.min(races.length, i + 250);
+    for (; i < lim; i++){
+      var rc = races[i];
+      var d8 = String(rc.d8 || '');
+      var oddsHs = (rc.rows || []).filter(function(x){ return (x.odds || 0) > 1; });
+      if (oddsHs.length >= 2){
+        var s = 0;
+        oddsHs.forEach(function(x){ s += 1 / x.odds; });
+        var used = 0;
+        oddsHs.forEach(function(x){
+          var key = x.hid || ((typeof hfNameKey === 'function') ? hfNameKey(x.name) : String(x.name || ''));
+          var prev = key ? byHorse[key] : null;
+          if (!(prev && prev.d8 < d8)) return;                 /* 厳密に前走日 < レース日（同日も使わない） */
+          if (!(prev.pos4 > 0 && prev.order >= 1)) return;
+          var adv = prev.pos4 - prev.order;                    /* 進脚: 4角位置より着順が良い = 正 */
+          var front = prev.pos4 <= prev.n / 2;
+          var g = front ? (adv >= 1 ? groups.fAdv : groups.fHold)
+                        : (adv >= 3 ? groups.bAdv : groups.bHold);
+          g.n++;
+          if (x.order === 1) g.w++;
+          g.e += (1 / x.odds) / s;
+          used++;
+        });
+        if (used) usedRaces++;
+      }
+      /* 計測後にこのレースを履歴へ追加（後のレースの「前走」になる＝未来は混ざらない） */
+      (rc.rows || []).forEach(function(x){
+        var key = x.hid || ((typeof hfNameKey === 'function') ? hfNameKey(x.name) : String(x.name || ''));
+        if (key) byHorse[key] = { d8: d8, order: (parseInt(x.order, 10) || 0), pos4: hfLastPos(x.passing), n: rc.n || 0 };
+      });
+    }
+    if (i < races.length){
+      ppMsg('⏳ ' + i + '/' + races.length + 'レースを集計中…（通過順ベース・通信ゼロ）');
+      setTimeout(step, 0);
+      return;
+    }
+    var rep = { races: races.length, usedRaces: usedRaces, groups: groups, ms: Date.now() - t0 };
+    PP_LAST = rep;
+    ppRender(rep);
+    PP_BUSY = false;
+    ppMsg('✅ 前走パフォーマンスの計測が終わりました（通過順つき前走を持つ馬: ' + usedRaces + 'レース分・モデル変更なし）');
+  }
+  setTimeout(step, 0);
+}
+function ppRender(rep){
+  var box = (typeof $ === 'function') ? $('ppOut') : null; if (!box) return;
+  var defs = [
+    ['fAdv', '前走:4角前半から伸びた（進脚+1以上）'],
+    ['fHold', '前走:4角前半で維持・失速'],
+    ['bAdv', '前走:4角後半から大きく伸びた（進脚+3以上）'],
+    ['bHold', '前走:4角後半から伸び切らず']
+  ];
+  var h = '<div class="tblwrap"><table class="grid"><thead><tr><th>前走の形（隠れパフォーマンス）</th><th>対象馬数</th><th>実勝率</th><th>市場期待</th><th>リフト</th></tr></thead><tbody>';
+  defs.forEach(function(d){
+    var g = rep.groups[d[0]];
+    var win = g.n ? g.w / g.n : null, exp = g.n ? g.e / g.n : null;
+    var lv = (win != null && exp != null) ? win - exp : null;
+    var col = (lv == null) ? '' : (lv > 0.03 ? 'var(--ok-ink)' : (lv < -0.03 ? 'var(--warn-ink)' : ''));
+    h += '<tr><td style="text-align:left">' + d[1] + (g.n < 100 ? ' <span class="muted small">△</span>' : '') + '</td>' +
+      '<td>' + (g.n || '—') + '</td>' +
+      '<td>' + (g.n ? fcPct(win) : '—') + '</td>' +
+      '<td>' + (g.n ? fcPct(exp) : '—') + '</td>' +
+      '<td>' + (lv == null ? '—' : '<b style="color:' + col + '">' + (lv >= 0 ? '+' : '') + (lv * 100).toFixed(1) + 'pt</b>') + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="small muted" style="margin-top:2px">進脚＝前走の4角位置と最終着順の差（どれだけ伸びたか）。前走で4角後方から差していた馬＝「前走の着順より良い走りをしていた」可能性があります。リフトがプラスのグループは市場が見落としている追加情報の候補です（まだモデルには使っていません・使う場合は🧪ドロップワンとWalk-forwardで検証してから）。学習DBの通過順データがある前走を持つ馬のみ（厳密に前走日＜レース日）。△=100馬未満。</div>';
+  box.innerHTML = h;
 }
 
 /* =========================================================
