@@ -1167,7 +1167,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-24 第86弾（🧾払戻DBタブ新設・予測計算は完全不変: 結果ページ(race.netkeiba.com/race/result.html)から払戻情報だけを取得して学習DBとは完全に独立した専用IndexedDB「khl_paydb_v1」に蓄積する新タブ。対象=指定日/日付範囲/年指定/レースID直接指定＋「未取得のみ」設定。8券種（単勝/複勝/枠連/馬連/ワイド/馬単/3連複/3連単）を券種別{nos,pays}＋生リストで保存。ステータスは7状態（pending/ok/fetch_err/no_page/no_table/no_pay/parse_err）で「払戻なし」と「取得・解析失敗」を厳密に区別。▶開始/⏸一時停止/▶再開/✖キャンセル/🔁失敗分だけ再試行・進捗表示・中断ジョブの再開。💾JSONエクスポート（khl_paydb_backup_YYYYMMDD.json）・🧹全消しは専用DBのみ。パーサーは既存のbfParsePayback/rdParsePayout/bfPayoutMapを読み取り専用で再利用（実測fixtureで全券種一致を確認済み）。このモジュールからdiSet/diSaveOne/diImportDate/apEval/apPatchPayout/analyzeRace等の既存書き込み経路は一切呼ばない＝学習DB・予想エンジン・BT_MODE・khl_calib_v1に変更なし。localStorage不使用（STORE_LIMIT対象外）。自動で大量取得は開始しない。新規src/p86_paydb.js・p2_body+52行・NAV+1件(13タブ)・build ORDER+1・rework7 NAVアサート12→13。検証: tests/p86paydb.test.js（実測3fixture+合成4種の分類・既知値一致・タイトルmeta・フィルタ・書き込み経路遮断の静的検査）・静的テスト全緑・同一性検証）</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1184,6 +1184,7 @@ html[data-theme="light"] .page-top-hero{
   <button class="tab" data-t="t-aiprop">🤖 AI提案</button>
   <button class="tab" data-t="t-lookback">🕰 振り返り</button>
   <button class="tab" data-t="t-overseas">🌍 海外競馬</button>
+  <button class="tab" data-t="t-paydb">🧾 払戻DB</button>
 </nav>
 
 <main>
@@ -3010,6 +3011,27 @@ html[data-theme="light"] .page-top-hero{
       <div id="wfMsg" class="small" style="margin-top:4px"></div>
       <div id="wfOut"></div>
     </div>
+    <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
+      <div style="font-weight:700;margin-bottom:4px">🚶 多窓Walk-forward（年度複数窓・自動判定）<span class="chip">新</span></div>
+      <div class="small muted" style="margin:2px 0 4px">ℹ️ 上の単一WFと同じ保存済み予想（🕰BTぶん）を使い、W1〜W4bの5窓（2021-22→23／→24／→25／→26／〜26/6→26/7-9）で検証します。各窓で「学習期間の最大日付＜検証期間の最小日付」を必ず確認（未来情報チェック）し、学習期間だけで🎯校正の帯別倍率を学習した<b>候補</b>を現行・市場と比較します。候補の生成・検証・レポート保存まで自動・<b>モデルの変更はしません</b>（採用は手順を踏んで手動のみ）。</div>
+      <div class="small muted" style="margin-bottom:4px">実行タイミング: 学習DBに新しいレースが<b>30件</b>（設定可変: localStorage の khl_awf_trig_n）追加されたとき／📅自動マクロ一連処理の完了時／このボタン。1レース保存ごとには実行しません（1窓ずつ中断・再開できる形で処理し、重複実行は防止します）。</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="awfRun" class="btn primary">🚶 5窓で自動検証して判定レポートを作る</button>
+        <span class="muted small">通信ゼロ・モデル変更なし・保存済みスナップの集計のみ</span>
+      </div>
+      <div id="awfMsg" class="small" style="margin-top:4px"></div>
+      <div id="awfOut"></div>
+    </div>
+    <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
+      <div style="font-weight:700;margin-bottom:4px">⚖️ 採用判定（手動のみ・自動採用なし）<span class="chip">新</span></div>
+      <div class="small muted" style="margin:2px 0 4px">ℹ️ 多窓WFのレポートを「採用条件12条」で機械判定します（3窓以上・各窓300R以上・同時悪化なし・全体平均で少なくとも一方が最低改善幅超え・片方悪化は上限内・誤差範囲なら不採用・top1/AI勝率/倍率/◎変更率/未来情報/エラー/事前保管）。閾値は<b>提案値（未確定）</b>のため、判定・警告・レポート作成だけを行い<b>自動採用はしません</b>。採用は💾保管→トークン入力→⚖️実行の手動手順のみで、実行すると🎯校正の倍率（khl_calib_v1）だけが変わります（予測計算式・重み・印・買い目は不変）。📜履歴からいつでも戻せます。</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="adRun" class="btn primary">⚖️ 判定を見る（保存済みレポートから）</button>
+        <span class="muted small">通信ゼロ・モデル変更なし（採用実行時のみ校正倍率が変わる）</span>
+      </div>
+      <div id="adMsg" class="small" style="margin-top:4px"></div>
+      <div id="adOut"></div>
+    </div>
     <div class="small muted" style="margin-top:4px">改善モデルv2の行は「採用中の補正を同じデータに掛けた場合」のシミュレーションです（採用状態は変わりません）。均等予測・市場（オッズそのまま）は参考ライン。オッズがある馬に限定して全モデルを同一条件で比較しています。馬券の収支（回収率）は別管理にしてください。</div>
   </div>
   <div class="card">
@@ -3082,17 +3104,81 @@ html[data-theme="light"] .page-top-hero{
   </div>
   <div id="ovBody"></div>
 </section>
+<!-- ================= 🧾 払戻DB（★第86弾: 払戻だけを独立収集・学習DBと完全分離） ================= -->
+<section class="page" id="t-paydb">
+  <h2>🧾 払戻DB</h2>
+  <div class="card">
+    <h2>取得対象の指定</h2>
+    <div class="small muted" style="margin:2px 0 6px">結果ページから<strong>払戻情報だけ</strong>を取得して、学習DBとは完全に独立した専用DB（IndexedDB「khl_paydb_v1」）にためます。<strong>予想エンジン・学習DB・既存のレースデータには一切書き込みません</strong>（分析・学習DBとの照合は今後の機能です）。</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <label class="small">対象
+        <select id="pdMode" style="font-family:inherit">
+          <option value="date">指定日</option>
+          <option value="range">日付範囲</option>
+          <option value="year">年指定</option>
+          <option value="rids">レースID直接指定</option>
+        </select>
+      </label>
+      <label class="small" id="pdWrapDate">日付 <input type="date" id="pdDate" style="font-family:inherit"></label>
+      <label class="small" id="pdWrapFrom" style="display:none">from <input type="date" id="pdFrom" style="font-family:inherit"></label>
+      <label class="small" id="pdWrapTo" style="display:none">to <input type="date" id="pdTo" style="font-family:inherit"></label>
+      <label class="small" id="pdWrapYear" style="display:none">年 <input type="number" id="pdYear" min="2000" max="2100" value="2026" style="width:84px;font-family:inherit"></label>
+    </div>
+    <div id="pdWrapRids" style="display:none;margin-top:6px">
+      <label class="small">レースID（12桁・改行/カンマ区切りで複数可）
+        <textarea id="pdRids" rows="3" style="width:100%;font-family:inherit" placeholder="202609040311&#10;202609040301"></textarea>
+      </label>
+      <div class="small muted">※netkeiba の race_id（学習DBのレースIDと同じ形式）を指定します。日付・場所・レース番号は結果ページから自動で補います。</div>
+    </div>
+    <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:6px">
+      <label class="small"><input type="checkbox" id="pdOnlyNew" checked> 未取得のレースのみ（成功済み・払戻なしをスキップ）</label>
+      <label class="small"><input type="checkbox" id="pdSkipFail"> 失敗済みもスキップ</label>
+      <label class="small" title="1レースごとの待ち時間（サーバーへの配慮）">間隔(ms) <input type="number" id="pdIv" min="300" max="5000" step="100" value="700" style="width:80px;font-family:inherit"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h2>実行</h2>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button id="pdBtnStart" class="btn primary">▶ 開始</button>
+      <button id="pdBtnPause" class="btn" disabled>⏸ 一時停止</button>
+      <button id="pdBtnResume" class="btn" disabled>▶ 再開</button>
+      <button id="pdBtnCancel" class="btn ghost" disabled>✖ キャンセル</button>
+      <button id="pdBtnRetry" class="btn">🔁 失敗分だけ再試行</button>
+    </div>
+    <div id="pdProgWrap" style="display:none;margin-top:8px">
+      <div style="background:#ddd;border-radius:6px;height:10px;overflow:hidden"><div id="pdProg" style="background:#2e7d32;height:10px;width:0%"></div></div>
+      <div id="pdStat" class="small" style="margin-top:4px"></div>
+      <div id="pdCur" class="small muted"></div>
+    </div>
+    <div id="pdMsgBox" class="small" style="margin-top:4px"></div>
+    <div class="small muted" style="margin-top:6px">※1レースずつ順番に取得します。<strong>ブラウザを閉じるとその場で停止します</strong>（中断したジョブは「▶ 再開」で続きから）。自動で大量取得を始めることはありません——ここで指定した対象だけを取得します。</div>
+  </div>
+  <div class="card">
+    <h2>保存状況</h2>
+    <div id="pdSum" class="small"></div>
+    <div id="pdLog" class="small muted" style="margin-top:4px"></div>
+  </div>
+  <div class="card">
+    <h2>エクスポート</h2>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button id="pdBtnExport" class="btn primary">💾 JSONで書き出し</button>
+      <button id="pdBtnClear" class="btn ghost">🧹 全消し</button>
+    </div>
+    <div class="small muted" style="margin-top:4px">書き出したJSON（khl_paydb_backup_YYYYMMDD.json）は回収率分析・券種別分析・学習DBとの照合（レースID突合）・バックアップに使えます。🧹全消しは<strong>このタブの専用DBだけ</strong>を消します（学習DBには影響しません）。</div>
+    <div id="pdIdbNg" class="small" style="display:none;color:#b3261e;margin-top:4px">⚠ この環境では IndexedDB が使えないため、払戻DBは利用できません（プレビュー画面ではなく、ダウンロードした index.html をブラウザで直接開いてください）。</div>
+  </div>
+</section>
 </main>
 
 <footer>
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・AI展開表示をすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第86弾（🧾払戻DBタブ新設・予測計算は完全不変: 結果ページ(race.netkeiba.com/race/result.html)から払戻情報だけを取得して学習DBとは完全に独立した専用IndexedDB「khl_paydb_v1」に蓄積する新タブ。対象=指定日/日付範囲/年指定/レースID直接指定＋「未取得のみ」設定。8券種（単勝/複勝/枠連/馬連/ワイド/馬単/3連複/3連単）を券種別{nos,pays}＋生リストで保存。ステータスは7状態（pending/ok/fetch_err/no_page/no_table/no_pay/parse_err）で「払戻なし」と「取得・解析失敗」を厳密に区別。▶開始/⏸一時停止/▶再開/✖キャンセル/🔁失敗分だけ再試行・進捗表示・中断ジョブの再開。💾JSONエクスポート（khl_paydb_backup_YYYYMMDD.json）・🧹全消しは専用DBのみ。パーサーは既存のbfParsePayback/rdParsePayout/bfPayoutMapを読み取り専用で再利用（実測fixtureで全券種一致を確認済み）。このモジュールからdiSet/diSaveOne/diImportDate/apEval/apPatchPayout/analyzeRace等の既存書き込み経路は一切呼ばない＝学習DB・予想エンジン・BT_MODE・khl_calib_v1に変更なし。localStorage不使用（STORE_LIMIT対象外）。自動で大量取得は開始しない。新規src/p86_paydb.js・p2_body+52行・NAV+1件(13タブ)・build ORDER+1・rework7 NAVアサート12→13。検証: tests/p86paydb.test.js（実測3fixture+合成4種の分類・既知値一致・タイトルmeta・フィルタ・書き込み経路遮断の静的検査）・静的テスト全緑・同一性検証）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
-�が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></span>
+�が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第86弾（🧾払戻DBタブ新設・予測計算は完全不変: 結果ページ(race.netkeiba.com/race/result.html)から払戻情報だけを取得して学習DBとは完全に独立した専用IndexedDB「khl_paydb_v1」に蓄積する新タブ。対象=指定日/日付範囲/年指定/レースID直接指定＋「未取得のみ」設定。8券種（単勝/複勝/枠連/馬連/ワイド/馬単/3連複/3連単）を券種別{nos,pays}＋生リストで保存。ステータスは7状態（pending/ok/fetch_err/no_page/no_table/no_pay/parse_err）で「払戻なし」と「取得・解析失敗」を厳密に区別。▶開始/⏸一時停止/▶再開/✖キャンセル/🔁失敗分だけ再試行・進捗表示・中断ジョブの再開。💾JSONエクスポート（khl_paydb_backup_YYYYMMDD.json）・🧹全消しは専用DBのみ。パーサーは既存のbfParsePayback/rdParsePayout/bfPayoutMapを読み取り専用で再利用（実測fixtureで全券種一致を確認済み）。このモジュールからdiSet/diSaveOne/diImportDate/apEval/apPatchPayout/analyzeRace等の既存書き込み経路は一切呼ばない＝学習DB・予想エンジン・BT_MODE・khl_calib_v1に変更なし。localStorage不使用（STORE_LIMIT対象外）。自動で大量取得は開始しない。新規src/p86_paydb.js・p2_body+52行・NAV+1件(13タブ)・build ORDER+1・rework7 NAVアサート12→13。検証: tests/p86paydb.test.js（実測3fixture+合成4種の分類・既知値一致・タイトルmeta・フィルタ・書き込み経路遮断の静的検査）・静的テスト全緑・同一性検証）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -5607,6 +5693,9 @@ function renderKentaiFull(){
   renderTables(res);
   if (typeof apRender === 'function'){ try { apRender(); } catch(e){} }
   if (typeof aihRender === 'function'){ try { aihRender(); } catch(e){} }
+  /* ★第83弾(Phase 4): ②最下部にモデル情報・ファクター寄与カード（実計算値のみ・折りたたみ）。
+     既存カードの位置・順序は不変（kentaiBodyの末尾へ追加するだけ・計算も不変）。 */
+  try { if (typeof smCardRender === 'function') smCardRender(res); } catch(e){}
   /* ★2026-09-12 第17弾: ②を開くたびに「今のAI予想」を事前予想として保存しておく。
      結果が確定しているレースは apSnapPred 側で必ず断るので、いかさまにはなりません。
      同じ内容（馬番:印:オッズ が一致）なら書き直さないため、保存回数は増えません。 */
@@ -15972,6 +16061,9 @@ function apSnapPred(rid, res, meta, opt){
     try {
       if (typeof pkPicks === 'function') snap.picks = pkPicks(res);
     } catch(e){}
+    /* ★第83弾(Phase 4): モデルID・学習基準日時・使用重み・校正状態・寄与（実計算値のみ）を記録。
+       予測計算・rows・sig は一切不変（meta は保存時に1回生成する付加情報）。 */
+    try { if (typeof smBuildMeta === 'function') snap.model = smBuildMeta(res, { bt: isBt, d8: d8 }); } catch(e){}
     function nz(v){ return (typeof v === 'number' && isFinite(v)) ? Math.round(v * 10000) / 10000 : null; }
     // 同じ内容なら書き直さない（保存回数を抑える）
     /* ★第75弾: 馬体重が後から載った（前日夜→当日朝の再取得）ときも保存し直すよう sig に含める */
@@ -19460,6 +19552,10 @@ function topInfoStart(){
    ========================================================= */
 var DI_LS = 'khl_date_v1';          // 旧形式: 1キーに全レースをまとめて保存（移行元）
 var DI_PREFIX = 'khl_di_';          // 従来方式: 1レース1キー（localStorage移行元・フォールバック）
+/* ★第82弾: 学習DBの書き込み世代カウンタ。diSet/diRemoveRace/diRemoveAll で +1。
+   hfCollectRaces/pbDayStats の読み取りキャッシュはこれを見て無効化する
+   （予想1回ごとに学習DB全件を再走査する O(N²) の解消。予測ロジック・戻り値は不変）。 */
+var diVer = 0;
 /* =========================================================
    保存領域の本命: IndexedDB（大容量）
    ---------------------------------------------------------
@@ -19604,6 +19700,7 @@ function diRaceSort(db){
 }
 /* 指定ridを localStorage キー・旧形式・IndexedDB・メモリから削除 */
 function diRemoveRace(rid){
+  diVer++;   /* ★第82弾: 削除も書き込み世代を進める */
   diLsDrop();   // 旧索引(DI_LS)側も書き換えるので必ず捨てる
   diLsDel(rid);
   var leg = diLegacy();
@@ -19712,6 +19809,7 @@ function diGet(rid){
   var leg = diLegacy(); return (leg && leg.races[rid]) || null;
 }
 function diSet(rid, rec){
+  diVer++;   /* ★第82弾: 書き込み世代を進める（hfCollectRaces/pbDayStats のキャッシュ無効化） */
   // 満杯になったら「一番古いデータから上書き」：容量不足時は古い順に自動削除して保存する
   if (diMode === 'idb' && diMem){
     diMem[rid] = rec;
@@ -19728,6 +19826,7 @@ function diSet(rid, rec){
 }
 function diSave(o){ return diStorageOK(); }
 function diRemoveAll(){
+  diVer++;   /* ★第82弾: 全消去も書き込み世代を進める */
   diMem = null; diAt = 0; diBytesDirty = true; diLsDrop();
   if (diDb){ try { diIdbClear(); } catch(e){} }
   diLsClear();
@@ -21353,7 +21452,8 @@ var NAV_ITEMS = [
   { t:'t-overseas', icon:'🌍', name:'海外競馬',              sub:'JRA-VAN海外レースの出馬表・馬詳細・戦績' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
-  { t:'t-tenki',    icon:'☀️', name:'天気予報',                sub:'当日開催場の1時間ごと天気（気温・湿度・降水・風）' }
+  { t:'t-tenki',    icon:'☀️', name:'天気予報',              sub:'当日開催場の1時間ごと天気（気温・湿度・降水・風）' },
+  { t:'t-paydb',    icon:'🧾', name:'払戻DB',                sub:'結果ページから払戻だけを独立収集（学習DBと完全分離）・JSON書き出し' }   /* ★第86弾 */
 ];
 function navDrawerHTML(){
   var h = [];
@@ -31206,8 +31306,18 @@ function hfBand(m){
 /* =========================================================
    インデックス作成（学習DB全体を1回なめる）
    ========================================================= */
+/* ★第82弾: hfCollectRaces のメモ化（学習DBの書き込み世代 diVer が同じなら再構築しない）。
+   旧コードは予想1回ごと（pbDayStats 経由）に学習DB全件（最大2万レース）を再構築して
+   O(N²) になっていた。戻り値は diVer が同じなら内容も同じ（純粋な集計・呼び出し側はすべて
+   読み取り専用）。学習DBの書き込み（diSet/diRemoveRace/diRemoveAll）で自動的に無効化される。 */
+var hfRcCache = null, hfRcVer = -1;
+function hfRcDrop(){ hfRcCache = null; hfRcVer = -1; }
 function hfCollectRaces(){
+  try {
+    if (hfRcCache && typeof diVer !== 'undefined' && hfRcVer === diVer) return hfRcCache;
+  } catch(e){}
   var out = [];
+  var ok = false;
   try {
     if (typeof diLs !== 'function') return out;
     var db = diLs() || {};
@@ -31244,6 +31354,8 @@ function hfCollectRaces(){
     }
   } catch(e){}
   out.sort(function(a, b){ return a.d8 < b.d8 ? -1 : (a.d8 > b.d8 ? 1 : 0); });
+  ok = true;
+  if (ok && typeof diVer !== 'undefined'){ hfRcCache = out; hfRcVer = diVer; }   /* ★第82弾: 完全構築できたときだけキャッシュ */
   return out;
 }
 
@@ -32504,9 +32616,12 @@ function flLift(c){
 }
 
 /* 保存済みの「事前予想＋結果」がそろったレースを集める */
-function flRaces(){
+function flRaces(opt){
   var out = [];
   try {
+    /* ★第84弾(Phase 3): opt.maxD8 を渡すと「その日付まで」のレースだけを使う（期間カットオフ）。
+       呼び出し元が従来どおり flRaces() なら全期間のまま（学習式・補正式は一切不変）。 */
+    var cutD8 = (opt && opt.maxD8) ? String(opt.maxD8).replace(/[^0-9]/g, '').slice(0, 8) : '';
     /* ★2026-09-12 第18弾: 対象を「apCompleted()（rec.result があるもの）」から
        「apStoredRaceList()（学習DBの全レース＋自己検証済みレコード）」へ広げる。
        バックテスト(rec.preBt)だけのレースは rec.result を持たないので、
@@ -32516,6 +32631,11 @@ function flRaces(){
     list.forEach(function(item){
       var rid0 = String((item && item.rid) || '');
       if (!rid0) return;
+      if (cutD8){
+        /* カットオフ後（または日付不明）のレースは学習に使わない＝未来情報防止 */
+        var id8 = String(((item.p && (item.p.date8 || (item.p.meta && item.p.meta.date8))) || '')).replace(/[^0-9]/g, '').slice(0, 8);
+        if (!/^\d{8}$/.test(id8) || id8 > cutD8) return;
+      }
       var resRows = (item.p && item.p.rows) || [];
       var rec = null;
       try { rec = (typeof apGet === 'function') ? apGet(rid0) : null; } catch(e){ rec = null; }
@@ -33734,9 +33854,13 @@ var pbCache = { n: -1, days: null, at: 0 };
 /* 学習DBを「競馬場 × 開催日」で集計する（通信ゼロ） */
 function pbDayStats(){
   try {
+    /* ★第82弾: キャッシュ判定を学習DB全走査の「前」に行う（キー=diVer）。
+       旧コードは races.length との比較のために毎回 hfCollectRaces() を全件構築していた。 */
+    var ver82 = (typeof diVer !== 'undefined') ? diVer : -1;
+    if (ver82 >= 0 && pbCache.days && pbCache.ver === ver82) return pbCache.days;
     var races = (typeof hfCollectRaces === 'function') ? hfCollectRaces() : null;
     if (!races || !races.length) return null;
-    if (pbCache.days && pbCache.n === races.length) return pbCache.days;
+    if (ver82 < 0 && pbCache.days && pbCache.n === races.length) return pbCache.days;
     var days = {};     // days[venue][d8] = { venue, d8, races, known, sum, styles, speedSum, speedN, oddsSum, oddsN }
     races.forEach(function(r){
       try {
@@ -33777,7 +33901,7 @@ function pbDayStats(){
         } catch(e){}
       } catch(e){}
     });
-    pbCache = { n: races.length, days: days, at: Date.now() };
+    pbCache = { n: races.length, days: days, at: Date.now(), ver: ver82 };   /* ★第82弾: ver=書き込み世代で無効化 */
     return days;
   } catch(e){ return pbCache.days; }
 }
@@ -37569,6 +37693,9 @@ function dbMacroRun(){
   function next(){
     if (i >= steps.length){
       if (typeof diYearMsgSet === 'function') diYearMsgSet('✅ 自動マクロ一連処理を開始しました（各機能は裏側で実行中です。詳細は各タブをご確認ください）。');
+      /* ★第84弾(Phase 3): 開催日完了トリガー — 学習DBに新しいレースが30件（設定可変: khl_awf_trig_n）
+         溜まっていれば多窓WFを自動実行（スナップ集計のみで軽い・重複防止つき・モデル変更なし）。 */
+      try { if (typeof awfMaybeTrigger === 'function') awfMaybeTrigger('daydone'); } catch(e){}
       return;
     }
     var s = steps[i++];
@@ -41716,6 +41843,1708 @@ function vbInit(){
     bkRender();
   } catch(e){}
 }
+
+/* =====================================================================
+   第83弾（自動学習パイプライン Phase 4）: 予想スナップへのモデルメタデータ記録
+   ---------------------------------------------------------------------
+   ・計算は一切変えない。apSnapPred() のスナップに model 欄を1つ追加するだけ。
+   ・寄与表示は「実際の計算値のみ」から生成する（f値7種・weights・pMod/pMkt/
+     strongN/gapFlag）。後付けの理由づけ禁止・予測計算と説明で同じ値を使う。
+   ・依存（state.weights / cbLs / diLs / buildStamp）はすべて typeof ガード付きで、
+     無くても動作する（単体テスト・旧環境で安全）。
+   ・接続箇所（本ファイルは純追加）:
+       p30_learnrec.js apSnapPred() … snap 生成後に1行（typeofガード）
+       p8_analysisui.js renderKentaiFull() … 末尾に1行（typeofガード）
+       build.py ORDER … 'p83_snapmeta' を p77 と p10 の間に1行
+   ・ロールバック: 上記3箇所の行を削除して再ビルド（本ファイルは消すだけで良い）。
+     スナップの model 欄は読み側が存在チェックして無視するため過去データへの影響なし。
+   ===================================================================== */
+
+var SM_KIND = 'main-75-25';
+var SM_FKEYS = ['O', 'Y', 'T', 'K', 'B', 'Y2', 'A'];
+var SM_TOPN = 3;   /* 寄与ビューに残す上位頭数（スナップ容量対策） */
+
+/* 決定的ハッシュ（djb2・32bit・IEEE754の範囲内で厳密 → 環境差なし） */
+function smHash(s){
+  s = String(s == null ? '' : s);
+  var h = 5381;
+  for (var i = 0; i < s.length; i++){ h = (h * 33 + s.charCodeAt(i)) % 4294967296; }
+  return ('0000000' + h.toString(16)).slice(-8);
+}
+
+/* ビルドID（buildStamp要素）。長い場合は「日付 第N弾」の短縮形にする。 */
+function smVer(){
+  var t = '';
+  try {
+    if (typeof document !== 'undefined' && document.getElementById){
+      var el = document.getElementById('buildStamp');
+      if (el && el.textContent) t = String(el.textContent).trim();
+    }
+  } catch(e){}
+  if (!t){ try { if (typeof BUILD_ID !== 'undefined') t = String(BUILD_ID); } catch(e){} }
+  var m = t.match(/(\d{4}-\d{2}-\d{2})\s*(第\d+弾)/);
+  return m ? (m[1] + ' ' + m[2]) : String(t).slice(0, 40);
+}
+
+/* 校正の採用状態（未採用なら on:false） */
+function smCalib(){
+  var out = { on: false, src: '', n: 0, at: 0, mults: null };
+  try {
+    if (typeof cbLs === 'function'){
+      var o = cbLs();
+      if (o && o.adopted){
+        out = { on: true, src: o.src || '', n: o.n || 0, at: o.at || 0, mults: (o.mults || null) };
+      }
+    }
+  } catch(e){}
+  return out;
+}
+
+/* 学習基準日時: 学習DBの最大日付・件数・diVer（Phase 2導入のカウンタ） */
+function smLearnBasis(){
+  var out = { maxD8: '', races: 0, diVer: null };
+  try {
+    if (typeof diLs === 'function'){
+      var ls = diLs() || {}, rs = (ls && ls.races) || {}, mx = '', n = 0;
+      for (var k in rs){
+        var r = rs[k]; if (!r) continue;
+        n++;
+        var d = String((r.meta && r.meta.date8) || r.date8 || '').replace(/[^0-9]/g, '').slice(0, 8);
+        if (/^\d{8}$/.test(d) && d > mx) mx = d;
+      }
+      out.maxD8 = mx; out.races = n;
+    }
+  } catch(e){}
+  try { if (typeof diVer !== 'undefined') out.diVer = diVer; } catch(e){}
+  return out;
+}
+
+/* モデルID: モデル種類+ビルド+重み+校正状態+学習基準 の決定的な識別子。
+   同じ状態からは必ず同じID（重みや校正が変われば別IDになる）。 */
+function smModelId(w, cal, ver, basis, posMode){
+  var wh = smHash(JSON.stringify(w || {}));
+  var ch = (cal && cal.on) ? ('cal:' + smHash(JSON.stringify(cal.mults || []))) : 'nocal';
+  return ['khl', SM_KIND, ver || 'v?', wh, ch,
+          String(posMode || ''), (basis && basis.maxD8) || 'd?', String((basis && basis.races) || 0)].join('-');
+}
+
+/* 上位馬の寄与ビュー（実計算値のみ・再計算しない・捏造しない）。
+   res.rows は analyzeRace() の戻り値の rows（fO..fA, fY2, pMod, pMkt, strongN,
+   gapFlag, prob, mark, rank, modelRank, mktRank, h.odds など）。
+   fNulls: 各f値が「そのレースで無かった（null）」頭数 → データ不足の実測。
+   fFlat : 非-nullが2頭以上で全馬同値（このレースでは差のないファクター）の実測。 */
+function smFactors(res){
+  var out = { top: [], fNulls: {}, fFlat: {}, n: 0 };
+  try {
+    var rows = (res && res.rows) || [];
+    out.n = rows.length;
+    var vals = {};
+    SM_FKEYS.forEach(function(k){ out.fNulls[k] = 0; vals[k] = []; });
+    rows.forEach(function(r){
+      if (!r) return;
+      SM_FKEYS.forEach(function(k){
+        var v = (k === 'O') ? r.fO : (k === 'Y') ? r.fY : (k === 'T') ? r.fT : (k === 'K') ? r.fK
+              : (k === 'B') ? r.fB : (k === 'Y2') ? r.fY2 : r.fA;
+        if (v == null) out.fNulls[k]++;
+        else vals[k].push(v);
+      });
+    });
+    SM_FKEYS.forEach(function(k){
+      var a = vals[k];
+      if (a.length >= 2){
+        var mn = a[0], mx = a[0];
+        for (var i = 1; i < a.length; i++){ if (a[i] < mn) mn = a[i]; if (a[i] > mx) mx = a[i]; }
+        if (mn === mx) out.fFlat[k] = true;
+      }
+    });
+    rows.slice(0, SM_TOPN).forEach(function(r){
+      if (!r) return;
+      var h = r.h || {};
+      out.top.push({
+        no: String(h.no == null ? '' : h.no), rank: r.rank || 0, mark: r.mark || '',
+        prob: (typeof r.prob === 'number' ? Math.round(r.prob * 10000) / 10000 : null),
+        pMod: (typeof r.pMod === 'number' ? Math.round(r.pMod * 10000) / 10000 : null),
+        pMkt: (typeof r.pMkt === 'number' ? Math.round(r.pMkt * 10000) / 10000 : null),
+        strongN: (r.strongN == null ? null : r.strongN), gapFlag: String(r.gapFlag || ''),
+        modelRank: (r.modelRank == null ? null : r.modelRank), mktRank: (r.mktRank == null ? null : r.mktRank),
+        f: {
+          O: smNZ(r.fO), Y: smNZ(r.fY), T: smNZ(r.fT), K: smNZ(r.fK),
+          B: smNZ(r.fB), Y2: smNZ(r.fY2), A: smNZ(r.fA)
+        }
+      });
+    });
+  } catch(e){}
+  return out;
+}
+function smNZ(v){ return (typeof v === 'number' && isFinite(v)) ? Math.round(v * 10000) / 10000 : null; }
+
+/* スナップへ保存するモデルメタデータ本体。
+   opt.bt/opt.d8: バックテストスナップ(preBt)のとき「レース日以前のデータで再計算」
+   であることを記録する（未来情報と誤読されないための実測情報）。 */
+function smBuildMeta(res, opt){
+  opt = opt || {};
+  var cal = smCalib();
+  var basis = smLearnBasis();
+  var w = {};
+  try { if (typeof state !== 'undefined' && state && state.weights) w = state.weights; } catch(e){}
+  var ver = smVer();
+  var posMode = '';
+  try { posMode = String((res && res.posMode) || ''); } catch(e){}
+  return {
+    modelId: smModelId(w, cal, ver, basis, posMode),
+    modelKind: SM_KIND,
+    version: ver,
+    engine: 'v19',
+    createdAt: new Date().toISOString(),
+    learnBasis: basis,          /* 学習基準日時: 学習DBの最大日付・件数・diVer */
+    calib: cal,                 /* 補正倍率（採用時のみ mults が入る） */
+    weights: JSON.parse(JSON.stringify(w)),
+    posMode: posMode,
+    bt: !!(opt && opt.bt),
+    raceD8: String((opt && opt.d8) || ''),
+    insuff: (opt.insuff || []).slice(),
+    factors: smFactors(res)
+  };
+}
+
+/* 説明文の生成（表示用・meta と同じ値だけを使う。新しい計算はしない）。 */
+function smContributionText(meta){
+  var out = [];
+  try {
+    if (!meta) return '';
+    out.push('モデルID: ' + String(meta.modelId || '') + '（' + String(meta.version || '') + '）');
+    if (meta.bt) out.push('🕰BT再予想: レース日 ' + String(meta.raceD8 || '—') + ' 以前のデータで計算したスナップです');
+    var lb = meta.learnBasis || {};
+    out.push('学習基準: 学習DB ' + String(lb.races || 0) + 'レース（最大 ' + String(lb.maxD8 || '—') + 'まで）');
+    var cal = meta.calib || {};
+    out.push(cal.on ? ('🎯校正: 採用中（' + String(cal.src || '') + '・n=' + String(cal.n || 0) + '）')
+                    : '🎯校正: 未採用（素のモデル出力）');
+    var ws = meta.weights || {}, wtxt = [];
+    ['odds','yobi','time','tenkai','baba','yoso','abl','waku','jockey','fieldLv','pos'].forEach(function(k){
+      if (ws[k] != null) wtxt.push(k + '=' + ws[k]);
+    });
+    if (wtxt.length) out.push('重み: ' + wtxt.join(' '));
+    var ins = meta.insuff || [];
+    if (ins.length) out.push('⚠ データ不足: ' + ins.join('・'));
+    (meta.factors && meta.factors.top ? meta.factors.top : []).forEach(function(t){
+      var f = t.f || {}, fl = [];
+      SM_FKEYS.forEach(function(k){ if (f[k] != null) fl.push(k + ' ' + f[k].toFixed(2)); });
+      out.push(String(t.mark || '　') + String(t.no) + '番（AI勝率 ' + (t.prob != null ? (t.prob * 100).toFixed(1) + '%' : '—') +
+        (t.pMkt != null ? '・市場 ' + (t.pMkt * 100).toFixed(1) + '%' : '') +
+        (t.strongN != null ? '・強調' + t.strongN : '') + (t.gapFlag || '') + '）f値: ' + fl.join('／'));
+    });
+    /* データなし・全馬同値ファクターの注記（fNulls/fFlat は実測値から計上） */
+    var fa = (meta.factors || {}), nH = fa.n || 0;
+    if (nH > 0){
+      var noData = SM_FKEYS.filter(function(k){ return (fa.fNulls || {})[k] === nH; });
+      if (noData.length) out.push('⚠ ファクターデータなし（全馬が対象外）: ' + noData.join('・'));
+      var flat = SM_FKEYS.filter(function(k){ return (fa.fFlat || {})[k]; });
+      if (flat.length) out.push('※全馬同値（このレースでは差のないファクター）: ' + flat.join('・'));
+    }
+  } catch(e){}
+  return out.join('\n');
+}
+
+/* ②予想タブ最下部のモデル情報カード（折りたたみ・動的appendのみで既存要素は不変）。
+   meta は「保存済みスナップの model」を優先し、無ければ今の res から生成
+   （どちらも同じ実計算値から作られる）。 */
+function smCardRender(res){
+  try {
+    if (typeof document === 'undefined' || !document.getElementById) return;
+    var body = document.getElementById('kentaiBody');
+    if (!body) return;
+    var card = document.getElementById('smCard');
+    if (!card){
+      card = document.createElement('details');
+      card.id = 'smCard';
+      card.className = 'card fold';
+      card.style.marginTop = '14px';
+      card.style.borderColor = 'var(--line2)';
+      card.style.padding = '0';
+      body.appendChild(card);
+    }
+    if (!res || !res.ok || !res.rows || !res.rows.length){ card.style.display = 'none'; return; }
+    card.style.display = '';
+    var meta = null;
+    try {
+      var rid = (typeof state !== 'undefined' && state && state.raceId) ? String(state.raceId) : '';
+      if (rid && typeof apGet === 'function'){
+        var rec = apGet(rid);
+        if (rec && rec.pre && rec.pre.model) meta = rec.pre.model;
+      }
+    } catch(e){}
+    if (!meta) meta = smBuildMeta(res);
+    var txt = (typeof smContributionText === 'function') ? smContributionText(meta) : '';
+    function E(s){
+      if (typeof esc === 'function') { try { return esc(String(s)); } catch(e){} }
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    card.innerHTML =
+      '<summary class="foldhead"><span class="fmark"></span>' +
+      '<h2 style="margin:0">🧾 モデル情報・ファクター寄与</h2>' +
+      '<span class="chip">実計算値のみ</span><span class="sp"></span><span class="foldhint"></span></summary>' +
+      '<div style="padding:8px 14px">' +
+      '<div class="small muted" style="margin-bottom:5px">この予想を出したモデルのID・学習基準・使用重み・🎯校正の状態と、上位3頭のファクター寄与（f値）を表示します。すべて実際の計算値だけで構成され、後付けの理由づけは含みません。スナップにも同じ内容が保存されます。</div>' +
+      '<pre class="small" style="white-space:pre-wrap;margin:0;font-size:.8rem;line-height:1.7">' + E(txt) + '</pre></div>';
+  } catch(e){}
+}
+
+/* =====================================================================
+   第84弾（自動学習パイプライン Phase 3）: 多窓Walk-forward自動実行・ジョブ状態・校正候補生成
+   ---------------------------------------------------------------------
+   ・窓定義は Phase A で検証済みの wf_full.py と同じ5窓（W1〜W4・W4b）。
+   ・未来情報チェック（学習max日付 < 検証min日付）を各窓で必ず実施し、
+     不合格ならその窓は「判定不能」として採用対象から外す。
+   ・校正候補の帯別倍率は p74/wfRun と同一式（6帯・縮小25馬・0.55〜1.8・n≥40）。
+     学習式・補正式は不変。
+   ・評価は「保存済み予想スナップ（rec.preBt）＋結果」から行う
+     （既存の単一WFと同じ cbCollect/wfChunks 収集を再利用＝エンジン再実行なし。
+      1レース保存ごとの重いWF実行はしない）。
+   ・ジョブ状態は localStorage に保存し、中断→再開できる。1ステップ=1窓。
+     同一ジョブ・同一期間の重複実行防止（AWF_BUSY＋sigチェック）。
+   ・トリガー: 学習DBに新しいレースが30件（設定可変: localStorage khl_awf_trig_n）
+     追加されたとき／📅自動マクロ一連処理完了時（p64に1行）／手動ボタン。
+   ・候補の生成・検証・レポート保存まで自動。現行モデルは変更しない・cbLs等の
+     本番状態は上書きしない・採用は Phase 5 の手動手順のみ。
+   ・flRaces期間カットオフ: p54 flRaces(opt) のオプション引数（既定は従来どおり
+     全期間・学習式・補正式は不変）。本モジュールは評価にスナップを使うため
+     直接は使わないが、窓ごとの学習を期間限定で行うための共通部品として提供。
+   ・既存の単一WF（p76 wfRun）は温存・本モジュールは独立追加。
+   ===================================================================== */
+
+var AWF_LS = 'khl_awf_job_v1';
+var AWF_REP_LS = 'khl_awf_reps_v1';
+var AWF_TRIG_LS = 'khl_awf_trig_v1';
+var AWF_BUSY = false;   /* 重複実行防止（プロセス内） */
+
+var AWF_WINDOWS = [
+  { id: 'W1',  trMax: '20221231', teFrom: '20230101', teTo: '20231231' },
+  { id: 'W2',  trMax: '20231231', teFrom: '20240101', teTo: '20241231' },
+  { id: 'W3',  trMax: '20241231', teFrom: '20250101', teTo: '20251231' },
+  { id: 'W4',  trMax: '20251231', teFrom: '20260101', teTo: '20261231' },
+  { id: 'W4b', trMax: '20260630', teFrom: '20260701', teTo: '20260930' }
+];
+
+/* p74 CB_BINS と同じ6帯（staging検証で p74 実ファイルとの境界一致をテスト済み） */
+var AWF_BINS = [
+  { min: 0,    max: 0.05 },
+  { min: 0.05, max: 0.10 },
+  { min: 0.10, max: 0.15 },
+  { min: 0.15, max: 0.20 },
+  { min: 0.20, max: 0.30 },
+  { min: 0.30, max: 1.01 }
+];
+
+function awfD8(r){
+  return String(((r && (r.d8 || (r.meta && r.meta.date8))) || '')).replace(/[^0-9]/g, '').slice(0, 8);
+}
+function awfBinIdx(p){
+  for (var i = 0; i < AWF_BINS.length; i++){ if (p >= AWF_BINS[i].min && p < AWF_BINS[i].max) return i; }
+  return AWF_BINS.length - 1;
+}
+function awfD8Label(d8){
+  d8 = String(d8 || '');
+  return /^\d{8}$/.test(d8) ? (d8.slice(0, 4) + '/' + d8.slice(4, 6) + '/' + d8.slice(6, 8)) : '—';
+}
+
+/* 窓ごとの学習/検証分割（d8昇順・窓範囲外のレースは除外） */
+function awfSplit(races, win){
+  var tr = [], te = [];
+  (races || []).forEach(function(r){
+    var d = awfD8(r);
+    if (!/^\d{8}$/.test(d)) return;
+    if (d <= win.trMax) tr.push(r);
+    else if (d >= win.teFrom && d <= win.teTo) te.push(r);
+  });
+  function byD8(a, b){ return awfD8(a) < awfD8(b) ? -1 : 1; }
+  tr.sort(byD8); te.sort(byD8);
+  return { train: tr, test: te };
+}
+
+/* 未来情報チェック: 学習期間の最大日付 < 検証期間の最小日付（必須条件） */
+function awfFutureCheck(train, test){
+  var tmax = '', vmin = '';
+  (train || []).forEach(function(r){ var d = awfD8(r); if (/^\d{8}$/.test(d) && d > tmax) tmax = d; });
+  (test || []).forEach(function(r){ var d = awfD8(r); if (/^\d{8}$/.test(d) && (vmin === '' || d < vmin)) vmin = d; });
+  return { ok: !!(tmax && vmin && tmax < vmin), trainMax: tmax, testMin: vmin };
+}
+
+/* 校正候補の帯別倍率（p74/wfRunと同一式: 縮小25馬・0.55〜1.8・n≥40・sp>0.005n） */
+function awfCalMul(train){
+  var acc = AWF_BINS.map(function(){ return { n: 0, sw: 0, sp: 0 }; });
+  (train || []).forEach(function(rc){
+    ((rc && rc.hs) || []).forEach(function(h){
+      var p = (h && typeof h.p === 'number' && h.p > 0) ? h.p : 0;
+      if (!(p > 0)) return;
+      var c = acc[awfBinIdx(p)];
+      c.n++; c.sw += (h.o === 1 ? 1 : 0); c.sp += p;
+    });
+  });
+  return acc.map(function(c){
+    if (c.n < 40 || !(c.sp > 0.005 * c.n)) return 1;
+    var shr = (c.sw + 25) / (c.n + 25), exp = c.sp / c.n;
+    return Math.max(0.55, Math.min(1.8, shr / exp));
+  });
+}
+
+/* 指標蓄積（Brier/LogLoss/top1/勝馬平均AI勝率） */
+function awfAccNew(){ return { races: 0, n: 0, bs: 0, ll: 0, top1: 0, aiWin: 0 }; }
+function awfAccRace(acc, ps, os){
+  acc.races++;
+  var bi = 0;
+  for (var i = 1; i < ps.length; i++){ if (ps[i] > ps[bi]) bi = i; }
+  if (os[bi] === 1) acc.top1++;
+  for (var j = 0; j < ps.length; j++){
+    var p = ps[j], y1 = (os[j] === 1 ? 1 : 0);
+    var pc = Math.min(0.999, Math.max(0.001, p));
+    acc.n++;
+    acc.bs += (p - y1) * (p - y1);
+    acc.ll -= (y1 ? Math.log(pc) : Math.log(1 - pc));
+    if (y1) acc.aiWin += p;
+  }
+}
+function awfAccFin(a){
+  return { races: a.races, n: a.n,
+    brier: a.n ? a.bs / a.n : null, logloss: a.n ? a.ll / a.n : null,
+    top1: a.races ? a.top1 / a.races : null,
+    aiWin: a.races ? a.aiWin / a.races : null };
+}
+
+/* 1窓ぶんの評価: 市場(mkt)・現行(cur)・校正候補(cal)。calは乗算後に正規化（wfRun evalSetと同じ） */
+function awfEvalWin(test, calMul){
+  var m = { mkt: awfAccNew(), cur: awfAccNew(), cal: awfAccNew() }, chg = { n: 0, changed: 0 };
+  (test || []).forEach(function(rc){
+    var hs = (rc && rc.hs) || [];
+    if (hs.length < 2) return;
+    var inv = 0; hs.forEach(function(h){ var o = +h.od; if (o > 1) inv += 1 / o; });
+    var pm = hs.map(function(h){ var o = +h.od; return (inv > 0 && o > 1) ? (1 / o) / inv : 1 / hs.length; });
+    var pc = hs.map(function(h){ return +h.p; });
+    var pl = hs.map(function(h){ return (+h.p) * calMul[awfBinIdx(+h.p)]; });
+    var s = 0; pl.forEach(function(v){ s += v; });
+    if (s > 0) pl = pl.map(function(v){ return v / s; });
+    var os = hs.map(function(h){ return h.o; });
+    awfAccRace(m.mkt, pm, os);
+    awfAccRace(m.cur, pc, os);
+    awfAccRace(m.cal, pl, os);
+    chg.n++;
+    var ic = 0, il = 0;
+    for (var i = 1; i < pc.length; i++){ if (pc[i] > pc[ic]) ic = i; if (pl[i] > pl[il]) il = i; }
+    if (ic !== il) chg.changed++;
+  });
+  return {
+    mkt: awfAccFin(m.mkt), cur: awfAccFin(m.cur), cal: awfAccFin(m.cal),
+    markChg: chg
+  };
+}
+
+/* ---- flRaces 期間カットオフ（純粋入力フィルタ・学習式は不変） ---- */
+function awfFlFilter(races, maxD8){
+  return (races || []).filter(function(r){
+    var d = awfD8(r);
+    return !!/^\d{8}$/.test(d) && d <= String(maxD8);
+  });
+}
+
+/* ---- ジョブ状態（保存・再開・重複防止） ---- */
+function awfJobNew(src){
+  return { v: 1, id: 'awf' + Date.now(), src: src || 'bt', status: 'running',
+    created: Date.now(), updated: Date.now(), sig: '',
+    wins: AWF_WINDOWS.map(function(w){ return { id: w.id, status: 'pending', n: 0, future: null, calMul: null, metrics: null, markChg: null, errors: 0 }; }),
+    markChg: { n: 0, changed: 0 }, errors: 0 };
+}
+function awfJobSave(job){ try { job.updated = Date.now(); localStorage.setItem(AWF_LS, JSON.stringify(job)); } catch(e){} }
+function awfJobLoad(){ try { return JSON.parse(localStorage.getItem(AWF_LS) || 'null'); } catch(e){ return null; } }
+function awfJobClear(){ try { localStorage.removeItem(AWF_LS); } catch(e){} }
+function awfJobResume(){ var j = awfJobLoad(); return (j && j.status === 'running') ? j : null; }
+
+/* 1ステップ=1窓。呼び出し側は setTimeout(awfStepNext, 0) でイベントループに返しながら
+   全窓を回す（重い予想再計算はしないので1窓は軽い）。戻り値: {done, winId, status} */
+function awfStep(job, races){
+  if (!job || job.status !== 'running') return { done: true, winId: null, status: job ? job.status : 'no-job' };
+  var wst = null, wdef = null;
+  for (var i = 0; i < job.wins.length; i++){
+    if (job.wins[i].status === 'pending'){ wst = job.wins[i]; wdef = AWF_WINDOWS[i]; break; }
+  }
+  if (!wst){ job.status = 'done'; awfJobSave(job); return { done: true, winId: null, status: 'done' }; }
+  try {
+    var sp = awfSplit(races, wdef);
+    wst.n = sp.test.length;
+    var fut = awfFutureCheck(sp.train, sp.test);
+    wst.future = fut;
+    if (!fut.ok || !sp.test.length){
+      wst.status = (!sp.test.length) ? 'no-data' : 'future-ng';
+      wst.metrics = null;
+    } else {
+      var calMul = awfCalMul(sp.train);
+      var ev = awfEvalWin(sp.test, calMul);
+      wst.calMul = calMul;
+      wst.metrics = { mkt: ev.mkt, cur: ev.cur, cal: ev.cal };
+      wst.markChg = ev.markChg;
+      job.markChg.n += ev.markChg.n; job.markChg.changed += ev.markChg.changed;
+      wst.status = 'ok';
+    }
+  } catch(e){
+    wst.status = 'error'; wst.errors = 1; job.errors++;
+  }
+  awfJobSave(job);
+  var anyPending = job.wins.some(function(w){ return w.status === 'pending'; });
+  if (!anyPending) job.status = 'done';
+  awfJobSave(job);
+  return { done: !anyPending, winId: wst.id, status: wst.status };
+}
+
+/* 全窓ループ（イベントループに返しながら）。重複実行防止つき。 */
+function awfRun(races, onStep, onEnd){
+  if (AWF_BUSY) return { started: false, reason: 'busy' };
+  var job = awfJobResume();
+  if (!job) job = awfJobNew();
+  AWF_BUSY = true;
+  function next(){
+    var r;
+    try { r = awfStep(job, races); }
+    catch(e){ AWF_BUSY = false; if (onEnd) try { onEnd(job, e); } catch(e2){} return; }
+    if (onStep) try { onStep(r, job); } catch(e){}
+    if (!r.done){ setTimeout(next, 0); return; }
+    AWF_BUSY = false;
+    if (onEnd) try { onEnd(job, null); } catch(e){}
+  }
+  setTimeout(next, 0);
+  return { started: true, job: job };
+}
+
+/* 判定レポート生成（採用はしない・Phase 5 の adoptJudge への入力を作る） */
+function awfReport(job){
+  var out = { jobId: job && job.id, src: job && job.src, windows: [], markChg: (job && job.markChg) || { n: 0, changed: 0 },
+    calibMul: null, errors: (job && job.errors) || 0, judgeInput: null };
+  var mulAll = [], okWins = 0;
+  (job && job.wins || []).forEach(function(w){
+    if (w.status !== 'ok' || !w.metrics){ return; }
+    okWins++;
+    if (w.calMul) mulAll = mulAll.concat(w.calMul);
+    out.windows.push({ id: w.id, n: w.n, futureOk: !!(w.future && w.future.ok), errors: w.errors || 0, missing: 0,
+      cand: w.metrics.cal, cur: w.metrics.cur, mkt: w.metrics.mkt });
+  });
+  out.calibMul = mulAll.length ? { min: Math.min.apply(null, mulAll), max: Math.max.apply(null, mulAll) } : null;
+  out.okWindows = okWins;
+  /* Phase 5 判定への入力（◎変更率は全窓合計・倍率は全体min/maxで判定） */
+  var mc = out.markChg || { n: 0, changed: 0 };
+  out.judgeInput = {
+    windows: out.windows.map(function(w){
+      return { id: w.id, n: w.n, futureOk: w.futureOk, errors: w.errors, missing: w.missing, cand: w.cand, cur: w.cur };
+    }),
+    calibMul: mulAll, markChg: mc, backupDone: false
+  };
+  return out;
+}
+
+/* ===================== 本番接続部（第84弾ここから追加） ===================== */
+
+/* 保存済みスナップから評価対象レースを集める（既存単一WFと同じ cbCollect/wfChunks を再利用） */
+function awfCollect(){
+  try {
+    if (typeof wfChunks !== 'function') return [];
+    var cd = wfChunks('bt');
+    var races = ((cd && cd.races) || []).filter(function(r){ return /^\d{8}$/.test(awfD8(r)); });
+    races.sort(function(a, b){ return awfD8(a) < awfD8(b) ? -1 : 1; });
+    return races;
+  } catch(e){ return []; }
+}
+
+/* データ署名（件数+最小/最大日付）: 同一データでの重複実行防止 */
+function awfSig(races){
+  var mn = '', mx = '', n = (races || []).length;
+  (races || []).forEach(function(r){
+    var d = awfD8(r);
+    if (/^\d{8}$/.test(d)){ if (!mn || d < mn) mn = d; if (d > mx) mx = d; }
+  });
+  return n + ':' + mn + ':' + mx;
+}
+
+/* トリガー状態（前回実行時の件数・署名） */
+function awfTrigLs(){ try { return JSON.parse(localStorage.getItem(AWF_TRIG_LS) || '{}') || {}; } catch(e){ return {}; } }
+function awfTrigSet(o){ try { localStorage.setItem(AWF_TRIG_LS, JSON.stringify(o || {})); } catch(e){} }
+function awfTrigN(){
+  try { var v = parseInt(localStorage.getItem('khl_awf_trig_n') || '', 10); return (v > 0) ? v : 30; }
+  catch(e){ return 30; }
+}
+function awfCount(){
+  try {
+    if (typeof diLs === 'function'){
+      var ls = diLs() || {};
+      return Object.keys((ls && ls.races) || {}).length;
+    }
+  } catch(e){}
+  return -1;
+}
+
+/* トリガー本体: why='manual'（ボタン）|'auto30'（30件）|'daydone'（自動マクロ完了）。
+   manual は常に実行可（実行中ジョブがあれば再開）。自動トリガーは
+   「前回実行から学習DBが30件以上増えた」場合だけ開始（閾値は設定可変）。 */
+function awfMaybeTrigger(why){
+  try {
+    if (AWF_BUSY) return { started: false, reason: 'busy' };
+    var races = awfCollect();
+    if (!races.length) return { started: false, reason: 'no-snaps' };
+    var sig = awfSig(races);
+    var tr = awfTrigLs();
+    var job = awfJobLoad();
+    if (job && job.status === 'running'){
+      if (why === 'manual'){ var r0 = awfStart(why); return { started: r0.started, reason: 'resumed' }; }
+      return { started: false, reason: 'job-running' };
+    }
+    if (tr.lastSig === sig) return { started: false, reason: 'same-data', sig: sig };
+    if (why !== 'manual'){
+      var cnt = awfCount();
+      var n0 = (tr.lastCount != null) ? tr.lastCount : null;
+      if (cnt < 0 || n0 == null) return { started: false, reason: 'no-baseline' };
+      if (cnt - n0 < awfTrigN()) return { started: false, reason: 'below-threshold', delta: cnt - n0 };
+    }
+    var r = awfStart(why);
+    return { started: r.started, reason: r.started ? 'started' : (r.reason || 'not-started'), sig: sig };
+  } catch(e){ return { started: false, reason: 'err:' + String((e && e.message) || e) }; }
+}
+
+/* 実行開始（sigが変わった中断ジョブは新規に作り直す・完了時にレポート保存） */
+function awfStart(why){
+  try {
+    var races = awfCollect();
+    if (!races.length){
+      awfMsg('⚠ 対象スナップがありません。🕰バックテストを実行すると保存済み予想（rec.preBt）が溜まります。', 1);
+      return { started: false, reason: 'no-snaps' };
+    }
+    var sig = awfSig(races);
+    var cur = awfJobLoad();
+    if (cur && cur.status === 'running' && cur.sig && cur.sig !== sig){
+      awfJobClear();   /* データが変わったので中断ジョブは作り直す（保存済みレポートは残る） */
+    }
+    var r = awfRun(races, null, function(job, err){ try { awfFinish(job, err); } catch(e2){} });
+    if (r.started){
+      try { var j2 = awfJobLoad(); if (j2){ j2.sig = sig; awfJobSave(j2); } } catch(e3){}
+      awfMsg('⏳ 多窓Walk-forwardを実行中…（1窓ずつ処理・通信ゼロ・モデル変更なし）');
+    }
+    return r;
+  } catch(e){ return { started: false, reason: 'err' }; }
+}
+
+function awfFinish(job, err){
+  try {
+    if (job){
+      awfTrigSet({ lastCount: awfCount(), lastSig: awfSig(awfCollect()), at: Date.now() });
+      if (job.status === 'done'){ awfSaveReport(job); }
+    }
+    awfRenderCard();
+    awfMsg(err ? ('⚠ エラー: ' + String((err && err.message) || err)) : '✅ 多窓Walk-forwardが終わりました（現行モデルは変更していません・レポート保存済み・採用は手動のみ）', err ? 1 : 0);
+  } catch(e){}
+}
+
+/* 判定レポートの保存履歴（新しい順・最大10件・Phase 5 の判定入力を含む） */
+function awfRepsLs(){ try { return JSON.parse(localStorage.getItem(AWF_REP_LS) || '[]') || []; } catch(e){ return []; } }
+function awfRepsSet(a){ try { localStorage.setItem(AWF_REP_LS, JSON.stringify((a || []).slice(0, 10))); } catch(e){} }
+function awfSaveReport(job){
+  var rep = awfReport(job);
+  rep.at = Date.now();
+  rep.sig = job && job.sig;
+  var a = awfRepsLs();
+  a.unshift(rep);
+  awfRepsSet(a);
+  return rep;
+}
+function awfLastReport(){ var a = awfRepsLs(); return a.length ? a[0] : null; }
+
+/* 🤖タブの多窓WFカード描画 */
+function awfMsg(t, warn){
+  try {
+    var el = (typeof $ === 'function') ? $('awfMsg') : null;
+    if (el) el.innerHTML = '<span class="' + (warn ? 'muted' : 'small') + '" style="' + (warn ? 'color:var(--warn-ink)' : '') + '">' + (typeof esc === 'function' ? esc(String(t || '')) : String(t || '')) + '</span>';
+  } catch(e){}
+}
+function awfFmt4(v){ return (typeof v === 'number' && isFinite(v)) ? v.toFixed(4) : '—'; }
+function awfRenderCard(){
+  try {
+    var box = (typeof $ === 'function') ? $('awfOut') : null;
+    if (!box) return;
+    var job = awfJobLoad();
+    var rep = awfLastReport();
+    var h = '';
+    function winDef(id){ for (var i = 0; i < AWF_WINDOWS.length; i++){ if (AWF_WINDOWS[i].id === id) return AWF_WINDOWS[i]; } return null; }
+    function row(w){
+      var d = winDef(w.id) || {};
+      var per = '学習〜' + awfD8Label(d.trMax) + ' → 検証' + awfD8Label(d.teFrom) + '〜' + awfD8Label(d.teTo);
+      var st = w.status || 'ok';
+      var m = w.metrics || { mkt: null, cur: null, cal: null };
+      var cand = m.cal || (w.cand || null), cur = m.cur || (w.cur || null), mkt = m.mkt || (w.mkt || null);
+      var db = (cand && cur && cand.brier != null && cur.brier != null) ? (cur.brier - cand.brier) : null;
+      var dl = (cand && cur && cand.logloss != null && cur.logloss != null) ? (cur.logloss - cand.logloss) : null;
+      var mc = w.markChg;
+      return '<tr>' +
+        '<td><b>' + w.id + '</b></td><td class="small muted">' + per + '</td>' +
+        '<td>' + ((st === 'ok') ? '✅' : (st === 'no-data' ? '— データなし' : (st === 'future-ng' ? '⚠ 未来情報チェック不合格' : (st === 'error' ? '⚠ エラー' : st)))) + '</td>' +
+        '<td>' + (w.n != null ? w.n : '—') + '</td>' +
+        '<td>' + ((w.future && w.future.ok) ? '○' : (w.future ? '×' : '—')) + '</td>' +
+        '<td>' + awfFmt4(mkt && mkt.brier) + '</td>' +
+        '<td>' + awfFmt4(cur && cur.brier) + '</td>' +
+        '<td>' + awfFmt4(cand && cand.brier) + '</td>' +
+        '<td>' + (db != null ? ((db >= 0 ? '+' : '') + db.toFixed(5)) : '—') + '</td>' +
+        '<td>' + (dl != null ? ((dl >= 0 ? '+' : '') + dl.toFixed(5)) : '—') + '</td>' +
+        '<td>' + (cand && cand.top1 != null ? (cand.top1 * 100).toFixed(1) + '%' : '—') + '</td>' +
+        '<td>' + (mc && mc.n ? ((mc.changed || 0) + '/' + mc.n) : '—') + '</td></tr>';
+    }
+    if (job && job.wins && job.wins.length){
+      h += '<div class="small muted" style="margin:4px 0">実行 ' + awfD8Label(String(new Date(job.created)).replace(/[^0-9]/g, '').slice(0, 8)) + '・状態: ' + job.status + '（ok窓 ' + job.wins.filter(function(w){ return w.status === 'ok'; }).length + '/5）' + (job.sig ? '・データ署名 ' + job.sig : '') + '</div>';
+      h += '<div class="tblwrap" style="max-height:260px;overflow:auto"><table class="ktbl"><thead><tr>' +
+        '<th>窓</th><th>期間</th><th>状態</th><th>n</th><th>未来<br>chk</th><th>市場<br>Brier</th><th>現行<br>Brier</th><th>候補<br>Brier</th><th>ΔBrier<br>(正=改善)</th><th>ΔLogLoss<br>(正=改善)</th><th>候補<br>top1</th><th>◎変更</th>' +
+        '</tr></thead><tbody>' + job.wins.map(row).join('') + '</tbody></table></div>';
+    } else if (rep && rep.windows && rep.windows.length){
+      h += '<div class="small muted" style="margin:4px 0">前回レポート（' + awfD8Label(String(new Date(rep.at || 0)).replace(/[^0-9]/g, '').slice(0, 8)) + '・ok窓 ' + rep.okWindows + '/5）</div>';
+      h += '<div class="tblwrap" style="max-height:260px;overflow:auto"><table class="ktbl"><thead><tr>' +
+        '<th>窓</th><th>期間</th><th>状態</th><th>n</th><th>未来<br>chk</th><th>市場<br>Brier</th><th>現行<br>Brier</th><th>候補<br>Brier</th><th>ΔBrier<br>(正=改善)</th><th>ΔLogLoss<br>(正=改善)</th><th>候補<br>top1</th><th>◎変更</th>' +
+        '</tr></thead><tbody>' + rep.windows.map(function(w){ return row(w); }).join('') + '</tbody></table></div>';
+    } else {
+      h = '<div class="small muted">まだ実行していません。🕰バックテストで保存済み予想を溜めてから実行すると、5窓の判定レポートがここに出ます。</div>';
+    }
+    h += '<div class="small muted" style="margin-top:4px">候補＝学習期間だけで🎯校正の帯別倍率を学習したもの（p74と同一式・学習式は不変）。Δは正=候補が改善。採用条件の判定は Phase 5 のカードで手動で行います（自動採用はありません）。</div>';
+    box.innerHTML = h;
+  } catch(e){}
+}
+
+/* 配線（p2_bodyのカードに直接バインド・二重バインド防止） */
+function awfBind(){
+  try {
+    var b = (typeof $ === 'function') ? $('awfRun') : null;
+    if (b && !b.__awf84){
+      b.__awf84 = true;
+      b.addEventListener('click', function(){
+        try {
+          var r = awfMaybeTrigger('manual');
+          if (!r.started) awfMsg('⚠ 開始できません: ' + (r.reason || ''), 1);
+        } catch(e){ awfMsg('⚠ 実行に失敗しました: ' + String((e && e.message) || e), 1); }
+      });
+    }
+    awfRenderCard();
+  } catch(e){}
+}
+(function(){
+  try {
+    if (typeof document !== 'undefined' && document.getElementById && document.getElementById('awfRun')){ awfBind(); }
+    else if (typeof document !== 'undefined' && document.addEventListener){
+      document.addEventListener('DOMContentLoaded', function(){ try { awfBind(); } catch(e){} });
+    }
+  } catch(e){}
+})();
+
+/* =====================================================================
+   第85弾（自動学習パイプライン Phase 5）: 採用判定エンジン＋手動採用・保管庫連携・履歴・ロールバック
+   ---------------------------------------------------------------------
+   ・自動採用は無効（ADOPT_AUTO=false・ユーザー指示）。採用は🤖タブの手動実行のみ。
+   ・採用実行の必須条件（7件）: ①judge合格 ②採用前バックアップ済み ③トークン一致
+     ④現行モデルと候補モデルの識別が明確 ⑤検証レポート保存済み ⑥未来情報チェック合格
+     ⑦エラー・欠落条件合格（⑥⑦はjudge内のC10/C11）。満たさない場合は採用せず
+     候補保存（レポート履歴に残る）として終わる。
+   ・候補判定の基本（ユーザー確定）: 全窓でBrierとLogLossが同時に悪化しない／
+     全体平均で少なくとも一方が最低改善幅を超える／もう一方の悪化は許容上限内／
+     改善幅が誤差範囲内なら不採用／重大悪化が1窓でもあれば要調査（異常検知）／
+     未来情報・欠落・エラーチェック必須。「BrierまたはLogLossが改善」だけでは無条件採用しない。
+   ・閾値は提案値（provisional=true・要確定）。localStorage khl_adopt_cfg_v1 で
+     後から正式確定できる構造（設定を変えてもコード変更不要）。
+   ・本番書換は採用実行時のみ・採用前バックアップ必須・ロールバックは保管スナップショット
+     を正確に復元（khl_calib_v1 の生文字列を保存・null は削除して戻す）。
+   ・候補モデルは現行と別オブジェクト。cbLs は採用実行以外に書かない。
+   ===================================================================== */
+
+var ADOPT_AUTO = false;                 /* 自動採用OFF（初期状態・ユーザー指示） */
+var ADOPT_LS = 'khl_adopt_v1';          /* 採用履歴の保存キー */
+var ADOPT_CFG_LS = 'khl_adopt_cfg_v1';  /* 閾値オーバーライド（正式確定時に使う） */
+var ADOPT_CB_KEY = 'khl_calib_v1';      /* p74 校正の採用状態キー（書換は採用実行時のみ） */
+
+/* 閾値の既定値（提案値・要確定）。localStorage で一部だけ上書きできる。 */
+var ADOPT_CFG_DEFAULT = {
+  provisional: true,                    /* true=提案値（未確定）のまま運用 */
+  minWindows: 3,                        /* C1: 3窓以上WF実施 */
+  minRacesPerWindow: 300,               /* C2: 各窓300R以上 */
+  minAvgBrierImpr: 0.0005,              /* C4: 全体平均Brier改善幅（要確定） */
+  minAvgLlImpr: 0.0010,                 /* C4: 全体平均LogLoss改善幅（要確定） */
+  maxBrierDegrade: 0.0003,              /* C5: 窓ごとのBrier悪化上限（要確定） */
+  maxLlDegrade: 0.0010,                 /* C5: 窓ごとのLogLoss悪化上限（要確定） */
+  maxTop1DegradePt: 1.0,                /* C6: top1悪化1.0pt以内 */
+  aiWinBandPt: 3.0,                     /* C7: 勝馬平均AI勝率±3pt以内 */
+  calibMulMin: 0.55, calibMulMax: 1.8,  /* C8: 校正倍率0.55〜1.8 */
+  maxMarkChgRate: 0.05,                 /* C9: ◎変更率5%以内 */
+  maxErrors: 0,                         /* C11: エラー・欠落0（または閾値内） */
+  minMeaningfulImpr: 0.0002,            /* 改善が誤差程度なら採用しない（要確定） */
+  anomalyBrierDrop: 0.005               /* 異常検知: 1窓でもBrierがこの値以上悪ければ要調査 */
+};
+function adoptCfg(){
+  var c = JSON.parse(JSON.stringify(ADOPT_CFG_DEFAULT));
+  try {
+    var o = JSON.parse(localStorage.getItem(ADOPT_CFG_LS) || 'null');
+    if (o && typeof o === 'object'){
+      Object.keys(o).forEach(function(k){ if (k in c) c[k] = o[k]; });
+    }
+  } catch(e){}
+  return c;
+}
+
+/* ---- 採用条件12条の判定 ------------------------------------------------
+   cand = {
+     windows: [ { id, n, futureOk, errors, missing,
+                 cand: {brier, logloss, top1, aiWin},   … 候補モデル（例: 校正v2）
+                 cur:  {brier, logloss, top1, aiWin} } … 現行モデル ],
+     calibMul: [m0..m5],                                 … 候補の帯別倍率
+     markChg: { n, changed },                            … ◎変更（現行◎≠候補◎ の数）
+     backupDone: true,                                   … 採用前バックアップ済み
+     candId: 'cal-v2-…',                                 … 候補モデルの識別子（現行と別物であること）
+     curModelId: 'khl-…',                                … 現行モデルの識別子
+     reportId: 169…,                                     … 採用対象の検証レポート（保存済み）
+     token: '…'                                          … 手動確認トークン
+   }
+   戻り値: { pass, conds:[{id,label,ok,detail}], avgBrierImpr, avgLlImpr }          */
+function adoptJudge(cand){
+  var cfg = adoptCfg();
+  var conds = [];
+  function C(id, label, ok, detail){ conds.push({ id: id, label: label, ok: !!ok, detail: String(detail == null ? '' : detail) }); }
+  var ws = (cand && cand.windows) || [];
+  /* C1: 3窓以上 */
+  C('C1', '3窓以上WF実施', ws.length >= cfg.minWindows, ws.length + '窓');
+  /* C2: 各窓300R以上 */
+  var minN = ws.length ? Math.min.apply(null, ws.map(function(w){ return w.n || 0; })) : 0;
+  C('C2', '各窓300R以上', ws.length > 0 && minN >= cfg.minRacesPerWindow, '最小 ' + minN + 'R');
+  /* C3: どの窓でも Brier と LogLoss が同時に悪化していない */
+  var bothWorse = [];
+  ws.forEach(function(w){
+    var c = w.cand || {}, u = w.cur || {};
+    if (c.brier != null && u.brier != null && c.logloss != null && u.logloss != null &&
+        c.brier > u.brier + 1e-9 && c.logloss > u.logloss + 1e-9) bothWorse.push(w.id);
+  });
+  C('C3', 'Brier/LogLoss同時悪化なし', bothWorse.length === 0, bothWorse.length ? bothWorse.join(',') : 'OK');
+  /* C4: 全体平均（馬数加重）で「少なくとも一方」が最低改善幅を超える。
+         改善幅が誤差範囲内（best < minMeaningfulImpr）なら不採用。 */
+  var nc = 0, sb = 0, sbl = 0, su = 0, sul = 0, top1c = 0, top1u = 0, aiwc = 0, aiwu = 0, aiwn = 0;
+  ws.forEach(function(w){
+    var n = w.n || 0, c = w.cand || {}, u = w.cur || {};
+    if (c.brier != null && u.brier != null){ nc += n; sb += c.brier * n; su += u.brier * n; }
+    if (c.logloss != null && u.logloss != null){ sbl += c.logloss * n; sul += u.logloss * n; }
+    if (c.top1 != null && u.top1 != null){ top1c += c.top1 * n; top1u += u.top1 * n; }
+    if (c.aiWin != null && u.aiWin != null){ aiwc += c.aiWin * n; aiwu += u.aiWin * n; aiwn += n; }
+  });
+  var avgBrierImpr = (nc && su != null) ? (su - sb) / nc : null;      /* 正=改善 */
+  var avgLlImpr = null;
+  if (nc){ avgLlImpr = (sul - sbl) / nc; }
+  var best = (avgBrierImpr != null && avgLlImpr != null) ? Math.max(avgBrierImpr, avgLlImpr) : (avgBrierImpr != null ? avgBrierImpr : avgLlImpr);
+  var c4ok = (best != null) && ((avgBrierImpr != null && avgBrierImpr >= cfg.minAvgBrierImpr) || (avgLlImpr != null && avgLlImpr >= cfg.minAvgLlImpr));
+  if (c4ok && best != null && best < cfg.minMeaningfulImpr) c4ok = false;
+  C('C4', '全体平均で少なくとも一方が最低改善幅超え', c4ok,
+    (avgBrierImpr == null && avgLlImpr == null) ? 'データなし' :
+    ('ΔBrier ' + (avgBrierImpr == null ? '—' : (avgBrierImpr >= 0 ? '+' : '') + avgBrierImpr.toFixed(5)) +
+     '／ΔLogLoss ' + (avgLlImpr == null ? '—' : (avgLlImpr >= 0 ? '+' : '') + avgLlImpr.toFixed(5)) +
+     '（閾値 B+' + cfg.minAvgBrierImpr.toFixed(5) + ' または L+' + cfg.minAvgLlImpr.toFixed(5) +
+     '・誤差範囲(' + cfg.minMeaningfulImpr.toFixed(5) + '未満)なら不採用）'));
+  /* C5: もう一方（悪化側）の悪化は窓ごとに許容上限以内 */
+  var overD = [];
+  ws.forEach(function(w){
+    var c = w.cand || {}, u = w.cur || {};
+    if (c.brier != null && u.brier != null && c.brier - u.brier > cfg.maxBrierDegrade) overD.push(w.id + ':B');
+    if (c.logloss != null && u.logloss != null && c.logloss - u.logloss > cfg.maxLlDegrade) overD.push(w.id + ':L');
+  });
+  C('C5', '片方悪化は上限内', overD.length === 0, overD.length ? overD.join(',') : 'OK');
+  /* C6: top1悪化1.0pt以内（馬数加重平均で比較） */
+  var t1c = aiwn ? top1c / aiwn : null, t1u = aiwn ? top1u / aiwn : null;
+  var t1d = (t1c != null && t1u != null) ? (t1u - t1c) * 100 : null;   /* 正=改善(pt) */
+  C('C6', 'top1悪化1.0pt以内', t1d == null || t1d >= -cfg.maxTop1DegradePt,
+    t1d == null ? 'データなし' : ((t1d >= 0 ? '+' : '') + t1d.toFixed(2) + 'pt'));
+  /* C7: 勝馬平均AI勝率±3pt以内 */
+  var awc = aiwn ? aiwc / aiwn : null, awu = aiwn ? aiwu / aiwn : null;
+  var awd = (awc != null && awu != null) ? (awc - awu) * 100 : null;
+  C('C7', '勝馬平均AI勝率±3pt', awd == null || Math.abs(awd) <= cfg.aiWinBandPt,
+    awd == null ? 'データなし' : ((awd >= 0 ? '+' : '') + awd.toFixed(2) + 'pt'));
+  /* C8: 校正倍率0.55〜1.8 */
+  var mults = (cand && cand.calibMul) || [];
+  var inRange = mults.length > 0 && mults.every(function(m){
+    return (typeof m === 'number' && isFinite(m) && m >= cfg.calibMulMin && m <= cfg.calibMulMax);
+  });
+  C('C8', '校正倍率0.55〜1.8', inRange, mults.length ? ('min' + Math.min.apply(null, mults).toFixed(3) + '/max' + Math.max.apply(null, mults).toFixed(3)) : '倍率なし');
+  /* C9: ◎変更率5%以内 */
+  var mc = cand && cand.markChg, rate = (mc && mc.n > 0) ? (mc.changed || 0) / mc.n : null;
+  C('C9', '◎変更率5%以内', rate != null && rate <= cfg.maxMarkChgRate,
+    rate == null ? 'データなし' : ((rate * 100).toFixed(2) + '%'));
+  /* C10: 未来情報チェック合格 */
+  var futNg = ws.filter(function(w){ return !w.futureOk; }).map(function(w){ return w.id; });
+  C('C10', '未来情報チェック', futNg.length === 0, futNg.length ? futNg.join(',') : 'OK');
+  /* C11: エラー・欠落0（または閾値内） */
+  var errs = 0; ws.forEach(function(w){ errs += (w.errors || 0) + (w.missing || 0); });
+  C('C11', 'エラー・欠落0', errs <= cfg.maxErrors, errs + '件');
+  /* C12: 採用前に現行モデル保管 */
+  C('C12', '採用前バックアップ', !!(cand && cand.backupDone), cand && cand.backupDone ? '保管済' : '未保管');
+  var pass = conds.every(function(c){ return c.ok; });
+  return { pass: pass, conds: conds, avgBrierImpr: avgBrierImpr, avgLlImpr: avgLlImpr, cfg: cfg };
+}
+
+/* ---- 異常検知（採用判定とは別に「おかしい値」を検出して警告する） ---- */
+function adoptAnomaly(cand){
+  var cfg = adoptCfg();
+  var a = [];
+  try {
+    var ws = (cand && cand.windows) || [];
+    if (!ws.length) a.push('窓データなし');
+    ws.forEach(function(w){
+      var c = w.cand || {}, u = w.cur || {};
+      if (c.brier == null || c.logloss == null || c.top1 == null) a.push(w.id + ': 指標がnull');
+      if (c.brier != null && (c.brier < 0 || c.brier > 0.5)) a.push(w.id + ': Brierが範囲外(' + c.brier + ')');
+      if (c.top1 != null && (c.top1 < 0 || c.top1 > 1)) a.push(w.id + ': top1が範囲外');
+      if (c.brier != null && u.brier != null && c.brier - u.brier >= cfg.anomalyBrierDrop)
+        a.push(w.id + ': Brierが現行より' + ((c.brier - u.brier).toFixed(5)) + '悪化（要調査）');
+      if ((w.n || 0) > 0 && (w.n || 0) < cfg.minRacesPerWindow) a.push(w.id + ': n=' + w.n + '（サンプル不足）');
+      if (!w.futureOk) a.push(w.id + ': 未来情報チェック不合格');
+    });
+    var mults = (cand && cand.calibMul) || [];
+    mults.forEach(function(m, i){
+      if (!(typeof m === 'number' && isFinite(m))) a.push('倍率[' + i + ']が数値でない');
+      else if (m === cfg.calibMulMin || m === cfg.calibMulMax) a.push('倍率[' + i + ']=' + m + ' がクランプ境界に張り付き');
+    });
+  } catch(e){ a.push('異常検知エラー: ' + String(e && e.message || e)); }
+  return a;
+}
+
+/* ---- 履歴（バックアップ・採用・ロールバックの記録） ---- */
+function adoptHistLs(){ try { return JSON.parse(localStorage.getItem(ADOPT_LS) || '[]') || []; } catch(e){ return []; } }
+function adoptHistSet(a){ try { localStorage.setItem(ADOPT_LS, JSON.stringify(a || [])); } catch(e){} }
+
+/* 採用前に現行モデルを保管（khl_calib_v1 の生の値も一緒に保存して正確に復元できるようにする） */
+function adoptBackup(label, snapshot){
+  var a = adoptHistLs();
+  var id = 'bk' + Date.now() + '-' + (a.length + 1);
+  var raw = null;
+  try { raw = localStorage.getItem(ADOPT_CB_KEY); } catch(e){}
+  a.push({ id: id, type: 'backup', label: String(label || ''), snapshot: snapshot || null, cbRaw: raw, at: Date.now() });
+  adoptHistSet(a);
+  return id;
+}
+
+/* 履歴一覧（新しい順） */
+function adoptHistory(){ return adoptHistLs().slice().reverse(); }
+
+/* ロールバック: 保管したスナップショットを本番へ戻す（採用実行と同じ明示的手順）。
+   cbRaw は採用前の khl_calib_v1 の生文字列（null なら未採用状態へ戻す）。 */
+function adoptRollback(histId){
+  var a = adoptHistLs();
+  for (var i = 0; i < a.length; i++){
+    if (a[i] && a[i].id === histId && a[i].type === 'backup'){
+      try {
+        if (typeof a[i].cbRaw === 'string'){ localStorage.setItem(ADOPT_CB_KEY, a[i].cbRaw); }
+        else { localStorage.removeItem(ADOPT_CB_KEY); }
+      } catch(e){}
+      a.push({ id: 'rb' + Date.now(), type: 'rollback', to: histId, at: Date.now() });
+      adoptHistSet(a);
+      return { ok: true, snapshot: a[i].snapshot, cbRaw: a[i].cbRaw, at: a[i].at, label: a[i].label };
+    }
+  }
+  return { ok: false, reason: 'history-not-found' };
+}
+
+/* ---- 採用実行（手動のみ・7条件すべて確認後に本番へ書く） ----------------
+   ①ADOPT_AUTOでない ②バックアップ済み ③候補/現行の識別が明確 ④レポート保存済み
+   ⑤judge合格（未来情報C10・エラーC11を含む） ⑥トークン一致 の順に確認。
+   書換えるのは khl_calib_v1 だけ（p74 cbAdopt と同じ形式）。                */
+function adoptApplyCand(cand, token){
+  if (ADOPT_AUTO) return { applied: false, reason: 'auto-mode-forbidden' };
+  if (!(cand && cand.backupDone)) return { applied: false, reason: 'no-backup' };
+  if (!(cand && cand.candId)) return { applied: false, reason: 'no-cand-id' };
+  if (cand.candId && cand.curModelId && cand.candId === cand.curModelId)
+    return { applied: false, reason: 'same-as-current' };
+  if (cand && cand.reportId != null){
+    var found = false;
+    try {
+      if (typeof awfRepsLs === 'function'){
+        found = (awfRepsLs() || []).some(function(r){ return r && r.at === cand.reportId; });
+      }
+    } catch(e){}
+    if (!found) return { applied: false, reason: 'report-not-found' };
+  } else {
+    return { applied: false, reason: 'no-report' };
+  }
+  var j = adoptJudge(cand);
+  if (!j.pass) return { applied: false, reason: 'judge-failed', judge: j };
+  var tok = (cand && cand.token) || '';
+  if (!token || token !== tok) return { applied: false, reason: 'token-mismatch', judge: j };
+  /* 本番へ書く（p74 cbAdopt と同じ形式・採用実行時だけ） */
+  var mults = (cand.calibMul || []).slice(0, 6);
+  while (mults.length < 6) mults.push(1);
+  var nTotal = 0; (cand.windows || []).forEach(function(w){ nTotal += (w.n || 0); });
+  try {
+    localStorage.setItem(ADOPT_CB_KEY, JSON.stringify({
+      adopted: true, src: 'awf', mults: mults, stopAuto: false, n: nTotal, at: Date.now()
+    }));
+  } catch(e){ return { applied: false, reason: 'write-failed', judge: j }; }
+  var a = adoptHistLs();
+  a.push({ id: 'ap' + Date.now(), type: 'apply', candId: cand.candId, reportId: cand.reportId,
+    summary: { avgBrierImpr: j.avgBrierImpr, avgLlImpr: j.avgLlImpr, conds: j.conds.length }, at: Date.now() });
+  adoptHistSet(a);
+  return { applied: true, judge: j, applied: true, written: { src: 'awf', mults: mults, n: nTotal } };
+}
+
+/* ===================== 🤖タブ 採用判定カード（第85弾） ===================== */
+
+/* 現行モデルの識別子（p83のモデルID形式・依存はガード付き） */
+function adoptCurModelId(){
+  try {
+    if (typeof smBuildMeta === 'function'){
+      var m = smBuildMeta(null);
+      return String(m.modelId || '');
+    }
+  } catch(e){}
+  return '';
+}
+/* 現行モデルのスナップショット（バックアップ用・実測値のみ） */
+function adoptCurSnapshot(){
+  var snap = { weights: null, calib: null, version: '', learnBasis: null, at: Date.now() };
+  try { if (typeof state !== 'undefined' && state && state.weights) snap.weights = JSON.parse(JSON.stringify(state.weights)); } catch(e){}
+  try { if (typeof cbLs === 'function') snap.calib = cbLs(); } catch(e){}
+  try {
+    if (typeof document !== 'undefined' && document.getElementById){
+      var el = document.getElementById('buildStamp');
+      if (el && el.textContent) snap.version = String(el.textContent).trim().slice(0, 60);
+    }
+  } catch(e){}
+  try { if (typeof smLearnBasis === 'function') snap.learnBasis = smLearnBasis(); } catch(e){}
+  return snap;
+}
+
+/* 判定対象の候補を組み立てる（保存済みレポートから・計算は実測値のみ） */
+function adoptBuildCand(rep){
+  if (!rep) return null;
+  var ji = rep.judgeInput || {};
+  /* 採用時に適用する倍率 = 全スナップで学習し直した現時点の候補倍率（p74同一式） */
+  var mults = null;
+  try {
+    if (typeof awfCalMul === 'function' && typeof awfCollect === 'function'){
+      mults = awfCalMul(awfCollect());
+    }
+  } catch(e){}
+  var sig = String(rep.sig || String(rep.at || ''));
+  return {
+    windows: ji.windows || [],
+    calibMul: mults || ji.calibMul || [],
+    markChg: ji.markChg || { n: 0, changed: 0 },
+    backupDone: false,
+    candId: 'cal-v2-awf-' + sig,
+    curModelId: adoptCurModelId(),
+    reportId: rep.at,
+    report: rep,
+    token: '採用-' + String(rep.at || '').slice(-6)
+  };
+}
+
+function adoptMsg(t, warn){
+  try {
+    var el = (typeof $ === 'function') ? $('adMsg') : null;
+    if (el) el.innerHTML = '<span class="small" style="' + (warn ? 'color:var(--warn-ink)' : '') + '">' + (typeof esc === 'function' ? esc(String(t || '')) : String(t || '')) + '</span>';
+  } catch(e){}
+}
+
+/* 判定カードの描画（レポート選択→条件表→異常検知→トークン→履歴） */
+function adoptRenderCard(repAt){
+  try {
+    var box = (typeof $ === 'function') ? $('adOut') : null;
+    if (!box) return;
+    var reps = (typeof awfRepsLs === 'function') ? (awfRepsLs() || []) : [];
+    if (!reps.length){
+      box.innerHTML = '<div class="small muted">判定できるレポートがありません。🚶多窓Walk-forwardを実行すると、ここで採用条件12条の判定ができます（自動採用はありません・手動のみ）。</div>';
+      return;
+    }
+    var rep = null;
+    if (repAt != null){ reps.forEach(function(r){ if (r && r.at === repAt) rep = r; }); }
+    if (!rep) rep = reps[0];
+    var cand = adoptBuildCand(rep);
+    var j = adoptJudge(cand);
+    var an = adoptAnomaly(cand);
+    var cfg = j.cfg || adoptCfg();
+    var h = '';
+    /* レポート選択 */
+    h += '<div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0">' +
+      '<select id="adRepSel" class="small" style="padding:3px 6px">' +
+      reps.map(function(r, i){
+        var ok = (r.windows || []).length;
+        return '<option value="' + r.at + '"' + (r === rep ? ' selected' : '') + '>' +
+          '判定レポート ' + (i + 1) + '（' + new Date(r.at || 0).toISOString().slice(0, 10) + '・ok窓' + ok + '/5）</option>';
+      }).join('') + '</select>' +
+      '<button type="button" class="btn ghost" id="adRepBtn" style="padding:3px 10px;font-size:.78rem">🔄 このレポートで判定を見る</button>' +
+      '<button type="button" class="btn ghost" id="adBkBtn" style="padding:3px 10px;font-size:.78rem" title="採用前に今のモデル（重み・校正状態・バージョン・学習基準）を保管します">💾 採用前に現行モデルを保管</button>' +
+      '</div>';
+    /* 条件表 */
+    h += '<div class="tblwrap" style="max-height:240px;overflow:auto"><table class="ktbl"><thead><tr><th>条件</th><th>内容</th><th>判定</th><th>詳細</th></tr></thead><tbody>' +
+      j.conds.map(function(c){
+        return '<tr><td><b>' + c.id + '</b></td><td class="small">' + c.label + '</td><td>' + (c.ok ? '✅' : '❌') + '</td><td class="small muted">' + (typeof esc === 'function' ? esc(c.detail) : c.detail) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    /* 異常検知 */
+    if (an.length){
+      h += '<div class="small" style="color:var(--warn-ink);margin-top:4px">⚠ 異常検知: ' + an.map(function(s){ return (typeof esc === 'function' ? esc(s) : s); }).join('／') + '</div>';
+    }
+    /* 閾値の状態（提案値であることの明示） */
+    h += '<div class="small muted" style="margin-top:4px">閾値は' + (cfg.provisional ? '<b style="color:var(--warn-ink)">提案値（未確定）</b>。正式確定前に自動採用はありません' : '確定済み') +
+      '。改善幅: ΔBrier≥' + cfg.minAvgBrierImpr.toFixed(5) + ' または ΔLogLoss≥' + cfg.minAvgLlImpr.toFixed(5) +
+      '／誤差範囲: ' + cfg.minMeaningfulImpr.toFixed(5) + '未満は不採用／窓ごとの悪化上限: B+' + cfg.maxBrierDegrade.toFixed(5) + '・L+' + cfg.maxLlDegrade.toFixed(5) +
+      '／重大悪化（要調査）: 1窓でB+' + cfg.anomalyBrierDrop.toFixed(5) + '以上（localStorage khl_adopt_cfg_v1 で後から変更できます）。</div>';
+    /* 候補の内容 */
+    var cm = cand.calibMul || [];
+    h += '<div class="small" style="margin-top:4px">候補: <b>' + (typeof esc === 'function' ? esc(cand.candId) : cand.candId) + '</b>（採用時に全スナップで学習し直した倍率を適用: ' +
+      (cm.length === 6 ? cm.map(function(m){ return m.toFixed(3); }).join('／') : '—') + '）／現行: ' +
+      (cand.curModelId ? (typeof esc === 'function' ? esc(String(cand.curModelId).slice(0, 60)) : '') : '—') + '</div>';
+    /* 手動採用（全条件が揃ったら有効） */
+    var bk = adoptBackupState(cand);
+    h += '<div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
+      '<input id="adToken" class="small" style="padding:3px 6px;width:130px" placeholder="確認トークン" title="誤操作防止の確認トークンです。上の候補行に表示された文字を入力してください">' +
+      '<button type="button" class="btn primary" id="adApplyBtn" style="padding:3px 10px;font-size:.78rem"' +
+      (j.pass && bk ? '' : ' disabled title="judge合格と💾保管が揃ったときだけ押せます"') +
+      '>⚖️ 採用実行（手動・確認トークン入力）</button>' +
+      '<span class="small muted">' + (j.pass ? (bk ? '✅ 判定合格・保管済み（トークン: ' + (typeof esc === 'function' ? esc(cand.token) : cand.token) + '）' : '⚠ 判定合格ですが💾保管が未実施') : '判定不合格のため採用できません（候補はレポートとして保存済み）') + '</span>' +
+      '</div>';
+    /* 履歴とロールバック */
+    var hist = adoptHistory().slice(0, 8);
+    if (hist.length){
+      h += '<details style="margin-top:8px"><summary class="small" style="cursor:pointer">📜 採用履歴・ロールバック（' + hist.length + '件）</summary><div class="small" style="margin-top:4px">' +
+        hist.map(function(x){
+          var d = new Date(x.at || 0).toISOString().slice(0, 16).replace('T', ' ');
+          var t = { backup: '💾保管', apply: '⚖️採用実行', rollback: '↩️ロールバック' }[x.type] || x.type;
+          var rb = '';
+          if (x.type === 'backup'){
+            rb = ' <button type="button" class="btn ghost" data-adrb="' + x.id + '" style="padding:1px 8px;font-size:.72rem" title="この保管時点へ校正の採用状態を戻します">↩️ ここへ戻す</button>';
+          }
+          return '<div>' + d + ' ' + t + ' ' + (x.label ? '(' + (typeof esc === 'function' ? esc(x.label) : '') + ')' : '') + (x.candId ? ' ' + (typeof esc === 'function' ? esc(x.candId) : '') : '') + rb + '</div>';
+        }).join('') + '</div></details>';
+    }
+    box.innerHTML = h;
+    /* 配線 */
+    try {
+      var sel = document.getElementById('adRepSel');
+      if (sel && !sel.__ad85){ sel.__ad85 = true; sel.addEventListener('change', function(){ adoptRenderCard(parseInt(sel.value, 10) || null); }); }
+      var rb2 = document.getElementById('adRepBtn');
+      if (rb2 && !rb2.__ad85){ rb2.__ad85 = true; rb2.addEventListener('click', function(){ adoptRenderCard(parseInt((document.getElementById('adRepSel') || {}).value, 10) || null); }); }
+      var bk2 = document.getElementById('adBkBtn');
+      if (bk2 && !bk2.__ad85){
+        bk2.__ad85 = true;
+        bk2.addEventListener('click', function(){
+          try {
+            var id = adoptBackup('採用前バックアップ', adoptCurSnapshot());
+            adoptMsg('💾 現行モデルを保管しました（' + id + '）。⚖️採用実行が押せるようになります。');
+            adoptRenderCard(null);
+          } catch(e){ adoptMsg('⚠ 保管に失敗しました: ' + String((e && e.message) || e), 1); }
+        });
+      }
+      var ap = document.getElementById('adApplyBtn');
+      if (ap && !ap.__ad85){
+        ap.__ad85 = true;
+        ap.addEventListener('click', function(){
+          try {
+            var tok = (document.getElementById('adToken') || {}).value || '';
+            var reps2 = (typeof awfRepsLs === 'function') ? (awfRepsLs() || []) : [];
+            var rep2 = null;
+            var sv = parseInt((document.getElementById('adRepSel') || {}).value, 10);
+            reps2.forEach(function(r){ if (r && r.at === sv) rep2 = r; });
+            if (!rep2) rep2 = reps2[0];
+            var cand2 = adoptBuildCand(rep2);
+            cand2.backupDone = adoptBackupState(cand2);
+            var r = adoptApplyCand(cand2, tok);
+            if (r.applied){
+              adoptMsg('✅ 採用しました（' + cand2.candId + '・倍率 ' + r.written.mults.map(function(m){ return m.toFixed(3); }).join('／') + '）。📊モデル比較表や🎯校正レポートで効果を確認できます。📜履歴から戻せます。');
+            } else {
+              var why = { 'auto-mode-forbidden': '自動モードは無効です', 'no-backup': '💾採用前バックアップが未実施です', 'no-cand-id': '候補の識別子がありません', 'same-as-current': '候補が現行と同じ識別子です', 'report-not-found': '検証レポートが見つかりません', 'no-report': '検証レポートが未保存です', 'judge-failed': '判定が不合格です（条件表を確認してください）', 'token-mismatch': '確認トークンが一致しません', 'write-failed': '書き込みに失敗しました' }[r.reason] || r.reason;
+              adoptMsg('⚠ 採用できません: ' + why + '（候補はレポートとして保存済みです）', 1);
+            }
+            adoptRenderCard(null);
+          } catch(e){ adoptMsg('⚠ 実行に失敗しました: ' + String((e && e.message) || e), 1); }
+        });
+      }
+      /* ロールバックボタン（data-adrb） */
+      var btns = box.querySelectorAll ? box.querySelectorAll('[data-adrb]') : [];
+      for (var bi = 0; bi < btns.length; bi++){
+        (function(b){
+          if (b.__ad85) return;
+          b.__ad85 = true;
+          b.addEventListener('click', function(){
+            try {
+              var r = adoptRollback(b.getAttribute('data-adrb'));
+              adoptMsg(r.ok ? '↩️ ロールバックしました（採用状態を保管時点へ戻しました・重みは📦モデル保管庫や重み設定で復元してください）' : '⚠ 戻せません: ' + r.reason, !r.ok);
+              adoptRenderCard(null);
+            } catch(e){ adoptMsg('⚠ 失敗しました: ' + String((e && e.message) || e), 1); }
+          });
+        })(btns[bi]);
+      }
+    } catch(e){}
+  } catch(e){}
+}
+
+/* この候補（レポート）に対するバックアップ済みフラグ: 直近の💾保管が候補生成より後なら true */
+function adoptBackupState(cand){
+  try {
+    var a = adoptHistLs(), lastBk = 0;
+    for (var i = 0; i < a.length; i++){ if (a[i] && a[i].type === 'backup' && (a[i].at || 0) > lastBk) lastBk = a[i].at || 0; }
+    var repAt = (cand && cand.reportId) || 0;
+    return !!(lastBk && lastBk >= repAt);
+  } catch(e){ return false; }
+}
+
+/* 配線 */
+function adoptBind(){
+  try {
+    var b = (typeof $ === 'function') ? $('adRun') : null;
+    if (b && !b.__ad85){
+      b.__ad85 = true;
+      b.addEventListener('click', function(){ try { adoptRenderCard(null); } catch(e){ adoptMsg('⚠ 失敗しました: ' + String((e && e.message) || e), 1); } });
+    }
+    try { adoptRenderCard(null); } catch(e){}
+  } catch(e){}
+}
+(function(){
+  try {
+    if (typeof document !== 'undefined' && document.getElementById && document.getElementById('adRun')){ adoptBind(); }
+    else if (typeof document !== 'undefined' && document.addEventListener){
+      document.addEventListener('DOMContentLoaded', function(){ try { adoptBind(); } catch(e){} });
+    }
+  } catch(e){}
+})();
+
+/* =========================================================
+   ★第86弾: 🧾払戻DB（結果ページから払戻だけを独立収集する専用タブ）
+   ---------------------------------------------------------
+   設計承認: 2026-09-24「独立払戻DB(🧾払戻DB)設計案」
+   ・学習DB・自己検証DB・予想エンジンとは完全に独立（専用DB名で分離）。
+     このモジュールから既存の書き込み経路（diSet / diSaveOne / diImportDate /
+     diImportYear / apEval / apEvalBt / apPatchPayout / analyzeRace / saveNow /
+     cbAdopt 等）は一切呼ばない＝誤って既存データを書き換える経路が無い。
+   ・保存先は専用IndexedDB「khl_paydb_v1」（localStorageは使わない。
+     STORE_LIMIT / storeMakeRoom / safeSetItem の対象外＝学習DBの容量と無関係）。
+   ・取得は race.netkeiba.com/race/result.html から払戻情報だけ。
+     パーサーは既存の純関数 bfParsePayback / rdParsePayout / bfPayoutMap を
+     読み取り専用で再利用（テスト済み: 実測fixtureで全券種一致）。
+   ・ステータスは 7 状態で厳密に区別（払戻なしと取得・解析失敗を混ぜない）。
+   ・自動で大量取得は始めない（ユーザーが指定した対象だけ・ボタン押下時のみ）。
+   ・BT_MODE・75:25ブレンド・印・買い目・因子・重み・数式には一切触れない。
+   ========================================================= */
+
+var PD_DB = 'khl_paydb_v1';        // 専用IndexedDB（学習DBとは別の独立DB）
+var PD_PV = 1;                     // 払戻パーサー/保存形式のバージョン
+var PD_STORE = 'pays';             // 1レース1レコード（keyPath: rid・index: d8）
+var PD_META = 'meta';              // 実行状態（keyPath: key）
+var PD_KINDS = ['win', 'place', 'wakuren', 'umaren', 'wide', 'umatan', 'sanfuku', 'santan'];
+var PD_KIND_LABEL = { win: '単勝', place: '複勝', wakuren: '枠連', umaren: '馬連', wide: 'ワイド', umatan: '馬単', sanfuku: '3連複', santan: '3連単' };
+var PD_BUSY = false;               // 二重実行防止
+var PD_CANCEL = false;
+var PD_PAUSE = false;
+var pdDb = null, pdBootP = null, pdMem = null;
+
+/* ---------- ステータス ---------- */
+var PD_ST = { PENDING: 'pending', OK: 'ok', FETCH_ERR: 'fetch_err', NO_PAGE: 'no_page',
+              NO_TABLE: 'no_table', NO_PAY: 'no_pay', PARSE_ERR: 'parse_err' };
+/* 再試行対象: 通信エラー／結果ページ取得失敗／解析失敗（払戻なし・表なしは再試行しない） */
+function pdIsRetryable(st){
+  return st === PD_ST.FETCH_ERR || st === PD_ST.NO_PAGE || st === PD_ST.PARSE_ERR;
+}
+
+/* ---------- 結果ページHTMLの分類（純関数・テスト対象） ----------
+   戻り値: { kind: 'ok'|'no_page'|'no_table'|'no_pay'|'parse_err', payout, payouts, nKinds, err } */
+function pdClassify(html){
+  var h = String(html || '');
+  var hasResultTable = /All_Result_Table|全着順/.test(h);
+  var hasPaySection  = /Result_Pay_Back|Race_Payback|払い戻し|払戻金/.test(h);
+  var hasPayRows     = /class="(?:Tansho|Fukusho|Wakuren|Umaren|Wide|Umatan|Fuku3|Tan3)"/.test(h);
+  if (!hasResultTable && !hasPaySection) return { kind: PD_ST.NO_PAGE };
+  if (hasResultTable && !hasPaySection)  return { kind: PD_ST.NO_TABLE };
+  if (hasPaySection && !hasPayRows)      return { kind: PD_ST.NO_PAY };
+  var raw = null;
+  try { if (typeof bfParsePayback === 'function') raw = bfParsePayback(h); } catch(e){}
+  if (!raw || !raw.length){
+    try { if (typeof rdParsePayout === 'function') raw = rdParsePayout(h); } catch(e){}
+  }
+  if (!raw || !raw.length) return { kind: PD_ST.PARSE_ERR, err: 'パーサー結果が空' };
+  var norm = null;
+  try { if (typeof bfPayoutMap === 'function') norm = bfPayoutMap(raw); } catch(e){}
+  if (!norm || !norm.win){
+    try { if (typeof rdPayoutMap === 'function') norm = rdPayoutMap(raw); } catch(e){}
+  }
+  if (!norm || !norm.win || !norm.win.pays || !norm.win.pays.length){
+    return { kind: PD_ST.PARSE_ERR, err: '単勝払戻が無い（整合チェック不合格）' };
+  }
+  var nk = 0;
+  for (var i = 0; i < PD_KINDS.length; i++){
+    var g = norm[PD_KINDS[i]];
+    if (g && g.pays && g.pays.length) nk++;
+  }
+  return { kind: PD_ST.OK, payout: norm, payouts: raw, nKinds: nk };
+}
+
+/* 結果ページのタイトルから 日付/場所/R番号/レース名（p32 diParseResultPage と同一の正規表現） */
+function pdTitleMeta(html){
+  var out = { d8: '', place: '', rnum: '', name: '' };
+  try {
+    var h = String(html || '');
+    var ti = ((h.match(/<title>\s*([^<]*)/) || [, ''])[1] || '');
+    if (!ti) return out;
+    var nm0 = ti.split('|')[0].replace(/\s*(結果・?払戻|結果|払戻)\s*$/, '').trim();
+    if (nm0) out.name = nm0;
+    var dm = ti.match(/(\d{4})年(\d{1,2})月(\d{1,2})日[^0-9]*?([^\s|｜0-9]{1,3}?)\s*(\d{1,2})R/);
+    if (dm){
+      out.d8 = dm[1] + ('0' + dm[2]).slice(-2) + ('0' + dm[3]).slice(-2);
+      var pm = dm[4].match(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)/);
+      if (pm) out.place = pm[1];
+      out.rnum = dm[5];
+    }
+  } catch(e){}
+  return out;
+}
+
+/* ---------- IndexedDB（専用） ---------- */
+function pdIdbAvail(){
+  try { return !!(typeof indexedDB !== 'undefined' && indexedDB && indexedDB.open); } catch(e){ return false; }
+}
+function pdOpen(){
+  if (pdBootP) return pdBootP;
+  pdBootP = new Promise(function(res, rej){
+    if (!pdIdbAvail()){ rej(new Error('この環境ではIndexedDBが使えません')); return; }
+    try {
+      var rq = indexedDB.open(PD_DB, 1);
+      rq.onupgradeneeded = function(ev){
+        var db = ev.target.result;
+        if (!db.objectStoreNames.contains(PD_STORE)){
+          var st = db.createObjectStore(PD_STORE, { keyPath: 'rid' });
+          st.createIndex('d8', 'd8', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(PD_META)) db.createObjectStore(PD_META, { keyPath: 'key' });
+      };
+      rq.onsuccess = function(){ pdDb = rq.result; res(pdDb); };
+      rq.onerror = function(){ rej(rq.error || new Error('IndexedDB open失敗')); };
+    } catch(e){ rej(e); }
+  });
+  return pdBootP;
+}
+function pdReq(store, mode, fn){
+  return pdOpen().then(function(){
+    return new Promise(function(res, rej){
+      try {
+        var r = fn(pdDb.transaction([store], mode).objectStore(store));
+        r.onsuccess = function(){ res(r.result); };
+        r.onerror = function(){ rej(r.error); };
+      } catch(e){ rej(e); }
+    });
+  });
+}
+function pdPut(rec){
+  return pdReq(PD_STORE, 'readwrite', function(st){ return st.put(rec); })
+    .then(function(){ if (pdMem && rec && rec.rid) pdMem[rec.rid] = rec; return true; })
+    .catch(function(){ return false; });
+}
+function pdGet(rid){ return pdReq(PD_STORE, 'readonly', function(st){ return st.get(String(rid)); }).catch(function(){ return null; }); }
+function pdAll(){
+  return pdReq(PD_STORE, 'readonly', function(st){ return st.getAll(); })
+    .then(function(arr){
+      pdMem = {};
+      (arr || []).forEach(function(x){ if (x && x.rid) pdMem[x.rid] = x; });
+      return pdMem;
+    }).catch(function(){ pdMem = {}; return pdMem; });
+}
+function pdMetaGet(key){ return pdReq(PD_META, 'readonly', function(st){ return st.get(key); }).catch(function(){ return null; }); }
+function pdMetaPut(key, val){
+  return pdReq(PD_META, 'readwrite', function(st){ return st.put({ key: key, val: val }); }).catch(function(){ return false; });
+}
+function pdRunSave(run){ return pdMetaPut('run', run); }
+function pdRunLoad(){
+  return pdMetaGet('run').then(function(v){
+    return (v && v.val) ? v.val : { v: 1, status: 'idle', mode: '', queue: [], idx: 0, totals: pdTotals0(), log: [] };
+  });
+}
+function pdTotals0(){
+  return { target: 0, done: 0, ok: 0, fetch_err: 0, no_page: 0, no_table: 0, no_pay: 0, parse_err: 0, skip: 0 };
+}
+function pdClearAll(){
+  return Promise.all([
+    pdReq(PD_STORE, 'readwrite', function(st){ return st.clear(); }),
+    pdReq(PD_META, 'readwrite', function(st){ return st.clear(); })
+  ]).then(function(){ pdMem = {}; return true; });
+}
+
+/* ---------- 対象の列挙（既存の読み取り専用関数を再利用） ---------- */
+function pdListDay(d8){
+  if (typeof diNetkeibaRaces === 'function'){ return diNetkeibaRaces(d8).catch(function(){ return []; }); }
+  return Promise.resolve([]);
+}
+function pdYearDates(year){
+  if (typeof diYearDates === 'function'){ return diYearDates(String(year)).catch(function(){ return []; }); }
+  return Promise.resolve([]);
+}
+/* opt: { mode:'date'|'range'|'year'|'rids', d8, from, to, year, rids:[...] }
+   → [{rid, d8, rnum, name}]（d8=列挙に使った開催日。rids直接指定は結果ページのタイトルから後で補う） */
+function pdBuildQueue(opt){
+  return new Promise(function(res){
+    opt = opt || {};
+    var items = [];
+    if (opt.mode === 'rids'){
+      (opt.rids || []).forEach(function(rid){
+        rid = String(rid || '').replace(/[^0-9]/g, '');
+        if (rid.length === 12) items.push({ rid: rid, d8: '', rnum: '', name: '' });
+      });
+      res(items); return;
+    }
+    var p;
+    if (opt.mode === 'date'){
+      var d8 = String(opt.d8 || '').replace(/[^0-9]/g, '');
+      p = Promise.resolve(/^\d{8}$/.test(d8) ? [d8] : []);
+    } else if (opt.mode === 'year'){
+      p = pdYearDates(String(opt.year || ''));
+    } else if (opt.mode === 'range'){
+      var frm = String(opt.from || '').replace(/[^0-9]/g, ''), to = String(opt.to || '').replace(/[^0-9]/g, '');
+      var y0 = parseInt(frm.slice(0, 4), 10), y1 = parseInt(to.slice(0, 4), 10);
+      if (!(y0 > 2000 && y1 >= y0 && frm.length === 8 && to.length === 8)){ res([]); return; }
+      var ps = [];
+      for (var y = y0; y <= y1; y++) ps.push(pdYearDates(String(y)));
+      p = Promise.all(ps).then(function(arrs){
+        var dd = [];
+        arrs.forEach(function(a){ (a || []).forEach(function(d){ dd.push(String(d)); }); });
+        dd = dd.filter(function(d){ return d >= frm && d <= to; });
+        dd.sort();
+        return dd;
+      });
+    } else { res([]); return; }
+    p.then(function(days){
+      var seq = Promise.resolve();
+      (days || []).forEach(function(d8){
+        seq = seq.then(function(){
+          return pdListDay(d8).then(function(its){
+            (its || []).forEach(function(it){
+              if (it && it.rid) items.push({ rid: String(it.rid), d8: d8, rnum: String(it.rnum || ''), name: it.name || '' });
+            });
+            pdMsg('… 開催日 ' + d8 + '：' + (its ? its.length : 0) + 'レース（累計 ' + items.length + '件）');
+            return null;
+          });
+        });
+      });
+      return seq;
+    }).then(function(){ res(items); }).catch(function(){ res(items); });
+  });
+}
+/* 未取得のみフィルタ（純関数・テスト対象）
+   onlyNew=true: 未取得 + 再試行可能な失敗（skipFail=true なら未取得だけ） / onlyNew=false: 全件 */
+function pdFilterQueue(items, existing, opt){
+  opt = opt || {};
+  var ex = existing || {};
+  return (items || []).filter(function(it){
+    if (!it || !it.rid) return false;
+    var st = (ex[it.rid] && ex[it.rid].status) || null;
+    if (!st) return true;
+    if (!opt.onlyNew) return true;
+    if (opt.skipFail) return false;
+    return pdIsRetryable(st);
+  });
+}
+
+/* ---------- 1レース分の取得 → 分類 → レコード ---------- */
+function pdSleep(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+function pdRaceUrl(rid){ return 'https://race.netkeiba.com/race/result.html?race_id=' + rid; }
+function pdFetchRace(it){
+  var url = pdRaceUrl(it.rid);
+  var g = (typeof bfGet === 'function') ? bfGet : function(){ return Promise.reject(new Error('取得関数が無い')); };
+  var tryN = 0;
+  function once(){
+    tryN++;
+    return g(url).then(function(html){
+      var cl = pdClassify(html);
+      var tm = pdTitleMeta(html);
+      return {
+        rid: it.rid,
+        d8: it.d8 || tm.d8 || '',
+        place: tm.place || '',
+        rnum: it.rnum || tm.rnum || '',
+        name: it.name || tm.name || '',
+        status: cl.kind,
+        at: new Date().toISOString(),
+        url: url,
+        parser: 'bf',
+        pv: PD_PV,
+        nKinds: (cl.kind === PD_ST.OK ? cl.nKinds : 0),
+        payout: (cl.kind === PD_ST.OK ? cl.payout : null),
+        payouts: (cl.kind === PD_ST.OK ? cl.payouts : null),
+        err: (cl.err || null)
+      };
+    }).catch(function(e){
+      if (tryN < 2) return pdSleep(1500).then(once);   /* 通信エラーは1回だけ自動再試行 */
+      return {
+        rid: it.rid, d8: it.d8 || '', place: '', rnum: it.rnum || '', name: it.name || '',
+        status: PD_ST.FETCH_ERR, at: new Date().toISOString(), url: url, parser: 'bf', pv: PD_PV,
+        nKinds: 0, payout: null, payouts: null, err: String((e && e.message) || e)
+      };
+    });
+  }
+  return once();
+}
+
+/* ---------- 実行ループ（1レースずつ・イベントループへ返す・中断/再開可） ---------- */
+function pdLoop(run, iv){
+  var base = (iv && iv > 0) ? iv : 700;
+  function step(){
+    if (PD_CANCEL || PD_PAUSE){
+      run.status = (run.idx < run.queue.length) ? 'paused' : 'idle';
+      return pdRunSave(run).then(function(){ pdRenderRun(run); return PD_CANCEL ? 'cancelled' : 'paused'; });
+    }
+    if (run.idx >= run.queue.length){
+      run.status = 'idle';
+      run.cur = '';
+      return pdRunSave(run).then(function(){ pdRenderRun(run); pdRenderSum(); return 'done'; });
+    }
+    var it = run.queue[run.idx++];
+    run.cur = it.rid;
+    pdRenderRun(run);
+    return pdFetchRace(it).then(function(rec){
+      if (rec){
+        if (run.totals[rec.status] != null) run.totals[rec.status]++;
+        run.totals.done++;
+        run.log.unshift({ rid: it.rid, d8: rec.d8, place: rec.place, rnum: rec.rnum, status: rec.status, nKinds: rec.nKinds, at: rec.at });
+        if (run.log.length > 20) run.log.pop();
+        return pdPut(rec).then(function(){ return null; });
+      }
+      return null;
+    }).catch(function(){ return null; }).then(function(){
+      pdRenderRun(run);
+      return pdSleep(base + Math.floor(Math.random() * 300));   /* サーバーへの配慮: 間隔+ジッタ */
+    }).then(step);
+  }
+  return step();
+}
+function pdStart(opt){
+  if (PD_BUSY){ pdMsg('⏳ すでに実行中です', 1); return Promise.resolve(false); }
+  PD_BUSY = true; PD_CANCEL = false; PD_PAUSE = false;
+  pdMsg('対象レースを数えています…');
+  return pdAll().then(function(mem){
+    return pdBuildQueue(opt).then(function(items){
+      var q = pdFilterQueue(items, mem, { onlyNew: opt.onlyNew, skipFail: opt.skipFail });
+      var run = { v: 1, status: 'running', mode: opt.mode, queue: q, idx: 0, totals: pdTotals0(),
+                  startedAt: new Date().toISOString(), log: [] };
+      run.totals.target = q.length;
+      run.totals.skip = items.length - q.length;
+      pdMsg('対象 ' + q.length + ' レース' + (run.totals.skip ? '（既取得スキップ ' + run.totals.skip + '）' : '') + 'を順番に取得します');
+      return pdRunSave(run).then(function(){ return pdLoop(run, opt.iv); });
+    });
+  }).then(function(r){ PD_BUSY = false; pdRenderSum(); return r; },
+          function(e){ PD_BUSY = false; pdMsg('⚠ ' + String((e && e.message) || e), 1); return false; });
+}
+function pdPause(){ if (PD_BUSY) PD_PAUSE = true; }
+function pdCancel(){ if (PD_BUSY) PD_CANCEL = true; }
+function pdResume(iv){
+  if (PD_BUSY){ pdMsg('⏳ すでに実行中です', 1); return Promise.resolve(false); }
+  return pdRunLoad().then(function(run){
+    if (!run || run.status !== 'paused' || !run.queue || run.idx >= run.queue.length){
+      pdMsg('再開できる中断ジョブがありません', 1);
+      return false;
+    }
+    PD_BUSY = true; PD_CANCEL = false; PD_PAUSE = false;
+    run.status = 'running';
+    pdMsg('▶ 再開します（残り ' + (run.queue.length - run.idx) + ' レース）');
+    return pdRunSave(run).then(function(){ return pdLoop(run, iv); })
+      .then(function(r){ PD_BUSY = false; pdRenderSum(); return r; },
+            function(e){ PD_BUSY = false; pdMsg('⚠ ' + String((e && e.message) || e), 1); return false; });
+  });
+}
+function pdRetryFailed(iv){
+  if (PD_BUSY){ pdMsg('⏳ すでに実行中です', 1); return Promise.resolve(false); }
+  return pdAll().then(function(mem){
+    var q = [];
+    Object.keys(mem).sort().forEach(function(rid){
+      if (pdIsRetryable(mem[rid].status)){
+        q.push({ rid: rid, d8: mem[rid].d8 || '', rnum: mem[rid].rnum || '', name: mem[rid].name || '' });
+      }
+    });
+    if (!q.length){ pdMsg('再試行できる失敗分はありません（通信エラー・ページ無し・解析失敗のみが対象です）'); return 'none'; }
+    PD_BUSY = true; PD_CANCEL = false; PD_PAUSE = false;
+    var run = { v: 1, status: 'running', mode: 'retry', queue: q, idx: 0, totals: pdTotals0(),
+                startedAt: new Date().toISOString(), log: [] };
+    run.totals.target = q.length;
+    pdMsg('失敗分 ' + q.length + ' レースを再試行します');
+    return pdRunSave(run).then(function(){ return pdLoop(run, iv); })
+      .then(function(r){ PD_BUSY = false; pdRenderSum(); return r; },
+            function(e){ PD_BUSY = false; pdMsg('⚠ ' + String((e && e.message) || e), 1); return false; });
+  });
+}
+
+/* ---------- エクスポート / 全消し ---------- */
+function pdExport(){
+  return pdAll().then(function(mem){
+    var races = {};
+    Object.keys(mem).sort().forEach(function(rid){ races[rid] = mem[rid]; });
+    var o = { app: 'khl-paydb', v: 1, exported: new Date().toISOString(),
+              count: Object.keys(races).length, parser: PD_PV, races: races };
+    var blob = new Blob([JSON.stringify(o)], { type: 'application/json' });
+    var a = document.createElement('a');
+    var d = new Date();
+    a.href = URL.createObjectURL(blob);
+    a.download = 'khl_paydb_backup_' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.json';
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    try { a.remove(); } catch(e){}
+    pdMsg('💾 エクスポートしました（' + o.count + ' レース分）');
+  }).catch(function(e){ pdMsg('⚠ ' + String((e && e.message) || e), 1); });
+}
+function pdClearAllUI(){
+  function go(){
+    pdClearAll().then(function(){
+      pdMsg('🧹 払戻DBを全消去しました（学習DB・予想には影響しません）');
+      pdRenderSum();
+      pdRunLoad().then(function(run){ pdRenderRun(run); });
+    });
+  }
+  if (typeof showConfirm === 'function'){
+    showConfirm('払戻DB（このタブ専用の独立DB）の全データを消します。よろしいですか？（学習DB・予想データには影響しません）', go);
+  } else {
+    go();
+  }
+}
+
+/* ---------- UI ---------- */
+function pdEl(id){
+  try { return (typeof $ === 'function') ? $(id) : document.getElementById(id); } catch(e){ return null; }
+}
+function pdMsg(t, isErr){
+  var el = pdEl('pdMsgBox');
+  if (!el) return;
+  el.innerHTML = (isErr ? '⚠ ' : '') + (typeof esc === 'function' ? esc(t || '') : String(t || ''));
+  el.style.color = isErr ? '#b3261e' : '';
+}
+function pdSyncMode(){
+  var m = pdEl('pdMode');
+  var v = m ? String(m.value || '') : 'date';
+  [['pdWrapDate', v === 'date'], ['pdWrapFrom', v === 'range'], ['pdWrapTo', v === 'range'],
+   ['pdWrapYear', v === 'year'], ['pdWrapRids', v === 'rids']].forEach(function(x){
+    var el = pdEl(x[0]);
+    if (el) el.style.display = x[1] ? '' : 'none';
+  });
+}
+function pdReadOpt(){
+  var m = pdEl('pdMode');
+  var v = m ? String(m.value || '') : 'date';
+  function dval(id){ var el = pdEl(id); return el ? String(el.value || '').replace(/[^0-9]/g, '') : ''; }
+  var opt = { mode: v,
+    onlyNew: !!(pdEl('pdOnlyNew') && pdEl('pdOnlyNew').checked),
+    skipFail: !!(pdEl('pdSkipFail') && pdEl('pdSkipFail').checked),
+    iv: parseInt((pdEl('pdIv') || {}).value, 10) || 700 };
+  if (v === 'date') opt.d8 = dval('pdDate');
+  else if (v === 'range'){ opt.from = dval('pdFrom'); opt.to = dval('pdTo'); }
+  else if (v === 'year'){ var y = parseInt((pdEl('pdYear') || {}).value, 10); opt.year = (y > 2000) ? y : ''; }
+  else if (v === 'rids'){ opt.rids = String((pdEl('pdRids') || {}).value || '').split(/[\s,、]+/).filter(function(x){ return x; }); }
+  return opt;
+}
+function pdValidate(opt){
+  if (opt.mode === 'date' && !/^\d{8}$/.test(opt.d8 || '')) return '日付を指定してください';
+  if (opt.mode === 'range' && (!/^\d{8}$/.test(opt.from || '') || !/^\d{8}$/.test(opt.to || ''))) return '期間の開始と終了を指定してください';
+  if (opt.mode === 'range' && opt.from > opt.to) return '期間の開始が終了より後です';
+  if (opt.mode === 'year' && !opt.year) return '年を指定してください';
+  if (opt.mode === 'rids' && !(opt.rids && opt.rids.length)) return 'レースIDを入力してください';
+  return '';
+}
+function pdStartFromUI(){
+  var opt = pdReadOpt();
+  var err = pdValidate(opt);
+  if (err){ pdMsg(err, 1); return; }
+  pdStart(opt);
+}
+function pdRenderRun(run){
+  var wrap = pdEl('pdProgWrap');
+  if (!wrap) return;
+  run = run || { status: 'idle', totals: pdTotals0(), queue: [], idx: 0, log: [] };
+  var t = run.totals || pdTotals0();
+  var running = (run.status === 'running');
+  var paused = (run.status === 'paused');
+  wrap.style.display = (running || paused || t.done || t.target) ? '' : 'none';
+  var pct = t.target ? Math.round(100 * (t.done + (t.skip || 0)) / (t.target + (t.skip || 0))) : 0;
+  var bar = pdEl('pdProg');
+  if (bar) bar.style.width = Math.min(100, pct) + '%';
+  var st = pdEl('pdStat');
+  if (st){
+    st.innerHTML = '対象 <b>' + (t.target || 0) + '</b> ・ 済み <b>' + (t.done || 0) + '</b>' +
+      ' ／ ✅成功 <b>' + (t.ok || 0) + '</b>' +
+      ' ・ ⚠通信エラー ' + (t.fetch_err || 0) +
+      ' ・ 📄ページ無し ' + (t.no_page || 0) +
+      ' ・ 🚫払戻表なし ' + (t.no_table || 0) +
+      ' ・ ∅払戻なし ' + (t.no_pay || 0) +
+      ' ・ 🔧解析失敗 ' + (t.parse_err || 0) +
+      (t.skip ? ' ・ ⏭スキップ ' + t.skip : '') +
+      (paused ? '　<b style="color:#b3261e">⏸ 一時停止中</b>（残り ' + Math.max(0, (run.queue ? run.queue.length : 0) - (run.idx || 0)) + ' 件）' : '');
+  }
+  var cur = pdEl('pdCur');
+  if (cur) cur.innerHTML = running ? ('処理中: ' + (run.cur || '') + '（' + (run.idx || 0) + '/' + (run.queue ? run.queue.length : 0) + '）') : '';
+  var b;
+  if ((b = pdEl('pdBtnStart'))) b.disabled = running;
+  if ((b = pdEl('pdBtnPause'))) b.disabled = !running;
+  if ((b = pdEl('pdBtnResume'))) b.disabled = !paused;
+  if ((b = pdEl('pdBtnCancel'))) b.disabled = !running && !paused;
+  var lg = pdEl('pdLog');
+  if (lg && run.log && run.log.length){
+    var h = ['<b>直近の取得ログ</b>'];
+    run.log.slice(0, 10).forEach(function(x){
+      h.push('・' + (x.d8 || '????????') + ' ' + (x.place || '') + (x.rnum ? x.rnum + 'R' : '') + ' ' + x.rid +
+        ' → ' + (x.status === 'ok' ? '✅ok（' + x.nKinds + '券種）' : '⚠' + x.status));
+    });
+    lg.innerHTML = h.join('<br>');
+  }
+}
+function pdRenderSum(){
+  var el = pdEl('pdSum');
+  if (!el) return;
+  if (!pdIdbAvail()){
+    var ng = pdEl('pdIdbNg'); if (ng) ng.style.display = '';
+    el.innerHTML = '';
+    return;
+  }
+  pdAll().then(function(mem){
+    var cnt = { ok: 0, fetch_err: 0, no_page: 0, no_table: 0, no_pay: 0, parse_err: 0 };
+    var kc = {}; PD_KINDS.forEach(function(k){ kc[k] = 0; });
+    Object.keys(mem).forEach(function(rid){
+      var st = mem[rid].status;
+      if (cnt[st] != null) cnt[st]++;
+      PD_KINDS.forEach(function(k){
+        var g = mem[rid].payout && mem[rid].payout[k];
+        if (g && g.pays && g.pays.length) kc[k]++;
+      });
+    });
+    var tot = Object.keys(mem).length;
+    var h = [ '保存済み: <b>' + tot + '</b> レース' +
+      '（✅ok ' + cnt.ok + ' ・ ⚠通信エラー ' + cnt.fetch_err + ' ・ 📄ページ無し ' + cnt.no_page +
+      ' ・ 🚫払戻表なし ' + cnt.no_table + ' ・ ∅払戻なし ' + cnt.no_pay + ' ・ 🔧解析失敗 ' + cnt.parse_err + '）' ];
+    if (tot){
+      h.push('券種別カバー（ok以外も含む全保存レース中）: ' + PD_KINDS.map(function(k){
+        return PD_KIND_LABEL[k] + ' ' + kc[k];
+      }).join(' ・ '));
+    }
+    el.innerHTML = h.join('<br>');
+  });
+}
+function pdInit(){
+  try {
+    var m = pdEl('pdMode');
+    if (m) m.addEventListener('change', pdSyncMode);
+    pdSyncMode();
+    var b;
+    if ((b = pdEl('pdBtnStart'))) b.addEventListener('click', function(){ try { pdStartFromUI(); } catch(e){ pdMsg('⚠ 実行開始に失敗しました', 1); } });
+    if ((b = pdEl('pdBtnPause'))) b.addEventListener('click', function(){ pdPause(); pdMsg('⏸ 停止します…（今のレースが終わったら止まります）'); });
+    if ((b = pdEl('pdBtnResume'))) b.addEventListener('click', function(){ pdResume(pdReadOpt().iv); });
+    if ((b = pdEl('pdBtnCancel'))) b.addEventListener('click', function(){ pdCancel(); pdMsg('✖ キャンセルします…（取得済み分は保存されています）'); });
+    if ((b = pdEl('pdBtnRetry'))) b.addEventListener('click', function(){ pdRetryFailed(pdReadOpt().iv); });
+    if ((b = pdEl('pdBtnExport'))) b.addEventListener('click', function(){ pdExport(); });
+    if ((b = pdEl('pdBtnClear'))) b.addEventListener('click', function(){ pdClearAllUI(); });
+    if (!pdIdbAvail()){
+      var ng = pdEl('pdIdbNg'); if (ng) ng.style.display = '';
+      return;
+    }
+    pdOpen().then(function(){
+      return pdRunLoad().then(function(run){
+        /* ブラウザを閉じて中断したジョブは paused として復元表示 */
+        if (run && run.status === 'running'){
+          run.status = 'paused';
+          return pdRunSave(run).then(function(){ return run; });
+        }
+        return run;
+      }).then(function(run){
+        pdRenderRun(run || null);
+        pdRenderSum();
+      });
+    }).catch(function(e){ pdMsg('⚠ 専用DBを開けません: ' + String((e && e.message) || e), 1); });
+  } catch(e){}
+}
+try { if (typeof document !== 'undefined' && document.getElementById('t-paydb')) pdInit(); } catch(e){}
 
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
