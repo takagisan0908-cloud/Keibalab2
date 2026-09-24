@@ -1167,7 +1167,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1199,7 +1199,22 @@ html[data-theme="light"] .page-top-hero{
       <button type="button" class="btn" data-goto="t-grade">📊 重賞データ分析</button>
     </div>
   </div>
-  <div class="card" id="topInfoCard" style="border-color:var(--line2)">
+    <details class="card fold" id="starterCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+    <summary class="foldhead">
+      <span class="fmark"></span>
+      <h2 style="margin:0">🆕 はじめての方は3ステップ <span class="small muted" style="font-weight:400">（タップして開く）</span></h2>
+      <span class="sp"></span><span class="foldhint"></span>
+    </summary>
+    <div class="foldbody">
+      <div class="small" style="line-height:2.1">
+        <b>ステップ1</b>： 📥データ入力タブの <button type="button" class="btn small ghost" data-jump="h2_kaisai">📅 日付からレースを取込</button> で日付を選び、Rボタンでレースを取り込む<br>
+        <b>ステップ2</b>： <button type="button" class="btn small ghost" data-goto="t-kentai">🧠 ② 展開予想タブへ移動</button> してAIの印（◎＝本命・○＝対抗・▲＝3番手）とAI勝率を確認<br>
+        <b>ステップ3</b>： 同じタブの下にある「買い目提案」で予算を入力して買い目を確認<br>
+        <span class="muted">※ 前日にその日の全レースをまとめて取り込みたいときは <button type="button" class="btn small ghost" data-jump="h2_rs">📥 前日一括取得</button>。／ AIの予想はあくまで参考情報で、的中・利益を保証するものではありません。</span>
+      </div>
+    </div>
+  </details>
+<div class="card" id="topInfoCard" style="border-color:var(--line2)">
     <div class="cardhead"><h2>📢 当日の変更情報 <span class="muted small">（netkeiba競馬情報より自動取得・開催日は10分ごと更新）</span></h2></div>
     <div id="topInfo" class="small">読み込み中…</div>
   </div>
@@ -1258,6 +1273,13 @@ html[data-theme="light"] .page-top-hero{
 
 <!-- ================= ① 入力 ================= -->
 <section class="page active" id="t-input">
+      <div class="small" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 0">
+        <span class="muted" style="font-weight:700">よく使う:</span>
+        <button type="button" class="btn small ghost" data-jump="h2_kaisai">📅 日付からレースを取込</button>
+        <button type="button" class="btn small ghost" data-jump="h2_rs">📥 前日一括取得（🔎カード内）</button>
+        <button type="button" class="btn small ghost" data-jump="h2_prelist">🗂 一覧（一括取得ぶん）</button>
+        <button type="button" class="btn small ghost" data-jump="btCard">🕰 バックテスト</button>
+      </div>
   <!-- ===== ライブ3サブタブ(race.sp風): 出馬表 / オッズ / 結果・払戻 ===== -->
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
     <div class="livebar">
@@ -1281,7 +1303,7 @@ html[data-theme="light"] .page-top-hero{
 
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
     <div class="cardhead">
-      <h2>🔎 レース名で探して出馬表を取込（JRA重賞 2002年〜）</h2>
+      <h2 id="h2_rs">🔎 レース名で探して出馬表を取込（JRA重賞 2002年〜）</h2>
       <span class="chip">出馬表＋単勝オッズを自動取込</span>
       <span class="sp"></span>
       <span class="small muted">★これがメインの入力方法です（検索して選ぶだけ）</span>
@@ -1355,7 +1377,7 @@ html[data-theme="light"] .page-top-hero{
     </details>
     <!-- ★2026-09-12 第18弾: バックテスト（過去レースを結果を見ずに予想し直す） -->
     <details id="btCard" style="margin-top:10px;border:1px solid #6b4ea8;border-radius:8px;background:var(--card)">
-      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:#b39ddb">🕰 バックテスト（過去レースを「結果を見ずに」予想し直して照合する／通信ゼロ）
+      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:#b39ddb">🕰 バックテスト＝過去データでの検証（過去レースを「結果を見ずに」予想し直して照合する／通信ゼロ）
         <span class="chip" id="btCount" style="margin-left:6px;font-weight:400">まだバックテストはありません</span></summary>
       <div style="padding:0 8px 10px">
         <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
@@ -1406,6 +1428,8 @@ html[data-theme="light"] .page-top-hero{
       </div>
     </details>
     <div id="urlLog" class="small" style="margin-top:10px"></div>
+    <!-- ★第81弾: URL直貼り取込が成功したときだけ「②予想タブへ」ボタンを出す（自動遷移なし） -->
+    <button type="button" class="btn primary" id="nkGoKen" data-goto="t-kentai" style="display:none;margin-top:6px">🧠 ②予想タブでこのレースの予想を見る</button>
     <details>
       <summary>URL取込の通信設定（出馬表HTMLのみ初回セットアップが必要）</summary>
       <div class="small">
@@ -1547,7 +1571,7 @@ html[data-theme="light"] .page-top-hero{
 
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
     <div class="cardhead">
-      <h2>📅 日付を選んで出馬表を取込（その日の1〜12Rから選択）</h2>
+      <h2 id="h2_kaisai">📅 日付を選んで出馬表を取込（その日の1〜12Rから選択）</h2>
       <span class="chip">netkeiba</span>
       <span class="sp"></span>
       <span class="small muted">日付 → 競馬場ごとの1〜12R → 選んだレースの出馬表をこのアプリへ取込（自動保存）</span>
@@ -1559,6 +1583,8 @@ html[data-theme="light"] .page-top-hero{
       <span class="small muted">（旧「レースを選ぶ」タブはこの機能と重複していたため削除しました。以降はこの欄から選べます）</span>
     </div>
     <div id="rkMsg" class="small muted" style="margin:2px 0 6px"></div>
+    <!-- ★第80弾: 取込完了メッセージ直下の②への移動ボタン（自動遷移はしない・取込成功時だけ表示） -->
+    <button type="button" class="btn primary" id="rkGoKen" data-goto="t-kentai" style="display:none;margin:0 0 6px">🧠 ②予想タブでこのレースの予想を見る</button>
     <div id="rkList"></div>
     <div id="rkDetail"></div>
 
@@ -1646,7 +1672,7 @@ html[data-theme="light"] .page-top-hero{
        「表示」を押すと ④ で端末に入れた出馬表キャッシュから **通信せず即座に** 開きます。 -->
   <div class="card">
     <div class="cardhead">
-      <h2 style="margin:0">🗂 一括取得した出馬表（その日の全レース）</h2>
+      <h2 id="h2_prelist" style="margin:0">🗂 一括取得した出馬表（その日の全レース）</h2>
       <span class="chip" id="preListChip">0件</span>
       <span class="sp" style="flex:1"></span>
       <button type="button" class="kai-mini" id="preListClear" title="この一覧だけ消します（出馬表キャッシュ・学習DB・読み込み履歴は消えません）">一覧を消去</button>
@@ -1786,6 +1812,12 @@ html[data-theme="light"] .page-top-hero{
     <!-- ★2026-09-13 第23弾①: オッズの「最終取得時刻」を必ず見えるようにした。
          このタブを開くたびに最新の単勝オッズを取り直し（定期ポーリングはしない）、
          変わっていれば AI印・軸/妙味/穴・買い目提案まで自動で描き直します。 -->
+    <!-- ★第80弾: ②冒頭のジャンプ導線（レース未取込時はkentaiBodyごと非表示） -->
+    <div class="small" id="kJumpBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px">
+      <span class="muted" style="font-weight:700">よく使う:</span>
+      <button type="button" class="btn small ghost" data-jump="yosokuCard">🧠 予想を見る</button>
+      <button type="button" class="btn small ghost" data-jump="kaimokuCard">💰 買い目を見る</button>
+    </div>
     <div class="card" style="padding:8px 14px" id="oddsFreshCard">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="chip" id="oddsFreshChip">オッズ未取得</span>
@@ -1827,6 +1859,9 @@ html[data-theme="light"] .page-top-hero{
           <div id="baStat" class="small" style="margin-top:3px;max-height:130px;overflow:auto"></div>
         </div>
       </details>
+      <!-- ★第80弾: 設定系（前日の馬場・手動設定）は折りたたみ。見出し直下のサマリは常に見える -->
+      <details class="kfold" style="margin:6px 0 2px">
+        <summary>⚙ バイアスの調整（前日の馬場の使い方・手動設定）<span class="muted" style="font-weight:400"> ― タップで開閉</span></summary>
       <!-- ★2026-09-12 第18弾: 前日の馬場（確定している）→ 当日のバイアス想定 -->
       <div id="pbWrap" style="border-top:1px dashed var(--line2);margin:8px 0 4px;padding-top:5px">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1857,7 +1892,12 @@ html[data-theme="light"] .page-top-hero{
         </details>
       </div>
       <div id="biasManualRow" style="border-top:1px dashed var(--line2);margin:8px 0 4px;padding-top:2px"></div>
+      </details>
+      <!-- ★第80弾: コース別バイアスの詳細表は折りたたみ。上部のサマリ（biasSummary）は常に見える -->
+      <details class="kfold" style="margin:6px 0 2px">
+        <summary>📊 コース別バイアスの詳細（前レースの結果から自動計算）<span class="muted" style="font-weight:400"> ― タップで開閉</span></summary>
       <div id="biasBox"></div>
+      </details>
       <div id="biasLog" class="small" style="margin-top:8px"></div>
       <details style="margin-top:6px">
         <summary>手入力・テキストで追記する場合（中継が未設定でも使えます）</summary>
@@ -1911,8 +1951,13 @@ html[data-theme="light"] .page-top-hero{
         <div class="scenario" id="paceScenario"></div>
         <div id="favFlow" class="small" style="margin-top:8px"></div>
       </div>
-      <div class="card">
-        <h2>AI予想エンジンの重み設定</h2>
+    <details class="card fold" id="wCard" style="margin-top:14px;padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">AI予想エンジンの重み設定</h2>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
         <p class="small muted">どの情報を重視して◎〜☆を決めるかを調整します。スライダーを動かすと即座に再計算されます。</p>
         <div id="weightSliders"></div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1952,9 +1997,10 @@ html[data-theme="light"] .page-top-hero{
           <div id="yoMsg" class="small" style="margin-top:2px"></div>
         </div>
       </div>
+    </details>
     </div>
 
-    <div class="card">
+    <div class="card" id="yosokuCard">
       <div class="cardhead" style="padding:2px 2px 8px">
         <h2 style="margin:0">AI印と総合評価</h2>
         <span class="sp"></span>
@@ -1964,12 +2010,13 @@ html[data-theme="light"] .page-top-hero{
       <div class="small muted" style="margin:-2px 0 6px" id="kentaiRefreshHint">オッズ変動・出走取消・馬場変化・学習追加後は、上の「🔄 最新情報を取得して更新」で印・買い目・各モデルの印をまとめて再計算できます。</div>
       <div id="aiNote"></div>
       <div class="tblwrap">
+        <div class="small muted" style="margin:2px 0 4px">印の凡例: <b>◎</b>=本命（最有力） <b>○</b>=対抗 <b>▲</b>=3番手 <b>☆△</b>=穴候補 ／ AI勝率＝予想用の勝率（オッズから計算した市場の予測75%＋モデル予測25%）</div>
         <table class="ktbl">
           <thead><tr>
-            <th>印</th><th title="★第63弾: AI勝率（市場75%＋モデル）を軸に、データ評価で最大±35%補正した順位＝3着以内の的中期待が大きい順。純データ点の並べ替えではなくなりました（着順とAI勝率が食い違う旧来の不整合を解消）">着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th><th>AI勝率</th>
-            <th title="★第78弾: 純モデル確率÷市場確率（ブレンド前）。AI勝率は市場75%ブレンド値なので、モデルの見立てはEdgeで見ます。1.0=市場並み・1.5=モデルが5割上に評価。ホバーで モデル勝率・市場確率・差分（予想・順位には一切使われません）">Edge</th>
-            <th title="★第75弾: AI勝率からHarville式＋決定的シミュレーションで導いた3着以内に入る確率。ホバーで連対率・5着以内率・平均着順も見られます。1着確率とは別の評価対象として校正レポートで個別検証できます（モデルの順位には影響しません）">3着内</th>
-            <th>調教</th><th>展開適性</th><th>バ場好走</th><th title="調教・持ちタイム・展開適性・バ場好走・洋芝コース適性などのデータ列を0〜1に正規化し、エンジン重み（枠3/騎手2など）で加重平均→血統で微調整した総合点（0〜100）。数字が大きいほど「データ上の条件面がgood」を意味します。勝率そのものではありません（勝率は『AI勝率』列＝市場オッズ75%+モデル25%の別物。印◎◯▲は総合点（人気込み）の順位で、データ評価が人気を大差で上回る人気薄だけ繰り上げ）">総合 ⓘ</th>
+            <th>印</th><th title="★第63弾: AI勝率（市場75%＋モデル）を軸に、データ評価で最大±35%補正した順位＝3着以内の的中期待が大きい順。純データ点の並べ替えではなくなりました（着順とAI勝率が食い違う旧来の不整合を解消）">着順予想</th><th>枠</th><th>馬番</th><th>馬名</th><th>単勝</th>AI勝率 <span class="khelp" data-tip="AI勝率＝予想用の勝率。オッズから計算した市場の予測75%＋KeibaLab2のモデル予測25%で計算しています。第63弾">ⓘ</span></th>
+            <th title="★第78弾: 純モデル確率÷市場確率（ブレンド前）。AI勝率は市場75%ブレンド値なので、モデルの見立てはEdgeで見ます。1.0=市場並み・1.5=モデルが5割上に評価。ホバーで モデル勝率・市場確率・差分（予想・順位には一切使われません）">Edge <span class="khelp" data-tip="Edge＝モデルと市場の差。純モデル確率÷市場確率で、×1.5ならモデルが市場より5割上に評価しています。予想の順位・印・買い目には一切使われません（第78弾）">ⓘ</span></th>
+            <th title="★第75弾: AI勝率からHarville式＋決定的シミュレーションで導いた3着以内に入る確率。ホバーで連対率・5着以内率・平均着順も見られます。1着確率とは別の評価対象として校正レポートで個別検証できます（モデルの順位には影響しません）">3着内 <span class="khelp" data-tip="3着内＝AI勝率からHarville式（3着以内に入る確率の計算式）で導いた、3着以内に入る確率。1着になる確率（AI勝率）とは別の評価です（第75弾）">ⓘ</span></th>
+            <th>調教</th><th>展開適性 <span class="khelp" data-tip="展開適性＝脚質と今回のペース予想の相性。高いほど今回の展開が合っている（0〜1）">ⓘ</span></th><th>バ場好走 <span class="khelp" data-tip="バ場好走＝同じ開催場×同じ馬場（良/稍重/重/不良）での過去の3着内率。高いほどその馬場で実績がある">ⓘ</span></th><th title="調教・持ちタイム・展開適性・バ場好走・洋芝コース適性などのデータ列を0〜1に正規化し、エンジン重み（枠3/騎手2など）で加重平均→血統で微調整した総合点（0〜100）。数字が大きいほど「データ上の条件面がgood」を意味します。勝率そのものではありません（勝率は『AI勝率』列＝市場オッズ75%+モデル25%の別物。印◎◯▲は総合点（人気込み）の順位で、データ評価が人気を大差で上回る人気薄だけ繰り上げ）">総合 <span class="khelp" data-tip="総合＝調教・持ちタイム・展開・馬場などのデータ面の総合点（0〜100）。大きいほど良い。印の順位はこの総合点が基準（AI勝率とは別物）">ⓘ</span></th>
           </tr></thead>
           <tbody id="aiTbl"></tbody>
         </table>
@@ -1992,8 +2039,13 @@ html[data-theme="light"] .page-top-hero{
         <div class="small muted" style="margin:2px 0 6px">各馬の線は 脚質×展開適性×想定ペース から引いたイメージです（発走→1角→向正面→3角→4角→ゴール）。線の色はAI印（◎○▲=濃色）。ハイペース想定では差し・追込が繰り上がり、スロー想定では前が残る形になります。</div>
         <div id="dvBox"></div>
       </div>
-      <div class="card" style="margin-top:14px;border-color:var(--line2)">
-        <h2>🎛 ペースシナリオ別の予想比較</h2>
+    <details class="card fold" id="scCard" style="margin-top:14px;border-color:var(--line2);padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🎛 ペースシナリオ別の予想比較</h2>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
         <div class="small muted" style="margin:2px 0 6px">ペース想定を スロー／現行／ハイ の3通りに変えてAI予想を作り直し、上位の顔ぶれとAI勝率の変化を並べます。実際に流れそうなペースを眺めながら印の強弱を確認するためのものです。</div>
         <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
           <button id="scRun" class="btn primary">🎛 3シナリオで比較</button>
@@ -2002,8 +2054,9 @@ html[data-theme="light"] .page-top-hero{
         <div id="scMsg" class="small" style="margin-top:4px"></div>
         <div id="scOut"></div>
       </div>
+    </details>
       <div class="row2">
-        <div class="card" style="margin-top:14px">
+        <div class="card" id="kaimokuCard" style="margin-top:14px">
           <h2>買い目提案（予算から自動配分）</h2>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
             <label class="small">予算(円)
@@ -2020,10 +2073,16 @@ html[data-theme="light"] .page-top-hero{
           </div>
           <div id="buyBox"></div>
         </div>
-        <div class="card" style="margin-top:14px">
-          <h2>🎯💰🔰 各予想モデルの印（自己学習3モデル × 現在のレース）</h2>
+    <details class="card fold" id="mk3Card" style="margin-top:14px;padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🎯💰🔰 各予想モデルの印（自己学習3モデル × 現在のレース）</h2>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
           <div id="modelBox" class="small"></div>
-        </div>
+      </div>
+    </details>
       </div>
       <!-- ★2026-09-12 第18弾: 買い目提案（詳細版）3連系・オッズ妙味・金額の自動割り振り -->
       <details class="card fold" id="bpCard" style="margin-top:14px;border-color:#6b4ea8;padding:0">
@@ -2085,8 +2144,14 @@ html[data-theme="light"] .page-top-hero{
         </div>
       </details>
       <!-- ★2026-09-12 第18弾: 一括取得した日の全レースの 軸・妙味・穴 一覧 -->
-      <div class="card" id="pkCard" style="margin-top:14px;border-color:var(--line2)">
-        <h2>📅 その日の全レース 軸・妙味・穴 一覧</h2>
+      <!-- ★第80弾: 横断参照ビューは初期折りたたみ（開くとp56のtoggleリスナーが自動描画） -->
+      <details class="card fold" id="pkCard" style="margin-top:14px;border-color:var(--line2);padding:0">
+        <summary class="foldhead">
+          <span class="fmark"></span>
+          <h2 style="margin:0">📅 その日の全レース 軸・妙味・穴 一覧</h2>
+          <span class="sp"></span><span class="foldhint"></span>
+        </summary>
+        <div style="padding:2px 14px 12px">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">
           <label class="small">日付 <input type="date" id="pkDayDate" style="font-family:inherit;font-size:.9rem;padding:2px 4px"></label>
           <button class="btn small" id="pkDayRun">📅 表示する</button>
@@ -2099,7 +2164,8 @@ html[data-theme="light"] .page-top-hero{
           下に「🎯軸・💠妙味・🕳穴 それぞれの3着内率」を出します。
         </div>
         <div id="pkDayBox"></div>
-      </div>
+        </div>
+      </details>
 
       <!-- ★2026-09-13 第19弾②: 的中率40〜60%から「回収率」を底上げする設定を、
            端末に貯まった 出走前の予想(rec.pre) × 結果(rec.result の実払戻) の実測で総当たりして探す。
@@ -2150,15 +2216,18 @@ html[data-theme="light"] .page-top-hero{
       </div>
     </details>
 
-    <div class="card" id="learnCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
-      <div class="cardhead">
-        <h2>🎓 展開学習（レース結果からAI予想を修正）</h2>
+    <details class="card fold" id="learnCard" style="margin-top:14px;border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🎓 展開学習（レース結果からAI予想を修正）</h2>
         <span class="chip" id="learnChip">未学習</span>
         <span class="sp"></span>
         <label style="display:flex;align-items:center;gap:4px;font-size:.82rem" title="展開学習の補正をAI印に反映するか">
-          <input type="checkbox" id="learnUseChk" checked> 反映する
+        <input type="checkbox" id="learnUseChk" checked> 反映する
         </label>
-      </div>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
       <p class="small muted">「このレースの直近の結果」や「本日の他レースの結果」から <b>どの脚質（逃げ/先行/差し/追込）に展開が向く傾向か</b> を集計し、AI印の「展開適性」評価を自動補正します。<b>本日分は「🔍 前レース結果を自動取込（トラックバイアス）」と同じ通信で同時に取得・学習します</b>（別途の取得は不要）。補正内容は下に表示され、いつでも「反映する」を外して元のAI印に戻せます。</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
         <button type="button" class="btn primary" id="btnLearnHist" title="このレースの過去(直近最大8回)の結果ページを取得し、馬券内の脚質・4角位置から展開傾向を学習します（要: 中継設定）">📥 このレースの過去結果で学習</button>
@@ -2167,19 +2236,24 @@ html[data-theme="light"] .page-top-hero{
       </div>
       <div id="learnOut" class="small" style="margin-top:8px"></div>
       <div id="learnLog" class="small muted" style="margin-top:6px"></div>
-    </div>
+      </div>
+    </details>
 
-    <div class="card" id="memoCard">
-      <div class="cardhead">
-        <h2>🎬 展開メモ・次走サポート（直近の重賞から）</h2>
+    <details class="card fold" id="memoCard" style="margin-top:14px;padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🎬 展開メモ・次走サポート（直近の重賞から）</h2>
         <span class="chip">JRA重賞(G1〜G3)</span>
         <span class="sp"></span>
         <button type="button" class="btn ghost" id="btnMemoRun" title="各馬の直近の重賞レース（コーナー通過順・着順）から展開の利/不利を自動推定し、今回の展開予想と照合したメモを表示します">✨ 展開メモを自動生成</button>
-      </div>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
       <div id="memoInfo" class="small muted" style="margin-top:4px"></div>
       <div id="memoLog" class="small" style="margin-top:6px"></div>
       <div id="memoOut"></div>
-    </div>
+      </div>
+    </details>
 
     <!-- 2026-09-12 第15弾: 説明が長いのでカードごと折り込み。
          折り込んだままでも学習状況の要点が読めるように summary 内（#apPick）へ1行表示します -->
@@ -2304,13 +2378,16 @@ html[data-theme="light"] .page-top-hero{
   <div id="pfBox" class="small" style="margin-top:6px"></div>
   </div>
 </details>
-<div class="card" id="rnCard">
-      <div class="cardhead">
-        <h2>🖋 レース結果メモ（レース後の内容を保存 → 次走で自動表示）</h2>
+    <details class="card fold" id="rnCard" style="margin-top:14px;padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">🖋 レース結果メモ（レース後の内容を保存 → 次走で自動表示）</h2>
         <span class="chip">結果後に保存</span>
         <span class="sp"></span>
         <button type="button" class="btn ghost" id="btnRnRefresh" title="今回の出走馬に保存されているメモを表示します">↻ 保存メモを表示</button>
-      </div>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
       <p class="small muted">レースが終わったら netkeiba の<b>結果ページ</b>を取込み、「このレースはどういう内容だったか」をメモとして保存。そのレースに出走していた各馬が<b>次に走るとき（次走・それ以降）</b>、この画面で自動的にそのメモを表示して参考にできます。</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <input id="rnUrl" placeholder="netkeibaの結果URLまたは race_id（空欄なら現在のレースIDを使います）" style="flex:1;min-width:240px">
@@ -2328,7 +2405,8 @@ html[data-theme="light"] .page-top-hero{
       <div id="rnList" style="margin-top:10px"></div>
       <div style="margin-top:10px;font-weight:bold">📌 今回の出走馬に保存されている「過去の結果メモ」</div>
       <div id="rnNext" class="small" style="margin-top:4px"></div>
-    </div>
+      </div>
+    </details>
   </div>
 
     <div id="diYearBarWrap" class="hid" style="margin-top:6px;height:10px;background:var(--card2);border-radius:6px;overflow:hidden"><i id="diYearBar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,#a78ee0,#5b3a8f);transition:width .3s"></i></div>
@@ -2862,18 +2940,19 @@ html[data-theme="light"] .page-top-hero{
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <button id="aiSettle" class="btn primary">📥 その日の結果を取得</button>
-      <button id="aiRefresh" class="btn ghost">🔄 再計算</button>
-      <button id="aiRecompute" class="btn ghost" title="保存済みの前日予想を、現在のエンジン（新馬戦・障害戦の補正込み）で通信ゼロで作り直します。結果確定済みは上書きしません">🔁 再計算（現エンジン）</button>
+      <button id="aiRefresh" class="btn ghost">🔄 表示を更新</button>
+      <button id="aiRecompute" class="btn ghost" title="保存済みの前日予想を、現在のエンジン（新馬戦・障害戦の補正込み）で通信ゼロで作り直します。結果確定済みは上書きしません">🔁 再計算（今の計算方式で）</button>
       <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
       <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
       <span class="muted small">①「📥 その日の出馬表を一括取得」→発走後に「📥 その日の結果を取得」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
     </div>
-    <div class="small" style="margin-top:6px">その日の全レースに馬柱の印（◎○▲☆△）を並べ、結果が付いたレースは着順・払戻・展開（ペース／通過順位／バイアス）と突き合わせて1レースずつAIが振り返ります。緑＝印の馬が馬券内。</div>
+    <div class="small" style="margin-top:6px">その日の全レースに馬柱の印（◎○▲☆△）を並べ、結果が付いたレースは着順・払戻・展開（ペース／通過順位／バイアス）と突き合わせて1レースずつAIが振り返ります。緑＝印の馬が馬券内。用語: <span class="khelp" data-tip="人気乖離＝AIの評価と人気（オッズ）のズレの大きさ。プラスなら市場（人気）よりAIが上に評価している馬です">人気乖離ⓘ</span>／<span class="khelp" data-tip="EV＝期待値。AI勝率×オッズで概算し、1を超えると期待払戻が金額を上回る計算になります">EVⓘ</span></div>
   </div>
   <div id="aipropBody"></div>
   <div class="card">
     <h2>🎯 AI勝率の校正（改善モデルv2）</h2>
-    <div class="small" style="margin-bottom:6px">AIが出した勝率が実際の結果と一致しているかを検証します（通信ゼロ・保存済み予想と学習DBの結果のみ使用）。補正の<b>候補</b>を出すだけなので、採用するまで現行モデルは一切変わりません。回収率ではなく Brier Score・Log Loss・期待と実測の差で評価します。</div>
+    <div class="small muted" style="margin:2px 0 4px">ℹ️ 校正＝AI勝率と実際の結果の一致度を整える分析です（ここでは分析のみ・自動採用はしません）。</div>
+    <div class="small" style="margin-bottom:6px">AIが出した勝率が実際の結果と一致しているかを検証します（通信ゼロ・保存済み予想と学習DBの結果のみ使用）。補正の<b>候補</b>を出すだけなので、採用するまで現行モデルは一切変わりません。回収率ではなく Brier Score・Log Loss <span class="khelp" data-tip="Brier・LogLoss＝確率予測の精度をはかる指標。どちらも0に近いほど良い">ⓘ</span>・期待と実測の差で評価します。</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <label class="small">検証データ: <select id="cbSrc"><option value="pre">📌 本番予想（前日一括取得ぶん）</option><option value="bt">🕰 バックテストぶん</option></select></label>
       <button id="cbRun" class="btn primary">📊 校正レポートを生成</button>
@@ -2890,10 +2969,11 @@ html[data-theme="light"] .page-top-hero{
   </div>
   <div class="card">
     <h2>🧪 ファクター有効性（ドロップワン比較）</h2>
+    <div class="small muted" style="margin:2px 0 4px">ℹ️ ドロップワン＝特定のファクター1つだけを外して予想を作り直し、そのファクターの効きを測る検証です。Brier・LogLossはどちらも「小さいほど良い」指標です。</div>
     <div class="small" style="margin-bottom:6px">ファクターの重みを<b>1つだけ0にして</b>予想を作り直し、フルモデルと Brier／Log Loss を比較します（新ファクターを足す前に、まず既存ファクターが効いているかを確認するための機能）。🕰バックテストと同じ条件（学習DBの直近レース・出馬表由来の入力のみ）で全バリアントを同一入力で計算するので、差はそのファクターの効果です。通信ゼロ・予想の保存もモデルの変更も行いません。</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <label class="small">対象: <select id="fcN"><option value="20">直近20レース</option><option value="40" selected>直近40レース</option><option value="80">直近80レース</option></select></label>
-      <button id="fcRun" class="btn primary">🧪 ドロップワン比較を実行</button>
+      <button id="fcRun" class="btn primary">🧪 ファクターの効きを1つずつ検証（ドロップワン）</button>
       <span class="muted small">実行中は数秒かかることがあります</span>
     </div>
     <div id="fcMsg" class="small" style="margin-top:4px"></div>
@@ -2901,8 +2981,8 @@ html[data-theme="light"] .page-top-hero{
     <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
       <div style="font-weight:700;margin-bottom:4px">🔍 組み合わせ・前走の計測（モデルは変えません）</div>
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-        <button id="ixRun" class="btn">🔀 組み合わせリフト（交互作用）</button>
-        <button id="ppRun" class="btn">📤 前走パフォーマンス計測</button>
+        <button id="ixRun" class="btn">🔀 組み合わせの効果を検証（交互作用リフト）</button>
+        <button id="ppRun" class="btn">📤 前走の走りを計測（前走パフォーマンス）</button>
         <span class="muted small">保存済み予想のファクター値／学習DBの通過順から「追加情報の有無」を測ります</span>
       </div>
       <div id="ixMsg" class="small" style="margin-top:4px"></div>
@@ -2913,6 +2993,7 @@ html[data-theme="light"] .page-top-hero{
   </div>
   <div class="card">
     <h2>📊 モデル比較表</h2>
+    <div class="small muted" style="margin:2px 0 4px">ℹ️ モデル比較表＝同じレース・同じ馬で複数の予測方式の精度を並べて比べる表です。Brier・LogLossはどちらも「小さいほど良い」指標です。</div>
     <div class="small" style="margin-bottom:6px">同じレース・同じ馬で複数のモデルの予測品質を並べます（検証データは上の🎯校正と同じセレクタ）。回収率ではなく Brier／Log Loss・期待と実測の一致度で比較します。</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <button id="fcMRun" class="btn primary">📊 モデル比較表を生成</button>
@@ -2920,9 +3001,10 @@ html[data-theme="light"] .page-top-hero{
     <div id="fcMOut"></div>
     <div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:8px">
       <div style="font-weight:700;margin-bottom:4px">🚶 Walk-forward検証（時系列分割）</div>
-      <div class="small muted" style="margin-bottom:4px">期間を古い順に【学習60% → 検証40%】に分け、<b>学習期間だけで</b>🎯校正の倍率と🤖ロジスティック回帰（市場＋7ファクター）を学習し、検験期間で本物のアウトオブサンプル成績を比較します。人気ルール（1番人気／5番人気以下均等）の回収率も検証期間だけで測ります。</div>
+      <div class="small muted" style="margin:2px 0 4px">ℹ️ Walk-forward＝期間を「学習」と「検証」に時系列で分けて、未来を見ずに検証する方法です。</div>
+      <div class="small muted" style="margin-bottom:4px">期間を古い順に【学習60% → 検証40%】に分け、<b>学習期間だけで</b>🎯校正の倍率と🤖ロジスティック回帰（市場＋7ファクター）を学習し、検証期間で本物のアウトオブサンプル（＝学習に使っていない期間での）成績を比較します。<span class="khelp" data-tip="ロジスティック回帰＝比較用の機械学習モデルの名前">ⓘ</span>人気ルール（1番人気／5番人気以下均等）の回収率も検証期間だけで測ります。</div>
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-        <button id="wfRun" class="btn primary">🚶 Walk-forward検証を実行</button>
+        <button id="wfRun" class="btn primary">🚶 期間をずらして実戦形式で検証（Walk-forward）</button>
         <span class="muted small">通信ゼロ・モデルの変更なし・数秒かかることがあります</span>
       </div>
       <div id="wfMsg" class="small" style="margin-top:4px"></div>
@@ -2934,7 +3016,7 @@ html[data-theme="light"] .page-top-hero{
     <h2>📦 モデル保管庫（現行モデルのバックアップ）</h2>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <input id="mvName" placeholder="モデル名（空欄なら日時）" style="flex:1;min-width:200px">
-      <button id="mvSave" class="btn primary">💾 今のモデルを保存</button>
+      <button id="mvSave" class="btn primary">💾 今のモデルを保存（重みのバックアップ）</button>
     </div>
     <div class="small muted" style="margin:4px 0">エンジン重み（スライダー値）＋改善モデルv2の採用状況を1つのスロットとして保存します（最大10枠）。改善モデルを試す前に現行モデルを保存しておけば、いつでも元に戻せます。</div>
     <div id="mvList"></div>
@@ -3006,11 +3088,11 @@ html[data-theme="light"] .page-top-hero{
   ⚠ 本ツールの予想はあくまで参考情報です。勝馬投票券の購入・的中を保証するものではありません。提供される数値は統計的推計であり、実際のレース結果と異なる場合があります。<br>
   ※本ページは入力・予想・AI展開表示をすべてお使いのブラウザ内で処理します。外部サイトからのデータ取得は「netkeiba取込」など明示した操作時に限られます（利用規約をご確認のうえご自身の予想用途でお使いください）。<br>
   競馬AIラボ / 使い方は右上メニュー画面下部の README または同梱 README.md を参照<br>
-  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
+  <span class="bstamp" title="今開いているページがどの版かを示します。手順書に書いてある版とこの番号が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
-�が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-13 第29弾（🏇DB一覧取得時に全員の詳細を取得・キャッシュし名前選択ドロップダウンで即表示（誰も呼び出せない不具合を解消）／⑤予想ファクターに前走レースレベル(fieldLv)を追加／学習DB取込時にレースレベルを判定して短評を自動付与／③騎手×調教師相性は第27弾で済）</b></span>
+�が違う場合は、古いファイル（またはブラウザのキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-09-24 第81弾（操作性改善・第2段階補完: 🤖ボタン日本語化3種（🔄表示を更新／🔁再計算（今の計算方式で）・busy後ラベル戻しとヘルプ⑧も同期／💾今のモデルを保存（重みのバックアップ））／🔗URL直貼り取込完了→「🧠②予想タブでこのレースの予想を見る」ボタン（nkGoKen・自動遷移なし・開始時非表示/成功時表示）／ⓘ追加6箇所（人気乖離・EV・Brier/LogLoss注記・p74校正レポート表th・ロジスティック回帰）。予想ロジック・重み・買い目・13タブ不変・予想出力前後一致3レース検証済み）</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -7978,6 +8060,8 @@ function nkImportBoth(){
 function nkImportCardThen(afterOk){
   var rid = nkExtractRaceId($('urlImport').value);
   if (!rid){ nkLog(['⚠ URLからレースIDを抽出できませんでした。netkeibaのレースURLを貼ってください。']); return; }
+  /* ★第81弾: 取込開始時に「②予想タブへ」ボタンを隠す（成功時にだけ出す） */
+  var gk2 = (typeof $ === 'function') ? $('nkGoKen') : null; if (gk2) gk2.style.display = 'none';
   nkBusy(true);
   var log = [];
   nkLog(['レースID ' + rid + ' を認識 → 出馬表を取得中…']);
@@ -7998,6 +8082,8 @@ function nkImportCardThen(afterOk){
     log.push('✅ 出馬表 ' + list.length + '頭 ＋ レース情報を取り込みました');
     log.push('👉 続けて単勝オッズを取得します…');
     nkLog(log);
+    /* ★第81弾: 取込が成功したので「②予想タブへ」ボタンを出す（自動遷移はしない） */
+    if (gk2) gk2.style.display = '';
     updateGridHints();
     nkBusy(false);
     if (afterOk) afterOk();
@@ -14317,6 +14403,8 @@ function kaiImportByRaceId(rid, opt){
      履歴の「再取得」ボタンや opt.force=true のときだけ netkeiba に取りに行きます。 */
   var hadCache = false;
   try { hadCache = !opt.force && (typeof nkCardHas === 'function') && nkCardHas(rid); } catch(e){}
+  /* ★第80弾: 取込開始時に「②予想タブへ」ボタンを隠す（成功時にだけ出す） */
+  var gk = $('rkGoKen'); if (gk) gk.style.display = 'none';
   kaiLogLines([hadCache
     ? 'レースID ' + rid + ' の出馬表は<b>取得済み</b>です（端末内のキャッシュから復元します・通信しません）…'
     : 'レースID ' + rid + ' の出馬表を取得中…（初回は数秒かかります）']);
@@ -14358,6 +14446,8 @@ function kaiImportByRaceId(rid, opt){
     kaiRenderHist();
     // 出馬表画面へ（内容をすぐ確認できるように）
     if (typeof goTab === 'function') goTab('t-input');
+    /* ★第80弾: 取込が成功したので「②予想タブへ」ボタンを出す（自動遷移はしない） */
+    if (gk) gk.style.display = '';
 
     /* ★2026-09-13 第19弾①: 日付指定・開催からの読み込みでは【出馬表しか取っていなかった】ため、
        単勝オッズ（AI印の最重要ファクター）が空のまま → ②予想タブの順位がほぼ平坦になり
@@ -37714,7 +37804,7 @@ var AI_HELP = [
   { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
   { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での順位（1が最高評価＝数値が小さいほど信用できる。15頭立てなら最高評価の馬が1・最低評価の馬が15。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方とも順位が小さい馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
-  { k:'recomp',t:'⑧  再計算（現エンジン）',       d:'エンジン更新（第37弾・新馬戦／障害戦の限定補正など）を、保存済みの前日予想(rec.pre)へ反映します。端末の出馬表キャッシュと保存済みオッズだけなので通信ゼロ。結果確定済みレースは上書きせず保護します。' }
+  { k:'recomp',t:'⑧ 再計算（今の計算方式で）',       d:'エンジン更新（第37弾・新馬戦／障害戦の限定補正など）を、保存済みの前日予想(rec.pre)へ反映します。端末の出馬表キャッシュと保存済みオッズだけなので通信ゼロ。結果確定済みレースは上書きせず保護します。' }
 ];
 function aiProposalHelpHTML(){
   return '<details class="card"><summary style="cursor:pointer;padding:6px"><b>ℹ このタブの使い方（各項目の詳細）</b></summary>' +
@@ -38146,7 +38236,7 @@ function aiProposalRender(){
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
       '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
       '「📥 その日の結果を取得」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
-      'エンジン更新後は <b>「🔁 再計算（現エンジン）」</b> で、前日保存の予想を通信ゼロで作り直せます（結果確定済みは上書きせず保護）。' +
+      'エンジン更新後は <b>「🔁 再計算（今の計算方式で）」</b> で、前日保存の予想を通信ゼロで作り直せます（結果確定済みは上書きせず保護）。' +
       '新馬戦・障害戦のレース名には「🧩 補正」チップを表示します。</div></div>';
     h += blocks;
     if (settled){
@@ -38840,7 +38930,7 @@ function aiRecomputeDay(){
   var d8 = AI_DAY_D8;
   function finish(){
     AI_RECOMP.busy = false;
-    if (btn){ btn.disabled = false; btn.textContent = '🔁 再計算（現エンジン）'; }
+    if (btn){ btn.disabled = false; btn.textContent = '🔁 再計算（今の計算方式で）'; }
     aiSettleMsg('🔁 再計算: ' + AI_RECOMP.ok + ' レース更新' +
       (AI_RECOMP.skipDone ? '／結果確定済み ' + AI_RECOMP.skipDone + ' は保護' : '') +
       (AI_RECOMP.noCache ? '／出馬表キャッシュなし ' + AI_RECOMP.noCache + '（①の再取得で反映可）' : '') +
@@ -40174,7 +40264,7 @@ function cbRun(){
   cbMsg('⏳ 集計中…（通信ゼロ・保存済み予想と学習DBの結果だけを使用）');
   try {
     var rep = cbReport(src);
-    if (!rep.n){ cbMsg('⚠ 検証できるレースがありません。' + (src === 'bt' ? '🕰バックテスト（②の🎓展開学習付近）を実行すると学習DBのレースで検証できます。' : '①で前日一括取得→発走後に「📥 その日の結果を取得」をすると本番予想と結果が揃います。'), 1); return; }
+    if (!rep.n){ cbMsg('⚠ 検証できるレースがありません。' + (src === 'bt' ? '🕰バックテスト（①データ入力タブ内）を実行すると学習DBのレースで検証できます。' : '①で前日一括取得→発走後に「📥 その日の結果を取得」をすると本番予想と結果が揃います。' + ((typeof fcSrcGuide === 'function') ? fcSrcGuide('cbRun') : '')), 1); return; }
     CB_LAST = rep;
     cbRender(rep);
     cbMsg('✅ ' + rep.races + 'レース・' + rep.n + '頭ぶんの校正レポートを生成しました');
@@ -40239,7 +40329,7 @@ function cbRender(rep){
         '<td>' + (m.act != null ? cbPct(m.act) : '—') + '</td></tr>';
     };
     h += '<div style="margin:10px 0 4px;font-weight:700">③ Brier / Log Loss — 1着・連対・複勝・5着以内を別々の評価対象として計算</div>' +
-      '<div class="tblwrap"><table class="grid"><thead><tr><th>評価対象</th><th>Brier（0に近いほど良い）</th><th>Log Loss（0に近いほど良い）</th><th>期待率</th><th>実測率</th></tr></thead><tbody>' +
+      '<div class="tblwrap"><table class="grid"><thead><tr><th>評価対象</th><th>Brier（0に近いほど良い） <span class="khelp" data-tip="Brier＝確率予測のズレ（ブリエ）の指標。0に近いほど良い">ⓘ</span></th><th>Log Loss（0に近いほど良い） <span class="khelp" data-tip="LogLoss＝確率予測の評価指標。0に近いほど良い">ⓘ</span></th><th>期待率</th><th>実測率</th></tr></thead><tbody>' +
       cbM4row('1着（AI勝率そのもの）', rep.m4.win) +
       cbM4row('2着以内（連対・導出値）', rep.m4.top2) +
       cbM4row('3着以内（複勝・導出値）', rep.m4.top3) +
@@ -40446,6 +40536,19 @@ function fcMStatus(t, isErr){
   if (el) el.innerHTML = '<div class="small' + (isErr ? '" style="color:#b3261e">⚠ ' : '">') + String(t || '') + '</div>';
 }
 function fcPct(v){ return (v == null || !isFinite(v)) ? '—' : (Math.round(v * 1000) / 10).toFixed(1) + '%'; }
+/* ★第79弾: 「検証データ」切替トラップ解消 — 本番予想(pre)にデータが無いとき、
+   🕰バックテストぶんのレースが保存されていれば「切替ボタン付きの案内」を返します。
+   fn=切替後に再実行する関数名（cbRun / fcMRun / wfRun / ixRun）。 */
+function fcSrcGuide(fn){
+  try {
+    var n = (typeof apBtCount === 'function') ? apBtCount() : 0;
+    if (n > 0){
+      return '<br><b>🕰 バックテストぶんなら ' + n + ' レースが検証できます。</b>' +
+        '<button type="button" class="btn small ghost" data-cbsw="' + fn + '" style="margin-left:6px">🕰 バックテストぶんへ切替</button>';
+    }
+  } catch(e){}
+  return '';
+}
 function fcF4(v){ return (v == null || !isFinite(v)) ? '—' : v.toFixed(4); }
 
 /* ---------- 指標の集計（p74と同じ定義: Brier/LogLoss・複勝率=Harville導出） ---------- */
@@ -40603,7 +40706,7 @@ function fcRender(rep){
     '<span class="chip">フル LogLoss ' + fcF4(full.logloss) + '</span>' +
     '<span class="chip">所要 ' + (rep.ms / 1000).toFixed(1) + '秒</span></div>';
   h += '<div class="tblwrap"><table class="grid"><thead><tr>' +
-    '<th>ファクター（重みを1つだけ0）</th><th>効きレース</th><th>馬数</th><th>Brier</th><th>ΔBrier</th><th>LogLoss</th><th>1着率 期/実</th><th>複勝率 期/実</th><th>判定</th>' +
+    '<th>ファクター（重みを1つだけ0）</th><th>効きレース</th><th>馬数</th><th>Brier <span class="khelp" data-tip="Brier＝確率予測のズレ（ブリエ）の指標。0に近いほど良い">ⓘ</span></th><th>ΔBrier <span class="khelp" data-tip="ΔBrier＝現行モデルとのBrierの差。マイナスならその行が良い">ⓘ</span></th><th>LogLoss <span class="khelp" data-tip="LogLoss＝確率予測の評価指標。0に近いほど良い">ⓘ</span></th><th>1着率 期/実</th><th>複勝率 期/実</th><th>判定</th>' +
     '</tr></thead><tbody>';
   rep.variants.forEach(function(v, ix){
     var mm = v.met;
@@ -40633,7 +40736,14 @@ function fcRender(rep){
 }
 
 /* ---------- 📊 モデル比較表（校正レポートと同じデータ・同一条件で並べて比較） ---------- */
+/* ★第79弾: 進行中メッセージ付きラッパー（本体は fcMRunCore・計算処理は不変） */
 function fcMRun(){
+  fcMStatus('⏳ モデル比較表を生成中…（通信ゼロ・モデル変更なし）');
+  setTimeout(function(){
+    try { fcMRunCore(); } catch(e){ fcMStatus('⚠ 生成に失敗: ' + esc(String((e && e.message) || e)), 1); }
+  }, 30);
+}
+function fcMRunCore(){
   try {
     var sel = (typeof $ === 'function') ? $('cbSrc') : null;
     var src = (sel && String(sel.value || '') === 'bt') ? 'bt' : 'pre';
@@ -40644,8 +40754,8 @@ function fcMRun(){
     var data = cbCollect(src);
     if (!data.rows.length){
       fcMStatus('⚠ 検証できるレースがありません。' + (src === 'bt'
-        ? '🕰バックテスト（②の🎓展開学習付近）を実行すると学習DBのレースで比較できます。'
-        : '①で前日一括取得→発走後に「📥 その日の結果を取得」をすると本番予想と結果が揃います。'), 1);
+        ? '🕰バックテスト（①データ入力タブ内）を実行すると学習DBのレースで比較できます。'
+        : '①で前日一括取得→発走後に「📥 その日の結果を取得」をすると本番予想と結果が揃います。' + fcSrcGuide('fcMRun')), 1);
       return;
     }
     /* レースごとにチャンク（cbReportと同じ _meta.n 方式） */
@@ -40712,10 +40822,10 @@ function fcMRender(rep){
   }
   var h = '';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">' +
-    '<span class="chip">対象 ' + rep.used + 'レース（' + (rep.src === 'bt' ? '🕰バックテスト' : '📌本番予想') + '・オッズがある馬に限定）</span>' +
+    '<span class="chip">✅ 対象 ' + rep.used + 'レース（' + (rep.src === 'bt' ? '🕰バックテスト' : '📌本番予想') + '・オッズがある馬に限定）</span>' +
     ((rep.leak && rep.leak.nextR) ? '<span class="chip" style="background:var(--warn-bg, #fdecea)">⚠ 翌日以降保存 ' + rep.leak.nextR + 'レースは除外済み</span>' : '') + '</div>';
   h += '<div class="tblwrap"><table class="grid"><thead><tr>' +
-    '<th>モデル</th><th>レース</th><th>馬数</th><th>Brier</th><th>ΔBrier（現行比）</th><th>LogLoss</th><th>1着率 期/実</th><th>複勝率 期/実</th><th>備考</th>' +
+    '<th>モデル</th><th>レース</th><th>馬数</th><th>Brier <span class="khelp" data-tip="Brier＝確率予測のズレ（ブリエ）の指標。0に近いほど良い">ⓘ</span></th><th>ΔBrier（現行比） <span class="khelp" data-tip="ΔBrier＝現行モデルとのBrierの差。マイナスならその行が良い">ⓘ</span></th><th>LogLoss <span class="khelp" data-tip="LogLoss＝確率予測の評価指標。0に近いほど良い">ⓘ</span></th><th>1着率 期/実</th><th>複勝率 期/実</th><th>備考</th>' +
     '</tr></thead><tbody>';
   h += mrow('均等予測（1/頭数）', rep.u, '参考ライン');
   h += mrow('市場（オッズそのまま）', rep.m, '参考ライン');
@@ -40743,6 +40853,21 @@ function fcInit(){
     if (b4) b4.addEventListener('click', function(){ try { ixRun(); } catch(e){ ixMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
     var b5 = (typeof $ === 'function') ? $('ppRun') : null;
     if (b5) b5.addEventListener('click', function(){ try { ppRun(); } catch(e){ ppMsg('⚠ 実行に失敗しました: ' + esc(String((e && e.message) || e)), 1); } });
+    /* ★第79弾: 「検証データ」切替ボタン（データなし案内の中に出る）→ BTぶんへ切替して再実行 */
+    if (!window.__fcSw79){
+      window.__fcSw79 = true;
+      document.addEventListener('click', function(ev){
+        var t = ev.target && ev.target.closest ? ev.target.closest('[data-cbsw]') : null;
+        if (!t) return;
+        var s = (typeof $ === 'function') ? $('cbSrc') : null;
+        if (s){ s.value = 'bt'; }
+        var fn = t.getAttribute('data-cbsw');
+        try { if (fn === 'cbRun' && typeof cbRun === 'function') cbRun(); } catch(e){}
+        try { if (fn === 'fcMRun' && typeof fcMRun === 'function') fcMRun(); } catch(e){}
+        try { if (fn === 'wfRun' && typeof wfRun === 'function') wfRun(); } catch(e){}
+        try { if (fn === 'ixRun' && typeof ixRun === 'function') ixRun(); } catch(e){}
+      });
+    }
   } catch(e){}
 }
 
@@ -40824,7 +40949,7 @@ function wfRun(){
   races.sort(function(a, b){ return a.d8 < b.d8 ? -1 : (a.d8 > b.d8 ? 1 : 0); });
   if (races.length < 8){
     wfMsg('⚠ 期間分割には日付つきレースが8件以上必要です（現在 ' + races.length + '件）。' +
-      (src === 'bt' ? '🕰バックテストを実行すると学習DBのレースで検証できます。' : '①で前日一括取得→結果取得で本番予想が溜まります。'), 1);
+      (src === 'bt' ? '🕰バックテストを実行すると学習DBのレースで検証できます。' : '①で前日一括取得→結果取得で本番予想が溜まります。' + fcSrcGuide('wfRun')), 1);
     return;
   }
   var nTr = Math.max(4, Math.floor(races.length * 0.6));
@@ -40979,7 +41104,7 @@ function wfRender(rep){
     '<span class="chip">学習期間 ' + d8t(rep.dTr0) + '〜' + d8t(rep.dTr1) + '（' + rep.nTrain + 'レース）</span>' +
     '<span class="chip">検証期間 ' + d8t(rep.dTe0) + '〜' + d8t(rep.dTe1) + '（' + rep.nTest + 'レース）</span>' +
     (rep.nNoD8 ? '<span class="chip">日付なし ' + rep.nNoD8 + 'レースは除外</span>' : '') + '</div>';
-  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>モデル</th><th>学習期間 Brier</th><th>学習期間 LogLoss</th><th>検証期間 Brier</th><th>検証期間 LogLoss</th><th>検証 1着率 期/実</th></tr></thead><tbody>';
+  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>モデル</th><th>学習期間 Brier <span class="khelp" data-tip="Brier＝確率予測のズレ（ブリエ）の指標。0に近いほど良い">ⓘ</span></th><th>学習期間 LogLoss <span class="khelp" data-tip="LogLoss＝確率予測の評価指標。0に近いほど良い">ⓘ</span></th><th>検証期間 Brier <span class="khelp" data-tip="Brier＝確率予測のズレ（ブリエ）の指標。0に近いほど良い">ⓘ</span></th><th>検証期間 LogLoss <span class="khelp" data-tip="LogLoss＝確率予測の評価指標。0に近いほど良い">ⓘ</span></th><th>検証 1着率 期/実</th></tr></thead><tbody>';
   rep.rows.forEach(function(r2, ix){
     h += '<tr' + (ix === 2 ? ' style="background:var(--card2)"' : '') + '><td style="text-align:left">' + r2.label + '</td>' +
       '<td>' + fcF4(r2.tr.brier) + '</td><td>' + fcF4(r2.tr.logloss) + '</td>' +
@@ -41019,7 +41144,7 @@ function ixRun(){
     var src = (sel && String(sel.value || '') === 'bt') ? 'bt' : 'pre';
     var data = cbCollect(src);
     if (!data.rows.length){
-      ixMsg('⚠ 検証できるレースがありません（' + (src === 'bt' ? '🕰バックテストを実行すると測れます' : '①で前日一括取得→結果取得で溜まります') + '）', 1);
+      ixMsg('⚠ 検証できるレースがありません（' + (src === 'bt' ? '🕰バックテストを実行すると測れます' : '①で前日一括取得→結果取得で溜まります') + '）' + (src === 'bt' ? '' : fcSrcGuide('ixRun')), 1);
       return;
     }
     var races = [], i = 0;
@@ -41081,7 +41206,7 @@ function ixRender(rep){
     return '<td>' + (c.n ? '<b style="color:' + col + '">' + pt(lv) + '</b><div class="muted small">' + c.n + '頭</div>' : '—') + '</td>';
   }
   var h = '<div class="small muted" style="margin:4px 0">各セル＝その組み合わせに当てはまる馬の「実勝率−市場期待勝率」（リフト）。プラスなら市場より当たるグループ＝追加情報。右端の交互作用＝<b>片方だけでは出ない、組み合わせ特有の効果</b>（|±5pt|以上かつ各セル100頭以上で「あり」判定）。</div>';
-  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>組み合わせ</th><th>低×低</th><th>低×高</th><th>高×低</th><th>高×高</th><th>交互作用</th><th>判定</th></tr></thead><tbody>';
+  h += '<div class="tblwrap"><table class="grid"><thead><tr><th>組み合わせ</th><th>低×低</th><th>低×高</th><th>高×低</th><th>高×高</th><th>交互作用 <span class="khelp" data-tip="交互作用＝2つのファクターの組み合わせでだけ出る効果（単独の効きの和では説明できないぶん）">ⓘ</span></th><th>判定</th></tr></thead><tbody>';
   rep.pairs.forEach(function(p){
     var verdict;
     if (p.contrast == null) verdict = '—';
@@ -41168,7 +41293,7 @@ function ppRender(rep){
     ['bAdv', '前走:4角後半から大きく伸びた（進脚+3以上）'],
     ['bHold', '前走:4角後半から伸び切らず']
   ];
-  var h = '<div class="tblwrap"><table class="grid"><thead><tr><th>前走の形（隠れパフォーマンス）</th><th>対象馬数</th><th>実勝率</th><th>市場期待</th><th>リフト</th></tr></thead><tbody>';
+  var h = '<div class="tblwrap"><table class="grid"><thead><tr><th>前走の形（隠れパフォーマンス）</th><th>対象馬数</th><th>実勝率</th><th>市場期待 <span class="khelp" data-tip="市場期待＝オッズから計算した期待勝率">ⓘ</span></th><th>リフト <span class="khelp" data-tip="リフト＝実際の勝率−市場期待。プラスなら市場より上を走るグループ">ⓘ</span></th></tr></thead><tbody>';
   defs.forEach(function(d){
     var g = rep.groups[d[0]];
     var win = g.n ? g.w / g.n : null, exp = g.n ? g.e / g.n : null;
@@ -41816,6 +41941,35 @@ function boot(){
   });
   document.querySelectorAll('[data-goto]').forEach(function(b){
     b.addEventListener('click', function(){ goTab(b.dataset.goto); });
+  });
+  /* ★第79弾: ①タブのジャンプリンク（data-jump＝同じタブ内の目的カードへスクロール）と
+     ⓘタップ説明（data-tip＝スマホでもタップで用語説明が見える）。document委任なので
+     後から差し込まれた要素でも動きます。予想・買い目には一切影響しません。 */
+  document.addEventListener('click', function(ev){
+    var j = ev.target && ev.target.closest ? ev.target.closest('[data-jump]') : null;
+    if (j){
+      var id = j.getAttribute('data-jump');
+      var el = document.getElementById(id);
+      if (el){
+        try { if (el.tagName === 'DETAILS') el.open = true; } catch(e){}
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){ el.scrollIntoView(); }
+      }
+      return;
+    }
+    var t = ev.target && ev.target.closest ? ev.target.closest('[data-tip]') : null;
+    if (t){
+      ev.preventDefault();
+      var oldTip = document.getElementById('__tip79');
+      if (oldTip) oldTip.remove();
+      var tip = document.createElement('div');
+      tip.id = '__tip79';
+      tip.className = 'small';
+      tip.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;max-width:92vw;z-index:9999;background:var(--card);color:var(--ink);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.18);line-height:1.7';
+      tip.textContent = t.getAttribute('data-tip') || '';
+      document.body.appendChild(tip);
+      tip.addEventListener('click', function(){ tip.remove(); });
+      setTimeout(function(){ var x = document.getElementById('__tip79'); if (x) x.remove(); }, 9000);
+    }
   });
   // トップバー
   on('btnNew', 'click', function(){
