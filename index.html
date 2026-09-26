@@ -1408,6 +1408,7 @@ html[data-theme="light"] .page-top-hero{
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button type="button" class="btn primary" id="btBtn">🕰 バックテストを実行</button>
+          <button type="button" class="btn ghost" id="btStop" style="display:none">⏹ 中止</button>
           <label class="small" style="display:inline-flex;align-items:center;gap:4px">期間(開始)
             <input type="date" id="btFrom" style="font-family:inherit;font-size:.86rem;padding:2px 6px">
           </label>
@@ -1644,6 +1645,9 @@ html[data-theme="light"] .page-top-hero{
           </label>
           <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第21弾④: 開催日に、発走時刻＋12分を過ぎた未取得レースのトラックバイアスを1分ごとにチェックして自動取得します（ページを開いている間だけ）">
             <input type="checkbox" id="amChkBias" checked> (E) 🌊バイアスを開催日に自動取得
+          </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第97弾: (E)のバイアス取得で新しい結果が入ったとき、まだ発走していないレースの事前予想を当日バイアス・直前オッズで自動で引き直します（未発走のみ・結果確定済みは書き換えません）">
+            <input type="checkbox" id="amChkPreRef" checked> (E2) 🔄未発走の予想を自動引き直し
           </label>
           <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="⑥の過去10年分析が終わったら、そのまま🧬血統ファクターの抽出を実行します">
             <input type="checkbox" id="amChkDr" checked> (D) ⑥→🧬血統まで自動
@@ -3011,6 +3015,17 @@ html[data-theme="light"] .page-top-hero{
     </div>
     <div id="lkMsg" class="small" style="margin-top:4px"></div>
     <div class="small" style="margin-top:4px">🤖AI印つき事前予想／✍️⑤で手動印をつけた出馬表／🎓学習DBのレースを<b>横断検索</b>します（通信ゼロ・全部端末の保存データだけ）。開いたレースは👤「自分の印」の列をクリックで振り替えられます（AI印・手動印はそのまま残る）。学習DBにしか無いレースは「🤖 AI後追い予想」で当時の情報だけから予想し直して結果と突き合わせます。</div>
+  </div>
+  <!-- ★第97弾: 事前予想の引き直し（当日バイアス・直前オッズ反映・未発走レースのみ） -->
+  <div class="card" id="lbRefCard">
+    <h2>🔄 事前予想の引き直し<span class="chip">第97弾</span></h2>
+    <div class="small muted" style="margin:2px 0 4px">まだ<b>発走していない（結果が確定していない）レースだけ</b>、直前の単勝オッズと当日のトラックバイアス（前のレースの確定結果）で予想を引き直します。レースが終わるごとに実行すると、後半のレースほど新しい馬場情報を反映できます。<b>古い予想は履歴（最大5版）として残る</b>ので、どこで軌道修正したか後から見られます。結果が確定しているレースは<b>絶対に書き換えません</b>（いかさま防止の既存ガードは不変）。</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <label class="small">📅 日付: <input id="lbRefDate" placeholder="空欄なら今日" style="width:130px;font-family:inherit"></label>
+      <button id="lbRefBtn" class="btn primary">🔄 未発走の予想を引き直す</button>
+      <span id="lbRefStat" class="small"></span>
+    </div>
+    <div id="lbRefMsg" class="small muted" style="margin-top:4px"></div>
   </div>
   <div id="lkList"></div>
   <div id="lkDetail"></div>
@@ -16047,6 +16062,13 @@ function apSnapPred(rid, res, meta, opt){
       return rec;
     }
     snap.sig = sig;
+    /* ★第97弾: 引き直しモード(opt.refresh)では、上書き前の予想を履歴(rec.prePrev・最大5版)へ退避。
+       どこで軌道修正したか後から追えます。結果確定済みレースは apPreAllowed がそもそも拒否するので
+       事前予想の公正性（いかさま防止）は不変。同じ予想内容(sig一致)なら上の早期returnでここに来ません */
+    if (!isBt && opt && opt.refresh && rec.pre && rec.pre.rows && rec.pre.rows.length){
+      try { rec.prePrev = [rec.pre].concat(rec.prePrev || []).slice(0, 5); } catch(e){}
+      snap.via = 'refresh';
+    }
     rec[PK] = snap;
     if (!(rec.predHorses || []).length) rec.predHorses = apSnapHorses();
     rec.lastAt = apNow();
@@ -20322,21 +20344,43 @@ function diImportFile(file){
       var o = JSON.parse(String(rd.result || ''));
       var races = (o && o.races) ? o.races : (Array.isArray(o) ? o : null);
       if (!races){ diStatus('バックアップファイルの形式が違います', true); return; }
-      var add = 0, exist = 0;
-      Object.keys(races).forEach(function(rid){
-        var rec = races[rid];
-        if (!rec || !rec.rid) return;
-        if (diGet(rid)){ exist++; return; }
-        if (diSet(rid, rec)) add++;
-      });
-      var tot = 0; try { tot = diCount(); } catch(e){}
+      /* ★第97弾: 復元を400レースずつの分割処理に変更（19,666レースの一括ループで
+         IndexedDB書き込みキューが詰まってiPhone Safariがタブを落とす問題の対策）。
+         処理済みのレースは parsed オブジェクトから delete して少しずつメモリを解放。
+         途中で失敗しても diSet は既存チェック付きなので再実行すれば続きから復旧できる */
+      var rids = Object.keys(races);
+      var add = 0, exist = 0, pos = 0;
+      var CH = 400;
+      function finish(){
+        var tot = 0; try { tot = diCount(); } catch(e){}
       diStatus('📥 <b>バックアップから復元しました</b>: 追加 <b>' + add + ' レース</b>／既にあったのでスキップ ' + exist + ' レース。' +
         '　学習DBは合計 <b>' + tot + ' レース</b>になりました。' +
         (add ? '<br>🎓 <b>タイム換算の学習を自動でやり直します</b>（数秒かかります。②の⏱評価と🎯/⚠️の基準が新しくなります）。' :
                '<br>（新しいデータが無かったので、学習はやり直していません）') +
         (typeof diMode !== 'undefined' && diMode === 'ls' ? '<br><span class="small">※ いまの保存先は localStorage（5MB制限）です。IndexedDB が使えるブラウザなら容量は実質無制限になります。</span>' : ''));
-      diRenderStat();
-      if (typeof tlLearnSchedule === 'function' && add){ try { tlLearnSchedule(1500); } catch(e){} }   // 🎓タイム換算の学習
+        diRenderStat();
+        if (typeof tlLearnSchedule === 'function' && add){ try { tlLearnSchedule(1500); } catch(e){} }   // 🎓タイム換算の学習
+      }
+      function chunk(){
+        try {
+          while (pos < rids.length){
+            var rid = rids[pos++];
+            var rec = races[rid];
+            try { delete races[rid]; } catch(e){}   // 処理済みは参照を切って段階的にメモリ解放
+            if (!rec || !rec.rid) continue;
+            if (diGet(rid)){ exist++; continue; }
+            if (diSet(rid, rec)) add++;
+            if ((pos % CH) === 0) break;
+          }
+          if (pos < rids.length){
+            diStatus('📥 復元中… <b>' + pos + ' / ' + rids.length + '</b> レース（この間は画面を切り替えないでください）');
+            setTimeout(chunk, 30);
+            return;
+          }
+          finish();
+        } catch(e){ diStatus('バックアップの読込に失敗しました: ' + (e && e.message || e), true); }
+      }
+      chunk();
     } catch(e){ diStatus('バックアップの読込に失敗しました: ' + (e && e.message || e), true); }
   };
   rd.onerror = function(){ diStatus('ファイルを読み込めませんでした', true); };
@@ -31638,6 +31682,7 @@ function hfCurFeatures(hs){
 var PRE_DELAY = 320;          // 1レースあとの待ち時間(ms)。netkeiba に負荷をかけないため
 var PRE_DETAIL_DELAY = 120;   // 馬柱1頭あとの待ち時間(ms)
 
+var __BT_ABORT = false;   /* ★第97弾: バックテスト中止フラグ（btStopボタンでtrue・btRun開始時にfalseに戻す） */
 function preSleep(ms){
   return new Promise(function(r){ setTimeout(r, ms || 0); });
 }
@@ -31924,11 +31969,16 @@ function preOneRace(rid, d8, opt){
         }, Promise.resolve(0));
       }
       return detP.then(function(detN){
-        var res = preWithState(raceObj, hs, d8m, rid, function(){ return analyzeRace(); });
-        var mm = preWithState(raceObj, hs, d8m, rid, function(){
-          return (typeof apMetaCur === 'function') ? apMetaCur() : null;
+        /* ★第97弾: preWithState の退避→復元を1レース2回→1回に（高速化。計算順序・内容は不変：
+           analyzeRace → apMetaCur の順で同じ state コンテキストで呼ぶ） */
+        var mmBox = {};
+        var res = preWithState(raceObj, hs, d8m, rid, function(){
+          var r = analyzeRace();
+          try { mmBox.mm = (typeof apMetaCur === 'function') ? apMetaCur() : null; } catch(e){ mmBox.mm = null; }
+          return r;
         });
-        var rec = (typeof apSnapPred === 'function') ? apSnapPred(rid, res, mm) : null;
+        var mm = mmBox.mm;
+        var rec = (typeof apSnapPred === 'function') ? apSnapPred(rid, res, mm, { refresh: !!(opt && opt.refresh) }) : null;
         if (!rec || !rec.pre) throw new Error('事前予想を保存できませんでした（すでに結果が確定している可能性があります）');
         return { rid: rid, n: hs.length, oddsN: Object.keys(oddsMap).length, detailN: detN || 0,
                  styleN: hs._styleFilled || 0, honmei: (res.rows && res.rows[0]) ? (res.rows[0].h.name + res.rows[0].mark) : '',
@@ -31943,7 +31993,7 @@ function preOneRace(rid, d8, opt){
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
-  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, errors: [] };
+  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, errors: [] };   /* ★第97弾: refreshed=引き直し件数 */
   var d8 = String(date8 || '').replace(/[^0-9]/g, '');
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
@@ -31980,7 +32030,9 @@ function preDayFetch(date8, opt, progress){
               (got ? '（📄 出馬表は端末に保存したので、選ぶときは通信せず即表示されます）' : '（📄 出馬表は保存済み）'));
           }).then(function(){ return preSleep(opt.delay || PRE_DELAY); });
         }
-        if (!opt.force){
+        var hadPre = false;
+        try { var r0x = (typeof apGet === 'function') ? apGet(rid) : null; hadPre = !!(r0x && r0x.pre && r0x.pre.rows && r0x.pre.rows.length); } catch(e){}
+        if (!opt.force && !opt.refresh){   /* ★第97弾: refreshモードでは保存済みでも引き直す（未発走に限る・結果確定済みは上のdoneで弾かれる） */
           try {
             var r0 = (typeof apGet === 'function') ? apGet(rid) : null;
             if (r0 && r0.pre && r0.pre.rows && r0.pre.rows.length){
@@ -32000,6 +32052,7 @@ function preDayFetch(date8, opt, progress){
         }
         return preOneRace(rid, d8, opt).then(function(info){
           result.ok++;
+          if (hadPre) result.refreshed++;   /* ★第97弾: 保存済みだったレースの引き直し */ 
           result.detailN += info.detailN || 0;
           if (info.oddsN) result.oddsN++;
           result.styleN += info.styleN || 0;
@@ -32024,7 +32077,9 @@ function preDayFetch(date8, opt, progress){
       // 事前予想のスナップショットは学習DBのインデックスを変えるので作り直しておく
       try { if (typeof hfDropCache === 'function') hfDropCache(); } catch(e){}
       try { if (typeof pfSchedule === 'function') pfSchedule(); } catch(e){}
-      preLog(progress, '完了: 事前予想を保存 ' + result.ok + ' レース / 保存済みでスキップ ' + result.skipHave +
+      preLog(progress, '完了: 事前予想を保存 ' + result.ok + ' レース' +
+        (result.refreshed ? '（うち🔄引き直し ' + result.refreshed + ' 件・旧予想は履歴保存）' : '') +
+        ' / 保存済みでスキップ ' + result.skipHave +
         ' / 結果確定済みでスキップ ' + result.skipDone + ' / 失敗 ' + result.fail +
         ' ／📄 出馬表は ' + result.total + ' レースぶん端末に保存済み（この日のレースはどれを選んでも通信せず即表示されます）' +
         (result.oddsN ? '（オッズ取得 ' + result.oddsN + ' レース）' : '（※オッズは発売前だと取得できないことがあります）') +
@@ -32249,10 +32304,15 @@ function preBacktestOne(t){
   var res = null, mm = null, svBt = window.BT_MODE;
   try {
     window.BT_MODE = true;
-    res = preWithState(raceObj, hs, d8, t.rid, function(){ return analyzeRace(); });
-    mm = preWithState(raceObj, hs, d8, t.rid, function(){
-      return (typeof apMetaCur === 'function') ? apMetaCur() : null;
+    /* ★第97弾: preWithState の退避→復元を1レース2回→1回に（高速化。analyzeRace → apMetaCur の
+       順序・state内容は従来どおり。計算結果は不変） */
+    var mmBox = {};
+    res = preWithState(raceObj, hs, d8, t.rid, function(){
+      var r = analyzeRace();
+      try { mmBox.mm = (typeof apMetaCur === 'function') ? apMetaCur() : null; } catch(e){ mmBox.mm = null; }
+      return r;
     });
+    mm = mmBox.mm;
   } finally { window.BT_MODE = svBt; }
   if (!res || !res.ok) return null;
   if (mm){
@@ -32294,8 +32354,12 @@ function preBacktest(opt, progress){
   preLog(progress, '🕰 バックテスト対象 <b>' + tg.length + '</b> レース（通信ゼロ・学習DBだけを使います）。' +
     '各レースを「その日付より前の出走データだけ」で予想し直し、保存済みの結果と照合します…');
   var i = 0;
+  var t0 = Date.now();   /* ★第97弾: 経過時間表示 */
   function step(){
     if (i >= tg.length) return Promise.resolve();
+    /* ★第97弾: 中止ボタン（window.__btAbort は btRun/btStop で操作）。
+       中止時もここまでの結果は保存済み・「⏩スキップ」で続きから再開できる */
+    if (__BT_ABORT){ result.aborted = true; return Promise.resolve(); }
     var t = tg[i++];
     var r = null;
     try { r = preBacktestOne(t); } catch(e){ r = null; result.errors.push(t.rid + ': ' + ((e && e.message) || e)); }
@@ -32304,16 +32368,21 @@ function preBacktest(opt, progress){
       if (r.hit) result.hit++;
       if (r.top3) result.top3++;
       if (result.ok % 25 === 0 || i === tg.length){
-        preLog(progress, '🕰 ' + i + ' / ' + tg.length + ' レース処理（保存 ' + result.ok +
+        preLog(progress, '🕰 ' + i + ' / ' + tg.length + ' レース処理・経過 ' + Math.round((Date.now() - t0) / 1000) + ' 秒（保存 ' + result.ok +
           '・印内1着 ' + result.hit + '・印内3着 ' + result.top3 + '） 直近: ' + t.rid + ' → ' + r.top);
       }
     } else {
       result.fail++;
     }
-    // UIを固まらせないため、1レースごとにイベントループへ戻す
-    return preSleep(0).then(step);
+    // ★第97弾: UIを固まらせないためイベントループへ戻すが、毎レース→10レースごとに間引き
+    //（19,666レースで yield 待ちが累積1分超になっていた無駄を削減。進捗表示も10レースごとで十分）
+    return ((i % 10 === 0 || i >= tg.length) ? preSleep(0) : Promise.resolve()).then(step);
   }
   return step().then(function(){
+    if (result.aborted){
+      preLog(progress, '⏹ 中止しました: ここまでに保存した ' + result.ok + ' レースぶんは有効です（続きは「⏩ 実行済みはスキップ」で再開できます）', true);
+      return result;
+    }
     try { if (typeof hfDropCache === 'function') hfDropCache(); } catch(e){}
     try { if (typeof flDrop === 'function') flDrop(); } catch(e){}
     preLog(progress, '✅ バックテスト完了: <b>' + result.ok + '</b> レースを予想し直して照合しました' +
@@ -32330,6 +32399,9 @@ function btBusy(b){
   ['btBtn', 'btFrom', 'btTo', 'btMax', 'btChkKeep', 'btChkSkip', 'btExpBtn', 'btImpBtn'].forEach(function(id){
     var el = $(id); if (el) el.disabled = !!b;
   });
+  /* ★第97弾: 中止ボタンの表示切替 */
+  var st = $('btStop');
+  if (st){ st.style.display = b ? '' : 'none'; st.disabled = false; st.textContent = '⏹ 中止'; }
 }
 function btStat(t){ var el = $('btStat'); if (el) el.innerHTML = t || ''; }
 function btMsg(t, isErr){
@@ -32356,8 +32428,9 @@ function btRun(){
       : '対象レースがありません（学習DBに結果と日付がそろったレースが必要です）', true);
     return;
   }
+  __BT_ABORT = false;   /* ★第97弾: 中止フラグを毎回リセット */
   btBusy(true); btMsg('');
-  btStat('対象 <b>' + pre + '</b> レース' + (opt.skip ? '（実行済みはスキップ・集計は足し算）' : '') + '。処理中…');
+  btStat('対象 <b>' + pre + '</b> レース' + (opt.skip ? '（実行済みはスキップ・集計は足し算）' : '') + '。処理中…（⏹中止ボタンで中断できます・中断したぶんはスキップ実行で続きから）');
   preBacktest(opt, function(msg){ btStat(msg); }).then(function(r){
     btBusy(false);
     btStat('✅ 完了: <b>' + r.ok + '</b> レース予想→照合' +
@@ -32520,6 +32593,7 @@ function btImportRun(file){
 }
 function initBt(){
   var b = $('btBtn'); if (b) b.addEventListener('click', btRun);
+  var st = $('btStop'); if (st) st.addEventListener('click', function(){ __BT_ABORT = true; st.disabled = true; st.textContent = '⏹ 中止しています…'; });   /* ★第97弾 */
   var c = $('btClear'); if (c) c.addEventListener('click', btClearRun);
   var be = $('btExpBtn'); if (be) be.addEventListener('click', btExportRun);
   var bi = $('btImpBtn'); if (bi) bi.addEventListener('click', function(){ var f = $('btImpFile'); if (f) f.click(); });
@@ -35014,18 +35088,19 @@ var AM_DEF = {
   biasClean: true,   // (C2) ★第21弾④: トラックバイアスの記録も水曜日に削除（学習DB側に確定データが残る）
   drChain: true,     // (D) ⑥の分析が終わったら血統抽出を自動で続ける
   biasAuto: true,    // (E) ★第21弾④: 開催日に発走時刻＋12分ごとにトラックバイアスを自動取得
+  preRefresh: true,  // (E2) ★第97弾: バイアス取得で新しい結果が入ったら未発走レースの事前予想を自動引き直し
   wtAuto: true,      // (F) ★第21弾⑤: 重みをレースごとにAIが自動補正する（スライダーは動かさない）
   lastClean: '',     // 最後に掃除した日（同じ日に何度も走らせない）
   lastBiasDay: ''    // 最後にトラックバイアスの締め取得をした日
 };
-var AM_BUSY = { horse: false, day: false, bf: false, bias: false };
+var AM_BUSY = { horse: false, day: false, bf: false, bias: false, ref: false };
 /* 設定☑と state キーの対応（UI生成・同期・初期化の3か所で同じ表を使う） */
 var AM_PAIRS = [
   ['amChkDay','dayAll'], ['amChkHorse','horse'], ['amChkStyle','style'], ['amChkDetail','detail'],
   ['amChkClean','weekClean'], ['amChkBiasClean','biasClean'], ['amChkBias','biasAuto'],
-  ['amChkDr','drChain'], ['amChkWt','wtAuto']
+  ['amChkDr','drChain'], ['amChkWt','wtAuto'], ['amChkPreRef','preRefresh']   /* ★第97弾 */
 ];
-var AM_KEYS = ['dayAll','horse','style','weekClean','biasClean','biasAuto','drChain','wtAuto'];
+var AM_KEYS = ['dayAll','horse','style','weekClean','biasClean','biasAuto','drChain','wtAuto','preRefresh'];
 
 function amLs(){
   try {
@@ -35284,6 +35359,34 @@ function amDayAuto(d8, pickedRid){
   });
 }
 
+/* =========================================================
+   (E2) ★第97弾: 未発走レースの事前予想を当日バイアス・直前オッズで引き直す
+   （結果が確定していないレースのみ。結果確定済みは apPreAllowed が拒否＝いかさま防止は不変。
+     旧予想は rec.prePrev へ履歴保存。バイアス取得(baTick)で新しい結果が入ったときに自動で走る）
+   ========================================================= */
+function amPreRefresh(d8){
+  if (!amOn('preRefresh')) return Promise.resolve({ skip: true, reason: 'OFF' });
+  if (AM_BUSY.ref) return Promise.resolve({ skip: true, reason: '実行中' });
+  var s8 = String(d8 || '').replace(/[^0-9]/g, '');
+  if (!/^\d{8}$/.test(s8)) return Promise.resolve({ skip: true, reason: '日付が分かりません' });
+  if (typeof preDayFetch !== 'function') return Promise.resolve({ skip: true, reason: '一括取得の仕組みがありません' });
+  AM_BUSY.ref = true;
+  amStat('🤖 自動: 未発走レースの事前予想を当日バイアス・直前オッズで引き直します（結果確定済みは書き換えません）…');
+  return preDayFetch(s8, { refresh: true, odds: true, force: false, forceCard: false }, function(msg){
+    amStat('🤖 ' + String(msg == null ? '' : msg).replace(/</g, '&lt;'));
+  }).then(function(res){
+    AM_BUSY.ref = false;
+    amStat('✅ 自動引き直し 完了: 更新 <b>' + (res.refreshed || 0) + '</b> ／ 新規予想 ' + ((res.ok || 0) - (res.refreshed || 0)) +
+      ' ／ 結果確定済みスキップ ' + (res.skipDone || 0) + ' ／ 失敗 ' + (res.fail || 0) + '（旧予想は履歴保存・振り返りタブから差分を見られます）');
+    return res;
+  }).catch(function(e){
+    AM_BUSY.ref = false;
+    amStat('自動引き直しが止まりました: ' + esc(String((e && e.message) || e)) +
+      '（🔄振り返りタブの「未発走の予想を引き直す」から手動で実行できます）', true);
+    return { err: String((e && e.message) || e) };
+  });
+}
+
 /* (B)→(A) の直列実行（両方 state.horses を触るので必ず順番に） */
 function amAfterImport(rid, d8){
   var p;
@@ -35520,6 +35623,9 @@ function baTick(d8opt, opt){
       try { if (typeof showAnalysis === 'function' && got) showAnalysis(); } catch(e){}
       try { if (typeof saveNow === 'function') saveNow(); } catch(e){}
       try { if (typeof renderKentaiFull === 'function' && got) renderKentaiFull(); } catch(e){}
+      /* ★第97弾: バイアスが新規取得できたら、未発走レースの事前予想を自動で引き直す
+         （🤖自動マクロの(E2)設定。OFFなら何もしない。手動🌊ボタン・自動タイマー両方ここを通る） */
+      try { if (got && (typeof amPreRefresh === 'function')) amPreRefresh(d8); } catch(e){}
       baStat(head + '✅ <b>' + got + ' レース分</b>を新規取得しました（累計 ' + (have + got) + '/' + q.length +
         '・未取得 ' + (todo.length - got) + '／未発走 ' + future + '）。' +
         (got ? '　④のトラックバイアスと②AI印を更新しました。' : '　※結果がまだ確定していない可能性があります。次のチェックで取り直します。'));
@@ -39980,6 +40086,41 @@ function lkMine(){
 
 /* ---------- 初期化 ---------- */
 function lkInit(){
+  /* ★第97弾: 🔄事前予想の引き直し（未発走レースのみ・当日バイアス・直前オッズ反映） */
+  var rb = (typeof $ === 'function') ? $('lbRefBtn') : null;
+  if (rb) rb.addEventListener('click', function(){
+    var dEl = (typeof $ === 'function') ? $('lbRefDate') : null;
+    var stat = (typeof $ === 'function') ? $('lbRefStat') : null;
+    var msg = (typeof $ === 'function') ? $('lbRefMsg') : null;
+    var dRaw = dEl ? String(dEl.value || '').replace(/[^0-9]/g, '') : '';
+    if (!dRaw){
+      try { dRaw = (typeof baToday8 === 'function') ? baToday8() : ''; } catch(e){ dRaw = ''; }
+      if (dEl && dRaw) dEl.value = dRaw;
+    }
+    if (!/^\d{8}$/.test(dRaw)){
+      if (msg) msg.textContent = '⚠ 日付が分かりません（📅にYYYYMMDD形式で入力するか空欄にしてください）';
+      return;
+    }
+    rb.disabled = true;
+    if (stat) stat.textContent = '';
+    if (msg) msg.textContent = '🔄 ' + dRaw.slice(0,4) + '/' + dRaw.slice(4,6) + '/' + dRaw.slice(6,8) + ' の未発走レースを引き直しています（出馬表とオッズを再取得・結果確定済みはスキップ）…';
+    var p;
+    try {
+      p = preDayFetch(dRaw, { refresh: true, odds: true, force: false, forceCard: false }, function(m){
+        if (msg) msg.innerHTML = String(m == null ? '' : m);
+      });
+    } catch(e){ p = Promise.reject(e); }
+    Promise.resolve(p).then(function(res){
+      rb.disabled = false;
+      if (stat) stat.innerHTML = '✅ 更新 <b>' + (res.refreshed || 0) + '</b> ／ 新規 ' + ((res.ok || 0) - (res.refreshed || 0)) +
+        ' ／ 確定済みスキップ ' + (res.skipDone || 0) + ' ／ 失敗 ' + (res.fail || 0);
+      if (msg) msg.innerHTML = '旧予想は履歴（最大5版）に残してあります。結果が出たレースは 🤖AI提案タブの🔬診断で照合されます。';
+      try { if (typeof preRenderCount === 'function') preRenderCount(); } catch(e){}
+    }).catch(function(e){
+      rb.disabled = false;
+      if (msg) msg.textContent = '⚠ 引き直しに失敗しました: ' + String((e && e.message) || e);
+    });
+  });
   var b = (typeof $ === 'function') ? $('lkSearchBtn') : null;
   if (b) b.addEventListener('click', function(){
     try { lkSearch(); } catch(e){ lkMsg('⚠ 検索に失敗: ' + esc(String((e && e.message) || e)), 1); }
