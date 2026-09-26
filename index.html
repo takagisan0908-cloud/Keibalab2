@@ -2842,7 +2842,10 @@ html[data-theme="light"] .page-top-hero{
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <button id="aiSettle" class="btn primary">📥 その日の結果を取得</button>
       <button id="aiRefresh" class="btn ghost">🔄 表示を更新</button>
-      <button id="aiRecompute" class="btn ghost" title="保存済みの前日予想を、現在のエンジン（新馬戦・障害戦の補正込み）で通信ゼロで作り直します。結果確定済みは上書きしません">🔁 再計算（今の計算方式で）</button>
+      <!-- ★第98弾: 🔁再計算（用途が被るため削除・aiRecomputeDayはJS残存）→ 🔄未発走の再予想へ置換。
+           その日の結果（トラックバイアス・コーナー通過順などの展開）と直前オッズで未発走レースだけ予想し直し、
+           印を付け直す。結果確定済みは上書きしない。終了後にExcel/PDFも新しい印で出る -->
+      <button id="aiRepred" class="btn primary" title="その日の現在までの結果（トラックバイアス・コーナー通過順などの展開）と直前オッズで、まだ発走していないレースの予想を引き直して印を付け直します。結果が確定しているレースは絶対に上書きしません。終了後のExcel/PDF保存も新しい印の内容で出ます">🔄 未発走を再予想（バイアス・直前オッズ）</button>
       <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
       <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
       <span class="muted small">①「📥 その日の出馬表を一括取得」→発走後に「📥 その日の結果を取得」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
@@ -3016,17 +3019,7 @@ html[data-theme="light"] .page-top-hero{
     <div id="lkMsg" class="small" style="margin-top:4px"></div>
     <div class="small" style="margin-top:4px">🤖AI印つき事前予想／✍️⑤で手動印をつけた出馬表／🎓学習DBのレースを<b>横断検索</b>します（通信ゼロ・全部端末の保存データだけ）。開いたレースは👤「自分の印」の列をクリックで振り替えられます（AI印・手動印はそのまま残る）。学習DBにしか無いレースは「🤖 AI後追い予想」で当時の情報だけから予想し直して結果と突き合わせます。</div>
   </div>
-  <!-- ★第97弾: 事前予想の引き直し（当日バイアス・直前オッズ反映・未発走レースのみ） -->
-  <div class="card" id="lbRefCard">
-    <h2>🔄 事前予想の引き直し<span class="chip">第97弾</span></h2>
-    <div class="small muted" style="margin:2px 0 4px">まだ<b>発走していない（結果が確定していない）レースだけ</b>、直前の単勝オッズと当日のトラックバイアス（前のレースの確定結果）で予想を引き直します。レースが終わるごとに実行すると、後半のレースほど新しい馬場情報を反映できます。<b>古い予想は履歴（最大5版）として残る</b>ので、どこで軌道修正したか後から見られます。結果が確定しているレースは<b>絶対に書き換えません</b>（いかさま防止の既存ガードは不変）。</div>
-    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-      <label class="small">📅 日付: <input id="lbRefDate" placeholder="空欄なら今日" style="width:130px;font-family:inherit"></label>
-      <button id="lbRefBtn" class="btn primary">🔄 未発走の予想を引き直す</button>
-      <span id="lbRefStat" class="small"></span>
-    </div>
-    <div id="lbRefMsg" class="small muted" style="margin-top:4px"></div>
-  </div>
+  <!-- ★第98弾: 第97弾の「事前予想の引き直し」カードは🤖AI提案タブの「🔄 未発走を再予想」ボタンへ集約 -->
   <div id="lkList"></div>
   <div id="lkDetail"></div>
 </section>
@@ -38036,7 +38029,7 @@ var AI_HELP = [
   { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
   { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での順位（1が最高評価＝数値が小さいほど信用できる。15頭立てなら最高評価の馬が1・最低評価の馬が15。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方とも順位が小さい馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
-  { k:'recomp',t:'⑧ 再計算（今の計算方式で）',       d:'エンジン更新（第37弾・新馬戦／障害戦の限定補正など）を、保存済みの前日予想(rec.pre)へ反映します。端末の出馬表キャッシュと保存済みオッズだけなので通信ゼロ。結果確定済みレースは上書きせず保護します。' }
+  { k:'recomp',t:'⑧ 🔄未発走を再予想',       d:'★第98弾: その日の現在までの結果（トラックバイアス・コーナー通過順などのレース展開）と直前の単勝オッズで、まだ発走していないレースの予想を引き直して印を付け直します（出馬表とオッズを再取得します）。結果が確定しているレースは絶対に上書きしません。旧予想は履歴（最大5版）として残るので、どこで軌道修正したか後から追えます。再予想後の📤Excel保存・🖨PDF出力は新しい印の内容で出ます。' }
 ];
 function aiProposalHelpHTML(){
   return '<details class="card"><summary style="cursor:pointer;padding:6px"><b>ℹ このタブの使い方（各項目の詳細）</b></summary>' +
@@ -38168,6 +38161,15 @@ function aiRecBundle(rid){
 }
 function aiMarkedRows(rows){ return (rows || []).filter(function(r){ return r && r.mark; }); }
 function aiHitRows(rows){ return (rows || []).filter(function(r){ return r && r.mark && r.order >= 1 && r.order <= 3; }); }
+/* ★第98弾: 厳格な印判定（ユーザー指示: 「◎も○も両方来ていない場合はハズレ扱い」）。
+  的中＝◎か○のどちらかが馬券内（3着以内）。▲☆△だけが馬券内でもハズレ扱い。
+   ◎○が無いレース（データ不足）は判定不能として null を返す（集計から除外）。 */
+function aiStrictHit(rows){
+  var core = (rows || []).filter(function(r){ return r && (r.mark === '◎' || r.mark === '○'); });
+  if (!core.length) return null;
+  var in3 = core.filter(function(r){ return r.order >= 1 && r.order <= 3; });
+  return { core: core.length, in3: in3.length, hit: in3.length > 0 };
+}
 function aiIsSettled(b){ return !!(b && b.res && b.res.rows && b.res.rows.length >= 3); }
 /* 印と結果を同じ表に（馬番/馬名/印/オッズ/結果） */
 function aiRowsTable(rows){
@@ -38258,8 +38260,18 @@ function aiRecapHTML(b){
       return (good ? '<b style="color:#1b5e20">' : '') + esc(m.mark) + esc(m.no) + ' ' + esc(m.name) +
         '→' + (m.order ? m.order + '着' : '—') + (good ? '</b>' : '');
     });
-    var jd = hits.length >= 2 ? '印の的中は上々（3着内 ' + hits.length + '頭）' :
-      (hits.length === 1 ? '3着内は ' + hits.length + '頭のみ。印は半分的外れ' : '印が全部圏外の大波乱。人気薄の決着になった');
+    /* ★第98弾: 厳格判定（◎か○が馬券内で的中・両方圏外はハズレ扱い）。頭数のコメントは参考として併記 */
+    var strict = aiStrictHit(rows);
+    var jd;
+    if (strict && strict.hit){
+      jd = '【厳格判定: 的中】◎○の主軸が馬券内に入った';
+    } else if (strict && !strict.hit){
+      jd = '【厳格判定: ハズレ扱い】◎も○も両方馬券外';
+    } else {
+      jd = '（◎○が無く厳格判定は対象外）';
+    }
+    jd += '（参考: 印の馬券内 ' + hits.length + '頭' +
+      (hits.length >= 2 ? '・上々' : (hits.length === 1 ? '・半分的外れ' : '・全部圏外の大波乱')) + '）';
     g.push('印と結果: ' + list.join(' / ') + '　—　' + jd + '。');
   }
   /* 5) 印を外した馬券内の馬 */
@@ -38305,9 +38317,21 @@ function aiRaceBlock(it){
   var label = [it.place, (it.rnum ? it.rnum + 'R' : ''), it.name].filter(Boolean).join(' ');
   var marked = aiMarkedRows(b.rows), hits = aiHitRows(b.rows);
   var settled = aiIsSettled(b);
-  var chip = settled ? ('馬券内 ' + hits.length + '/' + marked.length + '頭的中') : '結果未取得';
-  var chipCol = settled ? (hits.length >= 2 ? 'color:var(--ok-ink);font-weight:700' : (hits.length === 1 ? '' : 'color:var(--err-ink)')) : 'color:var(--muted,#777)';
-  var open = (settled && hits.length >= 2) ? ' open' : '';
+  /* ★第98弾: チップは厳格判定（◎か○が馬券内なら的中・両方圏外はハズレ）を先頭に表示。頭数は参考情報として併記 */
+  var strict = aiStrictHit(b.rows);
+  var chip, chipCol, open;
+  if (!settled){
+    chip = '結果未取得'; chipCol = 'color:var(--muted,#777)'; open = '';
+  } else if (strict && strict.hit){
+    chip = '✓的中（◎○馬券内）・馬券内 ' + hits.length + '/' + marked.length + '頭';
+    chipCol = 'color:var(--ok-ink);font-weight:700'; open = ' open';
+  } else if (strict && !strict.hit){
+    chip = '✗ハズレ（◎○とも圏外）・馬券内 ' + hits.length + '/' + marked.length + '頭';
+    chipCol = 'color:var(--err-ink);font-weight:700'; open = '';
+  } else {
+    chip = '馬券内 ' + hits.length + '/' + marked.length + '頭（◎○なし・判定外）';
+    chipCol = 'color:var(--muted,#777)'; open = '';
+  }
   var cchip = (function(){
     var cc = (typeof aiCtxChip === 'function') ? aiCtxChip(String(it.name || '') + ' ' + String((b.rec && b.rec.meta && b.rec.meta.name) || '')) : '';
     return cc ? '<span class="chip" style="margin-left:6px;background:#ede7f6">' + cc + '</span>' : '';
@@ -38447,6 +38471,7 @@ function aiProposalRender(){
   }
   if (items.length){
     var got = 0, settled = 0, hits = 0, paidN = 0, blocks = '';
+    var strictHitN = 0, strictN = 0;   /* ★第98弾: 厳格判定（◎○）のレース単位集計 */
     items.forEach(function(it){
       var b = aiRecBundle(it.rid);
       if (!b) return;
@@ -38455,6 +38480,8 @@ function aiProposalRender(){
         settled++;
         hits += aiHitRows(b.rows).length;
         if (b.res.payout && b.res.payout.win) paidN++;
+        var st = aiStrictHit(b.rows);
+        if (st){ strictN++; if (st.hit) strictHitN++; }
       }
       blocks += aiRaceBlock(it);
     });
@@ -38464,18 +38491,21 @@ function aiProposalRender(){
       '<span class="chip">結果つき ' + settled + ' レース</span>' +
       '<span class="chip">払戻確定 ' + paidN + ' レース</span>' +
       '<span class="chip">印の馬券内 ' + hits + ' 頭</span>' +
+      (strictN ? ('<span class="chip" style="font-weight:700;color:' + (strictHitN ? 'var(--ok-ink)' : 'var(--err-ink)') + '">厳格判定(◎○) ' + strictHitN + '/' + strictN + ' レース的中</span>') : '') +
       '</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
       '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
       '「📥 その日の結果を取得」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
-      'エンジン更新後は <b>「🔁 再計算（今の計算方式で）」</b> で、前日保存の予想を通信ゼロで作り直せます（結果確定済みは上書きせず保護）。' +
+      'レースが進んだら <b>「🔄 未発走を再予想」</b> で、当日バイアス（コーナー通過順などの展開）と直前オッズを反映して未発走レースの印を付け直せます（結果確定済みは上書きせず保護・旧予想は履歴保存。終了後のExcel/PDFも新しい印で出ます）。' +
       '新馬戦・障害戦のレース名には「🧩 補正」チップを表示します。</div></div>';
     h += blocks;
     if (settled){
       var rate = got > 0 ? (settled > 0 ? Math.round(hits / (settled * 5) * 100) : 0) : 0;
       h += '<div class="card"><b>📊 今日の合計</b>　結果照合 ' + settled + ' レースで印（◎〜△）の馬券内 ' +
         hits + ' 頭' + (settled > 0 ? '（1レース平均 ' + (hits / settled).toFixed(1) + '頭／中率 ' + rate + '%）' : '') +
-        '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。レースごとの詳細は上の各カード。</div></div>';
+        (strictN ? '／<b>厳格判定（◎か○が馬券内なら的中・両方圏外はハズレ）: ' + strictHitN + ' / ' + strictN + ' レース的中 = ' +
+          Math.round(strictHitN / strictN * 100) + '%</b>' : '') +
+        '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。厳格判定＝◎○の軸でレース単位の当落を見る判定（★第98弾・◎○が無いレースは対象外）。レースごとの詳細は上の各カード。</div></div>';
       /* ★第65弾⑤: 結果が「今後の予想」にどう活きるかを表示（事前予想との照合済みレース数つき） */
       var fedN = 0;
       try { items.forEach(function(it){
@@ -38509,8 +38539,10 @@ function aiProposalInit(){
   if (xe) xe.addEventListener('click', function(){ try { aiExportExcel(); } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); } });
   var xp = $('aiPdf');
   if (xp) xp.addEventListener('click', function(){ try { aiExportPDF(); } catch(e){ aiSettleMsg('⚠ PDF(印刷)に失敗: ' + esc(String((e && e.message) || e))); } });
-  var rc = $('aiRecompute');
-  if (rc) rc.addEventListener('click', function(){ try { aiRecomputeDay(); } catch(e){ aiSettleMsg('⚠ 再計算に失敗: ' + esc(String((e && e.message) || e))); } });
+  /* ★第98弾: 🔁再計算ボタン（aiRecompute・用途が被るため削除）→ 🔄未発走を再予想（aiRepred）へ置換 */
+  var rp = $('aiRepred');
+  if (rp) rp.addEventListener('click', function(){ try { aiRepredDay(); } catch(e){ aiSettleMsg('⚠ 再予想に失敗: ' + esc(String((e && e.message) || e))); } });
+  /* 旧aiRecomputeDay（通信ゼロ再計算）はJS残存。ボタンは削除済み */
   try { aiProposalRender(); } catch(e){}
 }
 
@@ -39047,7 +39079,7 @@ function aiExportExcel(){
   if (!model) return;
   try {
     var html = aiExportXlsHTML(model);
-    var blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    var blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'keiba_' + (AI_DAY_D8 || 'export') + '.xls';
@@ -39185,6 +39217,52 @@ function aiRecomputeDay(){
     });
   });
   return seq.then(finish).catch(function(){ finish(); });
+}
+
+/* ============================================================
+   ★第98弾: 🔄 未発走を再予想（当日バイアス・直前オッズで印を付け直す）
+   ------------------------------------------------------------
+   ユーザー指示: 「その日の現在までの結果からトラックバイアス、コーナー通過順などの
+   レース展開から予想し直し、印をつける。結果確定前のレースのPDFやExcelの内容も
+   予想し直す」。🔁再計算（aiRecomputeDay・通信ゼロで保存済みオッズのみ使用）と用途が
+   被るため、あちらのボタンを削除してこちらに置き換えた。
+   やること: preDayFetch(d8, {refresh:true, odds:true}) で
+     → 出馬表とオッズを再取得（通信あり）
+     → 現在のstate（当日バイアス・学習済み重み）で analyzeRace をやり直して rec.pre を更新
+     → 結果確定済みレースは apPreAllowed が拒否（上書きしない＝検証記録を守る）
+     → 旧予想は rec.prePrev へ履歴退避（第97弾の仕組み）
+     → 完了後に aiProposalRender() で🤖タブの当日シートを再描画 = Excel/PDFも新しい印で出る
+   ============================================================ */
+var AI_REPRED = { busy: false };
+function aiRepredDay(){
+  if (AI_REPRED.busy) return Promise.resolve(null);
+  var items = aiDayItems();
+  if (!items.length){ aiSettleMsg('⚠ 再予想対象がありません（①でその日の一括取得をしてください）。'); return Promise.resolve(null); }
+  var d8 = AI_DAY_D8 || (typeof baToday8 === 'function' ? (baToday8() || '') : '');
+  if (!/^\d{8}$/.test(String(d8 || ''))){ aiSettleMsg('⚠ 開催日の特定ができません。🔄表示を更新のあとにもう一度押してください。'); return Promise.resolve(null); }
+  if (typeof preDayFetch !== 'function'){ aiSettleMsg('⚠ 一括取得の仕組みがありません。'); return Promise.resolve(null); }
+  AI_REPRED.busy = true;
+  var btn = (typeof $ === 'function') ? $('aiRepred') : null;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ 再予想中…'; }
+  aiSettleMsg('🔄 再予想中… 出馬表とオッズを再取得して、当日バイアス（コーナー通過順などの展開）を反映した印に付け直します（結果確定済みはスキップ）。');
+  return preDayFetch(d8, { refresh: true, odds: true, force: false, forceCard: false }, function(msg){
+    aiSettleMsg('🔄 ' + String(msg == null ? '' : msg).replace(/</g, '&lt;'));
+  }).then(function(res){
+    AI_REPRED.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = '🔄 未発走を再予想（バイアス・直前オッズ）'; }
+    res = res || {};
+    aiSettleMsg('✅ 再予想完了: 引き直し <b>' + (res.refreshed || 0) + '</b> ／ 新規予想 ' + ((res.ok || 0) - (res.refreshed || 0)) +
+      ' ／ 結果確定済みスキップ ' + (res.skipDone || 0) + ' ／ 失敗 ' + (res.fail || 0) +
+      '。旧予想は履歴保存。このあとの 📤Excel保存・🖨PDF は<b>新しい印の内容</b>で出ます。');
+    try { if (typeof preRenderCount === 'function') preRenderCount(); } catch(e){}
+    try { aiProposalRender(); } catch(e){}
+    return res;
+  }).catch(function(e){
+    AI_REPRED.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = '🔄 未発走を再予想（バイアス・直前オッズ）'; }
+    aiSettleMsg('⚠ 再予想に失敗しました: ' + esc(String((e && e.message) || e)));
+    return null;
+  });
 }
 
 /* ============================================================
@@ -40086,41 +40164,7 @@ function lkMine(){
 
 /* ---------- 初期化 ---------- */
 function lkInit(){
-  /* ★第97弾: 🔄事前予想の引き直し（未発走レースのみ・当日バイアス・直前オッズ反映） */
-  var rb = (typeof $ === 'function') ? $('lbRefBtn') : null;
-  if (rb) rb.addEventListener('click', function(){
-    var dEl = (typeof $ === 'function') ? $('lbRefDate') : null;
-    var stat = (typeof $ === 'function') ? $('lbRefStat') : null;
-    var msg = (typeof $ === 'function') ? $('lbRefMsg') : null;
-    var dRaw = dEl ? String(dEl.value || '').replace(/[^0-9]/g, '') : '';
-    if (!dRaw){
-      try { dRaw = (typeof baToday8 === 'function') ? baToday8() : ''; } catch(e){ dRaw = ''; }
-      if (dEl && dRaw) dEl.value = dRaw;
-    }
-    if (!/^\d{8}$/.test(dRaw)){
-      if (msg) msg.textContent = '⚠ 日付が分かりません（📅にYYYYMMDD形式で入力するか空欄にしてください）';
-      return;
-    }
-    rb.disabled = true;
-    if (stat) stat.textContent = '';
-    if (msg) msg.textContent = '🔄 ' + dRaw.slice(0,4) + '/' + dRaw.slice(4,6) + '/' + dRaw.slice(6,8) + ' の未発走レースを引き直しています（出馬表とオッズを再取得・結果確定済みはスキップ）…';
-    var p;
-    try {
-      p = preDayFetch(dRaw, { refresh: true, odds: true, force: false, forceCard: false }, function(m){
-        if (msg) msg.innerHTML = String(m == null ? '' : m);
-      });
-    } catch(e){ p = Promise.reject(e); }
-    Promise.resolve(p).then(function(res){
-      rb.disabled = false;
-      if (stat) stat.innerHTML = '✅ 更新 <b>' + (res.refreshed || 0) + '</b> ／ 新規 ' + ((res.ok || 0) - (res.refreshed || 0)) +
-        ' ／ 確定済みスキップ ' + (res.skipDone || 0) + ' ／ 失敗 ' + (res.fail || 0);
-      if (msg) msg.innerHTML = '旧予想は履歴（最大5版）に残してあります。結果が出たレースは 🤖AI提案タブの🔬診断で照合されます。';
-      try { if (typeof preRenderCount === 'function') preRenderCount(); } catch(e){}
-    }).catch(function(e){
-      rb.disabled = false;
-      if (msg) msg.textContent = '⚠ 引き直しに失敗しました: ' + String((e && e.message) || e);
-    });
-  });
+  /* ★第98弾: 第97弾の引き直しボタンは🤖AI提案タブの「🔄 未発走を再予想」(aiRepred)へ集約。ここの配線は削除 */
   var b = (typeof $ === 'function') ? $('lkSearchBtn') : null;
   if (b) b.addEventListener('click', function(){
     try { lkSearch(); } catch(e){ lkMsg('⚠ 検索に失敗: ' + esc(String((e && e.message) || e)), 1); }
