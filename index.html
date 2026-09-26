@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>競馬AIラボ｜展開予想・AI印・netkeiba AI展開予測</title>
 <meta name="description" content="競馬AIラボ — 展開予想・AI印・netkeiba AI展開予測ビュー。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
 <meta name="theme-color" content="#0b3a2a">
@@ -116,10 +116,10 @@ header.topbar{
   display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25)}
 .b1{font-size:1.25rem;font-weight:800;letter-spacing:.02em}
 .b2{font-size:.72rem;opacity:.9}
-.hd{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hd{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0}
 .hd .btn{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.45);color:var(--on-accent)}
 .hd .btn:hover{background:rgba(255,255,255,.3)}
-.savest{font-size:.72rem;color:var(--on-accent)}
+.savest{font-size:.72rem;color:var(--on-accent);min-width:0;white-space:normal}
 /* ===== tabs (netkeiba風: アクティブタブは白地に緑文字) ===== */
 nav.tabs{display:flex;gap:6px;padding:12px 18px 0;max-width:1180px;margin:0 auto;position:sticky;top:0;z-index:40;background:var(--card);box-shadow:0 1px 0 var(--line2)}
 nav.tabs .tab{
@@ -156,7 +156,7 @@ main{max-width:1180px;margin:0 auto;padding:14px 18px 40px}
    箱自体に min-width:0 が無いと中身の nowrap 幅でカードを押し広げてしまいます。 */
 #wtAutoBox,#wtAutoBox>div{min-width:0;max-width:100%}
 #wtAutoBox table{max-width:100%}
-@media(max-width:900px){.row2,.row3{grid-template-columns:1fr}}
+@media(max-width:900px){.row2,.row3{grid-template-columns:1fr !important}}
 .cardhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .cardhead h2{margin:0}
 .chip{background:var(--card2);color:var(--ok-ink);font-weight:800;padding:3px 10px;border-radius:20px;font-size:.8rem;border:1px solid var(--line2)}
@@ -349,7 +349,8 @@ table.ktbl .hname{display:inline-block;max-width:170px;overflow:hidden;text-over
 /* =========================================================
    スマートフォン(iPhone Safari 等)向け最適化
    ========================================================= */
-html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{overflow-x:hidden}
 main,footer,.tabs-inner{min-width:0}
 nav.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:10px}
@@ -1257,7 +1258,7 @@ html[data-theme="light"] .page-top-hero{
       <div class="card" style="margin-top:0">
         <h3 style="margin:0 0 6px">WIN5（5レースの組合せ）</h3>
         <div class="small muted" style="margin:0 0 6px">各レースの<b>選択頭数</b>を入れると「通りの数＝各レースの積」で計算します（1点100円固定）。</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 10px">
           <label class="small">レース① (頭): <input id="bc5a" type="number" min="1" max="18" value="1" style="width:70px"></label>
           <label class="small">レース② (頭): <input id="bc5b" type="number" min="1" max="18" value="1" style="width:70px"></label>
           <label class="small">レース③ (頭): <input id="bc5c" type="number" min="1" max="18" value="1" style="width:70px"></label>
@@ -1990,10 +1991,16 @@ html[data-theme="light"] .page-top-hero{
     </details>
     </div>
 
-    <div class="card" id="yosokuCard">
-      <div class="cardhead" style="padding:2px 2px 8px">
-        <h2 style="margin:0">AI印と総合評価</h2>
-        <span class="sp"></span>
+    <!-- ★第96弾: AI印表は折り込み化（ユーザー指示: ②タブは当日バイアス・ペース診断・軸妙味穴を常時表示し、他は最小表示に）。
+         kJumpBarの「🧠 予想を見る」タップで自動的に開きます（p10のdata-jumpハンドラがDETAILSをopen）。 -->
+    <details class="card fold" id="yosokuCard" style="margin-top:14px;padding:0">
+      <summary class="foldhead">
+        <span class="fmark"></span>
+        <h2 style="margin:0">AI印と総合評価（詳細表）</h2>
+        <span class="sp"></span><span class="foldhint"></span>
+      </summary>
+      <div class="foldbody">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 6px">
         <button type="button" class="btn primary" id="btnKentaiRefresh" style="font-size:.8rem;padding:4px 12px"
           title="オッズの変動・出走取り消し・馬場状態の変化・自己学習の追加などを最新の入力に反映して、AI印・総合評価・買い目・各予想モデルの印をまとめて再計算します（オッズ・結果はrace.netkeibaから再取得を試みます）">🔄 最新情報を取得して更新</button>
       </div>
@@ -2016,7 +2023,9 @@ html[data-theme="light"] .page-top-hero{
           <tbody id="aiTbl"></tbody>
         </table>
       </div>
-      <!-- ★2026-09-12 第18弾: 各レースの「軸に最適馬・妙味馬・穴馬」を1頭ずつ -->
+      </div>
+    </details>
+      <!-- ★2026-09-12 第18弾: 各レースの「軸に最適馬・妙味馬・穴馬」を1頭ずつ ★第96弾: yosokuCardの外に出して常時表示 -->
       <div class="card" id="pkCurCard" style="margin-top:14px;border-color:var(--line2)">
         <h2>🎯💠🕳 今回の軸・妙味・穴（各1頭）</h2>
         <div class="small muted" style="margin-top:2px">
@@ -2030,8 +2039,14 @@ html[data-theme="light"] .page-top-hero{
       </div>
       <!-- ★第88弾: 🎯精度改善（補正レイヤー）: 印◎○補正・展開補正・AI勝率校正・妙味馬方式A/D/F30。
            このカード内の数値は表示専用で、本体表・買い目・資金配分・保存データは現行のまま。 -->
-      <div class="card" id="ppCard" style="margin-top:14px;border-color:var(--line2)">
-        <h2>🎯 精度改善（補正レイヤー）<span class="chip">第88弾</span></h2>
+      <details class="card fold" id="ppCard" style="margin-top:14px;border-color:var(--line2);padding:0">
+        <summary class="foldhead">
+          <span class="fmark"></span>
+          <h2 style="margin:0">🎯 精度改善（補正レイヤー）</h2>
+          <span class="chip">第88弾</span>
+          <span class="sp"></span><span class="foldhint"></span>
+        </summary>
+        <div class="foldbody">
         <div class="small muted" style="margin:2px 0 4px">既存予想（75:25ブレンド・印・買い目）はそのままに、後段の補正として ⑤AI勝率の校正 → ⑥⑦展開補正 → ⑧印順位補正（◎○のみ） → ⑩妙味馬（方式A/D/F30）を計算して並べて表示します。<b>このカードの数値は表示専用</b>で、②の本体表・買い目・資金配分・保存データは現行のまま変わりません。</div>
         <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0">
           <label class="small"><input type="checkbox" id="ppMarkOn"> 印順位補正</label>
@@ -2049,7 +2064,8 @@ html[data-theme="light"] .page-top-hero{
         </div>
         <div class="small muted" style="margin:2px 0 4px">初期設定=印補正ON・展開補正ON(0.25)・校正ON・方式D。設定変更はこのカードの表示だけを変えます（既存の印・買い目・資金配分は変更しません）。B・C・E・F50・F100の比較は🤖AI提案タブ「💠妙味馬の選定方式比較」で引き続き見られます。</div>
         <div id="ppOut"></div>
-      </div>
+        </div>
+      </details>
       <!-- ★第95弾: 🎬展開イメージカードは削除（ユーザー指示: 表示が終わっているため）。
            🎛ペースシナリオ比較は「どの馬が変わるか」の差分表示へ変更（全シナリオ同一の羅列は廃止） -->
     <details class="card fold" id="scCard" style="margin-top:14px;border-color:var(--line2);padding:0">
@@ -2105,7 +2121,7 @@ html[data-theme="light"] .page-top-hero{
       </details>
 
       <!-- ★第95弾: 回収率チューナーカードは削除（ユーザー指示）。計算ロジック（vtRender/vtRun）はJS側に残存 -->
-    </div>
+      <!-- ★第96弾: この位置の</div>（旧yosokuCardの閉じ）はyosokuCardのdetails化に伴い除去 -->
     <!-- 2026-09-12 第15弾: 縦長になるので折り込み。折り込んだままでも「今回の狙い目馬」が
          文章の要約（#aihPick）で読めるように summary 内へ常時表示しています -->
     <details class="card fold" id="aihCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
@@ -2926,8 +2942,15 @@ html[data-theme="light"] .page-top-hero{
     </div>
     </div>
   </details>
-  <div class="card">
-    <h2>💠 妙味馬の選定方式比較（診断）<span class="chip">新</span></h2>
+  <!-- ★第96弾: 折り込み化（ユーザー指示: 最小表示） -->
+  <details class="card fold" id="myCard" style="padding:0">
+    <summary class="foldhead">
+      <span class="fmark"></span>
+      <h2 style="margin:0">💠 妙味馬の選定方式比較（診断）</h2>
+      <span class="chip">新</span>
+      <span class="sp"></span><span class="foldhint"></span>
+    </summary>
+    <div class="foldbody">
     <div class="small muted" style="margin:2px 0 4px">ℹ️ 現行の妙味馬判定（AI勝率×単勝オッズ＝EVが最大の馬）が大穴に偏る問題を、方式A〜Fで紙上比較します。<b>本番の妙味馬・印・買い目は一切変わりません</b>（表示のみ・DB書き込みなし・自動反映なし）。</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <label class="small">検証データ: <select id="mySrc"><option value="pre">📌 本番予想（前日一括取得ぶん）</option><option value="bt">🕰 バックテストぶん</option></select></label>
@@ -2936,7 +2959,8 @@ html[data-theme="light"] .page-top-hero{
     </div>
     <div class="small muted" style="margin-top:4px">方式: A=現行／B=確率帯補正後EV（倍率は前半期間だけで決定）／C=AI勝率2%未満除外／D=5%未満除外／E=(AI勝率−市場期待勝率)最大／F=オッズ上限30・50・100倍。期間を古い順に半分に分け、前半=学習（Bの倍率決定のみ）・後半=検証（未使用のまま評価）。軸（🎯）と同じ馬がトップなら2番手を選ぶ＝本番規則を全方式で共通適用。1着率・複勝率・単勝ROI・最大1件除きROI・top5払戻依存・人気/確率帯分布・年別成績を出します。</div>
     <div id="myOut"></div>
-  </div>
+    </div>
+  </details>
   <div class="card">
     <h2>📦 モデル保管庫（現行モデルのバックアップ）</h2>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
@@ -44543,6 +44567,13 @@ function ppInit(){
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
+
+/* ---------- ピンチズーム無効化（iPhone Safari・ホーム画面アプリ両対応・誤拡大防止） ----------
+   iOSはviewportのuser-scalable=noを無視するため、gestureイベントを握って確実に防止。
+   二連タップ拡大は touch-action:pan-x pan-y (p1_head) で禁止済み。 */ 
+['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+  document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive:false });
+});
 
 /* ---------- モーダル ---------- */
 function showModal(html, bind){
