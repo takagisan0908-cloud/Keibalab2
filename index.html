@@ -9324,6 +9324,45 @@ function biasVenueOfText(txt){
   return '';
 }
 /* 対象レースの開催場（race_id の場コード優先 → レース情報の文字列） */
+/* ★第100弾: 対象レースの面（芝/ダート/障害）を特定する。
+   p5_engine の posLearnBands と同じ判定式（state.race のレース名・クラス・距離から。
+   preWithState がBT/一括取得の間も state.race と #rName/#rDist を差し替えるので、
+   ライブ予想でも🕰BTでも「いま予想しようとしているレースの面」が取れる）。
+   判定できない場合は '' を返し、そのときは従来どおり面を絞らずに集計する（現行の安全な挙動）。 */
+function biasTargetSurface(){
+  var nm = '', ds = '', sp = '';
+  try {
+    nm = String(((state && state.race && state.race.name) || '') + ' ' + ((state && state.race && state.race.grade) || ''));
+    ds = String((state && state.race && state.race.dist) || '');
+    /* ★第100弾①修正: ライブ経路（一括取得・URL取込）は dist が '2000' のように面なしで
+       meta.surface（'芝'/'ダ'/'障'）が別フィールドで来る。state.race.surface も判定材料にする
+       （applyNkRaceMeta・preOneRace ともに設定する。🕰BT は db の dist='芝1600m' に面が入っている） */
+    sp = String((state && state.race && state.race.surface) || '');
+  } catch(e){}
+  if (!/\S/.test(nm) && !/\S/.test(ds) && !/\S/.test(sp)){
+    try {
+      if (typeof readRaceMeta === 'function'){
+        var m = readRaceMeta();
+        if (m){ nm = String(m.name || '') + ' ' + String(m.grade || ''); ds = String(m.dist || ''); }
+      }
+    } catch(e){}
+  }
+  var t = nm + ' ' + ds + ' ' + sp;
+  if (/障/.test(t)) return '障';
+  if (/ダ/.test(t)) return 'ダ';
+  if (/芝/.test(t)) return '芝';
+  return '';
+}
+/* ★第100弾: バイアス記録1件の面。addBiasRace は surface フィールド付きで保存しており、
+   古い記録や手入力分は label/dist/rname のテキストから判定する（biasRaceVenue と同じ発想） */
+function biasRaceSurface(rc){
+  if (rc && rc.surface) return String(rc.surface).replace('ダート', 'ダ');
+  var t = String((rc && rc.rname) || '') + ' ' + String((rc && rc.dist) || '') + ' ' + String((rc && rc.label) || '');
+  if (/障/.test(t)) return '障';
+  if (/ダ/.test(t)) return 'ダ';
+  if (/芝/.test(t)) return '芝';
+  return '';
+}
 function biasTargetVenue(){
   var rid = String((state && state.raceId) || '').trim();
   var code = /^\d{12}$/.test(rid) ? rid.slice(4, 6) : '';
@@ -9347,9 +9386,18 @@ function biasRacesOurs(){
   // トラックバイアスは「その日の馬場」の話なので、別日の記録を混ぜてはいけない
   var all = biasRowsOfDay().day;
   var tv = biasTargetVenue();
-  if (!tv.name) return all.slice();
-  var mine = all.filter(function(rc){ return biasRaceVenue(rc) === tv.name; });
-  return mine.length ? mine : all.slice();
+  var out = all.slice();
+  if (tv.name){
+    var mine = all.filter(function(rc){ return biasRaceVenue(rc) === tv.name; });
+    if (mine.length) out = mine;
+  }
+  /* ★第100弾: 芝・ダート分離（ユーザー指示）。対象レースと同じ面（芝は芝・ダートはダート）の
+     記録だけを集計に使う。集計・判定の式・しきい値・known<3 ガードは一切不変。
+     同じ面の記録が1件も無い/少ない日は biasVerdict が null を返し、従来どおり
+     「前日の馬場(p57)→中立」のフォールバックが効く＝少数レースから無理にバイアスを作らない。 */
+  var ts = (typeof biasTargetSurface === 'function') ? biasTargetSurface() : '';
+  if (ts) out = out.filter(function(rc){ return biasRaceSurface(rc) === ts; });
+  return out;
 }
 /* 記録を競馬場ごとにまとめる（表示順: 対象場 → 開催順） */
 function biasRacesByVenue(rows){
@@ -31947,7 +31995,8 @@ function preOneRace(rid, d8, opt){
       var raceObj = {
         name: fullName, place: meta.place || '', baba: meta.baba || '',
         dist: meta.dist || '', grade: meta.grade || meta.className || '', time: meta.startTime || '',
-        wx: meta.wx || ''   /* ★第75弾: 天候も事前予想スナップに残す */
+        wx: meta.wx || '',   /* ★第75弾: 天候も事前予想スナップに残す */
+        surface: meta.surface || ''   /* ★第100弾①: 当日バイアスの芝/ダート分離の面判定に使う（ライブ経路はdistに面が入っていないため） */
       };
       // 各馬の馬柱データ（任意）— p34 のキャッシュを温める
       var detP = Promise.resolve(0);
@@ -33606,6 +33655,33 @@ function pkPicks(res){
       '（AI勝率 ' + pkPct(val.prob) + ' × オッズ ' + (val.oddsRaw || '?') + '倍）' +
       (val._ev >= 1 ? ' ＝ 1.0以上なのでオッズが実力より甘い' : ' ＝ 1.0未満なので単勝では長期マイナス側')) : '', 'value');
 
+    /* ★第101弾: 💠妙味馬を第100弾新ロジック(myValueNew)へ正式差し替え。
+       - 旧選定（上のEV最大）は out.valueOld にそのまま保存（旧p56ベースライン・比較/復元用）
+       - 新選定の理由は既存UI構造(whyList/whyAll)に載せる（UI追加なし）
+       - myValueNew が候補を出さない/失敗するときは旧選定のまま（安全フォールバック）
+       - 軸・印・AI勝率・rankKey・pMod/pMkt・買い目・資金配分には影響しない
+       - 穴馬は「軸と妙味（＝差し替え後の新選定）を除いて」選ぶ既存規則（第24弾の別々規約）を維持。
+         このため穴馬は新妙味の影響を受けて変わり得る（選定ロジック自体は不変） */
+    out.valueOld = out.value;
+    try {
+      if (typeof myValueNew === 'function' && out.value){
+        var nv = myValueNew(res, { axis: out.axis, value: null, hole: null });
+        if (nv && nv.ok){
+          var nvRow = rows.filter(function(r){ return String(r.h && r.h.no) === String(nv.no); })[0] || null;
+          if (nvRow){
+            var nvPk = pack(nvRow, '新妙味スコア ' + (Math.round(nv.score * 10) / 10) +
+              '（AI勝率 ' + pkPct(nv.prob) + (nv.oddsRank ? '・' + nv.oddsRank + '番人気' : '') + '）', 'value');
+            nvPk.whyList = (nv.reasons || []).slice(0, PK_WHY_MAX);
+            nvPk.whyAll = (nv.reasons || []).slice();
+            nvPk.score = Math.round(nv.score * 10) / 10;
+            nvPk.logic = 'myValueNew';
+            out.value = nvPk;
+            val = nvRow;   /* 穴馬の除外集合を新妙味に更新（既存規則どおり） */
+          }
+        }
+      }
+    } catch(e){ /* 失敗時は旧選定(out.valueOld)を維持 */ }
+
     /* 🕳 穴馬
        ★2026-09-13 第24弾④b: 「妙味馬と穴馬が毎回同じ馬になる」バグの修正。
        --- 原因（数学的に必ず一致していた） ---
@@ -33694,7 +33770,7 @@ function pkHTML(picks){
   }
   return '<div class="pkrow">' +
     cell(picks.axis, '🎯 軸に最適馬', 'AI勝率が一番高い馬。3連系の軸（1着固定・1頭軸）に最適') +
-    cell(picks.value, '💠 妙味馬', '期待値（AI勝率×単勝オッズ）が一番高い馬。1.0以上ならオッズが実力より甘い') +
+    cell(picks.value, '💠 妙味馬', 'AI-市場乖離・人気逆転・展開適性・当日バイアス×脚質・前走・条件適合を総合加点した新妙味ロジック（第100弾正式採用・大穴ガード付き）') +
     cell(picks.hole, '🕳 穴馬', '人気薄の中でAI評価が市場評価を一番上回っている馬。3連系の相手・3連単の3着側に') +
     '</div>';
 }
@@ -38025,7 +38101,7 @@ var AI_HELP = [
   { k:'day',   t:'① その日の全レースの印',        d:'①データ入力の一括取得で保存したAI予想（◎○▲☆△）を、その日の全レースぶん一覧表示します。数値（EV等）は出さず、印とオッズだけ。' },
   { k:'settle',t:'② その日の結果を取得',          d:'発走が過ぎたレースの着順・払戻・ペース・コーナー通過順を netkeiba 結果ページ(race.netkeiba)から取り込み、印と同じ表に並べます（払戻が確定すると同じボタンを再実行で更新）。※旧db.netkeibaページは2026-09から非会員に空ページを返すため、そちらは保険として残しています。' },
   { k:'recap', t:'③ AI振り返りコメント',          d:'結果が揃ったレースごとに、展開予想（ペース・トラックバイアス）と実際の流れ、印の馬が来た／来なかった理由を1レースずつ自動でまとめます。' },
-  { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。' },
+  { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。★第99弾: 判定は<b>◎単独</b>（◎が馬券内なら✓的中・圏外なら✗ハズレ。○▲☆△が来ても◎不的中はハズレ）をチップ・当日合計・Excel/PDFの見出しに表示し、◎を外したレースは「🔍 なぜ◎は外れたか／💡 どう考えてたら勝ち馬が買えたか」を振り返りに自動で書きます。' },
   { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
   { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での順位（1が最高評価＝数値が小さいほど信用できる。15頭立てなら最高評価の馬が1・最低評価の馬が15。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方とも順位が小さい馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
@@ -38161,14 +38237,92 @@ function aiRecBundle(rid){
 }
 function aiMarkedRows(rows){ return (rows || []).filter(function(r){ return r && r.mark; }); }
 function aiHitRows(rows){ return (rows || []).filter(function(r){ return r && r.mark && r.order >= 1 && r.order <= 3; }); }
-/* ★第98弾: 厳格な印判定（ユーザー指示: 「◎も○も両方来ていない場合はハズレ扱い」）。
-  的中＝◎か○のどちらかが馬券内（3着以内）。▲☆△だけが馬券内でもハズレ扱い。
-   ◎○が無いレース（データ不足）は判定不能として null を返す（集計から除外）。 */
+/* ★第99弾: 厳格な印判定を◎単独に変更（ユーザー指示: 馬券点数を増やしたくないので◎から買う。
+   だから◎が来なければハズレ扱い。○▲☆△が馬券内でも◎圏外はハズレ）。
+   的中＝◎が馬券内（3着以内）。◎が無いレース（データ不足）は判定不能として null を返す（集計から除外）。 */
 function aiStrictHit(rows){
-  var core = (rows || []).filter(function(r){ return r && (r.mark === '◎' || r.mark === '○'); });
+  var core = (rows || []).filter(function(r){ return r && r.mark === '◎'; });
   if (!core.length) return null;
   var in3 = core.filter(function(r){ return r.order >= 1 && r.order <= 3; });
   return { core: core.length, in3: in3.length, hit: in3.length > 0 };
+}
+/* ★第99弾: ◎外れ分析（保存データだけで決定的に生成・乱数なし。手がかりが無いものは正直に「見えない」と書く）
+   戻り値: recapのli行として使う文字列の配列（対象外・データ不足は空配列） */
+function aiMissWhy(b, rows){
+  try {
+    var res = (b && b.res) || {};
+    var snap = (b && b.snap) || {};
+    var byNo = {};
+    ((snap && snap.rows) || []).forEach(function(x){ if (x && x.no != null) byNo[String(x.no)] = x; });
+    var axis = null, win = null;
+    (rows || []).forEach(function(r){
+      if (!r) return;
+      if (String(r.mark) === '◎') axis = r;
+      if ((parseInt(r.order, 10) || 0) === 1) win = r;
+    });
+    if (!axis || !win) return [];
+    var axSnap = byNo[String(axis.no)] || {};
+    var winSnap = byNo[String(win.no)] || {};
+    /* 実際のペース（結果ページ由来）があれば優先、無ければ事前予想 */
+    var realPace = (res.xd && res.xd.pace) ? (AI_PACE_JA[String(res.xd.pace).charAt(0).toUpperCase()] || '') : '';
+    var pd = snap.pace || null;
+    var paceLbl = realPace || (pd && pd.label ? String(pd.label) : '');
+    var bs = snap.bias || null;
+    var fs = (bs && bs.frontScore != null) ? Number(bs.frontScore) : null;
+    var isFront = function(st){ return /逃|先/.test(String(st || '')); };
+    var isBack = function(st){ return /差|追/.test(String(st || '')); };
+    var oddsTxt = function(r){ return (r.odds != null && r.odds !== '') ? '単勝' + Number(r.odds).toFixed(1) + '倍' : ''; };
+    var popTxt = function(r){ return r.pop ? String(r.pop) : ''; };
+    var pct1 = function(p){ return (p != null && isFinite(Number(p))) ? (Math.round(Number(p) * 1000) / 10 + '%') : '—'; };
+    var axOrd = parseInt(axis.order, 10) || 0;
+    /* --- なぜ◎は外れたか --- */
+    var whys = [];
+    if ((/ハイ|速/.test(paceLbl) && isFront(axis.style)) || (/スロー/.test(paceLbl) && isBack(axis.style)))
+      whys.push(paceLbl + 'ペースで' + (isFront(axis.style) ? '前が苦しくなる' : '前が残る') + '流れが、◎' + esc(axis.name) + '（' + esc(axis.style || '脚質不明') + '）とは逆');
+    if (fs != null && ((fs <= 0.45 && isFront(axis.style)) || (fs >= 0.55 && isBack(axis.style))))
+      whys.push('当日のトラックバイアス（' + esc(bs.posLabel || '—') + '・先行傾向' + fs.toFixed(2) + '）が◎の脚質と逆方向');
+    var axPs = String(axis.passing || '').split('-');
+    var axP0 = parseInt(axPs[0], 10) || 0;
+    if (axPs.length >= 2 && axP0 && axOrd >= 4){
+      if (axP0 <= 2) whys.push('コーナー通過 ' + esc(String(axis.passing)) + ' と序盤から先頭で引っ張って直線で失速（' + axOrd + '着）');
+      else if (axP0 >= 8) whys.push('コーナー通過 ' + esc(String(axis.passing)) + ' と後方待機のまま届かず（' + axOrd + '着）');
+    }
+    if (!whys.length) whys.push('保存データからは明確な敗因は見えず（' + axOrd + '着' + (oddsTxt(axis) ? '・' + oddsTxt(axis) : '') + (popTxt(axis) ? '・' + popTxt(axis) : '') + '）');
+    /* --- どう考えてたら勝ち馬が買えてたか --- */
+    var hints = [];
+    if (win.mark){
+      hints.push('勝ち馬 ' + esc(win.name) + 'は' + esc(win.mark) + '印（AI' + (winSnap.rank || '?') + '番手）→ ◎からの相手（2・3着流し）に加えていれば馬券に乗っていた');
+    } else if (winSnap.prob != null && axSnap.prob != null && (Number(axSnap.prob) - Number(winSnap.prob)) <= 0.06){
+      hints.push('AI確率は◎' + pct1(axSnap.prob) + 'に対し勝ち馬 ' + esc(win.name) + 'は' + pct1(winSnap.prob) + 'の僅差 → 紐をもう1組広げていれば');
+    }
+    /* 印の有無にかかわらず、展開面の手がかりは出す（第99弾） */
+    if (fs != null && ((fs <= 0.45 && isBack(win.style)) || (fs >= 0.55 && isFront(win.style))))
+      hints.push('当日バイアス（' + esc(bs.posLabel || '—') + '）と勝ち馬の脚質（' + esc(win.style || '?') + '）が噛み合う馬は ' + esc(win.name) + 'の方だった');
+    if ((/ハイ|速/.test(paceLbl) && isBack(win.style)) || (/スロー/.test(paceLbl) && isFront(win.style)))
+      hints.push(paceLbl + 'ペースが勝ち馬の脚質（' + esc(win.style || '?') + '）に有利');
+    var wPs = String(win.passing || '').split('-');
+    var wP0 = parseInt(wPs[0], 10) || 0;
+    if (wPs.length >= 2 && wP0){
+      if (wP0 <= 3) hints.push('通過 ' + esc(String(win.passing)) + ' と楽な先行で押し切る競馬');
+      else if (wP0 >= 7) hints.push('通過 ' + esc(String(win.passing)) + ' と後方一気の決め手');
+    }
+    if (!hints.length)
+      hints.push('保存データからは明確な手がかりは見当たらない（AI' + (winSnap.rank || '圏外') + (winSnap.prob != null ? '・AI確率' + pct1(winSnap.prob) : '') + (oddsTxt(win) ? '・' + oddsTxt(win) : '') + (popTxt(win) ? '・' + popTxt(win) : '') + '）');
+    return [
+      '🔍 <b>なぜ◎は外れたか</b>: ' + whys.slice(0, 2).join('。') + '。',
+      '💡 <b>どう考えてたら勝ち馬が買えたか</b>: ' + hints.slice(0, 2).join('。') + '。'
+    ];
+  } catch(e){ return []; }
+}
+/* ★第99弾: Excel/PDFのレース見出しに◎厳格判定を表示（◎が馬券内なら✓・圏外なら✗） */
+function aiExportStrict(rc){
+  try {
+    var ax = null;
+    (rc.rows || []).forEach(function(r){ if (!ax && r && String(r.mark) === '◎') ax = r; });
+    if (!ax || !rc.settled) return '';
+    var o = (rc.resultMap && parseInt(rc.resultMap[String(ax.no)], 10)) || 0;
+    return (o >= 1 && o <= 3) ? ' <b style="color:#1b5e20">✓◎馬券内</b>' : ' <b style="color:#b71c1c">✗◎圏外</b>';
+  } catch(e){ return ''; }
 }
 function aiIsSettled(b){ return !!(b && b.res && b.res.rows && b.res.rows.length >= 3); }
 /* 印と結果を同じ表に（馬番/馬名/印/オッズ/結果） */
@@ -38260,19 +38414,23 @@ function aiRecapHTML(b){
       return (good ? '<b style="color:#1b5e20">' : '') + esc(m.mark) + esc(m.no) + ' ' + esc(m.name) +
         '→' + (m.order ? m.order + '着' : '—') + (good ? '</b>' : '');
     });
-    /* ★第98弾: 厳格判定（◎か○が馬券内で的中・両方圏外はハズレ扱い）。頭数のコメントは参考として併記 */
+    /* ★第99弾: 厳格判定は◎単独（◎が馬券内なら的中・圏外ならハズレ・○では代用不可）。頭数のコメントは参考として併記 */
     var strict = aiStrictHit(rows);
     var jd;
     if (strict && strict.hit){
-      jd = '【厳格判定: 的中】◎○の主軸が馬券内に入った';
+      jd = '【厳格判定: 的中】◎が馬券内に入った';
     } else if (strict && !strict.hit){
-      jd = '【厳格判定: ハズレ扱い】◎も○も両方馬券外';
+      jd = '【厳格判定: ハズレ】◎が馬券外';
     } else {
-      jd = '（◎○が無く厳格判定は対象外）';
+      jd = '（◎が無く厳格判定は対象外）';
     }
     jd += '（参考: 印の馬券内 ' + hits.length + '頭' +
       (hits.length >= 2 ? '・上々' : (hits.length === 1 ? '・半分的外れ' : '・全部圏外の大波乱')) + '）';
     g.push('印と結果: ' + list.join(' / ') + '　—　' + jd + '。');
+    /* ★第99弾: ◎外れ分析（なぜ外れたか／どう考えてたら勝ち馬が買えてたか） */
+    if (strict && !strict.hit){
+      aiMissWhy(b, rows).forEach(function(line){ g.push(line); });
+    }
   }
   /* 5) 印を外した馬券内の馬 */
   var miss = [];
@@ -38317,19 +38475,19 @@ function aiRaceBlock(it){
   var label = [it.place, (it.rnum ? it.rnum + 'R' : ''), it.name].filter(Boolean).join(' ');
   var marked = aiMarkedRows(b.rows), hits = aiHitRows(b.rows);
   var settled = aiIsSettled(b);
-  /* ★第98弾: チップは厳格判定（◎か○が馬券内なら的中・両方圏外はハズレ）を先頭に表示。頭数は参考情報として併記 */
+  /* ★第99弾: チップは厳格判定（◎が馬券内なら的中・圏外はハズレ）を先頭に表示。頭数は参考情報として併記 */
   var strict = aiStrictHit(b.rows);
   var chip, chipCol, open;
   if (!settled){
     chip = '結果未取得'; chipCol = 'color:var(--muted,#777)'; open = '';
   } else if (strict && strict.hit){
-    chip = '✓的中（◎○馬券内）・馬券内 ' + hits.length + '/' + marked.length + '頭';
+    chip = '✓的中（◎馬券内）・馬券内 ' + hits.length + '/' + marked.length + '頭';
     chipCol = 'color:var(--ok-ink);font-weight:700'; open = ' open';
   } else if (strict && !strict.hit){
-    chip = '✗ハズレ（◎○とも圏外）・馬券内 ' + hits.length + '/' + marked.length + '頭';
+    chip = '✗ハズレ（◎圏外）・馬券内 ' + hits.length + '/' + marked.length + '頭';
     chipCol = 'color:var(--err-ink);font-weight:700'; open = '';
   } else {
-    chip = '馬券内 ' + hits.length + '/' + marked.length + '頭（◎○なし・判定外）';
+    chip = '馬券内 ' + hits.length + '/' + marked.length + '頭（◎なし・判定外）';
     chipCol = 'color:var(--muted,#777)'; open = '';
   }
   var cchip = (function(){
@@ -38471,7 +38629,7 @@ function aiProposalRender(){
   }
   if (items.length){
     var got = 0, settled = 0, hits = 0, paidN = 0, blocks = '';
-    var strictHitN = 0, strictN = 0;   /* ★第98弾: 厳格判定（◎○）のレース単位集計 */
+    var strictHitN = 0, strictN = 0;   /* ★第98弾→★第99弾: 厳格判定（◎単独）のレース単位集計 */
     items.forEach(function(it){
       var b = aiRecBundle(it.rid);
       if (!b) return;
@@ -38491,7 +38649,7 @@ function aiProposalRender(){
       '<span class="chip">結果つき ' + settled + ' レース</span>' +
       '<span class="chip">払戻確定 ' + paidN + ' レース</span>' +
       '<span class="chip">印の馬券内 ' + hits + ' 頭</span>' +
-      (strictN ? ('<span class="chip" style="font-weight:700;color:' + (strictHitN ? 'var(--ok-ink)' : 'var(--err-ink)') + '">厳格判定(◎○) ' + strictHitN + '/' + strictN + ' レース的中</span>') : '') +
+      (strictN ? ('<span class="chip" style="font-weight:700;color:' + (strictHitN ? 'var(--ok-ink)' : 'var(--err-ink)') + '">厳格判定(◎) ' + strictHitN + '/' + strictN + ' レース的中</span>') : '') +
       '</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
       '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
@@ -38503,9 +38661,9 @@ function aiProposalRender(){
       var rate = got > 0 ? (settled > 0 ? Math.round(hits / (settled * 5) * 100) : 0) : 0;
       h += '<div class="card"><b>📊 今日の合計</b>　結果照合 ' + settled + ' レースで印（◎〜△）の馬券内 ' +
         hits + ' 頭' + (settled > 0 ? '（1レース平均 ' + (hits / settled).toFixed(1) + '頭／中率 ' + rate + '%）' : '') +
-        (strictN ? '／<b>厳格判定（◎か○が馬券内なら的中・両方圏外はハズレ）: ' + strictHitN + ' / ' + strictN + ' レース的中 = ' +
+        (strictN ? '／<b>厳格判定（◎が馬券内なら的中・圏外はハズレ）: ' + strictHitN + ' / ' + strictN + ' レース的中 = ' +
           Math.round(strictHitN / strictN * 100) + '%</b>' : '') +
-        '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。厳格判定＝◎○の軸でレース単位の当落を見る判定（★第98弾・◎○が無いレースは対象外）。レースごとの詳細は上の各カード。</div></div>';
+        '<div class="muted small" style="margin-top:4px">中率＝馬券内に入った印の頭数 ÷（対象レース×5頭）。厳格判定＝◎1頭でレース単位の当落を見る判定（★第99弾・馬券点数を絞って◎から買う運用向け。○▲☆△が馬券内でも◎圏外はハズレ・◎が無いレースは対象外）。レースごとの詳細は上の各カード。</div></div>';
       /* ★第65弾⑤: 結果が「今後の予想」にどう活きるかを表示（事前予想との照合済みレース数つき） */
       var fedN = 0;
       try { items.forEach(function(it){
@@ -39002,7 +39160,7 @@ function aiExportXlsHTML(model){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
       '<td colspan="4" style="text-align:left">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</td>' +
-      '<td colspan="3" style="text-align:left">' + (rc.settled ? '結果つき' : '出走前') + '</td></tr>';
+      '<td colspan="3" style="text-align:left">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</td></tr>';
     if (rc.wave && rc.wave.why){
       h += '<tr><td colspan="11" style="text-align:left;background:#fdf6ec;font-size:9.5pt">⚠ ' + esc(rc.wave.why) + '（レースLv＝基本の強さ／コースLv＝適性・騎手。乖離が大きい馬が荒れ要素）</td></tr>';
     }
@@ -39022,7 +39180,7 @@ function aiExportXlsHTML(model){
     }
     h += '<tr><td colspan="11"></td></tr>';
   });
-  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。編成=レースのクラス表記。</div></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -39046,7 +39204,7 @@ function aiExportPdfHTML(model){
     h += '<div class="race"><div class="rh"><span>' + esc(label) + '</span>' +
       '<span class="wave" style="background:' + (wcol[rc.wave.key] || '#eee') + '">波乱度 ' + esc(rc.wave.key || '-') + '（' + esc(rc.wave.name) + '）</span>' +
       '<span class="wave" style="background:#ede7f6">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</span>' +
-      '<span class="muted">' + (rc.settled ? '結果つき' : '出走前') + '</span></div>';
+      '<span class="muted">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</span></div>';
     if (rc.wave && rc.wave.why){
       h += '<div style="margin:2px 0 4px;font-size:9.5px;color:#8a5a00;background:#fdf6ec;padding:3px 6px;border-radius:4px">⚠ ' + esc(rc.wave.why) + '</div>';
     }
@@ -39065,7 +39223,7 @@ function aiExportPdfHTML(model){
     }
     h += '</table></div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   h += '</body></html>';
   return h;
 }
@@ -43755,6 +43913,117 @@ try { if (typeof document !== 'undefined' && document.getElementById('t-paydb'))
            D=AI勝率5%未満除外 / E=(AI勝率−市場期待勝率)最大 / F=単勝オッズ上限30・50・100
    - 期間を古い順に半分に分け、前半=学習（方式Bの倍率決定のみに使用）・後半=検証（未使用のまま評価）
    - 軸（🎯picks.axis）と同じ馬がトップなら2番手を選ぶ＝本番の「軸と妙味は別々」規則を全方式で共通適用 */
+/* ============================================================
+   ★第100弾: 新・妙味候補 myValueNew（既存の妙味馬判定とは別ロジック・比較検証用）
+   ------------------------------------------------------------
+   目的: 現行 p56 pkPicks の妙味馬（期待値 EV＝AI勝率×単勝オッズ が最大）は、
+   AI勝率が平坦なレースで「オッズが高いだけの馬」に偏る。ユーザー指示により、
+   【オッズの高さではなく、AIが市場より評価している理由】で選ぶ候補を別ロジックとして作る。
+
+   【絶対にしないこと】
+   - p56 pkPicks（現行妙味馬＝ベースライン）の変更・削除・差し替え ←今回は比較検証だけ
+   - 印・買い目・資金配分・75:25ブレンド・BT_MODE・学習DBへの影響（純関数・保存なし）
+   - UI追加（本関数はどこにも配線しない。採用は別指示）
+
+   スコア構成（オッズの大きさそのものは評価に入れない）:
+     1) AI勝率と市場期待勝率(1/オッズ正規化)の乖離  … 中心シグナル（±30点）
+     2) AI内部評価が市場人気より上（順位逆転）      … +12点まで
+     3) 展開適性（脚質×予想ペース fK）             … ±14点
+     4) 当日トラックバイアス×脚質（biasStyleMul）   … ±12点（BT/データ無し時は全候補中立）
+     5) 前走の内容（着順・上り3F順位）              … +13点まで
+     6) 今回条件への適合（同場×同馬場 fB・コース適性 fY2・持ちタイム fT）… ±22点
+     7) 期待値 EV は僅差の最終材料としてだけ         … ±6点
+     8) 大穴ガード: AI勝率5%未満 −25点／50倍以上かつAI勝率8%未満 −15点／AI勝率3%未満 さらに−15点
+        （＝「低確率×高オッズで計算上EVが伸びるだけ」の馬を妙味としない）
+   軸（AI勝率1位）と同じ馬は現行と同じ規則で除外する。
+   戻り値に reasons[]（なぜこの馬を推すか）を必ず持たせて説明可能にする。
+   ============================================================ */
+function myValueNew(res, picksOut){
+  var out = { ok:false, no:'', name:'', score:0, reasons: [], odds:null, prob:null, mi:null, edge:null, ev:null, oddsRank:0, probRank:0, n:0 };
+  try {
+    var rows = (res && res.rows) || [];
+    out.n = rows.length;
+    if (rows.length < 2) return out;
+    /* 市場期待勝率（pkPicks と同じ定義: 1/オッズ を正規化） */
+    var inv = 0;
+    rows.forEach(function(r){ var o = parseFloat(r && r.h && r.h.odds); if (o > 1) inv += 1 / o; });
+    if (!(inv > 0)) return out;
+    /* 人気順・AI評価順（pkPicks と同じ定義） */
+    var wo = rows.filter(function(r){ return parseFloat(r && r.h && r.h.odds) > 1; })
+      .slice().sort(function(a, b){ return parseFloat(a.h.odds) - parseFloat(b.h.odds); });
+    wo.forEach(function(r, i){ r._nvOr = i + 1; });
+    var wp = rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0); });
+    wp.forEach(function(r, i){ r._nvPr = i + 1; });
+    var axisNo = (picksOut && picksOut.axis && picksOut.axis.no != null) ? String(picksOut.axis.no) : '';
+    /* 当日バイアス（BT・データ無し時は中立=全候補に同じ係数なので比較は歪まない） */
+    var bm = null, bvTxt = '';
+    try { bm = (typeof biasStyleMul === 'function') ? biasStyleMul() : null; } catch(e){}
+    try { var bv = (bm && bm.v) || ((typeof biasVerdict === 'function') ? biasVerdict() : null); if (bv && bv.posLabel) bvTxt = String(bv.posLabel); } catch(e){}
+    var pace = (res && res.pace) || null;
+    function pc(v){ return (v != null && isFinite(Number(v))) ? (Math.round(Number(v) * 1000) / 10 + '%') : '—'; }
+    function cl(v, lo, hi){ v = Number(v); if (!isFinite(v)) return 0; if (v < lo) v = lo; if (v > hi) v = hi; return v; }
+    var best = null;
+    rows.forEach(function(r){
+      var h = (r && r.h) || null;
+      if (!h) return;
+      var o = parseFloat(h.odds);
+      if (!(o > 1)) return;
+      var p = (r.prob != null) ? Number(r.prob) : 0;
+      if (!(p > 0)) return;
+      if (axisNo && String(h.no) === axisNo) return;   /* 軸と同じ馬は外す（現行と同じ規則） */
+      var mi = (1 / o) / inv;
+      var ev = o * p;
+      var sc = 0, rs = [];
+      /* 1) AI勝率と市場期待の乖離（中心シグナル・オッズの高さそのものではない） */
+      var gap = p - mi;
+      sc += 30 * cl(gap * 10, -1, 1);
+      if (gap >= 0.01) rs.push('AI勝率' + pc(p) + 'に対し市場期待' + pc(mi) + '（AIが約' + (Math.round(gap * 1000) / 10) + 'pt高く評価）');
+      /* 2) AI内部評価が市場人気より上（p56 holeGapと同じ向き: 正＝市場よりAIが高く評価） */
+      var rr = (r._nvOr || 99) - (r._nvPr || 99);
+      if (rr >= 1){ sc += 12 * cl(rr / 5, 0, 1); rs.push('人気' + r._nvOr + '番に対しAI評価' + r._nvPr + '番'); }
+      else if (rr <= -3){ sc -= 6; }
+      /* 3) 展開適性（脚質×予想ペース） */
+      if (r.fK != null){
+        sc += 14 * cl((r.fK - 0.5) * 2, -1, 1);
+        if (r.fK >= 0.70) rs.push('展開適性は出場中上位（脚質' + (h.style || '?') + '×予想ペース' + ((pace && pace.label) || '—') + '）');
+      }
+      /* 4) 当日バイアス×脚質 */
+      try {
+        var scls = (typeof styleClass === 'function') ? styleClass(h.style) : '';
+        var smul = (bm && bm.mul && scls) ? Number(bm.mul[scls] || 1) : 1;
+        sc += 12 * cl((smul - 1) / 0.2, -1, 1);
+        if (smul >= 1.05 && bvTxt) rs.push('当日バイアス（' + bvTxt + '）が脚質' + (h.style || '?') + 'に有利');
+      } catch(e){}
+      /* 5) 前走の内容 */
+      if (h.prevOrder && h.prevOrder <= 3){ sc += 8; rs.push('前走' + h.prevOrder + '着'); }
+      if (h.last3rank && h.last3rank <= 3 && h.last3f){ sc += 5; rs.push('前走の上り3F ' + h.last3f + '秒（同レース' + h.last3rank + '位）'); }
+      /* 6) 今回条件への適合 */
+      if (r.fB != null){ sc += 8 * cl((r.fB - 0.5) * 2, -1, 1); if (r.fB >= 0.70) rs.push('今回と同じ開催場×馬場での好走率が出場中上位'); }
+      if (r.fY2 != null){ sc += 8 * cl((r.fY2 - 0.5) * 2, -1, 1); if (r.fY2 >= 0.70) rs.push('今回コース（距離・馬場）への適性が上位'); }
+      if (r.fT != null){ sc += 6 * cl((r.fT - 0.5) * 2, -1, 1); if (r.fT >= 0.75) rs.push('持ちタイムが出場中上位'); }
+      /* 7) 期待値は僅差の最終材料としてだけ */
+      sc += 6 * cl(ev - 1, -1, 1);
+      /* 8) 大穴ガード（オッズが高いだけの馬を妙味としない） */
+      if (p < 0.05){ sc -= 25; rs.push('※AI勝率' + pc(p) + 'と低い'); }
+      if (o >= 50 && p < 0.08){ sc -= 15; rs.push('※単勝' + o + '倍と高いがAI勝率が伴わない'); }
+      if (p < 0.03) sc -= 15;
+      if (!best || sc > best.sc) best = { sc: sc, r: r, h: h, o: o, p: p, mi: mi, ev: ev, rs: rs };
+    });
+    if (!best) return out;
+    return {
+      ok: true,
+      no: String(best.h.no == null ? '' : best.h.no), name: String(best.h.name || ''),
+      score: Math.round(best.sc * 10) / 10, reasons: best.rs,
+      odds: best.o, prob: Math.round(best.p * 10000) / 10000,
+      mi: Math.round(best.mi * 10000) / 10000, edge: Math.round((best.p / best.mi) * 100) / 100,
+      ev: Math.round(best.ev * 100) / 100,
+      oddsRank: (best.r._nvOr || 0), probRank: (best.r._nvPr || 0), n: rows.length
+    };
+  } catch(e){
+    return { ok:false, no:'', name:'', score:0, reasons: [], odds:null, prob:null, mi:null, edge:null, ev:null, oddsRank:0, probRank:0, n:((res && res.rows) || []).length };
+  }
+}
+
 var MY_BANDS = [[0, 0.02, '<2%'], [0.02, 0.05, '2-5%'], [0.05, 0.10, '5-10%'], [0.10, 0.20, '10-20%'], [0.20, 0.30, '20-30%'], [0.30, 9.9, '30%+']];
 var MY_METHODS = [
   { id: 'A',    label: 'A 現行（EV＝AI勝率×オッズ最大）' },
