@@ -37463,11 +37463,18 @@ function klBuildFromDb(){
   });
   var res = { v: KL_STATS_V, jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
   klDbCache = res;
-  try { if (typeof localStorage !== 'undefined') localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
+  /* ★第105弾: 空の統計(n=0)は保存しない（未ロード状態を永続化しない） */
+  try { if (typeof localStorage !== 'undefined' && res.n > 0) localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
   return res;
 }
+/* ★第105弾: 構築済み統計のレース数（0=まだ使えない。aiFreezeLvのガードに使用） */
+function klStatsN(){
+  try { if (!klDbCache) klStatsOf('horse', null); } catch(e){}
+  return (klDbCache && klDbCache.n) || 0;
+}
 function klStatsOf(kind, name){
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
+  /* ★第105弾: 空統計(n=0)のキャッシュは無視する（学習DBロード前に空統計が焼き付く事故防止） */
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0) klDbCache = p; } catch(e){} }
   if (!klDbCache) klDbCache = klBuildFromDb();
   var map = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
   return (name != null && map && map[name]) ? map[name] : null;
@@ -38925,7 +38932,8 @@ function lvHorseStats(hname){
     var st = (typeof klStatsOf === 'function') ? klStatsOf('horse', hname) : null;
     if (!st || !Array.isArray(st.races) || !st.races.length) return null;
     var lim = String(AI_LV_ASOF);
-    var rs = st.races.filter(function(jr){ var d = String((jr && jr.date) || ''); return d && d < lim; });
+    /* ★第105弾: 日付不明の戦績は除外せず残す（古い統計キャッシュ対策。値が消えるよりマシ） */
+    var rs = st.races.filter(function(jr){ var d = String((jr && jr.date) || ''); return !d || d < lim; });
     if (!rs.length) return null;
     var o = { name: hname, rides: rs.length, win: 0, place: 0, show: 0, bySurf: {}, byDistEx: {}, byTrack: {}, races: rs };
     function bump(map, key, od){ var c = map[key] || (map[key] = { rides: 0, win: 0, place: 0, show: 0 }); c.rides++; if (od === 1) c.win++; if (od <= 2) c.place++; if (od <= 3) c.show++; }
@@ -38950,6 +38958,8 @@ function lvHorseStats(hname){
    - バックテスト(preBt)は現在DBに未来のレースが混ざるため保存対象外（確定後表示も—）。 */
 function aiFreezeLv(rows, mm){
   try {
+    /* ★第105弾: 統計が未構築（学習DBロード前を含む）のときは保存しない（空のLvを焼き付けない） */
+    if (typeof klStatsN === 'function' && klStatsN() === 0) return null;
     var hs = (rows || []).filter(function(r){ return r && r.name; });
     if (!hs.length) return null;
     var b = { rec: { meta: mm || {} }, rows: hs.slice().sort(function(a, b2){ return (a.rank || 99) - (b2.rank || 99); }) };
@@ -38962,14 +38972,18 @@ function aiFreezeLv(rows, mm){
 }
 /* ★第102弾: エクスポート/表示用のLvソース（予想時点の保存値を最優先） */
 function aiLvForExport(b, geom){
+  /* ★第102弾: 予想時点の保存値(snap.lv)を最優先。★第104弾: 確定済みで保存が無い古い予想は
+     レース日より前の戦績だけから再現計算（後知恵なし）。
+     ★第105弾: どの経路でも1頭も測れないとき（日付情報の無い古い統計キャッシュ等）は
+     従来どおり現在DBで計算して「表示を消さない」。空の保存値(rlN=clN=0)は無視して再計算する。 */
+  var EMPTY = { cl: {}, rl: {}, clRk: {}, rlRk: {} };
   try {
-    if (b && b.snap && b.snap.lv) return { lv: b.snap.lv, rl: (b.snap.lv.rlTxt || null), frozen: 1 };
+    var slv = (b && b.snap && b.snap.lv) || null;
+    if (slv && ((slv.rlN || 0) > 0 || (slv.clN || 0) > 0)) return { lv: slv, rl: (slv.rlTxt || null), frozen: 1 };
     if (!aiIsSettled(b)){
       var lv = aiFieldLevels((b && b.rows) || [], geom || aiRaceGeom(b));
       return { lv: lv, rl: aiRaceRL(b), frozen: 0 };
     }
-    /* ★第104弾: 確定済みで保存なし＝更新前に保存した古い予想。レース日より前の戦績だけから
-       再現計算して埋め戻す（結果後の成績は使わない＝後知恵ランク付けではない）。d8無しのみ「—」。 */
     var d8 = String((b && b.snap && b.snap.d8) || (b && b.rec && b.rec.meta && b.rec.meta.date8) || '');
     if (d8){
       AI_LV_ASOF = d8;
@@ -38977,10 +38991,13 @@ function aiLvForExport(b, geom){
         var lv2 = aiFieldLevels((b && b.rows) || [], geom || aiRaceGeom(b));
         var rl2 = aiRaceRL(b);
       } finally { AI_LV_ASOF = null; }
-      if (lv2) return { lv: lv2, rl: rl2, frozen: 0, asof: 1 };
+      if (lv2 && ((lv2.rlN || 0) > 0 || (lv2.clN || 0) > 0)) return { lv: lv2, rl: rl2, frozen: 0, asof: 1 };
     }
-    return { lv: { cl: {}, rl: {}, clRk: {}, rlRk: {} }, rl: null, frozen: 0 };
-  } catch(e){ return { lv: { cl: {}, rl: {}, clRk: {}, rlRk: {} }, rl: null, frozen: 0 }; }
+    /* ★第105弾 最終フォールバック: 従来計算（現在DB）。1頭でも測れるなら「—」にしない */
+    var lv3 = aiFieldLevels((b && b.rows) || [], geom || aiRaceGeom(b));
+    if (lv3 && ((lv3.rlN || 0) > 0 || (lv3.clN || 0) > 0)) return { lv: lv3, rl: aiRaceRL(b), frozen: 0, fallback: 1 };
+    return { lv: EMPTY, rl: null, frozen: 0 };
+  } catch(e){ return { lv: EMPTY, rl: null, frozen: 0 }; }
 }
 /* 展開予想（実況風）: b→{ lines:[..], top3:'9-1-5', m, surf } / 3頭未満は null */
 function aiStorySim(b){
@@ -39265,7 +39282,7 @@ function aiExportXlsHTML(model){
     }
     h += '<tr><td colspan="11"></td></tr>';
   });
-  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -39308,7 +39325,7 @@ function aiExportPdfHTML(model){
     }
     h += '</table></div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   h += '</body></html>';
   return h;
 }
