@@ -2343,8 +2343,10 @@ html[data-theme="light"] .page-top-hero{
       <!-- ★第119弾: 過去へ遡る検索（netkeibaニュース検索API・約5年ぶん）は別ボタン -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">
         <span class="small" style="font-weight:700">🔎 過去へ遡る:</span>
-        <button type="button" class="btn" id="btnHbSearch5y" title="netkeibaニュース検索（「レース後コメント」）で約5年ぶん（最大7,500件・2009年以降すべて）まで遡って記事を検出します。ページ送りのぶん数十秒ほどかかります">🔎 過去5年ぶんから検出（数十秒かかります）</button>
-        <span class="small muted">同名レースは<b>新しいもの1件だけ</b>自動チェック。過去ぶんも一覧から選んで取込めます。</span>
+        <!-- ★第123弾: 年指定（記事掲載日ベース・二分探索で該当年のページを見つけて取得） -->
+        <select id="hbSearchYear" aria-label="取得する年" style="font-size:.85rem;padding:3px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)"></select>
+        <button type="button" class="btn" id="btnHbSearch5y" title="netkeibaニュース検索（「レース後コメント」）から選んだ範囲の記事を検出します。年指定は該当年のページを二分探索で見つけるので数リクエストで取れます（直近5年は全範囲を順に取るので数十秒）">🔎 選んだ範囲のレース後コメントを検出</button>
+        <span class="small muted">同名レースは<b>新しいもの1件だけ</b>自動チェック（現レース日以前で最新）。過去ぶんも一覧から選んで取込めます。データは2009年12月〜。</span>
       </div>
       <div class="small muted" style="margin-top:4px" id="hbIdxOut"></div>
       </details>
@@ -12754,23 +12756,43 @@ function renderCourseInfo(){
    ========================================================= */
 var HB_LS = 'khl_horsebook_v1';
 
+var HB_CACHE = null;   /* ★第123弾: 馬ノートDBの読み取りキャッシュ（hbCommit成功時に更新） */
 function hbLoad(){
+  /* ★第123弾: 保存は zlib 圧縮（cmpPack/cmpUnpack・p3_core）。
+     読み出しは毎回解凍すると重いので HB_CACHE に載せ、hbCommit 成功時だけ差し替える。 */
+  if (HB_CACHE) return HB_CACHE;
   try {
-    var o = JSON.parse(localStorage.getItem(HB_LS) || 'null');
-    if (o && Array.isArray(o.horses)) return o;
+    var raw = localStorage.getItem(HB_LS) || 'null';
+    if (typeof cmpUnpack === 'function') raw = cmpUnpack(raw);
+    var o = JSON.parse(raw);
+    if (o && Array.isArray(o.horses)){ HB_CACHE = o; return o; }
   } catch(e){}
   return { horses: [] };
 }
 function hbCommit(db){
-  try {
-    if ((db.horses || []).length > 600) db.horses = db.horses.slice(db.horses.length - 600);
-    safeSetItem(HB_LS, JSON.stringify(db));
-  } catch(e){
+  /* ★第122弾: 「600頭を超えたら古い馬から切り捨てる」仕様を廃止（ユーザー報告:
+     登録馬が600頭から増えない＝登録が黙って押し流されていたため）。
+     かわりに ①サマリにDBサイズを表示（hbSummary） ②保存失敗時は警告を出す。 */
+  /* safeSetItem は失敗しても例外を投げず false を返す（中で自動整理も試す）ので戻り値で判定。
+     ★第123弾: 保存は cmpPack（zlib圧縮）。620頭≈100KB→約15KBに縮むので、端末の保存領域（目安5MB）を
+     実質5〜10倍使えます。古い非圧縮データも hbLoad の cmpUnpack がそのまま読むので移行は自動。 */
+  var json = '';
+  try { json = JSON.stringify(db); } catch(e){ json = ''; }
+  var packed = (typeof cmpPack === 'function' && json) ? cmpPack(json) : json;
+  var ok = false;
+  try { ok = safeSetItem(HB_LS, packed); } catch(e){ ok = false; }
+  if (ok) HB_CACHE = db;
+  if (!ok){
     try {
       var el = $('hbInfo');
-      if (el) el.textContent = '⚠ 保存容量を超えたため馬ノートを保存できませんでした（古いメモを削除してください）';
+      if (el){
+        el.innerHTML = '⚠ <b>保存領域が足りず馬ノートを保存できませんでした</b>（現在 ' + ((db.horses || []).length) + '頭分）。' +
+          '古いメモを削るか、「📦 まるごと保存」でバックアップしてから整理してください。';
+        el.style.color = '#c33';
+      }
     } catch(e2){}
   }
+  return ok;
 }
 function hbLog(msg, tone){
   var el = $('hbInfo'); if (!el) return;
@@ -12901,7 +12923,10 @@ function hbHorseHasRaceNote(h, label){
     var e = (typeof hbFind === 'function') ? hbFind(h) : null;
     if (!e) return false;
     var key = hbNormRaceKey(label);
-    var toks = hbRaceKeyToks(label).filter(function(t){ return t.norm.length >= 3; });
+    /* ★第122弾: 「中山11R」など場+Rだけのトークンは別レースに誤ヒットするので
+       部分一致には使わない（完全一致の比較には使う）。レース名トークンだけで判定する。 */
+    var VR = /^(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)\d{1,2}R$/;
+    var toks = hbRaceKeyToks(label).filter(function(t){ return t.norm.length >= 3 && !VR.test(t.norm); });
     return (e.notes || []).some(function(nt){
       var rc = String((nt && nt.race) || '');
       if (!rc) return false;
@@ -13193,7 +13218,13 @@ function hbSummary(){
     (e.notes || []).forEach(function(x){ sn++; if (x.kind === 'short') nShort++; else if (x.kind === 'adv') nAdv++; else nMemo++; });
     if (sn || (e.memo || '').trim()) withNote++;
   });
-  return '登録馬 ' + db.horses.length + '頭 ／ メモあり ' + withNote + '頭 ／ 短評 ' + nShort + '件 ／ 有利不利 ' + nAdv + '件 ／ その他メモ ' + nMemo + '件';
+  /* ★第122弾: 600頭cap廃止にともない、DBの使用容量も見えるようにする（端末の保存領域は目安5MB） */
+  var kb = 0;
+  try { kb = Math.round(String(localStorage.getItem(HB_LS) || '').length / 1024); } catch(e){}   /* ★第123弾: 圧縮後の実使用量 */
+  var mb = (kb / 1024);
+  return '登録馬 ' + db.horses.length + '頭 ／ メモあり ' + withNote + '頭 ／ 短評 ' + nShort + '件 ／ 有利不利 ' + nAdv + '件 ／ その他メモ ' + nMemo + '件' +
+    '　<b>DB ' + (mb >= 1 ? mb.toFixed(1) + 'MB' : kb + 'KB') + '</b>' +
+    (mb >= 3 ? ' <b style="color:#a05a13">⚠ 保存領域がいっぱいに近づいています（目安5MB）。「📦 まるごと保存」でバックアップを</b>' : '');
 }
 
 function hbNoteItemHTML(n){
@@ -13652,6 +13683,71 @@ function hbIdxMarkLatest(list, cur){
     pick[0].matched = true;
   }
   return pick;
+}
+/* ★第123弾: ページ内で最も新しい/古い記事日付（リストは日付降順） */
+function hbPageNewestD8(html){
+  var l = hbIdxParse(html);
+  return l.length ? String(l[0].d8 || '') : '';
+}
+function hbPageOldestD8(html){
+  var l = hbIdxParse(html);
+  return l.length ? String(l[l.length - 1].d8 || '') : '';
+}
+/* ★第123弾: 指定した年（記事掲載日ベース）のレース後コメントだけを取得。
+   ニュース検索APIは日付降順でページ送りされるので、対象年の開始ページを【二分探索】で
+   見つけて（≈5リクエスト）そこから数ページ取るだけ。全ページ舐めはしません。
+   ※レース後コメント記事はレースの翌日〜数日後に掲載されるので「掲載年＝レースの年」でほぼ一致します。 */
+var HB_SEARCH_ALLP = 30;   /* 二分探索の上限ページ（全8,725件/500 = 18ページ＋余裕） */
+function hbSearchYearRun(year){
+  var el = $('hbIdxOut');
+  function say(t, err){ if (el) el.innerHTML = '<span' + (err ? ' style="color:#c33"' : '') + '>' + t + '</span>'; }
+  var auto = !!($('hbIdxAuto') && $('hbIdxAuto').checked);
+  var cur = hbIdxCurRace();
+  year = parseInt(year, 10) || 0;
+  var yLo = year + '0101', yHi = year + '1231';
+  function fetchP(p){ return hbFetchFirst([hbSearchApiUrl(p)]).then(function(r){ return r.html; }); }
+  var merged = [], seenNo = {}, done = false;
+  function finish(){
+    if (done) return; done = true;
+    if (!merged.length){
+      say('⚠ ' + year + '年の「…レース後コメント」記事が見つかりませんでした（データは2009年12月〜です）。従来どおり索引ボタン・記事URLの直接貼り付けは使えます。', 1);
+      return;
+    }
+    hbIdxMarkLatest(merged, cur);
+    hbIdxRenderList(merged, cur, auto, year + '年のニュース検索で', say,
+      '（<span class="muted">' + year + '年掲載ぶん ' + merged.length + '件</span>）');
+  }
+  /* 1) 二分探索: 「ページ内で最も古い記事 ≤ 対象年末」になる最初のページを探す */
+  var lo = 1, hi = HB_SEARCH_ALLP;
+  function bs(){
+    if (lo >= hi){ return collect(lo); }
+    var mid = Math.floor((lo + hi) / 2);
+    say('📡 ' + year + '年の位置を探しています（ページ ' + mid + '…）');
+    return fetchP(mid).then(function(h){
+      var od = hbPageOldestD8(h);
+      if (!od || od <= yHi) hi = mid;    // midの最古がもう対象年以前（または空ページ＝データ終端より後）
+      else lo = mid + 1;                 // mid全体が対象年より新しい
+      return bs();
+    }).catch(function(){ return collect(lo); });
+  }
+  /* 2) 対象年ぶんだけ集める（ページ全体が対象年より前になったら終了） */
+  function collect(pg){
+    if (pg > HB_SEARCH_ALLP || done) return finish();
+    say('📡 ' + year + '年ぶんを取得中…（' + merged.length + '件）');
+    return fetchP(pg).then(function(h){
+      var list = hbIdxParse(h);
+      if (!list.length) return finish();
+      list.forEach(function(it){
+        if (it.d8 && String(it.d8).slice(0, 4) === String(year) && !seenNo[it.no]){
+          seenNo[it.no] = 1; merged.push(it);
+        }
+      });
+      var newest = hbPageNewestD8(h);
+      if (newest && newest < yLo) return finish();   // もう対象年より前
+      return collect(pg + 1);
+    }).catch(function(){ return finish(); });
+  }
+  bs();
 }
 function hbSearchRun(){
   var el = $('hbIdxOut');
@@ -14446,7 +14542,21 @@ function initHorseBook(){
   })();
   on('btnHbNewsUse', 'click', hbUsePreview);
   on('btnHbIdxScan', 'click', function(){ hbIdxRun(); });
-  on('btnHbSearch5y', 'click', function(){ hbSearchRun(); });   /* ★第119弾: 過去5年ぶんニュース検索 */
+  /* ★第119弾+第123弾: 「🔎 過去へ遡る」— プルダウンで直近5年 or 年指定 */
+  (function(){
+    var sel = $('hbSearchYear');
+    if (!sel) return;
+    var y0 = new Date().getFullYear();
+    var h = '<option value="5">直近5年ぶん（自動打ち切り）</option>';
+    for (var y = y0; y >= 2009; y--) h += '<option value="' + y + '">' + y + '年</option>';
+    sel.innerHTML = h;
+  })();
+  on('btnHbSearch5y', 'click', function(){
+    var sel = $('hbSearchYear');
+    var v = sel ? String(sel.value || '') : '5';
+    if (/^\d{4}$/.test(v)) hbSearchYearRun(parseInt(v, 10));
+    else hbSearchRun();
+  });
   on('btnHbNewsClosePrev', 'click', function(){ var b=$('hbNewsPreview'); if (b) b.classList.add('hid'); });
   // 「📋 貼り付け」: クリップボードのURLを記事URL欄へ
   on('btnHbUrlPaste', 'click', function(){
@@ -46574,7 +46684,10 @@ function doExport(){
     /* ★第53弾: 馬ノート（短評・有利不利・メモ）を保存バックアップに同梱。
        更新でローカル保存が消えた時も、このJSONから復元できる。 */
     horsebook: (function(){ try {
-      var o = JSON.parse(localStorage.getItem('khl_horsebook_v1') || 'null');
+      /* ★第123弾: 馬ノートはzlib圧縮で保存されるので cmpUnpack してから読む */
+      var raw = localStorage.getItem('khl_horsebook_v1') || 'null';
+      if (typeof cmpUnpack === 'function') raw = cmpUnpack(raw);
+      var o = JSON.parse(raw);
       return (o && Array.isArray(o.horses)) ? o : null;
     } catch(e){ return null; } })()
   };
