@@ -1480,13 +1480,7 @@ html[data-theme="light"] .page-top-hero{
     <div class="card">
       <div class="cardhead">
         <h2>☀️ 天気予報（当日開催場の1時間ごと天気）</h2>
-        <span class="chip">旧⑦タブから移設</span>
       </div>
-      <p class="small muted" style="margin:4px 0 8px">
-        <b>初回の1回だけ</b>、ホームメイト「全国の競馬場一覧」から各競馬場の<b>住所（郵便番号）をコピーして保存</b>します。
-        2回目以降（再起動後も）は保存済みを使い、<b>当日開催の競馬場名のボタンを押すだけ</b>で
-        <b>天気・気温・湿度・降水量・降水確率・風向風速</b>の1時間ごと予報が出ます（馬場・時計の判断材料）。
-      </p>
       <div class="simrow">
         <label style="display:flex;align-items:center;gap:5px">日付
           <input type="date" id="tkDate" class="sm" style="min-width:150px">
@@ -1500,11 +1494,8 @@ html[data-theme="light"] .page-top-hero{
       <div id="tkMsg" class="small" style="margin-top:6px;line-height:1.7"></div>
       <div id="tkVenueBar" class="small" style="margin-top:8px;border-top:1px dashed var(--line2);padding-top:8px;line-height:1.9"></div>
       <div id="tkOut"></div>
-      <div class="small muted" style="margin-top:8px;border-top:1px dashed var(--line2);padding-top:6px">
-        ※ 表示は tenki.jp の「1時間ごとの天気」ページ（今日〜明後日の3日分）に基づきます。日付をそれ以外にすると当日分が無いため、参考として直近の日を表示します。<br>
-        ※ 競馬場の住所（郵便番号）一覧＝初回にホームメイト「全国の競馬場一覧」 https://www.homemate-research-keiba.com/list/ からコピーして保存したもの（未取得時は同梱の一覧）:
-        <span id="tkPcList"></span>
-      </div>
+      <!-- ★第116弾: 説明欄はユーザー指示で削除。tkPcListはid温存のため非表示で残す（p46_tenki.jsは不変） -->
+      <span id="tkPcList" hidden></span>
     </div>
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card))">
     <div class="cardhead">
@@ -26686,7 +26677,7 @@ function tkImportAddr(force, msg){
   if (!force && ls.addrAt && ls.addr && Object.keys(ls.addr).length){
     return Promise.resolve({ cached: true, n: Object.keys(ls.addr).length, at: ls.addrAt });
   }
-  msg && msg('初回のみ: ホームメイト「全国の競馬場一覧」から各競馬場の住所（郵便番号）をコピーしています…');
+  msg && msg('競馬場の住所（郵便番号）を取得中…');   /* ★第116弾: 説明文は削除 */
   return tkGet(TK_ADDR_URL).then(function(html){
     var list = tkParseAddrList(html);
     if (!list.length) throw new Error('住所の一覧を読み取れませんでした（ページの形式が変わったかもしれません）');
@@ -26972,9 +26963,8 @@ function tkVenueCardHTML(v, rec, d8){
     h.push(tkTableHTML(day, v.races));
     h.push('<div class="small muted" style="margin-top:4px">出典: tenki.jp（1時間ごとの天気）／地点: ' + esc(rec.point.title || '') +
       '（郵便番号 ' + esc(rec.point.pc) + '）／取得: ' + esc(String(rec.at || '').replace('T', ' ').slice(0, 16)) +
-      '　※ ' + ((rec.point.pc && v.pc && String(rec.point.pc).replace(/[^0-9]/g,'') !== String(v.pc).replace(/[^0-9]/g,''))
-        ? ('郵便番号 ' + esc(v.pc) + ' の地点が tenki.jp に無いため、' + esc(rec.point.pc) + ' を使用。')
-        : '郵便番号はホームメイト「全国の競馬場一覧」の所在地（初回の1回だけコピーして保存）。') + '</div>');
+      '　' + ((rec.point.pc && v.pc && String(rec.point.pc).replace(/[^0-9]/g,'') !== String(v.pc).replace(/[^0-9]/g,''))
+        ? ('※ 郵便番号 ' + esc(v.pc) + ' の地点が tenki.jp に無いため ' + esc(rec.point.pc) + ' を使用。') : '') + '</div>');   /* ★第116弾 */
   }
   h.push('</div></details>');
   return h.join('');
@@ -27020,7 +27010,7 @@ function tkBtn(nm, txt, sub, primary){
 function tkRenderVenueBar(){
   var bar = $('tkVenueBar'); if (!bar) return;
   var h = [];
-  h.push('<div style="font-weight:700;margin-bottom:4px">当日の開催場（<b>競馬場名のボタンを押すと天気予報が出ます</b>）</div>');
+  h.push('<div style="font-weight:700;margin-bottom:4px">当日の開催場</div>');   /* ★第116弾: 説明文は削除 */
   if ((tkUI.venues || []).length){
     h.push('<div class="simrow" style="gap:6px">');
     (tkUI.venues || []).forEach(function(v){
@@ -27031,7 +27021,7 @@ function tkRenderVenueBar(){
     h.push('<button type="button" class="btn primary" data-tkact="today" style="font-size:.8rem;padding:4px 10px">☀️ 当日開催を全部表示</button>');
     h.push('</div>');
   } else {
-    h.push('<div class="small muted">当日の開催情報がまだありません。「🔍 当日の開催場を取得」を押すと、開催場のボタンがここに並びます（下の「その他の競馬場」のボタンはすぐ使えます）。</div>');
+    h.push('<div class="small muted">当日の開催情報がまだありません。</div>');
   }
   h.push('<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:700">その他の競馬場（開催がない日でも天気だけ見られます）</summary>' +
     '<div class="simrow" style="gap:6px;margin-top:6px">');
@@ -27043,7 +27033,7 @@ function tkRenderVenueBar(){
     h.push(tkBtn(k, k, t && t.pc ? ('〒' + t.pc) : '※郵便番号なし', false));
   });
   h.push('</div></details>');
-  h.push('<div class="small muted" style="margin-top:8px;border-top:1px dashed var(--line2);padding-top:6px;line-height:1.7">' + tkAddrStatusText() + '</div>');
+  /* ★第116弾: 住所状況の説明欄はユーザー指示で削除（tkAddrStatusTextは関数ごと残置） */
   h.push('<div class="simrow" style="margin-top:4px;gap:6px">' +
     '<button type="button" class="btn ghost" data-tkact="addr" style="font-size:.76rem;padding:3px 10px">📋 住所をコピーし直す</button>' +
     '<button type="button" class="btn ghost" data-tkact="clear" style="font-size:.76rem;padding:3px 10px">表示をクリア</button></div>');
@@ -27052,7 +27042,7 @@ function tkRenderVenueBar(){
 function tkRenderOut(){
   var out = $('tkOut'); if (!out) return;
   var h = (tkUI.order || []).map(function(k){ return tkUI.cards[k] || ''; }).join('');
-  out.innerHTML = h || '<div class="card"><div class="small muted">上の<b>競馬場名のボタン</b>を押すと、その場の天気（1時間ごと）がここに表示されます。</div></div>';
+  out.innerHTML = h || '<div class="card"><div class="small muted">競馬場のボタンを押すと天気がここに表示されます。</div></div>';   /* ★第116弾: 短縮 */
 }
 function tkUpsertCard(venue, html){
   if (tkUI.cards[venue] == null) tkUI.order.push(venue);
@@ -27224,8 +27214,7 @@ function initTenki(){
   // ① 初回の1回だけ: ホームメイトの一覧から各競馬場の住所（郵便番号）をコピーして保存
   tkImportAddr(false, function(m){ tkLog([m]); }).then(function(r){
     if (r && !r.cached){
-      tkLog(['✅ 初回コピー完了: ' + r.n + '場の住所（郵便番号）を保存しました（' + r.at + '）。',
-        '次回以降（再起動後も）は保存済みの住所を使うので、この取得は行いません。当日開催の競馬場名ボタンを押すだけで天気予報が出ます。']);
+      tkLog(['✅ 住所（郵便番号）' + r.n + '場を保存しました。']);   /* ★第116弾: 説明文は削除 */
     }
     tkRenderPcList(); tkRenderVenueBar(); tkRenderOut();
     if (tkLoadCachedKaisai()) tkRenderVenueBar();
