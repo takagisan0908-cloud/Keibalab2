@@ -1784,8 +1784,8 @@ html[data-theme="light"] .page-top-hero{
 
   <div class="hid" id="kentaiBody">
     <!-- ★2026-09-13 第23弾①: オッズの「最終取得時刻」を必ず見えるようにした。
-         このタブを開くたびに最新の単勝オッズを取り直し（定期ポーリングはしない）、
-         変わっていれば AI印・軸/妙味/穴・買い目提案まで自動で描き直します。 -->
+         ★第118弾: タブを開いたときの自動取得は廃止（タブが重くなるため）。「🔄 今すぐ最新オッズ」
+         ボタンで取得し、変わっていれば AI印・軸/妙味/穴・買い目提案まで自動で描き直します。 -->
     <!-- ★第80弾: ②冒頭のジャンプ導線（レース未取込時はkentaiBodyごと非表示） -->
     <div class="small" id="kJumpBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px">
       <span class="muted" style="font-weight:700">よく使う:</span>
@@ -1795,10 +1795,13 @@ html[data-theme="light"] .page-top-hero{
     <div class="card" style="padding:8px 14px" id="oddsFreshCard">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="chip" id="oddsFreshChip">オッズ未取得</span>
-        <span class="small muted" id="oddsFreshTxt">このタブを開くと最新の単勝オッズを自動で取り直します。</span>
+        <span class="small muted" id="oddsFreshTxt">オッズと⏱前走タイム評価は自動では更新しません。必要なときに右のボタンで更新してください。</span>
         <span class="sp" style="flex:1"></span>
+        <!-- ★第118弾: タブを開いたときの自動更新を廃止し、この2ボタンで手動更新する -->
+        <button type="button" class="btn ghost" id="btnTlScan" style="padding:3px 10px;font-size:.78rem" title="出馬表の前走時計を評価し、🎯/⚠️判定を📒馬ノートへ短評登録します（学習DBが大きいと数秒かかります）">⏱ 前走タイム評価</button>
         <button type="button" class="btn ghost" id="oddsFreshBtn" style="padding:3px 10px;font-size:.78rem">🔄 今すぐ最新オッズ</button>
       </div>
+      <div class="small" id="tlScanOut" style="margin-top:4px"></div>
     </div>
     <div class="card" id="biasCardWrap">
       <div class="cardhead">
@@ -1865,8 +1868,8 @@ html[data-theme="light"] .page-top-hero{
       </details>
       </details>
     </div>
-    <!-- ★第95弾: ⏱前走タイムのレベルは非表示化（②タブを開いた時に出馬表から自動評価して📒馬ノートへ登録。
-         中身・判定ロジック・tlBox は不変で、内部処理だけ動く形） -->
+    <!-- ★第95弾: ⏱前走タイムのレベルは非表示化。★第118弾: ②タブを開いた時の自動評価は廃止し、
+         oddsFreshCard の「⏱ 前走タイム評価」ボタンで実行して📒馬ノートへ登録（中身・判定ロジック・tlBox は不変） -->
     <div class="card" id="tlCard" style="display:none">
       <div class="cardhead">
         <h2>⏱ 前走タイムのレベル（1着じゃなくても評価）</h2>
@@ -2336,7 +2339,7 @@ html[data-theme="light"] .page-top-hero{
         <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="ON: 検出した記事を順に取得し、プレビュー→割当→「選択した馬に登録」まで自動で進めます。OFF: プレビュー表示で止めます"><input type="checkbox" id="hbIdxAuto" checked>取込後そのまま自動登録</label>
         <button type="button" class="btn primary" id="btnHbIdxScan" title="索引ページを取得し、「【〇〇レース後コメント】」をレース名ごとに検出。現在のレース（場+R・レース名）と一致する記事を自動で取り込みます">🔎 索引からレース名を検出して取込</button>
       </div>
-      <div class="small muted" style="margin-top:2px">索引ページ（netkeiba競馬まとめのトピックス一覧）から「【〇〇レース後コメント】」を<b>レース名ごとに自動検出</b>し（サイトの直近トピック約100件＝実測で約2日前頃まで）、現在のレース（場+R／レース名が一致、S⇔ステークス表記ゆれも吸収）の記事をそのまま取り込みます。一致が無ければ一覧から選んで取り込めます。中継（api/race.js 等）経由で取得します。</div>
+      <div class="small muted" style="margin-top:2px">索引ページ（netkeiba競馬まとめのトピックス一覧）から「【〇〇レース後コメント】」を<b>レース名ごとに自動検出</b>し（サイトの直近トピック約400件＝実測で約3日前頃まで）、現在のレース（場+R／レース名が一致、S⇔ステークス表記ゆれも吸収）の記事をそのまま取り込みます。一致が無ければ一覧から選んで取り込めます。中継（api/race.js 等）経由で取得します。</div>
       <div class="small muted" style="margin-top:4px" id="hbIdxOut"></div>
       </details>
       <div class="small muted" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
@@ -8131,7 +8134,7 @@ function nkOddsRefreshForView(reason, opt){
       try { if (typeof saveNow === 'function') saveNow(); } catch(e){}
       try { if (typeof renderKentaiFull === 'function') renderKentaiFull(); } catch(e){}
       if (!opt.silent) nkOddsViewNote('✅ <b>' + esc(r.msg || '') + '</b> を取得し、<b>' + changed + ' 頭ぶんオッズが動いた</b>ので ②AI予想・軸/妙味/穴・各モデルの印を描き直しました。' +
-        '　<span class="muted">（' + esc(reason || '') + '／このタブを開くたびに自動で取り直します）</span>');
+        '　<span class="muted">（' + esc(reason || '') + '／このタブを開いても自動では取りに行いません）</span>');   /* ★第118弾 */
     } else if (!opt.silent){
       nkOddsViewNote('✅ ' + esc(r.msg || '') + ' を確認しました。<b>オッズは前回から変わっていません</b>（描き直しは不要なので行っていません）。' +
         '　<span class="muted">（' + esc(reason || '') + '）</span>');
@@ -8182,7 +8185,7 @@ function initOddsFresh(){
       if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('手動で更新しました', { force: true });
     });
   }
-  nkOddsViewNote('このタブを開くと最新の単勝オッズを自動で取り直します（定期ポーリングはしません）。');
+  nkOddsViewNote('オッズは自動では取りに行きません。最新を確認するときは「🔄 今すぐ最新オッズ」を押してください。');   /* ★第118弾: 自動更新廃止 */
 }
 
 /* ★2026-09-13 第19弾①: レース日(YYYYMMDD)を state.raceDate8 に確定させる。
@@ -13114,7 +13117,9 @@ function hbNoteItemHTML(n){
     '<span class="small muted">' + esc(n.date || '') + '</span>' +
     (n.race ? '<span class="small muted">' + esc(n.race) + '</span>' : '') +
     '<span class="sp"></span>' +
-    '<button type="button" class="hbmini" data-hbdelnote="' + esc(n.id) + '" data-hbe="' + esc(n.id) + '" title="このメモを削除">✕</button>' +
+    /* ★第118弾: ✕ボタンに data-hbe(メモID) を付けると closest('[data-hbe]') がボタン自身にhitして
+       馬IDが取れず削除が無言で失敗していた（「短評が消せない」原因）。data-hbe は馬カード側だけに持たせる。 */
+    '<button type="button" class="hbmini" data-hbdelnote="' + esc(n.id) + '" title="このメモを削除">✕</button>' +
     '</div>' +
     '<div style="white-space:pre-wrap;margin-top:3px">' + esc(n.text) + '</div></div>';
 }
@@ -13335,10 +13340,35 @@ function hbIdxUnjson(txt){
 }
 /* 索引ページがJS描画だけで本文が無い場合のフォールバック：netkeiba 側のトピックスAPI（JSONP）を叩く
    （dir.netkeiba.com/keibamatome/topics/*.html の一覧は実質このAPIの中身と同じ）
-   limit=100 は実測で1リクエストで通る（30件の上位互換／レース後コメントが約2日前分まで増える） */
-function hbIdxApiUrl(pageUrl){
+   limit=100 は実測で1リクエストで通る（30件の上位互換）。
+   ★2026-09-29 第117弾: 2026-09実測で ①トピック側のキーワード検索（keyword=レース後コメント）が空を返す
+   ②一般フィードは他トピックの記事量が増えて、レース後コメント記事が2〜4ページ目（100件/ページ）に
+   押し出された（1ページ目=0件・2〜4ページ目で今週末分〜約3日前まで拾える）。
+   → page=1〜4 を順に取得して重複(no)を除いてマージする。 */
+var HB_IDX_PAGES = 4;
+function hbIdxApiUrl(pageUrl, page){
+  page = parseInt(page, 10) || 1;
   return 'https://dir.netkeiba.com/sort/api_get_sort.html?input=UTF-8&output=jsonp' +
-    '&template=6&first_view=100&limit=100&page=1&contents=&keyword=&photo_flg=1&type=l&rf=kmatome';
+    '&template=6&first_view=100&limit=100&page=' + page + '&contents=&keyword=&photo_flg=1&type=l&rf=kmatome';
+}
+/* ★第117弾: トピックスAPIを1〜HB_IDX_PAGESページ順に取得してマージ（ページ単位の失敗・空は無視）。
+   say を渡すと進捗を表示できる。戻り値は hbIdxParse と同じ形状の記事リスト。 */
+function hbIdxFetchApi(url, say){
+  var merged = [], seenNo = {};
+  var chain = Promise.resolve();
+  for (var pg = 1; pg <= HB_IDX_PAGES; pg++){
+    (function(pg){
+      chain = chain.then(function(){
+        if (say) say('📡 トピックスAPI ' + pg + '/' + HB_IDX_PAGES + ' ページ目を取得中…');
+        return hbFetchFirst([hbIdxApiUrl(url, pg)]).then(function(r1){
+          hbIdxParse(r1.html).forEach(function(it){
+            if (it.no && !seenNo[it.no]){ seenNo[it.no] = 1; merged.push(it); }
+          });
+        }).catch(function(){ /* 1ページぶんの失敗・空は無視して次へ */ });
+      });
+    })(pg);
+  }
+  return chain.then(function(){ return merged; });
 }
 /* 索引HTML → 「【〇〇レース後コメント】」記事リスト */
 function hbIdxParse(html){
@@ -13408,8 +13438,8 @@ function hbIdxRun(){
   hbFetchFirst([url]).then(function(r0){
     var list = hbIdxParse(r0.html);
     if (!list.length && /netkeiba/i.test(url)){
-      /* ページ本体に記事リンクが無い（JS描画）→ トピックスAPIへフォールバック */
-      return hbFetchFirst([hbIdxApiUrl(url)]).then(function(r1){ return hbIdxParse(r1.html); });
+      /* ページ本体に記事リンクが無い（JS描画）→ トピックスAPIを1〜4ページ取得してマージ（★第117弾） */
+      return hbIdxFetchApi(url, say);
     }
     return list;
   }).then(function(list){
@@ -29418,6 +29448,29 @@ function initTl(){
     var t = e.target;
     if (!t || !t.id) return;
     if (t.id === 'tlScan'){ e.preventDefault(); tlRunScan(); }
+    /* ★第118弾: ②タブのoddsFreshCardに置いた「⏱ 前走タイム評価」ボタン（タブを開いた時の自動実行は廃止）。
+       注意: tlRunScan() の結果メッセージは最後の tlRender() が #tlMsg を空に再構築するため消えてしまう
+       （非表示カード内では誰も見ていなかったので従来は問題無し）。ここでは tlScanAll を直接呼び、
+       結果はボタンの下の #tlScanOut に表示する（tlRunScan・tlMsg・tlRender は従来どおり温存）。 */
+    if (t.id === 'btnTlScan'){
+      e.preventDefault();
+      var r1 = null, em1 = '';
+      try { r1 = tlScanAll(false); } catch(e3){ r1 = null; em1 = String((e3 && e3.message) || e3); }
+      try { tlRender(); } catch(e4){}
+      var o0 = (typeof $ === 'function') ? $('tlScanOut') : null;
+      if (o0){
+        if (r1){
+          o0.innerHTML = '<span>⏱ 評価 ' + r1.n + ' 頭（🎯 ' + (r1.fast || 0) + '／⚠️ ' + (r1.slow || 0) + '／○ ' + (r1.mid || 0) + '）' +
+            '・1着の走り ' + (r1.wins || 0) + '／追記した走り ' + (r1.extra || 0) +
+            (r1.noted ? '・<b>短評を ' + r1.noted + ' 件📒馬ノートへ登録</b>' : '') +
+            (r1.nodata ? '・馬柱未取得 ' + r1.nodata + ' 頭' : '') + (r1.noeval ? '・評価不能 ' + r1.noeval + ' 頭' : '') +
+            (r1.n ? '' : '　<span class="muted">（馬柱キャッシュが空です。①の「🐎 全馬プロフィール」で取得してから実行してください）</span>') + '</span>';
+        } else {
+          o0.innerHTML = '<span style="color:var(--err-ink)">評価に失敗しました: ' + esc(em1) + '</span>';
+        }
+      }
+      try { if (typeof renderKentaiFull === 'function') renderKentaiFull(); } catch(e2){}
+    }
     if (t.id === 'tlLearnBtn'){ e.preventDefault(); tlLearnRun(false); }
     if (t.id === 'tlLearnClear'){
       e.preventDefault();
@@ -46204,18 +46257,10 @@ function goTab(id){
   _curTab = id;
   setNav();
   if (id === 't-kentai'){ renderKentaiFull(); if (typeof rnRefresh === 'function') rnRefresh(); try { if (typeof pfPaint === 'function') pfPaint(); } catch(e){}
-    /* ★第95弾: ⏱前走タイムのレベル評価は、②タブを開いた時点で出馬表から自動で実行
-       （レースIDごとに1回だけ・非表示化したtlCardの内部処理として動く。
-         📒馬ノートへの短評自動登録は tlNoteOnce の重複防止が効くので何度開いても1回だけ） */
-    try {
-      if (typeof tlRunScan === 'function' && typeof state !== 'undefined' && state && state.raceId){
-        if (window.__tlAutoRid !== String(state.raceId)){ window.__tlAutoRid = String(state.raceId); tlRunScan(); }
-      }
-    } catch(e){}
-    /* ★2026-09-13 第23弾①: ②予想タブを開くたびに最新の単勝オッズを取り直す。
-       取れたときだけ nkOddsRefreshForView の中で AI印・軸/妙味/穴・買い目まで描き直します。
-       定期ポーリングはしないので、タブを開いたとき以外に通信は発生しません。 */
-    try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView('②AI予想タブを開きました'); } catch(e){}
+    /* ★第118弾: ②タブを開いたときの自動更新は廃止（ユーザー指示: タブが重い）。
+       ・⏱前走タイムのレベル評価（第95弾の自動実行） → oddsFreshCard の「⏱ 前走タイム評価」ボタンへ
+       ・最新単勝オッズの自動取得（第23弾①） → 同カードの「🔄 今すぐ最新オッズ」ボタンへ
+       描画（renderKentaiFull・バイアス・馬場ペイント）だけは今までどおり開いた時点で行います。 */
   }
   if (id === 't-sim'){
     try { if (typeof aiDepEnter === 'function') aiDepEnter(); } catch(e){}
