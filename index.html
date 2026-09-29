@@ -2340,6 +2340,12 @@ html[data-theme="light"] .page-top-hero{
         <button type="button" class="btn primary" id="btnHbIdxScan" title="索引ページを取得し、「【〇〇レース後コメント】」をレース名ごとに検出。現在のレース（場+R・レース名）と一致する記事を自動で取り込みます">🔎 索引からレース名を検出して取込</button>
       </div>
       <div class="small muted" style="margin-top:2px">索引ページ（netkeiba競馬まとめのトピックス一覧）から「【〇〇レース後コメント】」を<b>レース名ごとに自動検出</b>し（サイトの直近トピック約400件＝実測で約3日前頃まで）、現在のレース（場+R／レース名が一致、S⇔ステークス表記ゆれも吸収）の記事をそのまま取り込みます。一致が無ければ一覧から選んで取り込めます。中継（api/race.js 等）経由で取得します。</div>
+      <!-- ★第119弾: 過去へ遡る検索（netkeibaニュース検索API・約5年ぶん）は別ボタン -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">
+        <span class="small" style="font-weight:700">🔎 過去へ遡る:</span>
+        <button type="button" class="btn" id="btnHbSearch5y" title="netkeibaニュース検索（「レース後コメント」）で約5年ぶん（最大7,500件・2009年以降すべて）まで遡って記事を検出します。ページ送りのぶん数十秒ほどかかります">🔎 過去5年ぶんから検出（数十秒かかります）</button>
+        <span class="small muted">同名レースは<b>新しいもの1件だけ</b>自動チェック。過去ぶんも一覧から選んで取込めます。</span>
+      </div>
       <div class="small muted" style="margin-top:4px" id="hbIdxOut"></div>
       </details>
       <div class="small muted" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--card)">
@@ -12865,6 +12871,87 @@ function hbRaceCtx(){
   };
 }
 
+/* =========================================================
+   ★2026-09-30 第120弾+第121弾: レースコメントの重複防止
+   ---------------------------------------------------------
+   第120弾: 検出一覧に「📚既読N頭」バッジ／割当表投入時に警告行／登録前確認ポップアップ
+   第121弾: ユーザー指示「ようは重複しないようにしたい」→ ポップアップは廃止し、
+            既登録の馬は【無条件でスキップ】して新しいぶんだけ登録（結果はログで報告）。
+   ・hbHorseHasRaceNote(h, label): 馬 h が label のレースに既にメモを持つか
+     （note.race の完全一致、または主要トークン〔場+R／レース名〕の部分一致）
+   ・hbDupGroups(selRows): 行をレースごとに集計し、既登録のあるレースだけ返す（表示用）
+   ・hbIdxNoteIndex(): 検出一覧に「📚既読N頭」バッジを出すための索引（レース名→頭数）
+   ========================================================= */
+function hbNormRaceKey(x){
+  return String(x == null ? '' : x).replace(/[（(][^）)]*[)）]/g, '').replace(/[\s　]+/g, '');
+}
+function hbRaceKeyToks(label){
+  var out = [];
+  String(label == null ? '' : label).split(/[\s　]+/).forEach(function(tk){
+    tk = tk.replace(/[（(][^）)]*[)）]/g, '').trim();
+    if (!tk) return;
+    if (/^\d+$/.test(tk)) return;                 // 距離など数字だけのトークンは無視
+    var nrm = hbIdxNormRace(tk);
+    if (nrm) out.push({ raw: tk, norm: nrm });
+  });
+  return out;
+}
+function hbHorseHasRaceNote(h, label){
+  try {
+    var e = (typeof hbFind === 'function') ? hbFind(h) : null;
+    if (!e) return false;
+    var key = hbNormRaceKey(label);
+    var toks = hbRaceKeyToks(label).filter(function(t){ return t.norm.length >= 3; });
+    return (e.notes || []).some(function(nt){
+      var rc = String((nt && nt.race) || '');
+      if (!rc) return false;
+      var rk = hbNormRaceKey(rc);
+      if (key && rk === key) return true;                       // 完全一致（同じ記事を再取込した場合など）
+      for (var i = 0; i < toks.length; i++){
+        if (rk.indexOf(toks[i].norm) >= 0) return true;          // 主要トークンが含まれる
+      }
+      return false;
+    });
+  } catch(e){ return false; }
+}
+/* 登録予定の行（{ctx, h}）から「既に登録済みの馬」をレースごとに集計 */
+function hbDupGroups(selRows){
+  var groups = {};
+  (selRows || []).forEach(function(r){
+    if (!r || !r.h || !r.h.name) return;
+    var label = (r.ctx && r.ctx.label) || '';
+    var k = label || '（レース名不明）';
+    var g = groups[k] || (groups[k] = { label: k, total: 0, dup: 0, names: [] });
+    g.total++;
+    if (hbHorseHasRaceNote(r.h, label)){
+      g.dup++;
+      g.names.push((r.h.names && r.h.names[0]) || r.h.name);
+    }
+  });
+  return Object.keys(groups).map(function(k){ return groups[k]; }).filter(function(g){ return g.dup > 0; });
+}
+/* 検出一覧の「📚既読N頭」バッジ用: 既存メモのレース名トークン → 登録済み頭数 */
+function hbIdxNoteIndex(){
+  var map = {};
+  try {
+    var db = (typeof hbLoad === 'function') ? hbLoad() : { horses: [] };
+    (db.horses || []).forEach(function(e){
+      (e.notes || []).forEach(function(nt){
+        var rc = String((nt && nt.race) || '');
+        if (!rc) return;
+        hbRaceKeyToks(rc).forEach(function(t){
+          var nrm = t.norm;
+          if (!nrm || nrm.length < 3 || /^\d+$/.test(nrm)) return;
+          if (!map[nrm]) map[nrm] = { horses: {} };
+          map[nrm].horses[(e.names && e.names[0]) || e.id || '?'] = 1;
+        });
+      });
+    });
+    Object.keys(map).forEach(function(k){ map[k].n = Object.keys(map[k].horses).length; });
+  } catch(e){}
+  return map;
+}
+
 /* ---------- 登録系 ---------- */
 function hbNewNote(h, kind, text, ctx){
   var t = String(text == null ? '' : text).trim();
@@ -13391,8 +13478,16 @@ function hbIdxParse(html){
     seen[key] = 1;
     var vr = hay.match(/(札幌|函館|福島|新潟|東京|中山|中京|京都|阪神|小倉)\s*(\d{1,2})R/);
     var ago = (hay.match(/(\d+\s*分前|\d+\s*時間前|\d+\s*日前)/) || [])[1] || '';
+    /* ★第119弾: ニュース検索APIには「n日前」が無く「2026年09月26日(土)」形式 → agoの代わりに日付を表示し、
+       d8（YYYYMMDD）も抜いておく（hbSearchRun の5年打ち切り判定と hbIdxMarkLatest の最新1件判定で使用）。 */
+    var d8 = '';
+    var dm = hay.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    if (dm){
+      d8 = dm[1] + ('0' + dm[2]).slice(-2) + ('0' + dm[3]).slice(-2);
+      if (!ago) ago = dm[1] + '/' + ('0' + dm[2]).slice(-2) + '/' + ('0' + dm[3]).slice(-2);
+    }
     out.push({ no: key, url: url, rname: rm0[1].trim(), norm: hbIdxNormRace(rm0[1]),
-               venue: vr ? vr[1] : '', rnum: vr ? vr[2] : '', ago: ago, matched: false });
+               venue: vr ? vr[1] : '', rnum: vr ? vr[2] : '', ago: ago, d8: d8, matched: false });
   }
   return out;
 }
@@ -13420,7 +13515,8 @@ function hbIdxOne(it, auto){
     try {
       if (hbPreviewState && hbPreviewState.entries && hbPreviewState.entries.length){
         hbUsePreview();
-        hbSaveAssign();
+        /* ★第121弾: 既登録の馬は hbSaveAssignCore が自動スキップ（ポップアップは廃止） */
+        return hbSaveAssignAsync();
       }
     } catch(e){}
     return null;
@@ -13448,57 +13544,151 @@ function hbIdxRun(){
           '従来どおり記事URLの直接貼り付けは使えます。', 1);
       return;
     }
-    var pick = hbIdxMark(list, cur);
-    var h = '<b>🏁 索引から ' + list.length + ' 本のレース後コメントを検出</b>　現在のレース「' + esc(cur.label || '（未設定）') + '」と一致: <b>' + pick.length + ' 本</b>' +
-      '<div style="margin-top:3px;max-height:180px;overflow:auto;border:1px dashed var(--line2);border-radius:8px;padding:4px 8px;background:var(--card)">' +
-      list.map(function(it, i){
-        return '<label style="display:block;font-size:.78rem;margin:2px 0;cursor:pointer">' +
-          '<input type="checkbox" class="hbIdxChk" data-i="' + i + '"' + (it.matched ? ' checked' : '') + '> ' +
-          (it.venue ? '<b>' + esc(it.venue + it.rnum + 'R') + '</b> ' : '') + esc(it.rname) +
-          (it.ago ? ' <span class="muted">（' + esc(it.ago) + '）</span>' : '') +
-          (it.matched ? ' <b style="color:var(--ok-ink)">✓一致</b>' : '') + '</label>';
-      }).join('') + '</div>' +
-      '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
-      '<button type="button" class="btn primary" id="btnHbIdxGo" style="font-size:.78rem;padding:3px 12px">📥 チェック済みを取り込む' + (auto ? '（自動登録）' : '（プレビュー）') + '</button>' +
-      '<button type="button" class="btn ghost" id="btnHbIdxAll" style="font-size:.74rem;padding:2px 8px">全選択</button>' +
-      '<button type="button" class="btn ghost" id="btnHbIdxHit" style="font-size:.74rem;padding:2px 8px">一致のみ</button>' +
-      '<span class="small muted">チェックを外せばそのレースは取り込みません。</span></div>';
-    el.innerHTML = h;
-    function setAll(on){
-      var cks = document.querySelectorAll('.hbIdxChk');
-      for (var i = 0; i < cks.length; i++){
-        var ix = parseInt(cks[i].getAttribute('data-i'), 10);
-        cks[i].checked = on ? true : !!(list[ix] && list[ix].matched);
-      }
-    }
-    var bA = $('btnHbIdxAll'); if (bA) bA.addEventListener('click', function(){ setAll(true); });
-    var bH = $('btnHbIdxHit'); if (bH) bH.addEventListener('click', function(){ setAll(false); });
-    var go = $('btnHbIdxGo');
-    if (go) go.addEventListener('click', function(){
-      var cks = document.querySelectorAll('.hbIdxChk');
-      var picks = [];
-      for (var i = 0; i < cks.length; i++){
-        var ix = parseInt(cks[i].getAttribute('data-i'), 10);
-        if (cks[i].checked && list[ix]) picks.push(list[ix]);
-      }
-      if (!picks.length){ say('⚠ レースが選ばれていません（一致が無い場合は「全選択」から選べます）。', 1); return; }
-      var n = 0;
-      var q = Promise.resolve();
-      picks.forEach(function(it){
-        q = q.then(function(){
-          n++;
-          say('📥 (' + n + ' / ' + picks.length + ')「' + esc(it.rname) + '」の記事を取得中…');
-          return hbIdxOne(it, auto).catch(function(){ return null; });
-        });
-      });
-      q.then(function(){
-        say('✅ 索引取込完了（' + picks.length + ' 本）' + (auto ? '。該当馬の馬ノートへ「📝短評」を登録しました（割当が見つからなかった馬はスキップ）。' : '。プレビューを確認して「この内容を割当表へ入れる」→「選択した馬に登録」を押してください。'));
-      });
-    });
+    hbIdxMark(list, cur);
+    hbIdxRenderList(list, cur, auto, '索引から', say, '');
   }).catch(function(e){
     say('⚠ 索引の取得に失敗: ' + esc(String((e && e.message) || e)) +
       '<br><span class="small">中継（api/race.js 等）が必要なページです。ローカルで開いている場合は記事URLの直接貼り付けをご利用ください。</span>', 1);
   });
+}
+
+/* ★第119弾: 索引/検索で共通の一覧UI描画（hbIdxRun・hbSearchRun から使う）。
+   list は matched フラグ付き（hbIdxMark / hbIdxMarkLatest 済み）。 */
+function hbIdxRenderList(list, cur, auto, srcLabel, say, extrNote){
+  var el = $('hbIdxOut');
+  if (!el) return;
+  var pick = list.filter(function(it){ return it.matched; });
+  /* ★第120弾: 既に馬ノートへ登録済みのレースには「📚既読N頭」バッジを付ける */
+  var noteIdx = null;
+  try { noteIdx = hbIdxNoteIndex(); } catch(e){ noteIdx = null; }
+  var h = '<b>🏁 ' + srcLabel + ' ' + list.length + ' 本のレース後コメントを検出</b>' + (extrNote || '') + '　現在のレース「' + esc(cur.label || '（未設定）') + '」と一致: <b>' + pick.length + ' 本</b>' +
+    '<div style="margin-top:3px;max-height:180px;overflow:auto;border:1px dashed var(--line2);border-radius:8px;padding:4px 8px;background:var(--card)">' +
+    list.map(function(it, i){
+      return '<label style="display:block;font-size:.78rem;margin:2px 0;cursor:pointer">' +
+        '<input type="checkbox" class="hbIdxChk" data-i="' + i + '"' + (it.matched ? ' checked' : '') + '> ' +
+        (it.venue ? '<b>' + esc(it.venue + it.rnum + 'R') + '</b> ' : '') + esc(it.rname) +
+        (noteIdx && noteIdx[hbIdxNormRace(it.rname)] ? ' <span class="chip" style="font-size:.68rem;padding:0 6px">📚既読' + noteIdx[hbIdxNormRace(it.rname)].n + '頭</span>' : '') +
+        (it.ago ? ' <span class="muted">（' + esc(it.ago) + '）</span>' : '') +
+        (it.matched ? ' <b style="color:var(--ok-ink)">✓一致</b>' : '') + '</label>';
+    }).join('') + '</div>' +
+    '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+    '<button type="button" class="btn primary" id="btnHbIdxGo" style="font-size:.78rem;padding:3px 12px">📥 チェック済みを取り込む' + (auto ? '（自動登録）' : '（プレビュー）') + '</button>' +
+    '<button type="button" class="btn ghost" id="btnHbIdxAll" style="font-size:.74rem;padding:2px 8px">全選択</button>' +
+    '<button type="button" class="btn ghost" id="btnHbIdxHit" style="font-size:.74rem;padding:2px 8px">一致のみ</button>' +
+    '<span class="small muted">チェックを外せばそのレースは取り込みません。</span></div>';
+  el.innerHTML = h;
+  function setAll(on){
+    var cks = document.querySelectorAll('.hbIdxChk');
+    for (var i = 0; i < cks.length; i++){
+      var ix = parseInt(cks[i].getAttribute('data-i'), 10);
+      cks[i].checked = on ? true : !!(list[ix] && list[ix].matched);
+    }
+  }
+  var bA = $('btnHbIdxAll'); if (bA) bA.addEventListener('click', function(){ setAll(true); });
+  var bH = $('btnHbIdxHit'); if (bH) bH.addEventListener('click', function(){ setAll(false); });
+  var go = $('btnHbIdxGo');
+  if (go) go.addEventListener('click', function(){
+    var cks = document.querySelectorAll('.hbIdxChk');
+    var picks = [];
+    for (var i = 0; i < cks.length; i++){
+      var ix = parseInt(cks[i].getAttribute('data-i'), 10);
+      if (cks[i].checked && list[ix]) picks.push(list[ix]);
+    }
+    if (!picks.length){ say('⚠ レースが選ばれていません（一致が無い場合は「全選択」から選べます）。', 1); return; }
+    var n = 0;
+    var q = Promise.resolve();
+    picks.forEach(function(it){
+      q = q.then(function(){
+        n++;
+        say('📥 (' + n + ' / ' + picks.length + ')「' + esc(it.rname) + '」の記事を取得中…');
+        return hbIdxOne(it, auto).catch(function(){ return null; });
+      });
+    });
+    q.then(function(){
+      say('✅ 取込完了（' + picks.length + ' 本）' + (auto ? '。該当馬の馬ノートへ「📝短評」を登録しました（割当が見つからなかった馬はスキップ）。' : '。プレビューを確認して「この内容を割当表へ入れる」→「選択した馬に登録」を押してください。'));
+    });
+  });
+}
+
+/* =========================================================
+   ★2026-09-29 第119弾: 「🔎 過去5年ぶんから検出」— netkeibaニュース検索APIで遡る
+   ---------------------------------------------------------
+   実測: news.netkeiba.com/?pid=api_get_news_search&keyword=レース後コメント は
+   8,725件（2009年12月〜）が日付降順で返る。limit=100 で1リクエスト100件。
+   ページを順に取得し、記事日付が5年前を切ったら（または60ページ・空ページで）打ち切り。
+   同名レース（過去5年に同名が複数）を全部自動取込しないよう、一致は最新1件だけに。
+   ========================================================= */
+var HB_SEARCH_YEARS = 5;
+var HB_SEARCH_MAXP = 15;   /* ★実測: limit=500 が通る。500件×15ページ＝最大7,500件（5年ぶん≈6,700件を余裕でカバー） */
+function hbSearchApiUrl(page){
+  return 'https://news.netkeiba.com/?pid=api_get_news_search&input=UTF-8&output=jsonp' +
+    '&keyword=' + encodeURIComponent('レース後コメント') + '&limit=500&page=' + (parseInt(page, 10) || 1);   /* ★limit=500も実測で通る（1リクエスト500件） */
+}
+/* ★第119弾: 現レースの日付（YYYYMMDD）。レース名冒頭の「2024年9月29日 …」から、
+   無ければ state.raceDate8（出馬表取込時に設定）から取る。分からないときは ''。 */
+function hbIdxCurD8(){
+  var rc = (typeof state !== 'undefined' && state && state.race) ? state.race : {};
+  var md = String(rc.name || '').match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if (md) return md[1] + ('0' + md[2]).slice(-2) + ('0' + md[3]).slice(-2);
+  try {
+    if (state && state.raceDate8 && /^\d{8}$/.test(String(state.raceDate8))) return String(state.raceDate8);
+  } catch(e){}
+  return '';
+}
+/* ★第119弾: 検索モードの一致判定 — 過去5年に同名レースが複数あるとき自動取込するのは1件だけ。
+   現レースの日付が分かるなら【現レース日以前で最新】の1件（2024年のレースを開いているのに
+   2026年の同名記事を取込まない）。現レース日が分からないときは単純に最新1件。
+   d8が取れない記事しか無い場合は従来の hbIdxMark と同じ全マーク。 */
+function hbIdxMarkLatest(list, cur){
+  var pick = hbIdxMark(list, cur);
+  if (pick.length > 1 && pick[0].d8){
+    pick.sort(function(a, b){ return String(b.d8).localeCompare(String(a.d8)); });   /* 新しい順 */
+    var curD8 = hbIdxCurD8();
+    var past = curD8 ? pick.filter(function(it){ return String(it.d8) <= String(curD8); }) : [];
+    if (past.length) pick = [past[0]];                       /* 現レース日以前で最新 */
+    else if (curD8) pick = [pick[pick.length - 1]];          /* すべて未来 → 最古（現レース日に一番近い） */
+    else pick = pick.slice(0, 1);                            /* 現レース日不明 → 単純に最新 */
+    list.forEach(function(it){ it.matched = false; });
+    pick[0].matched = true;
+  }
+  return pick;
+}
+function hbSearchRun(){
+  var el = $('hbIdxOut');
+  function say(t, err){ if (el) el.innerHTML = '<span' + (err ? ' style="color:#c33"' : '') + '>' + t + '</span>'; }
+  var auto = !!($('hbIdxAuto') && $('hbIdxAuto').checked);
+  var cur = hbIdxCurRace();
+  var now = new Date();
+  var cutoff = '' + (now.getFullYear() - HB_SEARCH_YEARS) + ('0' + (now.getMonth() + 1)).slice(-2) + ('0' + now.getDate()).slice(-2);
+  var merged = [], seenNo = {}, oldest = '', pg = 0, stopped = false;
+  function fmtD8(d8){ return parseInt(d8.slice(0, 4), 10) + '年' + parseInt(d8.slice(4, 6), 10) + '月' + parseInt(d8.slice(6, 8), 10) + '日'; }
+  function finish(){
+    if (!merged.length){
+      say('⚠ ニュース検索で「…レース後コメント」記事を検出できませんでした（netkeiba側の仕様変更の可能性）。従来どおり索引ボタン・記事URLの直接貼り付けは使えます。', 1);
+      return;
+    }
+    hbIdxMarkLatest(merged, cur);
+    hbIdxRenderList(merged, cur, auto, 'ニュース検索で', say,
+      '（<span class="muted">' + (oldest ? fmtD8(oldest) + 'まで' : '') + ' ' + merged.length + '件</span>）');
+  }
+  (function loop(){
+    if (stopped) return;
+    pg++;
+    if (pg > HB_SEARCH_MAXP || (oldest && String(oldest) < cutoff)){ finish(); return; }
+    say('📡 ニュース検索 ' + pg + '/' + HB_SEARCH_MAXP + ' ページ目を取得中…' +
+      (oldest ? '（' + fmtD8(oldest) + 'まで取得済み・' + merged.length + '件）' : ''));
+    hbFetchFirst([hbSearchApiUrl(pg)]).then(function(r1){
+      var list = hbIdxParse(r1.html);
+      if (!list.length){ stopped = true; finish(); return; }
+      list.forEach(function(it){
+        if (it.no && !seenNo[it.no]){
+          seenNo[it.no] = 1; merged.push(it);
+          if (it.d8 && (!oldest || String(it.d8) < oldest)) oldest = String(it.d8);
+        }
+      });
+      loop();
+    }).catch(function(){ stopped = true; finish(); });
+  })();
 }
 /* レース後コメント記事 → 各馬エントリ(馬名リンク無し/SPにも対応) */
 function hbParseCommentArticle(html){
@@ -13813,9 +14003,21 @@ function hbUsePreview(){
     ? st.races.map(function(r){ return arRaceLabel(r); }).join('／') : '';
   var raceHint = hbCurRaceName()
     ? '（現在のレース名: ' + esc(hbCurRaceName()) + ' と<b>違っていても登録できます</b>）' : '';
+  /* ★第120弾: 既に登録済みのレースは検出時にも警告（登録時にもポップアップが出る） */
+  var dupLines = '';
+  try {
+    var dgs = hbDupGroups(rows.filter(function(r){ return r.val; }).map(function(r){
+      var o2 = hbHorseFromVal(r.val);
+      return { ctx: r.ctx, h: (o2 && o2.h) || { name: '' } };
+    }));
+    dupLines = dgs.map(function(g){
+      return '<br>⚠ <b>' + esc(g.label) + '</b>は既に <b>' + g.dup + '頭</b>登録済み（登録時にスキップします）';
+    }).join('');
+  } catch(e){}
   var intro = '<div class="small muted" style="margin-bottom:6px">「' + esc(st.title) + '」から ' + st.entries.length + '頭分を割当表へ投入（' +
     found + '頭を自動割当' + (nNew ? '・' + nNew + '頭は🆕新規登録' : '') + '）。' +
     (raceTxt ? '<br>🏁 検出したレース: <b>' + esc(raceTxt) + '</b>　' : '') +
+    dupLines +
     '<b>下で対象馬・文言を確認し、「選択した馬に登録」</b>を押してください。</div>';
   var ri = $('hbRaceInfo');
   if (ri) ri.innerHTML = '取得記事: ' + esc(st.title) + (raceTxt ? '　🏁 ' + esc(raceTxt) : '') + raceHint;
@@ -13830,23 +14032,53 @@ function hbCancelAssign(){
   var box = $('hbAssignRows'); if (box) box.innerHTML = '';
   try { hbDraftClear(); } catch(eD){}   /* ★第53弾: 明示キャンセル＝下書きも破棄 */
 }
-function hbSaveAssign(){
+function hbSaveAssign(){ return hbSaveAssignCore(); }
+/* ★第120弾: 自動取込（索引/検索の連続実行）から呼ぶバージョン（Promise を返す）。 */
+function hbSaveAssignAsync(){ return hbSaveAssignCore(true); }
+function hbSaveAssignCore(async){
   var rows = hbAssignRows;
-  if (!rows || !rows.length){ hbLog('割当対象がありません。', 'err'); return; }
+  if (!rows || !rows.length){ hbLog('割当対象がありません。', 'err'); return Promise.resolve(); }
   var kind = ($('hbKindAdv') && $('hbKindAdv').checked) ? 'adv' : (($('hbKindMemo') && $('hbKindMemo').checked) ? 'memo' : 'short');
   var ctx = hbAssignCtx || hbRaceCtx();
-  var saved = 0, skipped = 0, nNew = 0;
+  /* 先に「登録される行」を集める */
+  var cand = [];
   rows.forEach(function(r, i){
-    var sel = document.querySelector('[data-hbsel="' + i + '"]');
-    if (!sel) return;
-    var val = sel.value;
-    if (!val){ skipped++; return; }
+    var selEl = document.querySelector('[data-hbsel="' + i + '"]');
+    if (!selEl) return;
+    var val = selEl.value;
+    if (!val) return;
     var tBox = document.querySelector('[data-hbtxt="' + i + '"]');
     var text = tBox ? tBox.value : r.text;
     var t = String(text || '').trim();
-    if (!t){ skipped++; return; }
+    if (!t) return;
     var obj = hbHorseFromVal(val);
-    if (!obj || !obj.h || !obj.h.name){ skipped++; return; }
+    if (!obj || !obj.h || !obj.h.name) return;
+    cand.push({ r: r, val: val, text: t, obj: obj });
+  });
+  /* ★第121弾: 重複は登録しない（ユーザー指示「ようは重複しないようにしたい」）。
+     スキップ対象: ①馬ノートに既にそのレースのメモがある馬 ②同一バッチ内の「同じ馬×同じレース」。
+     第120弾の確認ポップアップは廃止し、無条件でスキップ＋結果を行末ログで報告。 */
+  var fresh = [], dupN = 0, dupNames = [], seenPair = {};
+  cand.forEach(function(x){
+    var label = (x.r.ctx && (x.r.ctx.label || x.r.ctx.date)) ? String(x.r.ctx.label || '') : String((ctx && ctx.label) || '');
+    var pk = String(x.obj.h.nk || hbNorm(x.obj.h.name || '')) + '|' + hbNormRaceKey(label);
+    var nm = (x.obj.h.names && x.obj.h.names[0]) || x.obj.h.name;
+    if (seenPair[pk] || hbHorseHasRaceNote(x.obj.h, label)){
+      dupN++;
+      if (dupNames.length < 5 && dupNames.indexOf(nm) < 0) dupNames.push(nm);
+      return;
+    }
+    seenPair[pk] = 1;
+    fresh.push(x);
+  });
+  hbDoSaveAssign(rows, fresh, kind, ctx, dupN, dupNames);
+  return Promise.resolve();
+}
+function hbDoSaveAssign(rows, sel, kind, ctx, dupN, dupNames){
+  var saved = 0, nNew = 0;
+  var skipped = rows.length - sel.length;
+  sel.forEach(function(x){
+    var r = x.r;
     /* ★第22弾: 記事から検出した「その馬が出ていたレース名」を行ごとに付記する。
        1つの記事に複数レースが載っていても、それぞれのレース名が短評に残ります。 */
     var rctx = ctx;
@@ -13855,14 +14087,18 @@ function hbSaveAssign(){
                label: r.ctx.label || ctx.label || '',
                fromNews: true };
     }
-    if (r.src === 'new' || val.charAt(0) === 'x') nNew++;
-    hbNewNote(obj.h, kind, t, rctx);
+    if (r.src === 'new' || x.val.charAt(0) === 'x') nNew++;
+    hbNewNote(x.obj.h, kind, x.text, rctx);
     saved++;
   });
   if (saved > 0){
-    hbLog('💾 対象馬 ' + saved + '件に「' + hbKindMeta(kind)[0] + '」を登録しました（スキップ ' + skipped + '件' +
-      (nNew ? '・うち ' + nNew + '件は今回の出走外/新規の馬' : '') +
+    hbLog('💾 対象馬 ' + saved + '件に「' + hbKindMeta(kind)[0] + '」を登録しました' +
+      (dupN ? '（⏭ 既に登録済みのため ' + dupN + '頭をスキップ' + (dupNames.length ? '：' + dupNames.map(esc).join('・') : '') + '）' : '') +
+      '（未選択 ' + skipped + '件' + (nNew ? '・うち ' + nNew + '件は今回の出走外/新規の馬' : '') +
       '）。次回その馬が出走するとマークが付きます。');
+  } else if (dupN > 0){
+    hbLog('⏭ このレースのコメントは既に全頭登録済みのため、新しい登録はしませんでした（' + dupN + '頭）。' +
+      'どうしてももう1件追加したいときは、④の一覧でその馬の「＋ 短評を登録」から手動でどうぞ。');
   } else {
     hbLog('対象馬が1件も選ばれていません。', 'err');
   }
@@ -14110,23 +14346,54 @@ function hbMergeFromImport(obj){
 function hbBackup(){
   if (typeof showModal !== 'function') return;
   var txt = JSON.stringify(hbLoad());
+  /* ★第119弾: 💾ボタンでファイルとして保存（次に「復元」の📂で読み込めばOK） */
   showModal('<h2>馬ノートDBのバックアップ</h2>' +
-    '<p class="small muted">下のテキストをコピーして保存しておくと、別の端末やブラウザで「復元」できます。</p>' +
+    '<p class="small muted">💾 ボタンでバックアップファイルを保存できます（「復元」の📂から読み込めます）。従来どおり下のテキストをコピーして保存しても構いません。</p>' +
+    '<div style="text-align:right;margin:2px 0 6px"><button type="button" class="btn primary" data-hbfile>💾 ファイルとして保存</button></div>' +
     '<textarea rows="8" style="width:100%" onclick="this.select()">' + esc(txt) + '</textarea>' +
     '<div style="text-align:right;margin-top:8px"><button type="button" class="btn ghost" data-mcl>閉じる</button></div>',
-    function(root){ root.querySelector('[data-mcl]').addEventListener('click', closeModal); });
+    function(root){
+      root.querySelector('[data-mcl]').addEventListener('click', closeModal);
+      var fb = root.querySelector('[data-hbfile]');
+      if (fb) fb.addEventListener('click', function(){
+        try {
+          var blob = new Blob([txt], { type: 'application/json' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          var d = new Date();
+          a.download = '馬ノートバックアップ-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '-' + ('0' + d.getHours()).slice(-2) + ('0' + d.getMinutes()).slice(-2) + '.json';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e0){} }, 2000);
+        } catch(eF){}
+      });
+    });
 }
 function hbRestore(){
   if (typeof showModal !== 'function') return;
     showModal('<h2>馬ノートDBを復元</h2>' +
-    '<p class="small muted">バックアップしたJSONを貼り付けて「復元」を押します。既存の内容は残して<b>マージする方が安全</b>です（完全に置き換えたい時だけ☐に）。</p>' +
+    '<p class="small muted">バックアップしたJSONを貼り付けて（または📂でファイルを選んで）「復元」を押します。既存の内容は残して<b>マージする方が安全</b>です（完全に置き換えたい時だけ☐に）。</p>' +
     '<label class="small" style="display:block;margin:2px 0 6px"><input type="checkbox" id="hbRestoreMerge" checked> 既存の内容とマージする（馬ごとに既存メモは保持し、無いメモだけ追加）</label>' +
+    /* ★第119弾: 💾で保存したバックアップファイルをそのまま読み込む */
+    '<div style="margin:2px 0 6px"><label class="btn ghost" style="display:inline-block;cursor:pointer">📂 ファイルから読み込む' +
+    '<input type="file" id="hbRestoreFile" accept=".json,application/json" style="display:none"></label>' +
+    ' <span class="small muted">💾で保存したバックアップファイルを選ぶと下の欄に入ります。</span></div>' +
     '<textarea id="hbRestoreTxt" rows="8" style="width:100%" placeholder=\'{ "horses": [...] }\'></textarea>' +
     '<div style="text-align:right;margin-top:8px;display:flex;gap:6px;justify-content:flex-end">' +
     '<button type="button" class="btn ghost" data-mno>キャンセル</button>' +
     '<button type="button" class="btn primary" data-hbrest>復元</button></div>',
     function(root){
       root.querySelector('[data-mno]').addEventListener('click', closeModal);
+      var fi = root.querySelector('#hbRestoreFile');
+      if (fi) fi.addEventListener('change', function(){
+        var f = fi.files && fi.files[0];
+        if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function(){
+          var ta = document.getElementById('hbRestoreTxt');
+          if (ta) ta.value = String(rd.result || '');
+        };
+        rd.readAsText(f);
+      });
       root.querySelector('[data-hbrest]').addEventListener('click', function(){
         var raw = document.getElementById('hbRestoreTxt');
         try {
@@ -14179,6 +14446,7 @@ function initHorseBook(){
   })();
   on('btnHbNewsUse', 'click', hbUsePreview);
   on('btnHbIdxScan', 'click', function(){ hbIdxRun(); });
+  on('btnHbSearch5y', 'click', function(){ hbSearchRun(); });   /* ★第119弾: 過去5年ぶんニュース検索 */
   on('btnHbNewsClosePrev', 'click', function(){ var b=$('hbNewsPreview'); if (b) b.classList.add('hid'); });
   // 「📋 貼り付け」: クリップボードのURLを記事URL欄へ
   on('btnHbUrlPaste', 'click', function(){
