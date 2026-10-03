@@ -1605,6 +1605,9 @@ html[data-theme="light"] .page-top-hero{
           <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第97弾: (E)のバイアス取得で新しい結果が入ったとき、まだ発走していないレースの事前予想を当日バイアス・直前オッズで自動で引き直します（未発走のみ・結果確定済みは書き換えません）">
             <input type="checkbox" id="amChkPreRef" checked> (E2) 🔄未発走の予想を自動引き直し
           </label>
+          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="★第134弾: 直近（70日以内）のレースを日付指定・年指定・結果メモ📥などで学習DBへ取込んだとき、JRA公式の馬場測定（クッション値・含水率）も指数用の履歴へ自動取得します。6時間に1回だけ・中継が必要・失敗しても何も言わず静かに諦めます">
+            <input type="checkbox" id="amChkBaba" checked> (E3) 🌤馬場履歴も学習DB取込時に自動
+          </label>
           <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="⑥の過去10年分析が終わったら、そのまま🧬血統ファクターの抽出を実行します">
             <input type="checkbox" id="amChkDr" checked> (D) ⑥→🧬血統まで自動
           </label>
@@ -2290,20 +2293,23 @@ html[data-theme="light"] .page-top-hero{
           <button type="button" class="btn ghost" id="adBtnLoad" onclick="aiDepLoad(1)" title="出馬表を取り直してAIセクションを読み込みます。netkeibaのAI公開はレース前日14時頃なので、前日午前に一括取得したキャッシュだけではまだ入っていません">🔄 出馬表を取り直してAI読込</button>
           <button type="button" class="btn ghost" id="adBtnSum" onclick="aiSumManual()" title="netkeiba「AI総合スコア」ページ(ai_summary.html)から、全頭の総合点＋内訳12観点＋プロフィールを取り直します（そのレース分だけ・保存後は通信ゼロ）">🤖 AI総合スコア取得/更新</button>
         </div>
+        <div class="small" style="margin-top:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="muted">📅 観測DB（📝展開解説の統計）へ指定日ぶんを追加:</span>
+          <input type="date" id="adObsDate" style="font-size:.8rem;padding:2px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)" aria-label="追加取得する日付">
+          <button type="button" class="btn ghost" id="btnAdObs" onclick="adObsBackfill()" title="その日のJRAレースの出馬表＋結果を中継経由で取得して観測統計に加えます（1日ぶん約36レース・1〜2分）。加えた分はこの端末に蓄積され、📝展開解説の数字に反映されます">📥 追加取得</button>
+          <span class="small muted" id="adObsMsg"></span>
+        </div>
         <div id="adSub" class="small muted" style="margin-top:2px"></div>
         <div id="adDayBar" style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
         <div id="adRaceBar" style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
         <div id="adMsg" class="small" style="margin-top:4px;color:var(--warn-ink)"></div>
         <div id="adStage"></div>
-        <div class="small muted" style="margin-top:8px;line-height:1.8">出典は netkeiba 出馬表ページ下部の「AI展開予測（マスター）」セクションです。馬名の省略（イムホ・レアン…）まで<b>netkeibaと同じデータ・同じ位置・同じ数値</b>で再現しています（ヒートマップ＝複勝率0/1〜25/26〜50/51〜75/76〜100%の5段階、※集計期間はページ記載のまま）。<br>
-        走路は<b>netkeiba実物のCSS・馬アニメ画像（5脚コマ）をそのまま埋め込んだ直線隊列</b>です。コーナー切替は再描画せず、ドット進捗線（ActiveLine）のスライドと1.5秒の歩行アニメ（Run）で、本家と同じ挙動で隊列が動きます。<br>
-        　・「出遅れ率考慮」「騎手傾向考慮」のチェックは netkeiba と同じく表示位置が動き、4コーナーでは加速/減速マークも出ます<br>
-        　・<b>各レースのボタン（第41弾）</b>: ①一括取得済みの日が📅で並び、押すと即表示。✓=解析済み・⏳=開いた順に裏で解析中（すぐ✓になる）・⛔=AI未公開（前日14時以降に🔄で取り直し）・📥=出馬表未取得<br>
-        　・対象レースが重賞でなくても（OP特別などでも）出馬表が取れていれば表示されます<br>
-         ・<b>🤖 AI総合スコア（第48弾）</b>: レースを選ぶとそのraceだけnetkeiba ai_summary.htmlを取りに行き（以後キャッシュ・通信ゼロ）、総合スコア全頭の表紙テーブル＋内訳12観点（タイム指数・レースレベル・ラップ・騎手・枠番…）と馬プロフィールを折り込み式で表示します。無料版HTMLに全頭実数が注入されているので数字はそのまま正確です。未公開時（前日14時前）は🤖ボタンから後で取り直し<br>
-         ・<b>ペース/コース情報バー＋AI推奨馬の直近実績（第47弾）</b>: ペースはnetkeiba内の2系統（AI展開予測マスターと展開予想tab）を並記し、食い違っていれば注記付きでマスター値を軸判定に採用。コース情報（場・距離・芝ダ）と、AI推奨馬の直近実績（1着/2着バッジ付き・無料範囲の全件）も同じ保存HTMLから追加通信ゼロで表示します<br>
-        　・障害戦は netkeiba 側が旧版表示に切り替わるためセクションが無いことがあります<br>
-        　※2026-09-19 第40弾で<b>旧・物理シミュレーション（⚡結果を出す／まとめて実行／📊合計集計）を全面置き換え</b>しました。展開の机上検証は🔮実況風展開予想（AI提案タブ⑦）をご利用ください。</div>
+        <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-top:8px;line-height:1.8">出典は netkeiba 出馬表ページ下部の「AI展開予測（マスター）」セクションです（馬名の省略までnetkeibaと同じデータ・同じ位置・同じ数値で再現）。<br>
+        　・<b>📝 展開解説（第124弾）</b>: AI予測の動き（スタート後→3コーナー→4コーナーの隊列）と実際の着順を突合した観測統計（2026年2〜9月・JRA平地2,256レース／30,853頭を内蔵）から、◎○△▲✂と各馬の観測馬券内率を自動生成します。参考表示でAI印・総合点には影響しません。上の「📅 観測DBへ追加取得」で指定日のレースぶんを観測に足せます。<br>
+        　・「出遅れ率考慮」「騎手傾向考慮」のチェックで表示位置が変わり、4コーナーでは加速/減速マークも出ます<br>
+        　・<b>各レースのボタン</b>: ①一括取得済みの日が📅で並び、押すと即表示。✓=解析済み・⏳=裏で解析中・⛔=AI未公開（前日14時以降に🔄で取り直し）・📥=出馬表未取得。重賞でなくても出馬表が取れていれば表示されます<br>
+        　・🤖 AI総合スコアは<b>最小表示</b>（クリックで展開）。未公開時（前日14時前）は🤖ボタンから後で取り直し<br>
+        　・障害戦は netkeiba 側が旧版表示に切り替わるためセクションが無いことがあります</div></details>
       </div>
 </section>
 
@@ -2531,7 +2537,7 @@ html[data-theme="light"] .page-top-hero{
       <span class="sp"></span>
       <span class="small muted">navi-keiba風に各情報を表でまとめて表示・⑥の分析結果はここ1箇所に出ます</span>
     </div>
-    <div class="small muted" style="margin-bottom:8px">
+    <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:8px">
       いま読み込んでいる<b>重賞（G1〜G3）</b>と同じレース名の過去10回分の成績から、
       馬券内（3着以内）に入りやすい条件を自動で集計します。
       枠順・馬番・当日人気・脚質（推定）・前走（4角位置・上がり順位・クラス・人気・着順・レース）・
@@ -2541,7 +2547,7 @@ html[data-theme="light"] .page-top-hero{
       結果はキャッシュされ、同じレースは2回目から即時表示）。<br>
       騎手の所属（美浦/栗東）は、DB結果ページの騎手IDから netkeiba の騎手プロフィールを参照して補完します。
       初回はこの確認にも少し時間がかかります（以降キャッシュ）。
-    </div>
+    </div></details>
     <div id="drPick" class="small" style="margin:2px 0 8px;padding:8px 10px;border:1px dashed var(--line2);border-radius:10px;background:var(--card)"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
       <button type="button" class="btn primary" id="drBtn">📥 この重賞の過去10年を分析（取得・集計）</button>
@@ -2561,7 +2567,7 @@ html[data-theme="light"] .page-top-hero{
         <span class="sp"></span>
         <span class="small muted">5代まで＝表／6〜10代＝共通点だけを3〜4点</span>
       </div>
-      <div class="small muted" style="margin:4px 0 6px">
+      <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin:4px 0 6px">
         上の📊分析で実際に集計に使われた<b>過去10年の1〜3着馬（約30頭）</b>の血統を、
         netkeiba の5代血統表から<b>親馬ページをたどって最深10代まで</b>解析します。
         <b>5代まで</b>は従来通り「何年に馬券に絡んだか」の表に、
@@ -2571,7 +2577,7 @@ html[data-theme="light"] .page-top-hero{
         続けて<b>今回の出馬表から「その共通点に当てはまる馬」を該当が多い順に検出</b>します。
         ボタンは<b>「🧬 血統を抽出して今回の出走馬を検出」の1本だけ</b>で、抽出→出走馬の血統取得→該当検出まで一気に進みます。
         検出はあくまで傾向・オカルトレベルなので、②のAI印への反映は下のスイッチと各行の☑で任意にON/OFFできます。
-      </div>
+      </div></details>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
         <button type="button" class="btn primary" id="bfDrBtn" title="これ1本で全部: ⑥の分析データから血統ファクターと10代の共通点を抽出 → 今日の出走馬の血統(10代)を取得 → 該当検出の表まで出します（取得済みはキャッシュで即時）">🧬 血統を抽出して今回の出走馬を検出（これ1本で全部）</button>
         <button type="button" class="btn ghost" id="bfReset" title="ONにしたファクターを全部OFFに戻す">⏻ 反映OFFに戻す</button>
@@ -2731,7 +2737,7 @@ html[data-theme="light"] .page-top-hero{
       <span class="sp"></span>
       <span class="small muted">中断・再開OK</span>
     </div>
-    <div class="small muted" style="margin-bottom:8px">
+    <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:8px">
       年を選ぶと、netkeiba の開催カレンダーから<b>その年のJRA開催日をすべて列挙</b>し、開催日ごとの
       <b>JRA全レース（場ごとに1〜12R）</b>を1レースずつ自動で取得します。各レースから
       <b>着順・枠・馬番・馬名・性齢・斤量・騎手名・タイム・コーナー通過順位・上り3F・単勝・人気・馬体重(増減)・調教師</b>
@@ -2739,7 +2745,7 @@ html[data-theme="light"] .page-top-hero{
       同じレース・同じ内容（全項目一致）は重複保存しません。<b>途中で中断しても、同じ年を再実行すれば続きから</b>取り込めます。
       <br>保存領域が満杯になった場合は<b>最も古いレースから順に自動削除</b>され、新しい分に置き換わります（古い順に上書き）。保存はブラウザの大容量領域（IndexedDB）へ自動で行われます。
       <br>データ源は netkeiba（過去開催日も可・全項目あり）。netkeiba に開催日一覧が無い日のみ JRA公式を補助で使用します（その場合は上り3Fなど一部項目が空欄になります）。
-    </div>
+    </div></details>
     <div id="diStat" class="small" style="margin-top:8px"></div>
     <div id="diMsg" class="small" style="margin-top:4px"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -2781,6 +2787,38 @@ html[data-theme="light"] .page-top-hero{
       <div id="tlLearnStat" class="small" style="margin-top:4px"></div>
       <div id="tlLearnTbl" class="small" style="margin-top:6px"></div>
     </div>
+    <!-- ★第127弾: 🔧 学習DBの修正データ（距離・面を別保管→再取得後も自動適用） -->
+    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b>🔧 学習DBの修正データ（距離・面）</b>
+        <span class="chip" id="dbFixChip">0件</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn primary" id="dbFixScanBtn" title="距離・馬場(芝/ダ)が入っていないレースを検出し、候補を提案します">🔍 欠損チェック</button>
+        <button type="button" class="btn ghost" id="dbFixApplyBtn" title="保存済みの修正を学習DBのレコード本体へ書き込み（永続化）し、騎手・馬の統計を再構築します">💾 DBに書き込み・統計を再構築</button>
+      </div>
+      <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin:6px 0 8px">
+        学習DBには<b>距離・馬場(芝/ダ)が空のレースが約12%含まれ、重賞（G1を含む）はほぼ全滅</b>しています。空のままでは「芝・距離なし」扱いになり、<b>ダートの実績が芝の評価に混ざる／距離適性が効かない</b>状態でした（芝ダ分離は第126弾済みだがデータ側の課題）。<br>
+        この機能は「修正だけ」を端末に別保管し、<b>①取込のたびにレコード本体へ自動で焼き込む（★第128弾）＋②統計構築時にも重ねて適用</b>します。→ <b>年指定の再取込や学習DBの再取得でDBが入れ替わっても、修正は自動で再適用されます</b>（修正データは📤書き出しでJSONバックアップ可能）。実データ（距離・面あり）は尊重し<b>欠損のみ補完</b>しますが、<b>手動登録した修正は実データより優先</b>されます。💾ボタンで既存レコードへ一括書き込み（タイム学習など学習DBを直接読む機能にも届くようになります）。<br>
+        🔍欠損チェックの候補: 【重賞固定】=距離が変わらない重賞の実測表（桜花賞=芝1600m・天皇賞(春)=芝3200m ほか）。【時計】=同じ競馬場の(芝/ダ×距離)ごとの勝ち時計中央値に最も近い距離（過去検証で約86%一致・2.5秒以上離れたら候補なし）。<b>推定は鵜呑みにせず出馬表で確認してから</b>✅採用してください（手動登録も可）。適用されるのは距離・面の集計だけです（着順・時計・人気など他のデータは変わりません）。
+      </div></details>
+      <div id="dbFixMsg" class="small" style="margin-top:6px"></div>
+      <div id="dbFixBody" class="small" style="margin-top:4px"></div>
+    </div>
+
+    <!-- ★第133弾: 指数用・馬場履歴（クッション値・含水率）の追記 -->
+    <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b>🌤 指数用・馬場履歴（クッション値・含水率）</b>
+        <span class="chip" id="giBabaChip">—</span>
+        <span class="sp" style="flex:1"></span>
+        <button type="button" class="btn primary" id="giBabaFetchBtn" title="JRA公式から馬場（クッション値・含水率）の測定履歴を取得して履歴へ追記します。ページに残っている直近の開催ぶん（当日含む・各日の最終測定値）をまとめて取り込みます（中継稼働時のみ）">🌤 JRA公式から馬場を取得</button>
+        <button type="button" class="btn ghost" id="giBabaOutBtn">📤 書き出し</button>
+        <button type="button" class="btn ghost" id="giBabaInBtn2">📥 読み込み(下の欄)</button>
+      </div>
+      <div class="small muted" style="margin-top:4px">指数（多要素評価）の「馬場点」に使う履歴。埋め込み分（ビルド時点）＋この端末で追記した分を使います。①の「🌤 JRA公式から当日馬場を取得」でも自動追記されます。<b>直近（70日以内）のレースを学習DBへ取込むときにも自動で取得します</b>（🤖自動マクロ(E3)・6時間に1回・中継が必要）。📤📥は端末間の引っ越しや、配布された最新データJSONの反映に使います。</div>
+      <div id="giBabaMsg" class="small" style="margin-top:4px"></div>
+      <textarea id="giBabaIo" rows="3" style="width:100%;margin-top:4px;font-size:.75rem" placeholder="📤でここにJSONが出ます。📥はこの欄のJSON（{"v":1,"d":{...}}形式）をマージ読み込みします。"></textarea>
+    </div>
 </section>
 
 <!-- ================= 🤖 AI提案（回収率改善） ================= -->
@@ -2808,13 +2846,13 @@ html[data-theme="light"] .page-top-hero{
       <span class="sp"></span>
       <span class="small muted">印刷ダイアログで「PDFに保存」</span>
     </div>
-    <div class="small muted" style="margin-bottom:6px">
+    <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:6px">
       <b>jradb.com</b> の当年の重賞から<b>レース名をプルダウンで選んで</b>「⚔️ 対戦表出力（重賞のみ）」を押すと、
       その年のそのレースの<b>出走馬対戦表</b>（行=出走馬 × 列=このメンバーが過去に顔を合わせたレース・各セルはその馬の着順(着差)人気・通過・タイム・騎手）を取得して画面に表示し、
       A4横の対戦表PDF（レース8列ごとのブロック）としてPDFに出せます。
       通信は netkeiba と同じ中継(リレー)→公開プロキシ→直接の順で試します（jradb.com は直接取得できないため）。一覧は6時間・カードは24時間キャッシュ。
       ※本機能は取得・表示・PDF出力だけで、予想エンジン・学習DB・印・総合点には影響しません。
-    </div>
+    </div></details>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">
       <select id="jrdbRace" style="flex:1;min-width:260px;font-size:.9rem;padding:3px 6px"></select>
       <button type="button" class="btn primary" id="jrdbGet">⚔️ 対戦表出力（重賞のみ）</button>
@@ -6303,6 +6341,19 @@ function aiDepParse(html){
       while ((mJ = reJ.exec(html))){ if (!d.jockey[mJ[1]]) d.jockey[mJ[1]] = String(mJ[2]).trim(); }
     } catch(e){}
   }
+  /* ★第124弾: 単勝オッズと人気（出馬表テーブルの Txt_R Popular / Popular_Ninki セル）。
+     発売中のみ値が入る（結果確定後の保存HTMLは ---.- なので両方null）。展開解説(p66)で使用。 */
+  try {
+    d.odds = {}; d.pop = {};
+    var reOdds = /<td class="Umaban\d+ Txt_C">(\d+)<\/td>[\s\S]{0,3500}?class="Txt_R Popular"[^>]*>([\s\S]{0,90}?)<\/td>\s*<td class="Popular Popular_Ninki[^"]*"[^>]*>([\s\S]{0,90}?)<\/td>/g, mOdds;
+    while ((mOdds = reOdds.exec(html))){
+      var kO = String(parseInt(mOdds[1], 10));
+      var ov = parseFloat(String(mOdds[2]).replace(/<[^>]*>/g, '').replace(/,/g, ''));
+      var pv = parseInt(String(mOdds[3]).replace(/<[^>]*>/g, '').replace(/[^0-9]/g, ''), 10);
+      if (isFinite(ov) && ov > 0) d.odds[kO] = ov;
+      if (pv >= 1 && isFinite(pv)) d.pop[kO] = pv;
+    }
+  } catch(e){}
   /* ⑧★第47弾: コース情報＋AI展開予測マスターのペース（CourseDataArea。dl.RacePace の d.pace とは別系統で値が食い違うことがある） */
   try {
     var mCi = html.match(/CourseDataArea\s+Time[^>]*>[\s\S]{0,400}?<h2>\s*([^<]*?コース情報[^<]*?)\s*<\/h2>[\s\S]{0,600}?class="Data Pace_([A-Z])[^"]*"[^>]*>\s*([A-Z]{1,2})\s*</);
@@ -6690,7 +6741,8 @@ function aiDepRender(){
         '<div class="' + paneCls + '" id="adTrack">' + bias + hs + '</div>' +
       '</div>' +
     '</div>' +
-    aiDepHeatHtml(d) + aiDepPickupHtml(d) + aiDepAchvHtml(d) +
+    aiDepHeatHtml(d) + aiDepPickupHtml(d) +   /* ★第124弾: AI推奨馬の直近実績はユーザー指示で非表示に */
+    (typeof adKaisetuHtml === 'function' ? adKaisetuHtml(d, AI_DEP.rid) : '') +
     (typeof aiSumHtml === 'function' ? aiSumHtml(AI_DEP.rid) : '');
   var cap = $('adCap');
   if (cap){ var lab = { C1: 'スタート後', C2: '3コーナー', C3: '4コーナー' }[AI_DEP.corner];
@@ -7138,6 +7190,9 @@ function aiSumCss(){
     '.asu details.adSumFold .fx{padding:2px 4px 6px}' +
     '.asu .adSumEmpty{padding:12px;font-size:.74rem;color:#666}' +
     '.asu .adSumNote{padding:6px 12px 10px;font-size:.66rem;color:#999}' +
+    '.asu details.adSumMin{border:0;border-radius:0;margin:0}' +
+    '.asu details.adSumMin>summary{cursor:pointer;list-style:none;padding:6px 12px;font-size:.74rem;font-weight:700;color:#4b2e83;background:#f7f4fd;border-bottom:1px solid #eee8f5}' +
+    '.asu details.adSumMin>summary::-webkit-details-marker{display:none}' +
     '</style>';
   return AI_SUM_CSS_DONE;
 }
@@ -7204,9 +7259,12 @@ function aiSumInner(rid){
   var note = '<div class="adSumNote">表紙=総合スコア全頭（スコアはレース内相対・高点=AI上位評価）。各観点はクリックで展開（解析済みキャッシュからの表示のため開くのも一瞬です）。' +
     (cov < AI_SUM_METRICS.length ? '※このレースで入っていた観点は ' + cov + '/12。' : '') +
     (ago ? '保存: ' + ago + '。' : '') + '「参考までに」の表示です——単独の軸にはしないでください。</div>';
+  /* ★第124弾: ユーザー指示で最小表示に — タイトルバーだけ常に見せて、
+     全頭スコア表・内訳12観点は閉じた折り込みの中へ（クリックで展開）。 */
   return head +
+    '<details class="adSumMin"><summary>📊 全頭スコア表・内訳' + AI_SUM_METRICS.length + '観点（クリックで展開）</summary>' +
     '<div style="padding:6px 12px 0"><table class="adSumTbl"><thead><tr><th>評価</th><th style="text-align:left">枠番・馬名</th><th>AI総合スコア</th><th>騎手</th><th>性齢</th><th>斤量</th></tr></thead><tbody>' +
-    rows + '</tbody></table></div>' + folds + note;
+    rows + '</tbody></table></div>' + folds + note + '</details>';
 }
 function aiSumHtml(rid){
   try {
@@ -7217,6 +7275,387 @@ function aiSumHtml(rid){
 function aiSumClearAll(){
   try { localStorage.removeItem(AI_SUM_LS); } catch(e){}
   AI_SUM_MEM = {}; AI_SUM_NOD = {}; AI_SUM_ERR = {};
+}
+
+/* =====================================================================
+   p66_adkaisetu.js — ★第124弾: ③AI展開予測タブに「📝 展開解説」を追加
+   ---------------------------------------------------------
+   - netkeiba AI展開予測の隊列予測（スタート後→3角→4角）を
+     「実際の着順（1-3着＝馬券内）」と突合した観測統計から、
+     そのレースの ◎○△▲✂ と各馬の観測馬券内率を文章・表で表示します。
+   - AI印・総合点・既存表示には一切影響しない参考表示です。
+   - 観測統計の初期値は 2026年2〜9月・JRA平地2,256レース／30,853頭 を内蔵。
+     「📅 観測DBへ追加取得」で指定日のレース（出馬表＋結果）を取得して
+     端末内に蓄積できます（セルごとの件数だけを保存・容量は微小）。
+   - 位置どりの判定は left%（0%=先頭〜100%=後方）基準（top%はコースの
+  　 レーン位置なので前後判定には使わない。第124弾の実測で確認済み）。
+   ===================================================================== */
+
+/* ---------- 観測統計（内蔵の初期値。v=生成日） ----------
+   pop: 人気帯(1/23/46/7)×4C帯(前/中/後) → [頭数, 馬券内数]
+   pth: 軌跡（前前前 など3文字）→ [n, h]
+   mrk: 4C帯×マーク(UP=加速/DN=減速/--=無) → [n, h]
+   pce: AIペース(S/M/H)×4C帯 → [n, h]
+   dst: 距離帯(短/イ/長)×4C帯 → [n, h]
+   spec: h1=1-3人気×前前前 / h2=7人気-×前×加速 / h2s=芝1400以下×h2
+         x1=後後後×7人気- / base=全馬 / wide=軸h1×紐h2のワイド実測[bets,ret] */
+var AD_OBS = {"v":20261003,"races":2256,"horses":30853,"span":"2026年2〜9月・JRA平地","pop":{"7|中":[6398,560],"7|後":[7804,412],"23|前":[2592,1230],"46|中":[2790,764],"1|前":[1663,1135],"46|前":[2727,777],"7|前":[3166,371],"23|中":[1487,695],"46|後":[1218,290],"1|中":[494,300],"23|後":[417,178],"1|後":[97,59]},"pth":{"中中中":[6338,1339],"中後後":[1158,146],"後後後":[7117,632],"後後中":[658,114],"後中前":[54,20],"中中後":[705,96],"前前前":[7615,2645],"前前中":[726,157],"中後中":[503,89],"中中前":[733,249],"後中後":[408,42],"後中中":[1217,230],"前中前":[443,147],"中前前":[1246,433],"中前中":[467,113],"前中中":[1200,263],"前後後":[58,7],"中前後":[9,3],"前後前":[2,0],"前中後":[66,9],"前後中":[26,7],"前前後":[11,4],"後前中":[34,7],"後前前":[42,15],"後前後":[4,0],"後後前":[7,3],"中後前":[6,1]},"mrk":{"中|UP":[10487,2267],"後|UP":[6851,800],"後|--":[2685,139],"前|UP":[9363,3382],"中|--":[682,52],"前|--":[785,131]},"pce":{"H|中":[5216,997],"H|後":[4473,380],"H|前":[4716,1596],"M|後":[3268,358],"M|中":[3814,794],"M|前":[3480,1173],"S|中":[2139,528],"S|後":[1795,201],"S|前":[1952,744]},"dst":{"短|中":[4254,828],"短|後":[3653,330],"短|前":[3829,1272],"長|後":[1837,226],"長|中":[2162,472],"長|前":[1966,695],"イ|後":[4046,383],"イ|中":[4753,1019],"イ|前":[4353,1546]},"spec":{"base":[30853,6771],"baseTan":73,"baseFuku":72,"h1":[3266,1822,776],"h1Fuku":85,"h2":[2660,341],"h2Tan":91,"h2Fuku":88,"h2s":[499,55],"h2sTan":117,"x1":[5927,280,60],"wide":[3454,322570]}};
+
+var AD_OBS_LS = 'khl_adobs_v1';
+function adObsLs(){
+  try {
+    var o = JSON.parse(localStorage.getItem(AD_OBS_LS) || '{}');
+    if (!o || typeof o.c !== 'object' || !o.c) o = { c: {}, races: 0 };
+    return o;
+  } catch(e){ return { c: {}, races: 0 }; }
+}
+function adObsSave(o){ try { safeSetItem(AD_OBS_LS, JSON.stringify(o)); } catch(e){} }
+/* 観測セル取得: adObsCell('pop:1|前') → {n, h, rate}（内蔵＋ユーザー蓄積を合算） */
+function adObsCell(key){
+  var n = 0, h = 0;
+  try {
+    var g = key.split(':'), grp = g[0], k = key.slice(grp.length + 1);
+    var base = (AD_OBS[grp] || {})[k];
+    if (base){ n += base[0] | 0; h += base[1] | 0; }
+    var over = adObsLs().c[key];
+    if (over){ n += over[0] | 0; h += over[1] | 0; }
+  } catch(e){}
+  return { n: n, h: h, rate: n ? h / n : 0 };
+}
+/* セル件数の差分を端末へ蓄積する（追加取得から使う） */
+function adObsMergeAdd(delta){
+  var o = adObsLs(), added = 0;
+  for (var k in delta){
+    if (!o.c[k]) o.c[k] = [0, 0];
+    o.c[k][0] += delta[k][0] | 0; o.c[k][1] += delta[k][1] | 0;
+    added += delta[k][0] | 0;
+  }
+  o.races = (o.races || 0) + 1;
+  adObsSave(o);
+  return added;
+}
+function adObsUserRaces(){ return adObsLs().races || 0; }
+
+/* ---------- 隊列予測 → 馬ごとの行データ ---------- */
+function adKaiBand(v, n){ return (v / n) <= 1 / 3 ? '前' : (v / n) <= 2 / 3 ? '中' : '後'; }
+function adKaiPathJpn(p){ return p.charAt(0) + '→' + p.charAt(1) + '→' + p.charAt(2); }
+/* ★left基準の順位（同leftは平均順位）。第124弾の実測で r=0.541 を確認済み */
+function adKaiRankOf(d, ck){
+  var nos = Object.keys(d.horses), V = (d.variants && d.variants.none) || { C1: {}, C2: {}, C3: {} };
+  var arr = nos.map(function(no){
+    var p = (V[ck] && V[ck][no]) || d.horses[no];
+    return { no: no, left: Number(p.left) || 0, top: Number(p.top) || 0 };
+  }).sort(function(a, b){ return (a.left - b.left) || (a.top - b.top); });
+  var rk = {}, i = 0;
+  while (i < arr.length){
+    var j = i;
+    while (j + 1 < arr.length && Math.abs(arr[j + 1].left - arr[i].left) < 0.01) j++;
+    var avg = (i + 1 + j + 1) / 2;
+    for (var k = i; k <= j; k++) rk[arr[k].no] = avg;
+    i = j + 1;
+  }
+  return rk;
+}
+function adKaiRows(d){
+  if (!d || !d.horses) return [];
+  var nos = Object.keys(d.horses);
+  if (!nos.length) return [];
+  var r1 = adKaiRankOf(d, 'C1'), r2 = adKaiRankOf(d, 'C2'), r3 = adKaiRankOf(d, 'C3');
+  var V = (d.variants && d.variants.none) || { C3: {} };
+  /* 人気: d.pop（出馬表の人気セル）。無ければ単勝オッズ順から導出 */
+  var popMap = {}, oddsMap = {};
+  try { popMap = d.pop || {}; oddsMap = d.odds || {}; } catch(e){}
+  var hasPop = false;
+  nos.forEach(function(no){ if (popMap[no] >= 1) hasPop = true; });
+  if (!hasPop){
+    var os = nos.filter(function(no){ return Number(oddsMap[no]) > 0; })
+      .sort(function(a, b){ return Number(oddsMap[a]) - Number(oddsMap[b]); });
+    os.forEach(function(no, i){ popMap[no] = i + 1; });
+  }
+  var n = nos.length;
+  var rows = nos.map(function(no){
+    var h = d.horses[no], spd = (V.C3 && V.C3[no] && V.C3[no].spd) || '';
+    var c1 = r1[no], c2 = r2[no], c3 = r3[no];
+    return {
+      no: String(parseInt(no, 10)), name: String(h.name || '').trim(), waku: String(h.waku || ''),
+      c1: c1, c2: c2, c3: c3,
+      b3: adKaiBand(c3, n),
+      path: adKaiBand(c1, n) + adKaiBand(c2, n) + adKaiBand(c3, n),
+      mark: /SpeedUp/.test(spd) ? 'UP' : /SpeedDown/.test(spd) ? 'DN' : '--',
+      popN: popMap[no] >= 1 ? popMap[no] : null,
+      odds: Number(oddsMap[no]) > 0 ? Number(oddsMap[no]) : null,
+      spd: spd
+    };
+  });
+  rows.sort(function(a, b){ return (a.popN || 99) - (b.popN || 99) || a.c3 - b.c3; });
+  return rows;
+}
+function adKaiPopBand(p){ return p === 1 ? '1' : p <= 3 ? '23' : p <= 6 ? '46' : '7'; }
+/* 表用の観測馬券内率セル */
+function adKaiCellOf(r){
+  if (r.popN != null) return { key: 'pop:' + adKaiPopBand(r.popN) + '|' + r.b3, c: adObsCell('pop:' + adKaiPopBand(r.popN) + '|' + r.b3) };
+  return { key: 'mrk:' + r.b3 + '|' + r.mark, c: adObsCell('mrk:' + r.b3 + '|' + r.mark) };
+}
+function adKaiPct(x){ return Math.round(x * 1000) / 10; }
+function adKaiEsc(s){
+  try { return esc(s); } catch(e){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+}
+function adKaiNm(r){ return r.no + '番' + adKaiEsc(r.name); }
+
+/* ---------- 解説文の生成 ---------- */
+function adKaisetuHtml(d, rid){
+  if (!d || !d.horses || !Object.keys(d.horses).length) return '';
+  var rows = adKaiRows(d);
+  if (rows.length < 4) return '';
+  var hasPop = rows.some(function(r){ return r.popN != null; });
+  var pace = String((d.paceAi || d.pace || '')).toUpperCase().charAt(0);
+  if (['S', 'M', 'H'].indexOf(pace) < 0) pace = '';
+  /* 距離・芝ダ（d.course 例: '中山1800mダ'。無ければタイトルから） */
+  var dist = 0, surf = '';
+  var cs = String(d.course || '') + ' ' + String(d.title || '');
+  var md = cs.match(/(\d{3,4})m/); if (md) dist = parseInt(md[1], 10);
+  if (/芝/.test(cs)) surf = '芝'; else if (/ダ/.test(cs)) surf = 'ダ';
+  var distB = dist && dist <= 1400 ? '短' : dist && dist >= 1900 ? '長' : dist ? 'イ' : '';
+
+  /* --- 候補選定 --- */
+  var jin = rows.filter(function(r){ return r.popN != null && r.popN <= 3 && r.path === '前前前'; });
+  var axis = jin.slice().sort(function(a, b){ return (a.popN - b.popN) || (a.c3 - b.c3); })[0] || null;
+  var deg = !hasPop;
+  if (deg){
+    axis = rows.filter(function(r){ return r.path === '前前前' && r.mark === 'UP'; })
+      .sort(function(a, b){ return a.c3 - b.c3; })[0] || null;
+    if (!axis) axis = rows.slice().sort(function(a, b){ return a.c3 - b.c3; })[0] || null;
+  }
+  var used = {};
+  if (axis) used[axis.no] = 1;
+  var picks = function(f, cap){
+    var out = [];
+    rows.forEach(function(r){ if (out.length < (cap || 2) && !used[r.no] && f(r)){ out.push(r); used[r.no] = 1; } });
+    return out;
+  };
+  var tai = deg ? picks(function(r){ return r.path.charAt(0) === '前' && r.mark === 'UP'; }, 2)
+                : picks(function(r){ return r.popN <= 3 && r.b3 === '前'; }, 1)
+                    .concat(picks(function(r){ return r.popN === 1; }, 1));
+  var jiten = deg ? picks(function(r){ return r.mark === 'UP' && r.b3 !== '後'; }, 3)
+                  : picks(function(r){ return (r.popN <= 6 && r.b3 === '前') || r.path === '中前前'; }, 3);
+  var ana = deg ? picks(function(r){ return r.c3 <= 6 && r.mark === 'UP' && r !== axis; }, 3)
+                : picks(function(r){ return r.popN >= 7 && r.b3 === '前' && r.mark === 'UP'; }, 3);
+  if (!ana.length && !deg) ana = picks(function(r){ return r.popN >= 7 && r.c3 <= 4; }, 2);
+  var kiri = deg ? rows.filter(function(r){ return r.path === '後後後'; })
+                 : rows.filter(function(r){ return r.path === '後後後' && r.popN >= 7; });
+  var kiriMax = 8;
+
+  /* --- 文章パーツ --- */
+  var P = [];
+  var h1c = adObsCell('spec:h1'), h2c = adObsCell('spec:h2'), x1c = adObsCell('spec:x1');
+  var paceJpn = { S: 'ハイ（S）', M: 'ミドル（M）', H: 'スロー（H）' }[pace] || '';
+  var lead = '【レース見立て】';
+  if (pace) lead += 'AIのペース想定は<b>' + paceJpn + '</b>。';
+  var pf = pace ? adObsCell('pce:' + pace + '|前') : null, pb = pace ? adObsCell('pce:' + pace + '|後') : null;
+  if (pf && pf.n > 100) lead += '観測では' + paceJpn + 'と想定されたレースの「4コーナーで隊列前1/3の馬」は<b>馬券内' + adKaiPct(pf.rate) + '%</b>（後方1/3は' + (pb && pb.n ? adKaiPct(pb.rate) : '—') + '%）。';
+  if (distB){
+    var df = adObsCell('dst:' + distB + '|前');
+    var dj = { '短': '短距離（〜1400m）', 'イ': 'マイル（1500〜1800m）', '長': '中長距離（1900m〜）' }[distB];
+    if (df.n > 100) lead += dj + 'の前方予測馬は馬券内' + adKaiPct(df.rate) + '%。';
+  }
+  lead += surf ? '（' + surf + '・' + (dist || '?') + 'm）' : '';
+  P.push(lead);
+  function nmWithPop(r){
+    return '<b class="u">' + (r === axis ? '◎' : '○') + ' ' + adKaiNm(r) + '</b>（' +
+      (r.popN != null ? r.popN + '番人気' + (r.odds ? '・' + r.odds + '倍' : '') : '人気データ無し') + '）';
+  }
+  if (axis){
+    var ac = adKaiCellOf(axis), h1use = (axis.popN != null && axis.popN <= 3 && axis.path === '前前前');
+    var t = nmWithPop(axis) + ': 過去の傾向からして<b>鉄板の位置どり</b>です。' +
+      adKaiPathJpn(axis.path) + '・4コーナー予測' + (Math.round(axis.c3 * 10) / 10) + '番手' + (axis.mark === 'UP' ? '・加速マーク付き' : '') + '。';
+    if (h1use && h1c.n){
+      var h1win = (AD_OBS.spec && AD_OBS.spec.h1) ? Math.round(1000 * AD_OBS.spec.h1[2] / AD_OBS.spec.h1[0]) / 10 : 0;
+      t += 'この「上位人気×一貫先行」の形は観測' + h1c.n + '頭で<b>馬券内' + adKaiPct(h1c.rate) + '%・勝率' + h1win + '%</b>と、どのパターンより信頼できる数字。まずこの馬が軸。';
+    } else if (ac.c.n){
+      t += 'この条件（' + (axis.popN != null ? adKaiPopBand(axis.popN) + '番人気帯×' : '') + axis.b3 + '方予測）は観測' + ac.c.n + '頭で馬券内' + adKaiPct(ac.c.rate) + '%。';
+    }
+    P.push(t);
+  }
+  tai.forEach(function(r, i){
+    var c = adKaiCellOf(r);
+    P.push(nmWithPop(r) + ': ' + adKaiPathJpn(r.path) + '・4C予測' + (Math.round(r.c3 * 10) / 10) + '番手' +
+      (r.mark === 'UP' ? '・加速' : '') + '。この条件の観測馬券内率は<b>' + adKaiPct(c.c.rate) + '%</b>（n=' + c.c.n + '）。対抗まで。');
+  });
+  if (jiten.length){
+    P.push('<b>次点 △</b> ' + jiten.map(function(r){ return adKaiNm(r) + '（' + adKaiPathJpn(r.path) + '）'; }).join('・') + ' も評価できます。');
+  }
+  if (ana.length){
+    var t2 = '<b class="u">穴はここ ▲</b> ' + ana.map(function(r){
+      return adKaiNm(r) + '（' + (r.popN != null ? r.popN + '番人気' : '') + (r.odds ? '・' + r.odds + '倍' : '') + '・' + adKaiPathJpn(r.path) + '・4C予測' + Math.round(r.c3) + '番手・加速）';
+    }).join('／') + '。どちらもAIは前目の隊列で競馬させると予測しているのに人気薄。';
+    if (hasPop){
+      t2 += 'この形は観測' + h2c.n + '頭で<b>馬券内' + adKaiPct(h2c.rate) + '%</b>（7番人気以下の平均' +
+        adKaiPct((adObsCell('pop:7|前').h + adObsCell('pop:7|中').h + adObsCell('pop:7|後').h) /
+                 (adObsCell('pop:7|前').n + adObsCell('pop:7|中').n + adObsCell('pop:7|後').n)) + '%を上回る）';
+      if (surf === '芝' && distB === '短') t2 += '。特に芝1400m以下では単勝回収が観測より良好（回収' + (AD_OBS.spec && AD_OBS.spec.h2sTan || 0) + '%・n=' + adObsCell('spec:h2s').n + '）';
+      t2 += '。';
+    } else t2 += '（人気データが無いため位置どりのみで選んでいます）';
+    P.push(t2);
+  }
+  if (kiri.length){
+    P.push('<b>✂ 切り</b>: ' + kiri.slice(0, kiriMax).map(function(r){ return adKaiNm(r); }).join('・') +
+      (kiri.length > kiriMax ? ' ほか' + (kiri.length - kiriMax) + '頭' : '') +
+      ' — 後→後→後の後方一貫' + (hasPop ? '×7番人気以下' : '') + '。この形は観測' + x1c.n + '頭で<b>勝率' +
+      ((AD_OBS.spec && AD_OBS.spec.x1) ? Math.round(1000 * AD_OBS.spec.x1[2] / AD_OBS.spec.x1[0]) / 10 : 0) + '%・馬券内' + adKaiPct(x1c.rate) + '%</b>しか来ていません。');
+  }
+  if (deg) P.push('※ この出馬表にはオッズが入っていません（結果確定後の保存ページか発売前）。発売開始後に🔄で取り直すと人気を考慮した評価になります。');
+
+  /* --- 表 --- */
+  var markJpn = { UP: '加速', DN: '減速', '--': '—' };
+  var trs = rows.map(function(r){
+    var c = adKaiCellOf(r);
+    var badge = r === axis ? '<span class="kaiB kaiJ">◎</span>' :
+      tai.indexOf(r) >= 0 ? '<span class="kaiB kaiO">○</span>' :
+      jiten.indexOf(r) >= 0 ? '<span class="kaiB kaiT">△</span>' :
+      ana.indexOf(r) >= 0 ? '<span class="kaiB kaiA">▲</span>' :
+      kiri.indexOf(r) >= 0 ? '<span class="kaiB kaiX">✂</span>' : '<span class="kaiB kaiN2">−</span>';
+    var cls = r === axis ? 'kaiRj' : tai.indexOf(r) >= 0 ? 'kaiRo' : ana.indexOf(r) >= 0 ? 'kaiRa' : kiri.indexOf(r) >= 0 ? 'kaiRx' : '';
+    var pw = Math.min(100, Math.round(c.c.rate * 130));
+    var pc = c.c.rate >= 0.4 ? '#3f8f5f' : c.c.rate >= 0.2 ? '#2f7fc4' : c.c.rate >= 0.1 ? '#c8862f' : '#b0876a';
+    return '<tr class="' + cls + '"><td>' + r.no + '</td><td class="kaiNm">' + adKaiEsc(r.name) + '</td>' +
+      '<td>' + (r.popN != null ? r.popN : '—') + '</td><td>' + (r.odds ? r.odds : '—') + '</td>' +
+      '<td><span class="kaiP kaiP' + r.b3 + '">' + adKaiPathJpn(r.path) + '</span></td>' +
+      '<td>' + (Math.round(r.c3 * 10) / 10) + '</td><td>' + markJpn[r.mark] + '</td>' +
+      '<td><span class="kaiBar"><i style="width:' + pw + '%;background:' + pc + '"></i><em>' + adKaiPct(c.c.rate) + '%</em></span><span class="kaiN">n=' + c.c.n + '</span></td>' +
+      '<td>' + badge + '</td></tr>';
+  }).join('');
+  var tbl = '<table class="kaiTbl"><tr><th>馬番</th><th style="text-align:left">馬名</th><th>人気</th><th>単勝</th><th>AI予測の動き</th><th>4C<br>予測</th><th>ﾏｰｸ</th><th>観測馬券内率<br>（同条件）</th><th>評価</th></tr>' + trs + '</table>';
+
+  /* --- 買い方の型 --- */
+  var kata = '';
+  if (axis && (ana.length || tai.length)){
+    var nawa = ana.length ? ana : tai;
+    kata = '💡 <b>買い方の型（参考）</b>: ワイド <b>◎' + axis.no + adKaiEsc(axis.name) + '軸</b> ×（' +
+      tai.concat(nawa).filter(function(r, i, a){ return a.indexOf(r) === i && r !== axis; }).slice(0, 4)
+        .map(function(r){ return '○▲' + r.no + adKaiEsc(r.name); }).join('＋') + '）の流し。' +
+      (kiri.length ? '✂の' + kiri.length + '頭は紐から除外。' : '') +
+      '<span class="kaiSub">※観測では「軸（上位人気×一貫先行）×穴（人気薄×前方×加速）」のワイドは回収' +
+      Math.round(100 * (AD_OBS.spec ? AD_OBS.spec.wide[1] : 0) / ((AD_OBS.spec ? AD_OBS.spec.wide[0] : 1) * 100)) + '%（全馬ベース' + (AD_OBS.spec ? AD_OBS.spec.baseTan : '') + '%に対し+' +
+      (AD_OBS.spec ? Math.round(100 * AD_OBS.spec.wide[1] / (AD_OBS.spec.wide[0] * 100)) - AD_OBS.spec.baseTan : 0) + 'pt）</span>';
+  }
+  var userN = adObsUserRaces();
+  var src = '出典: 観測DB（AI展開予測の位置どり×実際の着順を突合）' + AD_OBS.races + 'レース／' + AD_OBS.horses + '頭（' + AD_OBS.span + '）' +
+    (userN ? '＋この端末で追加取得した' + userN + 'レース相当' : '') + '。評価は参考表示でAI印・総合点には影響しません。◎でも馬券内は約56%・▲穴は約13%です。「根拠が数字で見える」材料として、時計・馬場・相手関係と併用してください。';
+  return adKaiCss() +
+    '<div class="adKai" id="adKaisetu">' +
+    '<div class="adKaiH">📝 展開解説 <small>AI予測の動き × 観測' + AD_OBS.races + 'レースの統計から自動生成</small></div>' +
+    '<div class="adKaiBody">' + P.map(function(p){ return '<p>' + p + '</p>'; }).join('') + '</div>' +
+    tbl +
+    (kata ? '<div class="adKaiKata">' + kata + '</div>' : '') +
+    '<div class="adKaiSrc">' + src + '</div>' +
+    '</div>';
+}
+
+var AD_KAI_CSS_DONE = '';
+function adKaiCss(){
+  if (AD_KAI_CSS_DONE) return AD_KAI_CSS_DONE;
+  AD_KAI_CSS_DONE = '<style>' +
+    '.adKai{margin-top:14px;border:2px solid #e0912f;border-radius:12px;background:var(--card,#fff);overflow:hidden}' +
+    '.adKai .adKaiH{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:8px 12px;background:linear-gradient(180deg,#fdf3e3,#faecd4);font-weight:800;font-size:.95rem;color:#7a4a0e}' +
+    '.adKai .adKaiH small{font-weight:400;font-size:.68rem;color:#a3733a}' +
+    '.adKai .adKaiBody{padding:4px 14px 8px;font-size:.9rem;line-height:1.9}' +
+    '.adKai .adKaiBody p{margin:6px 0}' +
+    '.adKai .u{text-decoration:underline;text-decoration-color:rgba(224,145,47,.6);text-underline-offset:3px}' +
+    '.adKai table.kaiTbl{border-collapse:collapse;width:100%;font-size:.78rem;margin:4px 0 8px}' +
+    '.adKai table.kaiTbl th{background:#f6f1e6;color:#6b6353;font-weight:600;padding:4px 5px;border-bottom:2px solid #e6dcc8;white-space:nowrap;font-size:.68rem}' +
+    '.adKai table.kaiTbl td{padding:3px 5px;border-bottom:1px solid #f0ebdf;text-align:center;white-space:nowrap}' +
+    '.adKai table.kaiTbl td.kaiNm{text-align:left;font-weight:700}' +
+    '.adKai tr.kaiRj td{background:#fff7ee}.adKai tr.kaiRo td{background:#f4f9fe}.adKai tr.kaiRa td{background:#fffaf0}.adKai tr.kaiRx td{opacity:.55}' +
+    '.adKai .kaiP{display:inline-block;border-radius:12px;padding:0 8px;font-size:.7rem;font-weight:800}' +
+    '.adKai .kaiP前{background:#fdeeda;color:#a06414}.adKai .kaiP中{background:#e2eef9;color:#2f6ea8}.adKai .kaiP後{background:#eae7f7;color:#5a4fa8}' +
+    '.adKai .kaiBar{position:relative;display:inline-block;vertical-align:middle;width:86px;height:14px;background:#efece5;border-radius:7px;overflow:hidden}' +
+    '.adKai .kaiBar i{position:absolute;left:0;top:0;bottom:0;border-radius:7px}' +
+    '.adKai .kaiBar em{position:absolute;right:4px;top:0;font-style:normal;font-size:.66rem;line-height:14px;font-weight:800;color:#333;text-shadow:0 0 2px #fff}' +
+    '.adKai .kaiN{font-size:.62rem;color:#a09a8c;margin-left:4px}' +
+    '.adKai .kaiB{display:inline-block;min-width:20px;text-align:center;border-radius:5px;font-weight:800;font-size:.8rem;padding:0 6px}' +
+    '.adKai .kaiJ{background:#fdeaea;color:#b23b38}.adKai .kaiO{background:#e7f1fa;color:#2f6ea8}.adKai .kaiT{background:#eee;color:#77716a}' +
+    '.adKai .kaiA{background:#fdf0dc;color:#a06414}.adKai .kaiX{background:#f1efec;color:#999}.adKai .kaiN2{background:#f5f5f5}' +
+    '.adKai .adKaiKata{background:#fdf3e3;border-top:1px solid #f0e2c6;padding:8px 14px;font-size:.84rem}' +
+    '.adKai .kaiSub{display:block;color:#a3733a;font-size:.72rem;margin-top:2px}' +
+    '.adKai .adKaiSrc{padding:6px 14px 10px;font-size:.68rem;color:#a09a8c;border-top:1px dashed #eee4d2;line-height:1.7}' +
+    '</style>';
+  return AD_KAI_CSS_DONE;
+}
+
+/* ---------- 📅 観測DBへの追加取得（日付指定） ---------- */
+function adObsMsg(t, err){
+  var el = (typeof $ === 'function') ? $('adObsMsg') : null;
+  if (el){ el.innerHTML = '<span' + (err ? ' style="color:#c33"' : '') + '>' + adKaiEsc(t) + '</span>'; }
+}
+/* 出馬表＋結果を1レースぶん観測セルへ変換（失敗/非対応は null） */
+function adObsOne(sh, rs){
+  var d = null, det = null;
+  try { d = aiDepParse(sh); } catch(e){}
+  try { det = histParseDetail(rs); } catch(e){}
+  if (!d || !det || !det.rows || !det.rows.length) return null;
+  if (/障害/.test(String(d.title || '') + String(d.course || ''))) return null;
+  var rows = adKaiRows(d);
+  if (rows.length < 4) return null;
+  var resBy = {};
+  det.rows.forEach(function(r){ if (r.order >= 1) resBy[String(parseInt(r.no, 10))] = r; });
+  var live = rows.filter(function(r){ return resBy[r.no] && resBy[r.no].order >= 1; });
+  if (live.length < 4) return null;
+  var hit = function(r){ return resBy[r.no] && resBy[r.no].order <= 3; };
+  var delta = {};
+  function add(k, ok){ if (!delta[k]) delta[k] = [0, 0]; delta[k][0]++; if (ok) delta[k][1]++; }
+  var pace = String((d.paceAi || d.pace || '')).toUpperCase().charAt(0);
+  var cs = String(d.course || '') + ' ' + String(d.title || '');
+  var md = cs.match(/(\d{3,4})m/); var dist = md ? parseInt(md[1], 10) : 0;
+  var distB = dist && dist <= 1400 ? '短' : dist && dist >= 1900 ? '長' : dist ? 'イ' : '';
+  live.forEach(function(r){
+    var ok = hit(r);
+    add('pth:' + r.path, ok);
+    add('mrk:' + r.b3 + '|' + r.mark, ok);
+    if (r.popN != null){
+      add('pop:' + adKaiPopBand(r.popN) + '|' + r.b3, ok);
+      if (r.popN <= 3 && r.path === '前前前') add('spec:h1', ok);
+      if (r.popN >= 7 && r.b3 === '前' && r.mark === 'UP') add('spec:h2', ok);
+      if (r.popN >= 7 && r.path === '後後後') add('spec:x1', ok);
+    }
+    if (pace && ['S', 'M', 'H'].indexOf(pace) >= 0) add('pce:' + pace + '|' + r.b3, ok);
+    if (distB) add('dst:' + distB + '|' + r.b3, ok);
+  });
+  return delta;
+}
+function adObsBackfill(){
+  var inp = (typeof $ === 'function') ? $('adObsDate') : null;
+  var d8 = inp ? String(inp.value || '').replace(/-/g, '') : '';
+  if (!/^\d{8}$/.test(d8)){ adObsMsg('📅 日付を選んでから押してください', 1); return; }
+  if (typeof bfGet !== 'function'){ adObsMsg('中継モジュールが見つかりません', 1); return; }
+  adObsMsg('⏳ ' + d8.slice(4, 6) + '/' + d8.slice(6, 8) + ' のレース一覧を取得中…');
+  bfGet('https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=' + d8).then(function(html){
+    var rids = [], seen = {};
+    (String(html).match(/race_id=(\d+)/g) || []).forEach(function(m){
+      var rid = m.slice(8);
+      if (!seen[rid]){ seen[rid] = 1; rids.push(rid); }
+    });
+    if (!rids.length){ adObsMsg('⚠ その日はレースが見つかりませんでした（開催休み・未来の日付・地方のみ等）', 1); return; }
+    var i = 0, okR = 0, added = 0;
+    (function step(){
+      if (i >= rids.length){
+        adObsMsg('✓ ' + okR + '/' + rids.length + 'レースぶん観測DBに追加しました（この端末の追加観測: 計' + adObsUserRaces() + 'レース相当）');
+        try { if (typeof aiDepRender === 'function' && typeof AI_DEP !== 'undefined' && AI_DEP.data) aiDepRender(); } catch(e){}
+        return;
+      }
+      var rid = rids[i++];
+      adObsMsg('⏳ ' + i + '/' + rids.length + ' レースを解析中…（完了まで1〜2分・結果の出ていないレースはスキップ）');
+      bfGet('https://race.netkeiba.com/race/result.html?race_id=' + rid).then(function(rs){
+        return bfGet('https://race.netkeiba.com/race/shutuba.html?race_id=' + rid).then(function(sh){ return { rs: rs, sh: sh }; });
+      }).then(function(f){
+        var delta = null;
+        try { delta = adObsOne(f.sh, f.rs); } catch(e){}
+        if (delta){ okR++; added += adObsMergeAdd(delta); }   /* 1レースぶんをまとめて1回だけ保存 */
+        step();
+      }).catch(function(){ step(); });
+    })();
+  }).catch(function(e){
+    adObsMsg('⚠ 取得に失敗: ' + ((e && e.message) || e) + '（URL取込の通信設定・中継api/race.js をご確認ください）', 1);
+  });
 }
 
 /* =========================================================
@@ -11333,6 +11772,21 @@ function jraStart(){
       var o = jraLsGet();
       o['last:' + venue] = { at: Date.now(), text: full };
       jraLsSet(o);
+    } catch(e){}
+    /* ★第133弾(第134弾改): 指数用の馬場履歴へ自動追記（クッション値・含水率→指数の馬場点に反映）。
+       測定日は pick 自身の月日から推定（年は開催日の年・不明なら今日）＝前日に取得しても正しい日付で保存 */
+    try {
+      if (typeof giBabaUpsert === 'function'){
+        var cuX = (res.cushionPick && isFinite(res.cushionPick.v)) ? res.cushionPick.v : null;
+        var muX = res.moistPick, swX = null, dwX = null;
+        if (muX && muX.turf && isFinite(muX.turf.mg) && isFinite(muX.turf.m4c)) swX = (muX.turf.mg + muX.turf.m4c) / 2;
+        if (muX && muX.dirt && isFinite(muX.dirt.mg) && isFinite(muX.dirt.m4c)) dwX = (muX.dirt.mg + muX.dirt.m4c) / 2;
+        if (cuX != null || swX != null || dwX != null){
+          var mdX = (res.page && res.page.meetingText && typeof jraMeetDate === 'function') ? jraMeetDate(res.page.meetingText) : null;
+          var d8X = (typeof giBabaD8 === 'function') ? giBabaD8(res.cushionPick || res.moistPick, mdX ? mdX.y : null) : null;
+          giBabaUpsert(d8X, venue, cuX, swX, dwX);
+        }
+      }
     } catch(e){}
   }).catch(function(e){
     put('取得に失敗しました：' + (e && e.message ? e.message : e) +
@@ -16613,6 +17067,14 @@ function apSnapPred(rid, res, meta, opt){
         if (lvF) snap.lv = lvF;
       }
     } catch(e){}
+    /* ★第131弾: 多要素指数(持ちタイム/上り/テン/距離/脚質/間隔/年齢/騎手/厩舎+コア3要素)も
+       予想時点で確定して snap.gidx へ保存（結果確定後の再計算はしない・第102弾規約） */
+    try {
+      if (!isBt && typeof aiFreezeGidx === 'function'){
+        var giF = aiFreezeGidx(snap.rows, mm || rec.meta || null);
+        if (giF) snap.gidx = giF;
+      }
+    } catch(e){}
     /* ★第83弾(Phase 4): モデルID・学習基準日時・使用重み・校正状態・寄与（実計算値のみ）を記録。
        予測計算・rows・sig は一切不変（meta は保存時に1回生成する付加情報）。 */
     try { if (typeof smBuildMeta === 'function') snap.model = smBuildMeta(res, { bt: isBt, d8: d8 }); } catch(e){}
@@ -20367,6 +20829,14 @@ function diGet(rid){
   var leg = diLegacy(); return (leg && leg.races[rid]) || null;
 }
 function diSet(rid, rec){
+  /* ★第128弾: 修正データ(khl_dbfix_v1)を取込時にレコードへ焼き込む。学習DBの再取得・再取込で
+     レコードが新しいものに置き換わっても、ここを通るたび修正が自動で載る＝修正だけ別保管していればよい。
+     実データ(距離・面あり)は尊重（欠損のみ補完）・手動修正(manual)は実データより優先。 */
+  try { if (typeof dbFixPatchRec === 'function') dbFixPatchRec(rec); } catch(e){}
+  /* ★第134弾: 直近(70日以内)のレースを学習DBへ保存したとき、JRA公式の馬場測定
+     （クッション値・含水率）を端末へ自動取得する。6時間に1回だけ・🤖自動マクロ(E3)で
+     OFF可・失敗しても静か（学習DB取込の日付指定・年指定・結果メモ・📦復元の全経路がここを通る） */
+  try { if (typeof giBabaAuto === 'function') giBabaAuto(rec && rec.meta && rec.meta.date8); } catch(e){}
   diVer++;   /* ★第82弾: 書き込み世代を進める（hfCollectRaces/pbDayStats のキャッシュ無効化） */
   // 満杯になったら「一番古いデータから上書き」：容量不足時は古い順に自動削除して保存する
   if (diMode === 'idb' && diMem){
@@ -36019,6 +36489,7 @@ var AM_DEF = {
   drChain: true,     // (D) ⑥の分析が終わったら血統抽出を自動で続ける
   biasAuto: true,    // (E) ★第21弾④: 開催日に発走時刻＋12分ごとにトラックバイアスを自動取得
   preRefresh: true,  // (E2) ★第97弾: バイアス取得で新しい結果が入ったら未発走レースの事前予想を自動引き直し
+  babaAuto: true,    // (E3) ★第134弾: 学習DBへ直近レースを取込んだらJRA馬場履歴(クッション値・含水率)も自動取得(6時間に1回)
   wtAuto: true,      // (F) ★第21弾⑤: 重みをレースごとにAIが自動補正する（スライダーは動かさない）
   lastClean: '',     // 最後に掃除した日（同じ日に何度も走らせない）
   lastBiasDay: ''    // 最後にトラックバイアスの締め取得をした日
@@ -36028,7 +36499,7 @@ var AM_BUSY = { horse: false, day: false, bf: false, bias: false, ref: false };
 var AM_PAIRS = [
   ['amChkDay','dayAll'], ['amChkHorse','horse'], ['amChkStyle','style'], ['amChkDetail','detail'],
   ['amChkClean','weekClean'], ['amChkBiasClean','biasClean'], ['amChkBias','biasAuto'],
-  ['amChkDr','drChain'], ['amChkWt','wtAuto'], ['amChkPreRef','preRefresh']   /* ★第97弾 */
+  ['amChkDr','drChain'], ['amChkWt','wtAuto'], ['amChkPreRef','preRefresh'], ['amChkBaba','babaAuto']   /* ★第97弾+第134弾 */
 ];
 var AM_KEYS = ['dayAll','horse','style','weekClean','biasClean','biasAuto','drChain','wtAuto','preRefresh'];
 
@@ -38265,6 +38736,9 @@ function klStatAdd(s, order, surf, track, distB, distEx, pop, prize, pace, year,
 function klBuildFromDb(){
   var db = (typeof diLs === 'function') ? diLs() : null;
   var races = (db && db.races) || {};
+  /* ★第127弾: 距離・面の修正データ(khl_dbfix_v1)を上書き適用（学習DB本体には書き戻さない）。
+     空メタのレースが「芝・芝0m」扱いになって芝ダ分離を壊す問題の補修。 */
+  try { if (typeof dbFixApply === 'function') dbFixApply(races); } catch(e){}
   var J = {}, T = {}, H = {}, P = {};
   function get(map, n){ return map[n] || (map[n] = klStatNew(n)); }
   Object.keys(races).forEach(function(rid){
@@ -38313,7 +38787,7 @@ function klBuildFromDb(){
       }
     });
   });
-  var res = { v: KL_STATS_V, jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
+  var res = { v: KL_STATS_V, dbfix: (typeof dbFixStamp === 'function' ? dbFixStamp() : '0'), jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
   klDbCache = res;
   /* ★第105弾: 空の統計(n=0)は保存しない（未ロード状態を永続化しない） */
   try { if (typeof localStorage !== 'undefined' && res.n > 0) localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
@@ -38326,7 +38800,7 @@ function klStatsN(){
 }
 function klStatsOf(kind, name){
   /* ★第105弾: 空統計(n=0)のキャッシュは無視する（学習DBロード前に空統計が焼き付く事故防止） */
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0) klDbCache = p; } catch(e){} }
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0 && ((typeof dbFixStamp !== 'function') || p.dbfix === dbFixStamp())) klDbCache = p; } catch(e){} }   /* ★第127弾: 修正データが変わったらキャッシュを無視して再構築 */
   if (!klDbCache) klDbCache = klBuildFromDb();
   var map = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
   return (name != null && map && map[name]) ? map[name] : null;
@@ -39644,31 +40118,54 @@ function aiRaceRL(b){
     return { v: v, txt: v.toFixed(1) + '（' + cl.note + '・' + lv + '）', note: cl.note + '・' + lv, n: n };
   } catch(e){ return { v: null, txt: '—', note: '—', n: 0 }; }
 }
-/* コースLvの元になる適性blend（複勝率ベース・0付近〜1）: 相対化は aiFieldLevels で行う */
-function aiCourseCL(hname, surfKey, m, venue, jockey){   /* ★第70弾: jockey=今回の騎手（相性・得手不得手コースに使用） */
+/* ★第126弾: 芝ダ完全分離 — 馬の戦績から「当日と同じ面」の走だけを取り出す
+   （芝のレースなら芝の走のみ。ダートの実績を芝の評価に混ぜない＝ユーザー指定方針:
+   　「コースレベルやレースレベルでは芝とダートでの成績を混合すると指標にならない」）。
+   lvHorseStats を通すので ASOF（レース日以前だけの再現計算）モードにも透過する。
+   surf 欠損行は従来規則（byDistExの鍵）どおり芝扱い。 */
+function lvSameFace(hname, surfKey){
   try {
-    var st = (typeof lvHorseStats === 'function') ? lvHorseStats(hname) : null;   /* ★第104弾: 再現計算モード対応（騎手側は現行値のまま） */
+    var st = (typeof lvHorseStats === 'function') ? lvHorseStats(hname) : null;
+    if (!st || !Array.isArray(st.races) || !st.races.length) return null;
+    var want = (surfKey === '障') ? '障害' : String(surfKey || '芝');
+    var rs = st.races.filter(function(jr){ return String((jr && jr.surf) || '芝') === want; });
+    if (!rs.length) return null;
+    var o = { name: hname, rides: rs.length, win: 0, place: 0, show: 0, bySurf: {}, byDistEx: {}, byTrack: {}, races: rs };
+    rs.forEach(function(jr){
+      var od = parseInt(jr.order, 10) || 0;
+      if (od === 1) o.win++; if (od <= 2) o.place++; if (od <= 3) o.show++;
+      var dm = parseInt(String(jr.dist || '').replace(/[^0-9]/g, ''), 10) || 0;
+      if (dm){ var k1 = String(jr.surf || '芝') + dm + 'm'; if (!o.byDistEx[k1]) o.byDistEx[k1] = { rides: 0, show: 0 }; o.byDistEx[k1].rides++; if (od <= 3) o.byDistEx[k1].show++; }
+      if (jr.place){ var k2 = String(jr.place); if (!o.byTrack[k2]) o.byTrack[k2] = { rides: 0, show: 0 }; o.byTrack[k2].rides++; if (od <= 3) o.byTrack[k2].show++; }
+    });
+    return o;
+  } catch(e){ return null; }
+}
+/* コースLvの元になる適性blend（複勝率ベース・0付近〜1）: 相対化は aiFieldLevels で行う */
+function aiCourseCL(hname, surfKey, m, venue, jockey){   /* ★第70弾: jockey=今回の騎手（相性に使用） */
+  try {
+    /* ★第126弾: 同面の走だけ（ダートの実績で芝の適性を水増ししない）。同面3走未満は「—」 */
+    var st = (typeof lvSameFace === 'function') ? lvSameFace(hname, surfKey) : null;
     if (!st || (st.rides || 0) < 3) return null;
     var n = st.rides;
-    var sf = (surfKey === 'ダ') ? 'dirt' : (surfKey === '障' ? 'jump' : 'turf');
     function cell(x, w){
       if (!x || (x.rides || 0) < 2) return null;
       var k = x.rides;
       return { r: (x.show || 0) / k, w: w * (k / (k + 6)) };
     }
+    /* ★第126弾: st自体が同面のみなので bySurf セルは冗長→廃止し、距離・競馬場に比重再配分 */
     var cells = [
       { r: (st.show || 0) / n, w: 0.40 * (n / (n + 8)) },
-      cell(st.bySurf && st.bySurf[sf], 0.24),
-      cell(st.byDistEx && st.byDistEx[surfKey + m + 'm'], 0.22),
-      cell(venue && st.byTrack && st.byTrack[venue], 0.14)
+      cell(st.byDistEx && st.byDistEx[surfKey + m + 'm'], 0.34),
+      cell(venue && st.byTrack && st.byTrack[venue], 0.26)
     ];
     var acc = 0, wt = 0;
     cells.forEach(function(x){ if (x){ acc += x.r * x.w; wt += x.w; } });
     if (!(wt > 0)) return null;
     var r = acc / wt;
     /* ★第70弾: 騎手要素（コースLvは「補足」なので小さめの補正にする）
-       ・その馬とこの騎手の過去の相性（2走以上一緒に走っていれば）
-       ・この騎手の「当該競馬場」での得手不得手（全体複勝率との差・5走以上） */
+       ・その馬とこの騎手の過去の相性（2走以上一緒に走っていれば・★第126弾: 同面の共走のみ）
+       ・★第126弾: 当該競馬場での得手不得手は芝ダ混合統計しかなく面分離できないため撤去 */
     var jk = String(jockey || '');
     if (jk){
       try {
@@ -39676,20 +40173,13 @@ function aiCourseCL(hname, surfKey, m, venue, jockey){   /* ★第70弾: jockey=
         if (withJ.length >= 2){
           var w2 = 0, p2 = 0;
           withJ.forEach(function(jr){ var o = parseInt(jr.order, 10) || 99; if (o === 1) w2++; if (o <= 3) p2++; });
-          var chem = (w2 + 0.5 * (p2 - w2)) / withJ.length;             /* この騎手との複勝換算 */
+          var chem = (w2 + 0.5 * (p2 - w2)) / withJ.length;             /* この騎手との複勝換算（★第126弾: 同面の共走のみ） */
           r += Math.max(-0.12, Math.min(0.12, (chem - 0.35) * 0.3));
         }
       } catch(eJ1){}
-      try {
-        var js = (typeof klStatsOf === 'function') ? klStatsOf('jockey', jk) : null;
-        if (js && (js.rides || 0) >= 30){
-          var all2 = (js.show || 0) / js.rides;
-          var tv = venue && js.byTrack && js.byTrack[venue];
-          if (tv && (tv.rides || 0) >= 5){
-            r += Math.max(-0.10, Math.min(0.10, ((tv.show || 0) / tv.rides - all2) * 0.4));
-          }
-        }
-      } catch(eJ2){}
+      /* ★第126弾: 「この騎手の当該競馬場での得手不得手」補正は撤去。
+         騎手×競馬場の統計(klStatsOf)が芝ダ混合で面分離できないため（混合データを
+         能力評価に混ぜないユーザー指定方針）。影響は±0.10の小項目。 */
     }
     return { r: Math.max(0, Math.min(1.15, r)), n: n, jk: jk ? 1 : 0 };
   } catch(e){ return null; }
@@ -39701,12 +40191,12 @@ function aiCourseCL(hname, surfKey, m, venue, jockey){   /* ★第70弾: jockey=
     （同レースの全馬が学習DBにいるので、勝ち馬の上りとの比較ができる）
    ・★第70弾 テンの速さ: 1角3番手以内で運んで馬券内に残した走りは加点（前で粘れた＝強い）
    2走未満は null。出馬表内での相対化は aiFieldLevels が行う。 */
-function aiRaceLvHorse(hname){
+function aiRaceLvHorse(hname, surfKey){   /* ★第126弾: surfKey=当日の面。同面の走だけで計算（芝ダ混合禁止） */
   /* ★第103弾: ユーザー指摘「レースLvは1走だけ・2走だけでも出せる」→ 1走のみも計算。
-     0走（新馬・未取込・転入）は—のまま（ユーザー指示: 初出走は数値を入れない）。
+     0走（新馬・未取込・転入・★第126弾では当日と反対の面しか走っていない馬も）は—のまま。
      コースLvは従来どおり実績3走必要（適性は走らないと測れない）。 */
   try {
-    var st = (typeof lvHorseStats === 'function') ? lvHorseStats(hname) : null;   /* ★第104弾: 再現計算モード対応 */
+    var st = (typeof lvSameFace === 'function') ? lvSameFace(hname, surfKey) : null;   /* ★第104弾: 再現計算モード対応 */
     if (!st || !Array.isArray(st.races) || !st.races.length) return null;
     var rs = st.races.slice().sort(function(a, b){ return String(a.date || '').localeCompare(String(b.date || '')); }).slice(-8);
     function runScore(jr){
@@ -39746,9 +40236,9 @@ function aiFieldLevels(rows, geom){
     var hs = (rows || []).filter(function(r){ return r && r.name; });
     var clRaw = {}, rlRaw = {};
     hs.forEach(function(r){
-      var cv = aiCourseCL(r.name, geom.surf, geom.m, geom.venue, r.jockey);   /* ★第70弾: 騎手要素つき */
+      var cv = aiCourseCL(r.name, geom.surf, geom.m, geom.venue, r.jockey);   /* ★第70弾: 騎手要素つき ★第126弾: 同面のみ */
       if (cv && cv.r != null && isFinite(cv.r)) clRaw[r.name] = cv.r;
-      var rv = aiRaceLvHorse(r.name);   /* ★第103弾: 1走のみも計算（0走は—） */
+      var rv = aiRaceLvHorse(r.name, geom.surf);   /* ★第103弾: 1走のみも計算（0走は—）★第126弾: 同面のみ */
       if (rv && rv.v != null && isFinite(rv.v)) rlRaw[r.name] = rv.v;
     });
     function rel(map){
@@ -39854,31 +40344,23 @@ function aiLvForExport(b, geom){
     return { lv: EMPTY, rl: null, frozen: 0 };
   } catch(e){ return { lv: EMPTY, rl: null, frozen: 0 }; }
 }
-/* ★第109弾: 総合点（100点満点）＝ このレースで発揮できるであろう力量
-   コースLv(適性・騎手)35点 ＋ レースLv(過去の相手関係)30点 ＋ トラックバイアス×脚質20点 ＋ 成績の安定度(複勝率)15点。
+/* ★第130弾: 指数（100点満点）＝ コースLv50点 ＋ レースLv50点 の2要素合わせ。
+   旧・総合点（★第109弾: CL35+RL30+バイアス×脚質20+安定度15）を廃止し、
+   「基本の強さ（レースLv）」×「この条件で出せる力（コースLv）」に純化。
    ・CL/RL は出馬表内の相対値(0.00〜1.00)、片方測定不能は中立0.5。両方無ければ「—」。
-   ・バイアス成分はエンジンが実際に使う掛け幅(0.72〜1.28)を0〜1に正規化し、馬の脚質(逃/先/差/追)で参照。
-   ・成績成分は複勝率(学習DB10走以上・無ければAI確率換算)を55%で満点に正規化。測定不能は中立0.5。
-   ★第110弾: 戻り値は丸めない生値（小数つき）。0.1点刻みへの丸めと同点回避は aiScoreUniq がレース単位で行う。 */
-function aiPowerScore(cl, rl, style, mulMap, sr){
+   ・予想時スナップショット(snap.lv)だけで再現できる＝結果確定後も値が変わらない（第102弾規約を維持）。
+   ★第110弾: 戻り値は丸めない生値。0.1点刻みへの丸めと同点回避は aiScoreUniq がレース単位で行う。 */
+function aiIndexScore(cl, rl){
   try {
     if (cl == null && rl == null) return null;
     var clV = (cl != null) ? Math.max(0, Math.min(1, cl)) : 0.5;
     var rlV = (rl != null) ? Math.max(0, Math.min(1, rl)) : 0.5;
-    var bf = 0.5;
-    if (mulMap){
-      var sc2 = (typeof styleClass === 'function') ? styleClass(String(style || '')) : '';
-      if (sc2 && mulMap[sc2] != null && isFinite(Number(mulMap[sc2]))){
-        bf = Math.max(0, Math.min(1, (Number(mulMap[sc2]) - 0.72) / 0.56));
-      }
-    }
-    var ff = (sr != null && Number(sr) > 0) ? Math.max(0, Math.min(1, Number(sr) / 0.55)) : 0.5;
-    return 35 * clV + 30 * rlV + 20 * bf + 15 * ff;
+    return 50 * clV + 50 * rlV;
   } catch(e){ return null; }
 }
-/* ★第110弾: 総合点の同点回避（差別化）— 1レースの中で可能な限り全馬が違う点数になるようにする。
+/* ★第110弾: 指数（旧・総合点）の同点回避（差別化）— 1レースの中で可能な限り全馬が違う点数になるようにする。
    ① 生値を0.1点刻みに丸める → ② 同点の馬は「強い方を上」に0.1点ずつ下げて分離（下限0.0）。
-   強さの順序（プライマリは丸め後の点数）: 総合の生値 → コースLv相対値 → レースLv相対値 → 複勝率 → AI確率 → 馬番（小さい方を上）。
+   強さの順序（プライマリは丸め後の点数）: 指数の生値 → コースLv相対値 → レースLv相対値 → 馬番（小さい方を上）。★第130弾で複勝率/AI確率は成分でなくなったため除外。
    CL/RLが両方測定不能で「—」の馬は対象外（点数が無い）。score を直接書き換え、生値は scRaw に退避。 */
 function aiScoreUniq(rows){
   try {
@@ -39889,7 +40371,7 @@ function aiScoreUniq(rows){
     tg.sort(function(a, b){
       var d = b.score - a.score;
       if (Math.abs(d) > 0.001) return d;
-      var ks = ['scRaw', 'clRaw', 'rlRaw', 'sr', 'prob0'];
+      var ks = ['scRaw', 'clRaw', 'rlRaw'];   /* ★第130弾: 指数の要素のみで順位（sr/prob0は成分でなくなったため除外） */
       for (var i = 0; i < ks.length; i++){
         var va = nm(a[ks[i]]), vb = nm(b[ks[i]]);
         if (va == null && vb == null) continue;
@@ -40131,13 +40613,20 @@ function aiDayExportModel(){
       var lvSrc = aiLvForExport(b, geom);
       var rl = lvSrc.rl;
       var lv = lvSrc.lv;
-      /* ★第109弾: 総合点用バイアス（予想時スナップショットの実使用値を優先） */
-      var bmul = null;
-      try { var bb = b.snap && b.snap.bias; if (bb){ bmul = (bb.used && bb.used.mul) || bb.mul || null; } } catch(e){}
+      /* ★第131弾: 多要素指数(snap.gidx=予想時点保存値を最優先。未確定かつ未保存のときだけ現在DBから計算。
+         確定済みで保存が無い場合はフォールバック(CL+RL)または「—」。第102弾規約と同じ扱い) */
+      var gidx = (b.snap && b.snap.gidx) ? b.snap.gidx : null;
+      if (!gidx && !aiIsSettled(b)){
+        try {
+          var mmG = b.rec && b.rec.meta || {};
+          var dmG = String(mmG.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+          gidx = (typeof aiFreezeGidx === 'function') ? aiFreezeGidx(b.rows, mmG) : null;
+        } catch(e){ gidx = null; }
+      }
       /* ★第70弾: 荒れ/堅実はレースLv×コースLvの読み方から（両Lvが揃わないレースはオッズ波乱度へ） */
       var wave = aiWaveFromLv(b, lv) || aiWaveGrade(b.rows.map(function(r){ return r.odds; }));
-      var rows = b.rows.map(function(r){
-        /* ★第110弾: 予想時AI確率を pr0 として保持（総合点の同点回避タイブレーク用） */
+      var rows = b.rows.map(function(r, ri){
+        /* 予想時AI確率 pr0（aiRatesForのAI確率換算で使用） */
         var pr0 = null;
         try { (b.snap.rows || []).forEach(function(x){ if (String(x.no) === String(r.no)) pr0 = (x.prob != null ? x.prob : null); }); } catch(e){}
         var rate = aiRatesFor(r.name, pr0);
@@ -40147,19 +40636,44 @@ function aiDayExportModel(){
                  /* ★第71弾: Lvは出馬表内の順位（1=最高評価・整数）。内部相対値はaiWaveFromLvが使用 */
                  clk: (lv.clRk[r.name] != null ? lv.clRk[r.name] : null),
                  rlk: (lv.rlRk[r.name] != null ? lv.rlRk[r.name] : null),
-                 /* ★第109弾: 総合点(100点満点)＋計算に使った生のCL/RL相対値 */
+                 /* ★第109弾→★第130弾: 指数(100点満点=CL50+RL50)＋計算に使った生のCL/RL相対値 */
                  clRaw: (lv.cl && lv.cl[r.name] != null ? lv.cl[r.name] : null),
                  rlRaw: (lv.rl && lv.rl[r.name] != null ? lv.rl[r.name] : null),
                  prob0: pr0,
-                 score: aiPowerScore((lv.cl && lv.cl[r.name] != null) ? lv.cl[r.name] : null,
-                                     (lv.rl && lv.rl[r.name] != null) ? lv.rl[r.name] : null,
-                                     r.style, bmul, rate.sr) };
+                 rk: ri + 1,
+                 giR: (gidx && gidx.r && gidx.r[String(r.no)]) ? gidx.r[String(r.no)] : null,   /* ★第131弾: 指数の内訳順位 */
+                 score: (gidx && gidx.s && gidx.s[String(r.no)] != null) ? gidx.s[String(r.no)]
+                        : aiIndexScore((lv.cl && lv.cl[r.name] != null) ? lv.cl[r.name] : null,
+                                       (lv.rl && lv.rl[r.name] != null) ? lv.rl[r.name] : null) };
       });
       aiScoreUniq(rows);   /* ★第110弾: 同点回避（可能な限り全馬ちがう点数にする） */
+      /* ★第130弾: 行並びは印順ではなく指数順（高い順・測定不能の馬は最後・同点は元の印順） */
+      rows.sort(function(a, b2){
+        var an = (a.score != null), bn = (b2.score != null);
+        if (an !== bn) return an ? -1 : 1;
+        if (an && Math.abs(b2.score - a.score) > 1e-9) return b2.score - a.score;
+        return (a.rk || 99) - (b2.rk || 99);
+      });
+      /* ★第131弾: 指数1位馬の内訳(順位)テキスト */
+      var giTxt = '';
+      try {
+        if (gidx && gidx.s){
+          var topNo = null, topV = null;
+          for (var gk in gidx.s){ if (gidx.s[gk] != null && (topV == null || gidx.s[gk] > topV)){ topV = gidx.s[gk]; topNo = gk; } }
+          if (topNo != null && gidx.r && gidx.r[topNo]){
+            var topName = '';
+            rows.forEach(function(r2){ if (String(r2.no) === String(topNo)) topName = r2.name; });
+            var FL = { t: '時計', l3: '上り', te: 'テン', dst: '距離', sty: '脚質', itv: '間隔', age: '年齢', jky: '騎手', trn: '厩舎' };
+            var parts2 = [];
+            for (var fk in FL){ var rv = gidx.r[topNo][fk]; parts2.push(FL[fk] + (rv != null ? rv + '位' : '—')); }
+            giTxt = '📊 指数1位 ' + topName + '（' + topV + '点）の内訳: ' + parts2.join('・') + '（出走馬内の順位・測定不能は—）';
+          }
+        }
+      } catch(e){}
       out.push({
         d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || ''), rnum: String(it.rnum || ''),
         name: String(it.name || ''), rid: String(it.rid || ''), wave: wave, rows: rows,
-        rl: rl, story: (story && story.lines) ? story.lines : null, geom: geom,
+        rl: rl, giTxt: giTxt, story: (story && story.lines) ? story.lines : null, geom: geom,
         settled: aiIsSettled(b),
         resultMap: (function(){ var m = {}; try { (b.res && b.res.rows ? b.res.rows : []).forEach(function(x){ if (x && x.no != null) m[String(x.no)] = (parseInt(x.order, 10) || 0); }); } catch(e){} return m; })()
       });
@@ -40180,7 +40694,7 @@ function aiExportXlsHTML(model){
     'td.note{color:#b25000;font-weight:700} td.wr{background:#fffde7}</style></head><body>';
   h += '<table cellspacing="0" cellpadding="0">';
   h += '<tr><td colspan="12" style="font-size:13pt;font-weight:700;background:#1a237e;color:#fff">競馬AIラボ｜' +
-    String((model[0] && model[0].d8) || '') + '　全' + model.length + 'レース（印・AI率・波乱度・コースLv/レースLv・展開予想）</td></tr>';
+    String((model[0] && model[0].d8) || '') + '　全' + model.length + 'レース（指数順・印・AI率・波乱度・コースLv/レースLv・展開予想）</td></tr>';
   model.forEach(function(rc){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
@@ -40189,7 +40703,7 @@ function aiExportXlsHTML(model){
     if (rc.wave && rc.wave.why){
       h += '<tr><td colspan="12" style="text-align:left;background:#fdf6ec;font-size:9.5pt">⚠ ' + esc(rc.wave.why) + '（レースLv＝基本の強さ／コースLv＝適性・騎手。乖離が大きい馬が荒れ要素）</td></tr>';
     }
-    h += '<tr>' + ['番', '馬名', '印', 'オッズ', '特記', '勝率', '連対率', '複勝率', 'コースLv', 'レースLv', '総合', '出典'].map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr>';
+    h += '<tr>' + ['番', '馬名', '印', 'オッズ', '特記', '勝率', '連対率', '複勝率', 'コースLv', 'レースLv', '指数', '出典'].map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr>';
     rc.rows.forEach(function(r){
       var resNo = rc.resultMap[String(r.no)] || 0;
       h += '<tr>' + td(r.no) + td(r.name, 'text-align:left') + td(r.mark, 'font-weight:700') +
@@ -40200,13 +40714,16 @@ function aiExportXlsHTML(model){
         td(r.score == null ? '—' : r.score.toFixed(1), 'font-weight:700') +
         td((r.src || '') + (resNo ? '／' + resNo + '着' : '')) + '</tr>';
     });
+    if (rc.giTxt){
+      h += '<tr><td colspan="12" style="text-align:left;background:#eef7ee;font-size:9.5pt;line-height:1.6">' + esc(rc.giTxt) + '</td></tr>';
+    }
     if (rc.story && rc.story.length){
       h += '<tr><td colspan="12" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
         rc.story.map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
     }
     h += '<tr><td colspan="12"></td></tr>';
   });
-  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>総合＝100点満点の力量指標（★第109弾）: コースLv35点＋レースLv30点＋トラックバイアス×脚質20点＋成績の安定度（複勝率）15点。今の展開と馬の走り方、今までの成績からみた「このレースで発揮できるであろう力量」。CL/RLが両方測定不能の馬は「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け（総合生値→CL→RL→複勝率→AI確率→馬番の順）</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>指数＝多要素評価（★第131弾・1-99点）: 【コア】レース質+対戦馬のその後／馬場点(クッション値×含水率)／コース適性(競馬場×距離×好走パターン)【追加】持ちタイム・上り3F・距離適性・該当レースの好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順（測定不能の馬は最後）。要素が取れない馬は旧式(CL+RL)または「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -40224,7 +40741,7 @@ function aiExportPdfHTML(model){
     '.story{margin-top:5px;padding:5px 8px;background:#f4f6fd;border-left:3px solid #7986cb;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0}' +
     '@media print{.race{box-shadow:none}} .foot{color:#7b8698;font-size:9px;margin-top:6px}' +
     '</style></head><body>';
-  h += '<h1>🐎 競馬AIラボ｜' + esc(String((model[0] && model[0].d8) || '')) + '　全' + model.length + 'レース出馬表（印・AI率・波乱度・コースLv/レースLv・展開予想）</h1>';
+  h += '<h1>🐎 競馬AIラボ｜' + esc(String((model[0] && model[0].d8) || '')) + '　全' + model.length + 'レース出馬表（指数順・印・AI率・波乱度・コースLv/レースLv・展開予想）</h1>';
   model.forEach(function(rc){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<div class="race"><div class="rh"><span>' + esc(label) + '</span>' +
@@ -40234,7 +40751,7 @@ function aiExportPdfHTML(model){
     if (rc.wave && rc.wave.why){
       h += '<div style="margin:2px 0 4px;font-size:9.5px;color:#8a5a00;background:#fdf6ec;padding:3px 6px;border-radius:4px">⚠ ' + esc(rc.wave.why) + '</div>';
     }
-    h += '<table><tr><th>番</th><th>馬名</th><th>印</th><th>オッズ</th><th>特記</th><th>勝率(AI)</th><th>連対率</th><th>複勝率</th><th>コースLv</th><th>レースLv</th><th>総合</th>' + (rc.settled ? '<th>結果</th>' : '') + '</tr>';
+    h += '<table><tr><th>番</th><th>馬名</th><th>印</th><th>オッズ</th><th>特記</th><th>勝率(AI)</th><th>連対率</th><th>複勝率</th><th>コースLv</th><th>レースLv</th><th>指数</th>' + (rc.settled ? '<th>結果</th>' : '') + '</tr>';
     rc.rows.forEach(function(r){
       var resNo = rc.resultMap[String(r.no)] || 0;
       h += '<tr>' + td(r.no) + '<td class="nm">' + esc(r.name) + '</td>' + td(r.mark) + td(r.odds == null ? '' : Number(r.odds).toFixed(1)) +
@@ -40244,13 +40761,16 @@ function aiExportPdfHTML(model){
         td(r.score == null ? '—' : r.score.toFixed(1), 'wr') +
         (rc.settled ? td(resNo ? resNo + '着' : '—') : '') + '</tr>';
     });
+    if (rc.giTxt){
+      h += '<div style="margin-top:5px;padding:5px 8px;background:#eef7ee;border-left:3px solid #66a26b;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0">' + esc(rc.giTxt) + '</div>';
+    }
     if (rc.story && rc.story.length){
       h += '<div class="story"><b>🔮 展開予想（実況風）</b>' +
         rc.story.map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
     }
     h += '</table></div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。総合＝100点満点の力量指標（コースLv35＋レースLv30＋バイアス×脚質20＋安定度15・★第109弾）。同点は0.1点刻みで差別化（強い方を上・★第110弾）。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   h += '</body></html>';
   return h;
 }
@@ -46584,6 +47104,980 @@ function initJrdb(){
   jrdbLoadList(false);
 }
 
+/* p90_dbfix.js — ★第127弾: 🔧 学習DBの修正データ（距離・面を別保管→再取得後も自動適用）
+   背景: 学習DBの meta.dist / meta.surface が空のレースが約12%ある（重賞はG1を含め全滅）。
+   p63(klStatsOf)は空を「芝・芝0m」扱いにするため、①実際はダートの走が芝の集計に混ざる
+   （★第126弾の芝ダ分離がデータ側で壊れていた）②距離適性セル(芝1600m等)に入らない、
+   という2つの問題が起きていた。
+   しくみ:
+   - 修正は localStorage 'khl_dbfix_v1' に「レースキー(date8|場所|R番号) → {dist, surface, src}」
+     で別保管。学習DB本体（khl_date_* / IndexedDB）には一切書き戻さない。
+   - p63 klBuildFromDb の先頭で dbFixApply(races) が上書き適用（typeofガード）。
+     → 年指定の再取込・学習DBの再取得でDBが入れ替わっても、統計構築のたびに
+       修正が自動で再適用される（=修正だけ保管すればよい）。
+   - 統計キャッシュ(khl_jdb_stats)に dbfix スタンプを記録し、修正が増えれば自動再構築。
+   UI: 🗓年指定取込カード内の「🔧 学習DBの修正データ」ブロック。
+   - 🔍欠損チェック: 距離・面が無いレースを検出して候補を提案
+     (a) 距離が不変の重賞は固定表（桜花賞=芝1600・天皇賞(春)=芝3200 ほか）
+     (b) 同じ競馬場の「(面,距離)ごとの勝ち時計中央値」に最も近い距離（検証: マスク約86%一致）
+   - 提案の✅採用 または 手動入力で修正を保存。📤書き出し/📥読み込みでJSONバックアップ。
+   実行: python3 build.py 後に node tests/mk127.test.js */
+'use strict';
+
+var DBFIX_LS = 'khl_dbfix_v1';
+/* 距離が不変の重賞（2021-2026で変更なし・グレード表記のゆらぎは前方一致で吸収） */
+var DBFIX_FIXED = {
+  '桜花賞': '芝1600', '天皇賞(春)': '芝3200', 'スプリンターズS': '芝1200', 'スプリンターズステークス': '芝1200',
+  'マイルチャンピオンS': '芝1600', '阪神ジュベナイルF': '芝1600', '朝日フューチュリティ': '芝1600',
+  '菊花賞': '芝3000', 'エリザベス女王杯': '芝2200', '宝塚記念': '芝2200',
+  'アイビスサマーD': '芝1000', 'ステイヤーズS': '芝3600'   /* 中山芝3600m・第129弾で追加 */
+};
+
+function dbFixLs(){
+  try {
+    var o = JSON.parse(localStorage.getItem(DBFIX_LS) || 'null');
+    if (o && o.v === 1 && o.fixes) return o;
+  } catch(e){}
+  return { v: 1, fixes: {} };
+}
+function dbFixLsSave(o){
+  try { localStorage.setItem(DBFIX_LS, JSON.stringify(o)); return true; } catch(e){ return false; }
+}
+function dbFixKeyOf(m){
+  return String((m && m.date8) || '') + '|' + String((m && m.place) || '') + '|' +
+         String((m && m.rnum) != null ? String(m.rnum || '').replace(/[^0-9]/g, '') : '').padStart(2, '0');
+}
+/* キャッシュ無効化用のスタンプ（件数+最終更新） */
+function dbFixStamp(){
+  var o = dbFixLs(), n = Object.keys(o.fixes).length, mx = 0;
+  for (var k in o.fixes){ var at = o.fixes[k].at || 0; if (at > mx) mx = at; }
+  return n + '_' + mx;
+}
+function dbFixValidDist(s){ return /^(芝|ダ)\d{3,4}m$/.test(String(s || '')); }
+function dbFixNeed(m){
+  if (!m) return false;
+  var okD = dbFixValidDist(m.dist);
+  var okS = /^(芝|ダ|障害)$/.test(String(m.surface || ''));
+  return !(okD && okS);
+}
+/* 保存済み修正を races の meta に上書き適用（DB本体には書き戻さない・毎回呼んでよい冪等設計） */
+function dbFixApply(races){
+  var n = 0;
+  try {
+    var o = dbFixLs(), fs = o.fixes;
+    for (var rid in races){
+      var rec = races[rid], m = rec && rec.meta;
+      if (!m) continue;
+      var f = fs[dbFixKeyOf(m)];
+      if (!f || !dbFixValidDist(f.dist)) continue;
+      if (m.dist === f.dist && m.surface === f.surface) continue;
+      m.dist = f.dist; m.surface = f.surface; m.dbfix = 1;
+      n++;
+    }
+  } catch(e){}
+  return n;
+}
+/* 勝ち時計(秒) — 1:59.9 / 59.9 両形式 */
+function dbFixWinSec(rows){
+  try {
+    for (var i = 0; i < (rows || []).length; i++){
+      var r = rows[i];
+      if (parseInt(r.order, 10) === 1){
+        var t = String(r.time || '');
+        var m1 = t.match(/^(\d+):(\d{2}\.\d)$/), m2 = t.match(/^(\d{2}\.\d)$/);
+        if (m1) return parseInt(m1[1], 10) * 60 + parseFloat(m1[2]);
+        if (m2) return parseFloat(m2[1]);
+      }
+    }
+  } catch(e){}
+  return null;
+}
+/* 欠損レースの検出＋候補提案。戻り値: [{key,date8,place,rnum,name,cur,sugg,src,d, saved}] */
+function dbFixScan(races){
+  var menu = {};   /* place -> { '芝1600': [勝ち時計...] } */
+  var rs = races || {};
+  for (var rid in rs){
+    var rec = rs[rid], m = rec && rec.meta;
+    if (!m || dbFixNeed(m)) continue;
+    var dm = String(m.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+    if (!dm) continue;
+    var t = dbFixWinSec(rec.rows);
+    if (t == null) continue;
+    var key = dm[1] + dm[2];
+    if (!menu[m.place]) menu[m.place] = {};
+    (menu[m.place][key] = menu[m.place][key] || []).push(t);
+  }
+  for (var p in menu) for (var k in menu[p]){
+    var a = menu[p][k].sort(function(x, y){ return x - y; });
+    menu[p][k] = { med: a[Math.floor(a.length / 2)], n: a.length };
+  }
+  var fs = dbFixLs().fixes, out = [];
+  for (var rid2 in rs){
+    var rec2 = rs[rid2], m2 = rec2 && rec2.meta;
+    if (!m2 || !dbFixNeed(m2)) continue;
+    var row = { key: dbFixKeyOf(m2), date8: String(m2.date8 || ''), place: String(m2.place || ''),
+      rnum: String(m2.rnum || ''), name: String(m2.name || ''), cur: String(m2.dist || '') + '/' + String(m2.surface || ''),
+      sugg: null, src: '', d: null, saved: !!fs[dbFixKeyOf(m2)] };
+    /* (a) 距離不変の重賞 → 固定表 */
+    var hit = null;
+    for (var g in DBFIX_FIXED){ if (row.name.indexOf(g) === 0){ hit = DBFIX_FIXED[g]; break; } }
+    if (hit){ row.sugg = hit + 'm'; row.src = 'fixed'; }
+    else {
+      /* (b) 同開催場の勝ち時計中央値 最近傍（2.5秒ガード・n>=3） */
+      var t2 = dbFixWinSec(rec2.rows), mm = menu[m2.place], best = null;
+      if (t2 != null && mm){
+        for (var k2 in mm){
+          if ((mm[k2].n || 0) < 3) continue;
+          var d = Math.abs(t2 - mm[k2].med);
+          if (!best || d < best.d) best = { d: d, key: k2 };
+        }
+      }
+      if (best && best.d <= 2.5){ row.sugg = best.key + 'm'; row.src = 'time'; row.d = Math.round(best.d * 10) / 10; }
+    }
+    out.push(row);
+  }
+  out.sort(function(a, b){ return (a.date8 < b.date8 ? -1 : a.date8 > b.date8 ? 1 : 0); });
+  return out;
+}
+/* 修正の保存（dist は 芝1600m 形式・surface は先頭1文字） */
+function dbFixSet(key, dist, surface, src, note){
+  if (!dbFixValidDist(dist)) return false;
+  var o = dbFixLs();
+  o.fixes[key] = { dist: dist, surface: dist[0], src: src || 'manual', note: note || '', at: Date.now() };
+  return dbFixLsSave(o);
+}
+function dbFixDel(key){
+  var o = dbFixLs();
+  if (!o.fixes[key]) return false;
+  delete o.fixes[key];
+  return dbFixLsSave(o);
+}
+/* ★第128弾: レコード1件へ修正を焼き込む（diSetから取込時に呼ばれる＝再取得のたび自動適用）。
+   実データ(距離・面あり)は尊重=欠損のみ補完。手動修正(manual)はユーザー指定なので実データより優先。 */
+function dbFixPatchRec(rec, fixes){
+  var m = rec && rec.meta;
+  if (!m) return false;
+  var f = (fixes || dbFixLs().fixes)[dbFixKeyOf(m)];
+  if (!f || !dbFixValidDist(f.dist)) return false;
+  /* 規約(第129弾更新): レコード本体の実データ(距離あり・dbfixマークなし)は尊重。
+     m.dbfix=1（=かつて修正値を焼き込んだレコード）は実データではないので
+     netkeiba実測など新しい修正値で上書きしてよい（dist一致ならskip）。src=manualは実データより優先。 */
+  if (!dbFixNeed(m) && !m.dbfix && f.src !== 'manual') return false;
+  if (m.dist === f.dist && m.surface === f.surface) return false;
+  m.dist = f.dist; m.surface = f.surface; m.dbfix = 1;
+  return true;
+}
+/* ★第128弾: 既存の学習DBレコードすべてに修正を焼き込む（💾ボタン）。修正が必要なレコードだけ diSet で書き戻す */
+function dbFixBake(){
+  var patched = 0;
+  try {
+    var fixes = dbFixLs().fixes;
+    try { if (typeof diLsDrop === 'function') diLsDrop(); } catch(e){}   /* diLsキャッシュを作り直して最新を読む */
+    var races = ((typeof diLs === 'function') ? diLs() : { races: {} }).races || {};
+    for (var rid in races){
+      var rec = races[rid];
+      if (dbFixPatchRec(rec, fixes)){
+        patched++;
+        try { if (typeof diSet === 'function') diSet(rid, rec); } catch(e){}
+      }
+    }
+  } catch(e){}
+  return patched;
+}
+/* ★第128弾: DB本体へ書き込んでから騎手・馬の統計を再構築（旧:オーバーレイのみ→新:レコードに永続化） */
+function dbFixReapply(){
+  var n = dbFixBake();
+  try { if (typeof klRefreshFromDb === 'function') klRefreshFromDb(); } catch(e){}   /* p63: 統計再構築+キャッシュ保存 */
+  return n;
+}
+
+/* ---------- UI ---------- */
+function dbFixMsg(txt, err){
+  var el = document.getElementById('dbFixMsg');
+  if (el){ el.textContent = txt || ''; el.style.color = err ? '#b3261e' : ''; }
+}
+function dbFixChip(){
+  var el = document.getElementById('dbFixChip');
+  if (el) el.textContent = Object.keys(dbFixLs().fixes).length + '件';
+}
+function dbFixRender(rows){
+  var body = document.getElementById('dbFixBody');
+  if (!body) return;
+  dbFixChip();
+  if (!rows){ body.innerHTML = ''; return; }
+  var h = ['<div style="max-height:340px;overflow:auto;border:1px solid var(--line2);border-radius:8px">'];
+  h.push('<table class="small" style="width:100%;border-collapse:collapse"><tr style="background:var(--card2)">' +
+    '<th style="padding:2px 4px">日付</th><th style="padding:2px 4px">場/R</th><th style="padding:2px 4px;text-align:left">レース名</th>' +
+    '<th style="padding:2px 4px">現在</th><th style="padding:2px 4px">候補</th><th style="padding:2px 4px"></th></tr>');
+  var g1n = 0, tn = 0, non = 0;
+  rows.forEach(function(r, i){
+    var sugg = r.saved ? '✅保存済' :
+      (r.sugg ? (r.src === 'fixed' ? '【重賞固定】' : '【時計】') + r.sugg + (r.d != null ? '(Δ' + r.d + 's)' : '') : '候補なし');
+    if (r.saved){ /* skip count */ }
+    else if (r.sugg && r.src === 'fixed') g1n++;
+    else if (r.sugg) tn++;
+    else non++;
+    h.push('<tr' + (i % 2 ? ' style="background:var(--card)"' : '') + '>' +
+      '<td style="padding:1px 4px;white-space:nowrap">' + (r.date8.slice(4, 6) + '/' + r.date8.slice(6, 8)) + '</td>' +
+      '<td style="padding:1px 4px;white-space:nowrap">' + dbFixEsc(r.place) + ' ' + dbFixEsc(r.rnum) + 'R</td>' +
+      '<td style="padding:1px 4px;text-align:left">' + dbFixEsc(r.name) + '</td>' +
+      '<td style="padding:1px 4px;white-space:nowrap">' + dbFixEsc(r.cur) + '</td>' +
+      '<td style="padding:1px 4px;white-space:nowrap">' + sugg + '</td>' +
+      '<td style="padding:1px 4px;white-space:nowrap">' + (r.sugg && !r.saved ?
+        '<button type="button" class="kai-mini" data-dfx="' + dbFixEsc(r.key) + '" data-dfx-dist="' + dbFixEsc(r.sugg) + '" data-dfx-src="' + (r.src === 'fixed' ? 'fixed' : 'time') + '">✅採用</button>' : '') + '</td></tr>');
+  });
+  h.push('</table></div>');
+  h.push('<div class="small muted" style="margin-top:4px">検出 ' + rows.length + 'R＝重賞固定で確定 ' + g1n + 'R・勝ち時計から推定 ' + tn + 'R・候補なし ' + non + 'R（候補なしは手動入力へ）。' +
+    '【重札固定】=距離が変わらない重賞の実測表。【時計】=同じ競馬場の(面,距離)ごとの勝ち時計中央値に最も近い距離（過去検証で約86%一致）。' +
+    '推定を鵜呑みにせず、出馬表等で確認してから採用してください。</div>');
+  /* 手動入力 + 書き出し/読み込み */
+  h.push('<details class="kfold" style="margin-top:6px"><summary class="small" style="cursor:pointer;color:var(--muted)">✏️ 手動で修正を登録／📤書き出し・📥読み込み</summary><div style="margin-top:4px">');
+  h.push('<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+    '<input id="dbFxInDate" placeholder="日付20260503" style="width:110px;font-size:.85rem;padding:2px 6px">' +
+    '<input id="dbFxInPlace" placeholder="京都" style="width:70px;font-size:.85rem;padding:2px 6px">' +
+    '<input id="dbFxInRnum" placeholder="11" style="width:44px;font-size:.85rem;padding:2px 6px">' +
+    '<input id="dbFxInDist" placeholder="芝3200m" style="width:90px;font-size:.85rem;padding:2px 6px">' +
+    '<button type="button" class="kai-mini" id="dbFxInBtn">💾 登録</button>' +
+    '<span class="small muted">日付・場所・R番号・距離(芝1600m/ダ1800m形式)</span></div>');
+  var json = JSON.stringify(dbFixLs());
+  h.push('<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">' +
+    '<button type="button" class="kai-mini" id="dbFxOutBtn">📤 書き出し</button>' +
+    '<button type="button" class="kai-mini" id="dbFxInBtn2">📥 読み込み(下の欄)</button>' +
+    '<span class="small muted">端末間の引っ越し・バックアップ用(JSON)</span></div>');
+  h.push('<textarea id="dbFxIo" rows="4" style="width:100%;margin-top:4px;font-size:.75rem" placeholder="📤でここにJSONが出ます。📥はこの欄のJSONを読み込みます（既存分とマージ）。">' + dbFixEsc(json) + '</textarea>');
+  h.push('<div id="dbFixList" style="margin-top:6px">' + dbFixListHtml() + '</div>');
+  h.push('</div></details>');
+  body.innerHTML = h.join('');
+  /* 採用・削除・登録・書き出し・読み込みの配線（初回だけ張る＝再描画で二重登録しない） */
+  var body2 = document.getElementById('dbFixBody');
+  if (body2.getAttribute && body2.getAttribute('data-dfx-wired')) return;
+  try { body2.setAttribute('data-dfx-wired', '1'); } catch(e){}
+  body2.addEventListener('click', function(ev){
+    var t = ev.target;
+    try {
+      if (t && t.getAttribute && t.getAttribute('data-dfx')){   /* ✅採用 */
+        var key = t.getAttribute('data-dfx'), dist = t.getAttribute('data-dfx-dist'), src = t.getAttribute('data-dfx-src');
+        if (dbFixSet(key, dist, dist[0], src)){ dbFixReapply(); dbFixMsg('保存しました: ' + key + ' → ' + dist + '（DBレコードへ書き込み・統計を再構築しました）'); dbFixRenderScan(null, true); }
+        else dbFixMsg('保存に失敗しました', 1);
+      } else if (t && t.getAttribute && t.getAttribute('data-dfx-del')){
+        var key2 = t.getAttribute('data-dfx-del');
+        if (dbFixDel(key2)){ dbFixReapply(); dbFixMsg('削除しました: ' + key2); dbFixRenderScan(null, true); }
+      } else if (t && t.id === 'dbFxInBtn'){
+        var d8 = (document.getElementById('dbFxInDate').value || '').replace(/[^0-9]/g, '');
+        var pl = (document.getElementById('dbFxInPlace').value || '').trim();
+        var rn = (document.getElementById('dbFxInRnum').value || '').replace(/[^0-9]/g, '');
+        var ds = (document.getElementById('dbFxInDist').value || '').trim();
+        if (!/^\d{8}$/.test(d8) || !pl || !rn || !dbFixValidDist(ds)){ dbFixMsg('入力が足りません（日付8桁・場所・R番号・芝1600m形式の距離）', 1); return; }
+        var key3 = d8 + '|' + pl + '|' + rn.padStart(2, '0');
+        if (dbFixSet(key3, ds, ds[0], 'manual')){ dbFixReapply(); dbFixMsg('登録しました: ' + key3 + ' → ' + ds + '（DBレコードへ書き込み・統計を再構築しました）'); dbFixRenderScan(null, true); }
+        else dbFixMsg('登録に失敗しました', 1);
+      } else if (t && t.id === 'dbFxOutBtn'){
+        var io = document.getElementById('dbFxIo');
+        io.value = JSON.stringify(dbFixLs());
+        io.select && io.select();
+        dbFixMsg('書き出しました（この欄をコピーして保存してください。現在 ' + Object.keys(dbFixLs().fixes).length + '件）');
+      } else if (t && t.id === 'dbFxInBtn2'){
+        var io2 = document.getElementById('dbFxIo');
+        try {
+          var p = JSON.parse(io2.value || 'null');
+          if (!p || p.v !== 1 || !p.fixes) throw new Error('x');
+          var o = dbFixLs(), cnt = 0;
+          for (var k in p.fixes){ if (p.fixes[k] && dbFixValidDist(p.fixes[k].dist)){ o.fixes[k] = p.fixes[k]; cnt++; } }
+          dbFixLsSave(o); dbFixReapply();
+          dbFixMsg('読み込みました（' + cnt + '件マージ・統計を再構築しました）');
+          dbFixRenderScan(null, true);
+        } catch(e2){ dbFixMsg('JSONが読み取れません', 1); }
+      }
+    } catch(e){ dbFixMsg('エラー: ' + (e && e.message), 1); }
+  });
+}
+function dbFixEsc(s){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function dbFixListHtml(){
+  var o = dbFixLs(), ks = Object.keys(o.fixes);
+  if (!ks.length) return '<div class="small muted">保存済みの修正はありません。</div>';
+  var h = ['<div class="small" style="font-weight:700;margin-bottom:2px">保存済み ' + ks.length + '件</div>',
+    '<div style="max-height:180px;overflow:auto">'];
+  ks.sort();
+  ks.forEach(function(k){
+    var f = o.fixes[k];
+    h.push('<div style="display:flex;gap:6px;align-items:center;border-bottom:1px dotted var(--line2);padding:1px 0">' +
+      '<span style="flex:1">' + dbFixEsc(k) + ' → <b>' + dbFixEsc(f.dist) + '</b> <span class="muted">(' + dbFixEsc(f.src || 'manual') + ')</span></span>' +
+      '<button type="button" class="kai-mini" data-dfx-del="' + dbFixEsc(k) + '">🗑</button></div>');
+  });
+  h.push('</div>');
+  return h.join('');
+}
+/* スキャン実行→描画（keep=trueのとき直前の結果を再描画せず再スキャン） */
+var DBFIX_LAST = null;
+function dbFixRenderScan(_, keep){
+  if (!keep) DBFIX_LAST = null;
+  if (!DBFIX_LAST){
+    var races = ((typeof diLs === 'function') ? diLs() : { races: {} }).races || {};
+    DBFIX_LAST = dbFixScan(races);
+  }
+  dbFixRender(DBFIX_LAST);
+  dbFixMsg('チェック完了: 距離・面が無いレース ' + DBFIX_LAST.length + '件（下の一覧）。候補を確認して✅採用、または手動登録してください。');
+}
+function initDbfix(){
+  var b = document.getElementById('dbFixScanBtn');
+  if (b) b.addEventListener('click', function(){ try { dbFixRenderScan(); } catch(e){ dbFixMsg('エラー: ' + (e && e.message), 1); } });
+  var a = document.getElementById('dbFixApplyBtn');
+  if (a) a.addEventListener('click', function(){
+    try {
+      dbFixMsg('書き込み中…（件数が多い場合は数十秒かかることがあります）');
+      setTimeout(function(){
+        try {
+          var n = dbFixReapply();
+          dbFixMsg('学習DBのレコード本体へ書き込みました（今回 ' + n + 'R・統計も再構築）。以後の再取込でも修正は自動で焼き込まれます。保存済み修正は ' + Object.keys(dbFixLs().fixes).length + '件です。');
+        } catch(e){ dbFixMsg('エラー: ' + (e && e.message), 1); }
+      }, 30);
+    } catch(e){ dbFixMsg('エラー: ' + (e && e.message), 1); }
+  });
+  dbFixChip();
+}
+
+/* p91_grandidx.js — ★第131弾: 多要素指数（grand index）
+   ユーザー指定の構成要素をすべてデータ化した指数:
+     【コア(重み1.0)】 レース質+対戦馬のその後(rF) / 馬場点=クッション値×含水率(b) / コース適性=競馬場×距離×好走パターン(cP)
+     【追加(重み0.5)】 持ちタイム(走破時計) / 上り3F / 距離適性 / 該当レースの好走年齢 / 騎手 / 厩舎
+     【追加(重み0.25)】 テン(1角通過) / 脚質 / レース間隔
+   ・血統・当日馬体重は今回スコアに入れず(検証不能・端末依存データのため)。内訳はsnap.gidxに順位で保存。
+   ・検証(2021-2026・19,050R walk-forward・タイセーフ評価): cov3=87.6%・指数1位馬券内=53.4%
+     (基準3要素85.9%/51.5%・旧CL+RL指数83.7%/49.3%)
+   ・計算は学習DB(diLs)の「レース日より前」の走のみ使用。予想時に aiFreezeGidx で snap.gidx へ保存
+     (第102弾規約: 結果確定後の再計算はしない)。レースLv/コースLv(第69-71弾)は変更しない。
+   ・馬場履歴(クッション値・含水率1,454日分)を埋め込みデータとして同梱(JRA発表値・学習検証と同一データ)。 */
+
+var GI_V = 1;
+/* 要素の重み(第131弾検証値・grand_test2/3でW1b構成として決定) */
+var GI_W = { rF: 1.0, b: 1.0, cP: 1.0, t: 0.5, l3: 0.5, dst: 0.5, age: 0.5, jky: 0.5, trn: 0.5, te: 0.25, sty: 0.25, itv: 0.25 };
+var GI_FACTOR_LABEL = { rF: 'レース質', b: '馬場', cP: 'コース', t: '持ちタイム', l3: '上り', dst: '距離', age: '年齢', jky: '騎手', trn: '厩舎', te: 'テン', sty: '脚質', itv: '間隔' };
+var GI_BABA_STR = '20210116|中京:10.2,11.9,2.6;20210117|中京:10.4,12.3,2.7;20210123|中京:10.4,11.6,2.2;20210124|中京:8.2,16.6,14.7;20210130|中京:9.8,14.8,11.7;20210131|中京:9.9,13,8.5;20210206|中京:9.9,14.3,7.9;20210207|中京:10,13.6,9.8;20210313|中京:6.9,19.1,17;20210314|中京:8.2,15.8,17;20210320|中京:10.4,12.6,6.5;20210321|中京:9,12.8,12.4;20210327|中京:10.2,13.7,8.3;20210328|中京:10.7,12.8,8.1;20210508|中京:8.9,14.1,11;20210509|中京:9.4,13.9,10.7;20210515|中京:10,11.7,3;20210516|中京:10.5,11.7,3;20210522|中京:8.6,15.3,16.9;20210523|中京:9.2,13.2,11.2;20210605|中京:8.5,15.1,17.8;20210606|中京:8.6,14.1,12.6;20210612|中京:10.3,12,3;20210613|中京:10.1,10.4,2.8;20210911|中京:10.7,12.5,7;20210912|中京:9.7,13,9.5;20210925|中京:10,14.1,6.5;20210926|中京:9.9,14.3,4.9;20210703|福島:8.4,12.1,11.3;20210704|福島:8.5,11.7,8.3;20210710|福島:7.7,14,18.5;20210711|福島:7.9,13.1,15.3;20211106|福島:9.1,13.7,5.4;20211107|福島:8.5,13.6,5.2;20211113|福島:8.4,14.3,8.4;20211114|福島:8.4,12.6,8.1;20211120|福島:8.7,14.3,4.5;20211121|福島:8.2,14.1,5.3;20210703|函館:7.2,15.5,4.5;20210704|函館:7.2,15.9,5.3;20210710|函館:7.2,15.1,5.7;20210711|函館:6.9,17,13.2;20210717|函館:7.2,13.5,5.5;20210718|函館:7.4,14,5.7;20210724|函館:7.4,13.3,1.9;20210725|函館:7.6,12.8,2.2;20210213|阪神:9.5,10.6,4.7;20210214|阪神:9.6,10.1,4.6;20210220|阪神:9.7,9.7,6.8;20210221|阪神:10.1,9.6,5.9;20210227|阪神:9.7,10,5.1;20210228|阪神:10,8.8,3.2;20210306|阪神:9,11.3,12;20210307|阪神:9.7,10.2,10.1;20210313|阪神:9.1,13.7,15.9;20210314|阪神:9.4,10.5,12.5;20210320|阪神:10.4,10.3,5.4;20210321|阪神:8.9,11.8,8.8;20210327|阪神:10.2,10,5.9;20210328|阪神:10.3,9.2,4.8;20210410|阪神:9.6,9.9,5.8;20210411|阪神:9.9,9.8,3.7;20210417|阪神:8.8,10.1,7.7;20210418|阪神:8.8,11.8,15.7;20210424|阪神:9.7,8.4,4.1;20210425|阪神:9.9,8.4,3.1;20210619|阪神:7.8,12.6,15.4;20210620|阪神:8.4,11.1,13.9;20211009|阪神:8.8,11.1,1.9;20211010|阪神:8.9,11,1.8;20211016|阪神:8.6,10.1,1.9;20211017|阪神:8.1,12.2,7.7;20211023|阪神:9.3,9,3.5;20211024|阪神:9.6,8.9,3.4;20211106|阪神:9.3,9.2,3.3;20211107|阪神:9.4,8.4,2.7;20211113|阪神:9.5,10.6,8.6;20211114|阪神:9.8,10.3,7.1;20211120|阪神:9.8,10.1,5.5;20211121|阪神:10.2,9.3,4.1;20211204|阪神:9.6,9.8,8;20211205|阪神:10,10,7.4;20211211|阪神:9.8,10.1,7;20211212|阪神:9.8,10.1,6.5;20211218|阪神:9.4,11.1,15.8;20211219|阪神:9.6,10.1,9.6;20210116|小倉:8.8,8.7,9.4;20210117|小倉:9.7,8.2,8.8;20210123|小倉:8.3,9.4,9.8;20210124|小倉:7.8,11.4,16.9;20210130|小倉:9.5,8.5,10.7;20210131|小倉:9.8,7.9,10.7;20210206|小倉:9.5,8.3,11.8;20210207|小倉:9.3,8.2,10.5;20210213|小倉:9.8,7.6,4.9;20210214|小倉:10,6.9,2.8;20210220|小倉:9.5,8.2,11.3;20210221|小倉:10,8.1,10.4;20210227|小倉:8.9,11.2,17;20210228|小倉:9,9.8,14.4;20210306|小倉:8.5,10.9,14.9;20210307|小倉:9.1,9,12.4;20210703|小倉:9.9,9.2,6.4;20210704|小倉:9.8,9,6.1;20210710|小倉:9.1,9.8,14.1;20210711|小倉:9.7,9,11.6;20210814|小倉:7.3,15.7,19;20210815|小倉:8.2,13.5,15.8;20210821|小倉:9.1,8.6,6.9;20210822|小倉:8.7,10.9,18.2;20210828|小倉:9.3,8.9,8.6;20210829|小倉:9.6,8.8,5.9;20210116|中山:10.4,10,1.7;20210117|中山:10.5,10.3,1.9;20210123|中山:10.4,10,1.2;20210124|中山:7.9,14.6,13.2;20210227|中山:11.9,8.4,1.8;20210228|中山:12.2,9.4,2.1;20210306|中山:9.7,12.1,8.6;20210307|中山:10.2,11.3,7.9;20210313|中山:8.2,11.9,7.7;20210314|中山:7.8,16.1,13.8;20210320|中山:10.9,11.5,3.9;20210321|中山:9.7,11.9,5.2;20210327|中山:9.8,10.9,5.4;20210328|中山:10.8,12.2,3.4;20210403|中山:9.6,12.4,5.8;20210404|中山:10.4,11.6,4;20210410|中山:9.7,12.1,5.3;20210411|中山:10.1,12,4;20210417|中山:10.2,11.8,7.4;20210418|中山:7.9,14.6,17.2;20210911|中山:10.3,12.6,7.7;20210912|中山:9.8,12.9,6.7;20210925|中山:10.2,12.5,3.5;20210926|中山:10.2,11.8,2.6;20211204|中山:10.2,10,8.5;20211205|中山:9.8,10,7.4;20211211|中山:9.2,10.5,10.7;20211212|中山:9.3,10.5,8.5;20211218|中山:9,14.2,11.4;20211219|中山:9,12.3,11.4;20210410|新潟:10.4,12.6,4.7;20210411|新潟:9.7,11.6,4.2;20210417|新潟:10.5,13.1,6.3;20210418|新潟:8.3,15.6,18.4;20210424|新潟:10.1,12.1,5.5;20210425|新潟:10.1,12.5,4.1;20210508|新潟:9.8,12.8,8.7;20210509|新潟:9.6,12.7,6.3;20210515|新潟:9.4,13.1,4.8;20210516|新潟:10.4,12.3,2.7;20210522|新潟:8.9,15.4,15.4;20210523|新潟:8.3,14.7,14;20210724|新潟:9.4,13.7,4;20210725|新潟:9.6,12.4,3.6;20210814|新潟:8.9,14.1,11.4;20210815|新潟:9.2,14.6,17.2;20210821|新潟:9.1,13.4,5;20210822|新潟:9,12.1,4.1;20210828|新潟:9.5,12.5,5.5;20210829|新潟:9.1,12.3,4.2;20211009|新潟:9.6,12,4.9;20211010|新潟:9.9,11.9,4;20211016|新潟:9.5,12.3,7.5;20211017|新潟:7.3,18,18.9;20211023|新潟:9.1,15.1,14;20211024|新潟:8.4,15,17;20210612|札幌:7.9,11.4,4.4;20210613|札幌:7.7,12.9,3.1;20210619|札幌:7.9,14.3,3.3;20210620|札幌:7.2,16.5,9.8;20210814|札幌:7.4,13.2,4.3;20210815|札幌:7.6,12.9,3.7;20210821|札幌:7.5,13.1,6.6;20210822|札幌:8.2,12,4.4;20210828|札幌:7.8,11.7,3.9;20210829|札幌:8,12.1,3.2;20210130|東京:8.8,16.5,11.1;20210131|東京:9.3,14.6,10.4;20210206|東京:9.5,14.8,5;20210207|東京:9.2,14.2,3.4;20210213|東京:9.2,14.2,3.8;20210214|東京:9.3,13.4,3.1;20210220|東京:8.8,14.9,5.7;20210221|東京:9,14.2,4.9;20210424|東京:10,14.5,2.3;20210425|東京:10.3,14,2;20210508|東京:9.2,13.2,5.4;20210509|東京:9.2,12.8,2.4;20210515|東京:9.9,10.8,2.3;20210516|東京:10.3,11.7,2;20210522|東京:9.4,15,8.3;20210523|東京:9.4,16.4,8.3;20210605|東京:9.3,16.6,12;20210606|東京:9.5,14.1,10.9;20210612|東京:9.7,12.6,2.5;20210613|東京:9.8,10.8,2.2;20210619|東京:9.5,16.7,9.8;20210620|東京:9.1,17.4,14.8;20211009|東京:9.4,14.8,2.8;20211010|東京:9.4,15.4,3.1;20211016|東京:9.1,14.6,4.8;20211017|東京:8.9,14.4,4.7;20211023|東京:8.8,16.2,11;20211024|東京:8.6,14.3,7.7;20211106|東京:9.2,13.8,3.5;20211107|東京:9.2,14,3.4;20211113|東京:9.1,14.5,7.7;20211114|東京:9.2,13.9,6.4;20211120|東京:9.2,14.2,3.1;20211121|東京:9.2,12.6,3.4;20220115|中京:9.7,13.7,6.4;20220116|中京:9.6,13.6,5.1;20220122|中京:10.1,12.4,2.4;20220123|中京:10.1,13.1,3.4;20220129|中京:9.9,13.6,5.7;20220130|中京:10.1,14,4.4;20220205|中京:10.5,11.8,2.9;20220206|中京:9.2,14,2.6;20220312|中京:8.9,12.5,1.9;20220313|中京:9.5,13.1,1.8;20220326|中京:9.4,13.9,8;20220327|中京:7,15.4,18;20220507|中京:10.5,13.3,5.3;20220508|中京:10.5,10.3,3.6;20220514|中京:7.6,16,18.1;20220515|中京:9.2,13.4,13.3;20220521|中京:9.5,12,5.2;20220522|中京:8.4,14.5,7.4;20220528|中京:8.9,13.4,11.4;20220529|中京:9.2,12.1,6.1;20220604|中京:10,12.8,3.5;20220605|中京:9.8,12.2,3.9;20220611|中京:9.7,13.5,4.5;20220612|中京:9.4,13.9,5.5;20220910|中京:8.9,16,19;20220911|中京:9.1,13.4,12.3;20220924|中京:9.5,16.7,16;20220925|中京:9.7,14.2,9.4;20221203|中京:10,13.3,6.3;20221204|中京:10,14.1,7.5;20221210|中京:10.1,12.8,4.4;20221211|中京:10.4,13.5,4.3;20221217|中京:10,13.9,2.7;20221218|中京:9.6,13.5,6.3;20220416|福島:7.5,14.7,15.2;20220417|福島:7.8,13.4,9.8;20220423|福島:8,12.6,6.1;20220424|福島:8.3,12,4.9;20220702|福島:8.7,12.7,5;20220703|福島:8.5,13.6,3.7;20220709|福島:8.4,11.8,7.3;20220710|福島:8.8,10.7,6.1;20220716|福島:8.2,15.5,17.8;20220717|福島:8.2,13.7,14.3;20220723|福島:8.1,12.5,14.4;20220724|福島:8.3,11.8,12.2;20221105|福島:9.1,12.7,5.7;20221106|福島:8.9,12.6,4.6;20221112|福島:8.9,12.8,5.7;20221113|福島:8.9,12.3,3.8;20221119|福島:8.9,13,5;20221120|福島:9,12.7,4;20220611|函館:7.2,13.2,4;20220612|函館:7.4,12.6,3.3;20220618|函館:7.4,12.6,6.4;20220619|函館:7.2,13,4.8;20220625|函館:7,17.1,15.5;20220626|函館:7.1,14.9,9;20220702|函館:7,14.9,12.6;20220703|函館:7.1,14.4,10.2;20220709|函館:7.5,14.2,3.6;20220710|函館:7.3,13.7,4.9;20220716|函館:7.5,14.6,7.5;20220717|函館:7.1,14.6,10.7;20220212|阪神:9.7,10.5,1.6;20220213|阪神:9.9,9.7,1.6;20220219|阪神:9.8,9.7,2.7;20220220|阪神:9.4,12.5,8.6;20220226|阪神:9.9,,4.1;20220227|阪神:9.8,,3.3;20220305|阪神:10.1,9.8,6.8;20220306|阪神:10.4,9.8,5.3;20220312|阪神:10.1,10.2,2.3;20220313|阪神:10.1,9.3,1.8;20220319|阪神:9.5,13.7,16.1;20220320|阪神:9.6,11.8,14.6;20220326|阪神:10.3,9.6,5.3;20220327|阪神:9.7,12.1,14;20220402|阪神:10.1,9.8,4.7;20220403|阪神:10.3,9.3,3.8;20220409|阪神:10,10.8,2.8;20220410|阪神:10,10.4,1.8;20220416|阪神:9.9,10.7,9.4;20220417|阪神:10.2,9.3,5.9;20220423|阪神:9.8,10.5,7.9;20220424|阪神:10.3,8.9,5;20220618|阪神:9.3,8.8,5.9;20220619|阪神:9.4,9,4.9;20220625|阪神:9.9,9.3,5.8;20220626|阪神:10.2,8.6,4.5;20221015|阪神:9.6,9.7,6.7;20221016|阪神:9.5,9.7,5;20221022|阪神:9.6,8.8,3;20221023|阪神:9.7,8.9,4;20221029|阪神:9.6,9.4,2;20221030|阪神:9.7,8.7,1.5;20221105|阪神:9.6,9.6,3.1;20221106|阪神:9.7,8.8,2.9;20221112|阪神:9.7,9.4,2.2;20221113|阪神:9.8,9.6,2.7;20221119|阪神:9.7,9,6.9;20221120|阪神:9.3,9.4,6.6;20221126|阪神:9.7,10.1,9.5;20221127|阪神:9.8,9.4,10.4;20221203|阪神:9.8,10.4,10.1;20221204|阪神:9.9,9.5,8.4;20221210|阪神:9.8,10.1,6.1;20221211|阪神:9.8,10,6.1;20221217|阪神:9.8,10.2,3.2;20221218|阪神:9.7,10.2,5.2;20221224|阪神:9.8,10.1,8.5;20221225|阪神:9.8,9.9,6.9;20220115|小倉:8.7,9.2,5.2;20220116|小倉:8.9,9.2,4.1;20220122|小倉:9.3,9.4,2.9;20220123|小倉:8.4,9.4,3.2;20220129|小倉:9.4,9.4,8.5;20220130|小倉:9.3,9.2,7.3;20220205|小倉:9.1,8.5,3.9;20220206|小倉:9.5,8.6,4.3;20220212|小倉:9.3,9.8,2.5;20220213|小倉:8.6,9.6,3.8;20220219|小倉:9.2,9,5.9;20220220|小倉:8.1,12.8,13.8;20220226|小倉:9.7,8.9,7.3;20220227|小倉:9.7,8.5,5.9;20220702|小倉:9.4,9.4,3.5;20220703|小倉:9.3,9.3,2.3;20220709|小倉:8.6,13.6,16;20220710|小倉:9.3,9.7,11.6;20220716|小倉:9.2,10.6,13.5;20220717|小倉:9.4,9.4,9.9;20220723|小倉:9.5,8.8,5.1;20220724|小倉:9.6,8.9,4.5;20220813|小倉:9.5,9.5,4.2;20220814|小倉:9.7,9,3.2;20220820|小倉:9.6,9.1,9.6;20220821|小倉:8.7,14.3,16.3;20220827|小倉:9.5,9.5,4.2;20220828|小倉:9.4,9.4,3.7;20220903|小倉:9.4,10.6,9.4;20220904|小倉:9.4,10.5,9.4;20220115|中山:9.9,12.8,8;20220116|中山:9.7,12.2,5.8;20220122|中山:9.6,12,2.5;20220123|中山:10,11.7,1.8;20220226|中山:9.5,12.6,5.9;20220227|中山:10.1,11.9,4.3;20220305|中山:9.6,12,2.2;20220306|中山:9.9,10.9,2.3;20220312|中山:9.8,11.3,2.3;20220313|中山:9.8,11.6,2.5;20220326|中山:9.7,11.6,8.4;20220327|中山:9.1,14.2,12.7;20220402|中山:9.2,13.6,13.1;20220403|中山:9.3,12.2,9.9;20220409|中山:9.3,13.3,6.2;20220410|中山:9.4,12.5,4.7;20220416|中山:8.7,14.2,12.5;20220417|中山:9.2,12.9,10.9;20220910|中山:9.2,13.1,8.9;20220911|中山:9.1,13.6,6.7;20220924|中山:7.8,16,17.5;20220925|中山:8.8,13.8,13.7;20221203|中山:9.5,12.4,9.3;20221204|中山:9.3,12.3,7.1;20221210|中山:8.9,11.7,8.7;20221211|中山:9,11.8,7.9;20221217|中山:9.6,10.7,5.1;20221218|中山:9,11.4,8.9;20221224|中山:9.1,12.9,8.5;20221225|中山:9.2,12.5,7.7;20220507|新潟:10.2,11.4,4.9;20220508|新潟:9.5,9.5,4.4;20220514|新潟:8.9,14.9,10.4;20220515|新潟:9.7,12,10.1;20220521|新潟:9.7,10.9,4.2;20220522|新潟:9.1,12.8,5.6;20220528|新潟:9.2,14.6,14.4;20220529|新潟:9.7,10.8,9.1;20220730|新潟:9.2,13.4,2.5;20220731|新潟:9,12.8,2;20220806|新潟:9.1,12.6,7.3;20220807|新潟:9.1,13.5,4.6;20220813|新潟:9.6,12.8,2.8;20220814|新潟:8.6,16.2,16.3;20220820|新潟:9.7,12.6,7.3;20220821|新潟:9.2,15.6,14.7;20220827|新潟:9.6,13.6,10.1;20220828|新潟:8.8,12.7,8.7;20220903|新潟:9.7,11.9,7.6;20220904|新潟:9.5,11.6,8.3;20221015|新潟:9.7,11.9,6.5;20221016|新潟:9.8,11.7,4.6;20221022|新潟:9.9,11.9,5.4;20221023|新潟:9.7,13.1,7.3;20221029|新潟:9.2,13,7.3;20221030|新潟:8.9,12.5,8.4;20220723|札幌:6.5,14,5.8;20220724|札幌:6.9,13.6,6;20220730|札幌:7.3,13.1,2.1;20220731|札幌:7.2,12.6,2.1;20220806|札幌:7.5,13.2,3.1;20220807|札幌:7.6,12.3,2.3;20220813|札幌:6.9,15.1,13.8;20220814|札幌:7,14,9.1;20220820|札幌:7.1,12.6,4.3;20220821|札幌:7.3,13.8,4.8;20220827|札幌:7.7,12,1.6;20220828|札幌:8.1,11.4,1.9;20220903|札幌:7.7,13.1,8;20220904|札幌:8,12.5,6.4;20220129|東京:9.2,12.6,2.1;20220130|東京:9.2,12.8,1.5;20220205|東京:8.9,14.1,2.9;20220206|東京:8.9,13.2,1.7;20220212|東京:8.6,15.6,12.5;20220213|東京:8.9,14.4,11.7;20220219|東京:9.3,14.6,7.4;20220220|東京:7.7,17.1,9.4;20220423|東京:9.4,15.4,10.5;20220424|東京:9.4,14,5.8;20220507|東京:9.5,14.2,4.7;20220508|東京:9.7,13.2,2.9;20220514|東京:8.6,18.1,13.2;20220515|東京:9.2,15.1,10.6;20220521|東京:9.4,14,4;20220522|東京:8.9,17.3,8.6;20220528|東京:9,16.4,11.6;20220529|東京:9.3,15.4,7.7;20220604|東京:9,14.7,7.9;20220605|東京:9.5,14.3,4.3;20220611|東京:9.6,12.9,6.3;20220612|東京:9,17,7.8;20220618|東京:9.3,15.6,5.5;20220619|東京:9.1,16,5.7;20220625|東京:9.5,14.4,3.7;20220626|東京:9.6,13.1,2.1;20221015|東京:8.8,17.8,9.3;20221016|東京:9,14.1,8.1;20221022|東京:9,14.7,4.4;20221023|東京:9.1,14.4,4.1;20221029|東京:9,13.9,2.1;20221030|東京:9.1,13.6,2.4;20221105|東京:9.3,13.4,2.6;20221106|東京:9.3,13.5,2.6;20221112|東京:9.2,14.3,2.7;20221113|東京:9.4,13.5,2.8;20221119|東京:9.4,13.7,3.8;20221120|東京:9.4,12.8,3.3;20221126|東京:9.3,14.4,9.4;20221127|東京:9.3,13.4,8.6;20230114|中京:8.8,14.4,8.1;20230115|中京:8.9,14.2,10.2;20230121|中京:10.8,13.7,5.9;20230122|中京:10.2,13.4,4.4;20230128|中京:10.2,13.6,5.1;20230129|中京:10.4,12.4,3.6;20230204|中京:10.1,13.5,1.8;20230205|中京:10.5,12.5,1.9;20230311|中京:8.7,12.5,1.4;20230312|中京:9,12.2,1.4;20230318|中京:8.1,13.9,9.4;20230319|中京:8.3,13.9,11.8;20230325|中京:8.1,15,11;20230326|中京:7.2,15.9,17.9;20230708|中京:9.6,10.8,7.9;20230709|中京:9.8,11,3.2;20230715|中京:9.5,13.8,10.4;20230716|中京:9.6,11.8,6.5;20230722|中京:9.6,12.1,3.9;20230723|中京:9.7,11.9,2.3;20231209|中京:9,12.7,1.7;20231210|中京:9.4,12.6,2.1;20231216|中京:8.5,14.6,15.3;20231217|中京:8.9,12.5,9.9;20230408|福島:9,10.6,3.8;20230409|福島:8.8,10.2,3;20230415|福島:9,10.1,2.7;20230416|福島:8.2,14.6,10.4;20230422|福島:8.6,10.6,3.3;20230423|福島:9,10.4,1.7;20230708|福島:9.2,11,2.9;20230709|福島:9.2,11.1,2.8;20230715|福島:8.7,12,4.8;20230716|福島:8.6,11.9,5.7;20230722|福島:9.2,11.6,4.1;20230723|福島:9.6,11.3,3.4;20231104|福島:8.9,13.3,3.1;20231105|福島:8.6,13.3,3.2;20231111|福島:9,12.4,7.1;20231112|福島:8.8,12.6,5.4;20231118|福島:7.9,13.5,15.7;20231119|福島:8.5,12.8,12.8;20230610|函館:7.3,16.6,16.1;20230611|函館:7.4,15.1,11.8;20230617|函館:7.8,14.2,4.2;20230618|函館:7.9,13,5.1;20230624|函館:7.1,16.6,15.5;20230625|函館:7.5,15.3,12.4;20230708|函館:7.9,11.4,5.7;20230709|函館:8.1,11.3,3.6;20230715|函館:7.2,17.3,16.1;20230716|函館:7.4,15.3,14.8;20230211|阪神:9.3,10.4,6.8;20230212|阪神:9.5,10.4,5.7;20230218|阪神:9.5,10.1,5.1;20230219|阪神:9.2,10.8,7.6;20230225|阪神:9.3,11,11.5;20230226|阪神:9.5,10.3,10.7;20230304|阪神:9.6,9,5.9;20230305|阪神:9.7,8.7,3.7;20230311|阪神:9.5,8.9,2.1;20230312|阪神:9.5,9,1.8;20230318|阪神:8.7,12.7,14.7;20230319|阪神:9.2,11.1,13.9;20230325|阪神:9.3,10.5,11.4;20230326|阪神:8.8,10.7,13.6;20230408|阪神:9,12.2,15.2;20230409|阪神:9.4,10.4,10.3;20230415|阪神:8.7,11.6,14.1;20230416|阪神:9.1,12.1,17.4;20230603|阪神:9.1,12.2,14.1;20230604|阪神:9.7,9.9,8;20230610|阪神:9.7,10.1,11.2;20230611|阪神:9.4,10.1,10.3;20230617|阪神:9.8,8.4,5.9;20230618|阪神:10,8.8,3.7;20230624|阪神:9.8,9.2,11.1;20230625|阪神:9.9,9.2,6.9;20230909|阪神:9.3,11.2,2;20230910|阪神:9.3,9.5,1.1;20230923|阪神:9.2,11.4,10.4;20230924|阪神:9.3,11.1,8.3;20231209|阪神:9,11.2,3.1;20231210|阪神:9.1,10.7,4;20231216|阪神:8.7,12.7,11.6;20231217|阪神:8.8,12.6,9.3;20231223|阪神:9.2,11.2,5.9;20231224|阪神:9.3,11.2,4.8;20230114|小倉:7.6,11.4,17.3;20230115|小倉:8.7,10.4,14.5;20230121|小倉:8.9,9.7,10.4;20230122|小倉:9.6,9.2,9.7;20230128|小倉:8.7,11.5,16.3;20230129|小倉:8.9,10.8,14.7;20230204|小倉:9.5,9,8.8;20230205|小倉:9.8,8.8,8.2;20230211|小倉:8.4,12.6,17.7;20230212|小倉:8.9,10.8,14.4;20230218|小倉:9.1,10.9,10.6;20230219|小倉:7.4,12.8,18;20230225|小倉:8.9,9.8,11.6;20230226|小倉:9,9.7,11.3;20230812|小倉:8.9,9.8,3.1;20230813|小倉:8.9,9.2,1.8;20230819|小倉:8.9,9.5,4.2;20230820|小倉:8.8,9.5,2.1;20230826|小倉:8.9,11.7,9.3;20230827|小倉:9,9.8,5.7;20230902|小倉:8.9,11.1,7;20230903|小倉:9,10,3.5;20230422|京都:9.1,9.4,6.4;20230423|京都:9.5,8.9,4.7;20230429|京都:9.5,9.8,8.8;20230430|京都:8.1,11.9,16.6;20230506|京都:9.5,8.7,4.7;20230507|京都:8,10.5,11.6;20230513|京都:9.9,8.8,3.2;20230514|京都:8.5,11.8,12.9;20230520|京都:8.9,11.2,12.3;20230521|京都:9.5,9.6,7.6;20230527|京都:9.3,9.8,4.5;20230528|京都:9.5,9.4,3.1;20231014|京都:10.2,8.6,4.8;20231015|京都:8.6,12.5,14.7;20231021|京都:9.4,9,6.6;20231022|京都:9.8,9.4,4.9;20231028|京都:9.9,8.6,5.1;20231029|京都:10,7.6,3.6;20231104|京都:10,8.8,2.1;20231105|京都:10,8.6,3.6;20231111|京都:8.9,12.5,12.6;20231112|京都:9.4,10.4,10.6;20231118|京都:9.1,11.4,15;20231119|京都:9.7,10,8.5;20231125|京都:9.9,10.1,4.8;20231126|京都:9.8,9.5,4.3;20230114|中山:9.9,11.1,1.9;20230115|中山:9.7,10.9,3.5;20230121|中山:9.7,11.8,7;20230122|中山:9.3,11.7,5.1;20230225|中山:9.9,11.3,3.6;20230226|中山:10,10.8,2.6;20230304|中山:10.2,10.2,3.2;20230305|中山:10,10.1,1.9;20230311|中山:9.8,9.8,3.5;20230312|中山:10,10,2.5;20230318|中山:9.3,11.1,6.8;20230319|中山:8.6,15.3,15;20230325|中山:7.8,14.2,15.2;20230326|中山:8.1,15.3,13.5;20230408|中山:9.6,11.2,8.4;20230409|中山:9.4,11.5,8.5;20230415|中山:9.3,9.5,6.4;20230416|中山:8,14.7,13.9;20230909|中山:8.5,17.7,15.1;20230910|中山:8.5,15.2,10.2;20230923|中山:7.9,16.5,15.5;20230924|中山:9.2,14.8,12.3;20231209|中山:9.4,11.4,2.7;20231210|中山:9.3,12,2.4;20231216|中山:9.1,13.4,10.1;20231217|中山:9.5,11.6,8.1;20231223|中山:9.4,12.3,2.8;20231224|中山:9.3,11.7,2.4;20230429|新潟:9.5,11.6,4.7;20230430|新潟:8.5,14.4,9.8;20230506|新潟:9.5,13.1,3;20230507|新潟:6.2,20.7,19.3;20230520|新潟:9.6,11.9,4.6;20230521|新潟:9,13.2,3.2;20230729|新潟:9.1,13.5,2.2;20230730|新潟:9,13.4,1.8;20230805|新潟:9.2,12,1.6;20230806|新潟:9.2,13.3,1.7;20230812|新潟:9.2,11.9,2.4;20230813|新潟:9.9,11.4,2.2;20230819|新潟:9.9,10.3,2.6;20230820|新潟:9.5,10.8,1.8;20230826|新潟:9.4,12.3,1.6;20230827|新潟:9.9,12.5,1.5;20230902|新潟:9.6,12,3.7;20230903|新潟:9.3,12.4,2.8;20231014|新潟:9.4,12,4.9;20231015|新潟:9.6,11.8,6.2;20231021|新潟:9,13.7,11.5;20231022|新潟:8.9,14.9,14.1;20231028|新潟:9.6,10.7,4.7;20231029|新潟:8.4,15.2,15.7;20230729|札幌:7.1,12.5,2.4;20230730|札幌:7.3,11.8,2.8;20230805|札幌:6.9,15.5,17.4;20230806|札幌:6.7,15.2,13.5;20230812|札幌:7.4,12.9,5.5;20230813|札幌:7.8,12.3,3.3;20230819|札幌:8.5,12.4,4.6;20230820|札幌:7.6,13.7,4.6;20230826|札幌:8.6,12.1,2.3;20230827|札幌:8.7,11.6,2.3;20230902|札幌:8.1,14.3,7.5;20230903|札幌:8.5,13.4,5.3;20230128|東京:9.3,13,2.7;20230129|東京:9.3,13.9,2.1;20230204|東京:9.3,14.2,1.8;20230205|東京:9.3,13.5,1.7;20230211|東京:8.5,19.1,16.9;20230212|東京:8.9,14.4,14.3;20230218|東京:9.1,13.9,8;20230219|東京:9.3,14.1,7.5;20230422|東京:9.2,13.6,3.6;20230423|東京:9.2,13.5,2.4;20230429|東京:9.1,13.4,5.4;20230430|東京:9.3,14.6,4.6;20230506|東京:9.4,13.3,2.7;20230507|東京:9.5,12.1,1.5;20230513|東京:9.3,14.2,7.4;20230514|東京:9.2,14.4,8.2;20230520|東京:8.9,17.1,9.1;20230521|東京:9.4,14.8,7.6;20230527|東京:9.3,14.1,4.5;20230528|東京:9.5,14,2.9;20230603|東京:5.4,20.7,16.7;20230604|東京:8.7,17.7,11.9;20230610|東京:9.3,16,10.7;20230611|東京:8.8,17.4,12.3;20230617|東京:9.5,15.5,6.6;20230618|東京:9.6,14.4,3.7;20230624|東京:9.6,15.1,5.3;20230625|東京:9.5,14.9,3.8;20231014|東京:8.9,13.9,4.4;20231015|東京:8.4,14.1,7.1;20231021|東京:9.5,14.3,2.6;20231022|東京:9.3,14.7,2.8;20231028|東京:9.2,13.5,1.7;20231029|東京:9,14.7,2.8;20231104|東京:9.4,14.2,3.7;20231105|東京:9.2,13.4,3.6;20231111|東京:9.2,12.9,4.6;20231112|東京:9.3,14.4,4.8;20231118|東京:9.4,17.4,12;20231119|東京:9.7,16.3,6.3;20231125|東京:9.7,15.1,4.6;20231126|東京:9.7,15,4;20240309|中京:9,13.6,8.5;20240310|中京:9.2,13.7,6.4;20240316|中京:9.1,12.7,8.3;20240317|中京:9.4,12.7,6.4;20240323|中京:9.8,11,2.5;20240324|中京:8.3,14.2,13.8;20240810|中京:9.3,12.3,1.1;20240811|中京:9.3,11.1,1.2;20240817|中京:9.3,12.1,1.9;20240818|中京:9.1,12.9,2;20240824|中京:9.6,12,5.5;20240825|中京:9.3,11.4,6.3;20240907|中京:9.8,12.5,4.6;20240908|中京:10,11.6,3.9;20240921|中京:10.4,11.7,2.5;20240922|中京:10.7,11.5,2.6;20240928|中京:10.2,12.1,3.1;20240929|中京:8.9,15.7,8.8;20241207|中京:9.6,13.8,4.4;20241208|中京:9.3,13,4;20241214|中京:9.5,12.4,3;20241215|中京:9.7,10.3,2.7;20240406|福島:8.7,10.6,5.7;20240407|福島:8.7,10.3,5.4;20240413|福島:8.8,10.9,5.8;20240414|福島:9.1,10.1,5.1;20240420|福島:9.5,10,2.1;20240421|福島:9.5,9.5,1.9;20240629|福島:9.1,10.9,2.7;20240630|福島:9.7,10.5,2.3;20240706|福島:9,11.3,5.3;20240707|福島:9.2,11.3,5;20240713|福島:8.8,12.1,11;20240714|福島:8.8,11.1,7.8;20240720|福島:9.9,10.2,5.7;20240721|福島:9.8,9.9,4.9;20241102|福島:9.2,12.3,5.4;20241103|福島:8.6,14.8,17.8;20241109|福島:9.6,11.7,5.4;20241110|福島:9.4,10.9,4.9;20241116|福島:9.5,10.5,3;20241117|福島:9.8,10.5,2.6;20240608|函館:7.6,14.6,2.2;20240609|函館:7.5,14.3,2.6;20240622|函館:7.8,12.4,3.5;20240623|函館:7.7,12.2,3;20240629|函館:7.7,13.4,3;20240630|函館:7.9,11.4,3;20240706|函館:7.6,14.9,9.4;20240707|函館:7.1,13.6,7.6;20240713|函館:7.7,15.3,4.9;20240714|函館:8.3,14,3.4;20240224|阪神:8.7,11.9,11.9;20240225|阪神:8.4,13,12.6;20240302|阪神:8.8,12.8,12.8;20240303|阪神:9.1,11.1,9.2;20240309|阪神:9.3,11.1,8.3;20240310|阪神:9.3,10.8,6.7;20240316|阪神:9.3,11.3,6.7;20240317|阪神:9.4,11.1,4.9;20240323|阪神:8.7,12.6,10.2;20240324|阪神:8.5,13.3,17.2;20240406|阪神:9.3,11.5,8.4;20240407|阪神:9.3,11.3,7.5;20240413|阪神:9.4,11.7,5.3;20240414|阪神:9.5,10.3,4.3;20240113|小倉:8.8,10.1,4.5;20240114|小倉:8.9,9.1,3.1;20240120|小倉:8.3,10.8,6.9;20240121|小倉:8,11.8,12.8;20240127|小倉:8.8,10.1,3.1;20240128|小倉:9,9.4,2.8;20240203|小倉:8.9,9.9,4.4;20240204|小倉:8.2,13.1,11.8;20240217|小倉:9.2,9.6,3.9;20240218|小倉:9.6,9.6,2.3;20240224|小倉:8.4,13.4,13.2;20240225|小倉:8.5,11.1,10.7;20240302|小倉:8.9,12,11.1;20240303|小倉:8.9,11.4,8.6;20240629|小倉:9.2,9.5,11.1;20240630|小倉:8.4,11.3,11.6;20240706|小倉:9.9,8,1.8;20240707|小倉:10,7,1.4;20240713|小倉:10,7.9,7.9;20240714|小倉:8.9,10.3,11.1;20240720|小倉:9.3,10.2,12.7;20240721|小倉:9.9,8.1,7.8;20240113|京都:9.4,9.3,1.5;20240114|京都:9.4,9.1,1.4;20240120|京都:8,11.4,7.9;20240121|京都:6.8,15.4,16;20240127|京都:9.1,9.9,7.6;20240128|京都:9.2,9.1,6.9;20240203|京都:9,9.3,7.4;20240204|京都:8.8,9.4,7.6;20240210|京都:9.1,8.8,7.7;20240211|京都:8.7,8.7,8.8;20240217|京都:8.9,10.3,9.1;20240218|京都:8.8,9.3,7.8;20240420|京都:9.9,7.5,2.8;20240421|京都:9.9,7,2.9;20240504|京都:9.7,8.2,6.3;20240505|京都:9.9,8.1,5.5;20240511|京都:9.5,8.5,6.2;20240512|京都:10.1,8.5,4.1;20240518|京都:10.4,7.8,5.9;20240519|京都:10.8,7.1,3;20240525|京都:9.8,7.9,4.4;20240526|京都:10,7.5,2.6;20240608|京都:10.8,7.7,2.7;20240609|京都:9.9,10.5,8.3;20240615|京都:10.6,8.8,3.5;20240616|京都:9.6,9.6,8;20240622|京都:9.7,9.6,13.7;20240623|京都:8.9,13,16.9;20241005|京都:9.7,10,10.2;20241006|京都:10.1,9,7.3;20241012|京都:10.9,9,5.8;20241013|京都:10.7,8.2,4;20241019|京都:10.4,7.8,1.7;20241020|京都:9.9,10.5,8.7;20241026|京都:10.5,8.3,3.5;20241027|京都:10.6,8.6,3.1;20241102|京都:9.9,11.3,17;20241103|京都:9.9,11.3,12.4;20241109|京都:11.1,9.5,4.5;20241110|京都:11.1,7.4,3.4;20241116|京都:11,9.8,2.4;20241117|京都:10.5,9.3,3.6;20241123|京都:11.3,8.7,1.5;20241124|京都:11.4,9.7,1.5;20241207|京都:11.5,7.7,4.9;20241208|京都:11.6,8.1,3.4;20241214|京都:11.5,8.1,2.8;20241215|京都:11.6,9,4.3;20241221|京都:11,8.7,2.4;20241222|京都:11.3,8.3,2;20240113|中山:10.7,12.5,3.2;20240114|中山:10.1,12.8,5.6;20240120|中山:10.7,11.8,3;20240121|中山:8.1,13.1,10.1;20240224|中山:8.5,13.6,10.3;20240225|中山:8.8,13.5,8;20240302|中山:9.1,14.3,12.2;20240303|中山:8.9,14.3,11.5;20240309|中山:8.1,15,14.8;20240310|中山:9.4,12.2,10.4;20240316|中山:9.4,11.9,7.9;20240317|中山:9.7,12.7,6.9;20240323|中山:10.4,11.9,3.4;20240324|中山:10.3,12.1,4.1;20240406|中山:9.2,15.1,8.4;20240407|中山:8.2,16.6,10.6;20240413|中山:9.3,13.3,6.6;20240414|中山:9.6,13.3,5.8;20240907|中山:10.4,13.2,3.5;20240908|中山:10.2,13.6,1.6;20240921|中山:10.2,13.5,2.1;20240922|中山:10,12.9,1.9;20240928|中山:9.4,14,6.1;20240929|中山:10.1,13.9,4.9;20241207|中山:9.8,12.6,3.7;20241208|中山:9.6,12.4,3.1;20241214|中山:10.2,12.6,1.6;20241215|中山:10,12.2,1.4;20241221|中山:10,12.3,2;20241222|中山:10,12.9,1.7;20240427|新潟:9.5,12.7,5.3;20240428|新潟:9,11.2,4.7;20240504|新潟:9,11.3,4.8;20240505|新潟:9,11.4,3.1;20240511|新潟:9.1,11.2,7.2;20240512|新潟:9.4,10.8,4.8;20240518|新潟:9.1,10.6,6.4;20240519|新潟:9.4,11,5.5;20240727|新潟:9.2,11.3,4.9;20240728|新潟:9,11.7,6.5;20240803|新潟:9.1,12.9,2.7;20240804|新潟:9,12,2.6;20240810|新潟:9.2,11.2,1.5;20240811|新潟:9.1,12.5,2.1;20240817|新潟:9.1,12.1,2.3;20240818|新潟:8.9,12.8,2.2;20240824|新潟:8.8,12.4,5.8;20240825|新潟:8.9,13.1,4.7;20241005|新潟:9,14.3,12.5;20241006|新潟:9.3,11.1,9.1;20241019|新潟:9.9,11.2,4.6;20241020|新潟:9.2,13,9.7;20241026|新潟:9.4,10.9,5.1;20241027|新潟:9.3,12.5,5;20240720|札幌:7.4,12.6,1.8;20240721|札幌:7.3,12,2;20240727|札幌:7.5,12.2,2.4;20240728|札幌:6.2,16.2,9;20240803|札幌:7.6,12.9,4.6;20240804|札幌:6.9,14.9,8.1;20240810|札幌:7.7,12.9,3.2;20240811|札幌:7.8,12.6,2.9;20240817|札幌:7.5,12.2,5.5;20240818|札幌:7.8,12.1,3.5;20240824|札幌:7.7,12.3,4.4;20240825|札幌:8,12.2,2.5;20240127|東京:9.7,16.8,4.1;20240128|東京:9.7,13.8,4;20240203|東京:9.5,15.7,1.8;20240204|東京:9.3,15.1,2.5;20240210|東京:9.4,16.7,7.4;20240211|東京:9.7,15,8.1;20240217|東京:9.6,17.5,2.1;20240218|東京:9.5,14.3,3.4;20240420|東京:9.3,15.7,3;20240421|東京:9.5,13.5,1.6;20240504|東京:9.5,14.5,7;20240505|東京:9.4,14.8,5.6;20240511|東京:9.6,14.9,4.4;20240512|東京:9.5,13.8,2.8;20240518|東京:9.8,13.2,5.5;20240519|東京:9.8,13.2,2.8;20240525|東京:9.7,14.1,4.1;20240526|東京:9.9,12.8,2;20240608|東京:9.7,15.4,4.3;20240609|東京:9.9,13.4,3.8;20240615|東京:9.5,15.2,2.8;20240616|東京:9.3,16.2,6.4;20240622|東京:9.3,18.4,12.4;20240623|東京:8.3,14.6,8.6;20241005|東京:9.6,14.4,11.2;20241006|東京:9.3,13.3,12;20241019|東京:9.4,14.3,4.9;20241020|東京:9.3,13.4,4.4;20241026|東京:9.5,13.8,2.9;20241027|東京:9.6,12,3.6;20241102|東京:9.1,16,11.7;20241103|東京:9.5,14.5,15.3;20241109|東京:9.7,14.2,3.5;20241110|東京:9.7,12.5,4.7;20241116|東京:9.4,16.8,6.3;20241117|東京:9.6,16.4,5.7;20241123|東京:9.5,16.7,7.8;20241124|東京:9.4,17,6.2;20250105|中京:9.4,12.2,1.2;20250106|中京:9.4,11.9,1.3;20250111|中京:9.1,12.2,6.4;20250112|中京:8.9,12.9,4.5;20250113|中京:9.2,12.6,4.5;20250118|中京:9.8,12.2,2.1;20250119|中京:10,11.9,2.2;20250125|中京:9.3,13,2;20250126|中京:9.6,12.5,1.5;20250315|中京:9.2,12.3,5.5;20250316|中京:7.9,13.7,12.4;20250322|中京:9.1,11.8,6.3;20250323|中京:9.5,11,4.5;20250329|中京:8.6,15,11.8;20250330|中京:9.2,12.1,8.5;20250726|中京:9.7,12,2.2;20250727|中京:9.5,12.6,2;20250802|中京:9.9,12.9,1.2;20250803|中京:10.3,12.3,0.9;20250809|中京:10.3,12.5,0.6;20250810|中京:10.6,11.5,1.4;20250816|中京:10.2,12.5,4.6;20250817|中京:10.2,12.6,3.9;20250823|中京:10.7,12.9,1.5;20250824|中京:10.9,12.8,1.4;20250830|中京:11,12.6,3;20250831|中京:10.8,11.8,2.1;20251206|中京:9.7,11.9,4.3;20251207|中京:9.5,11.3,4.2;20251213|中京:10,11.4,2.1;20251214|中京:9.3,11.8,5.1;20251220|中京:9.7,11.5,6.3;20251221|中京:9.7,12.8,7.6;20250412|福島:9,10.5,2.7;20250413|福島:9.4,9.6,1.6;20250419|福島:9,10.8,5.8;20250420|福島:9,10.9,4.6;20250426|福島:9.4,9.6,1.8;20250427|福島:9.9,10,1;20250628|福島:9,11.7,6;20250629|福島:9,10.6,2;20250705|福島:8.7,13.3,4.5;20250706|福島:8.9,10.4,4.3;20250712|福島:9.4,11.2,2.9;20250713|福島:9,10.6,2.2;20250719|福島:9.3,11,2.2;20250720|福島:9.2,11.1,1.6;20251108|福島:9.2,12.5,3.6;20251109|福島:9.2,12.2,2.8;20251115|福島:8.9,11.5,1.6;20251116|福島:9.3,11.4,1.7;20251122|福島:9.2,10.7,1.8;20251124|福島:9.5,10.9,1.2;20250614|函館:7.7,12.8,3.5;20250615|函館:8,12.6,2.3;20250621|函館:7.5,13,3.2;20250622|函館:6.8,20.1,11;20250628|函館:7.1,16.4,9.7;20250629|函館:7.2,14.3,8;20250705|函館:6.9,16.8,16.2;20250706|函館:7.1,15.7,11;20250712|函館:7.4,15,2.7;20250713|函館:7.7,14.2,2.1;20250719|函館:7.9,14.6,5.5;20250720|函館:7.8,14.2,3.5;20250301|阪神:9,12.9,2.3;20250302|阪神:9,14,1.7;20250308|阪神:9,13.7,5.6;20250309|阪神:9.1,13.9,6.1;20250315|阪神:9,13.8,5.5;20250316|阪神:8.1,14.5,7.2;20250322|阪神:8.9,13.7,4.7;20250323|阪神:9,12.6,4.8;20250329|阪神:8.9,14,11.4;20250330|阪神:9.1,13.5,6.6;20250405|阪神:9.2,11,3.9;20250406|阪神:9.2,11.9,4;20250412|阪神:9.2,11.2,5.8;20250413|阪神:9.2,11.5,5.9;20250419|阪神:9.2,11,4.7;20250420|阪神:9.3,11.6,3.8;20250607|阪神:8.7,14.7,4.8;20250608|阪神:8.8,12.8,3.9;20250614|阪神:8.6,12.7,5.9;20250615|阪神:7.8,17.2,16.8;20250621|阪神:9,10.9,3.1;20250622|阪神:9,10.6,1.8;20250906|阪神:9,13.9,12.9;20250907|阪神:9.1,13.7,7.9;20250913|阪神:9,11.1,6.7;20250914|阪神:9,12.7,6.1;20250915|阪神:9,11.8,4.1;20250920|阪神:9,12.5,1.5;20250921|阪神:9.2,11.2,1.1;20250927|阪神:8.9,13.1,6.8;20250928|阪神:8.9,11.2,4.4;20251206|阪神:9,13.1,2.5;20251207|阪神:9.1,12.9,1.7;20251213|阪神:9.1,11,1.8;20251214|阪神:8.3,14.1,8.1;20251220|阪神:9.1,13.3,6.1;20251221|阪神:9,12.3,5;20251227|阪神:8.9,12.1,11.3;20251228|阪神:8.9,12.5,9.6;20250125|小倉:8.8,8.4,4.3;20250126|小倉:9.4,7.6,2.9;20250201|小倉:9.5,7.5,2.1;20250202|小倉:8.3,11.6,17.5;20250208|小倉:8.6,9.9,7.8;20250209|小倉:8.7,9.3,8.7;20250215|小倉:9.3,8.6,2.2;20250216|小倉:9,9.2,4;20250222|小倉:9.6,8.6,2.1;20250223|小倉:9.7,7.5,2.2;20250301|小倉:9.5,9.7,3.8;20250302|小倉:8.7,10.4,5.3;20250628|小倉:9.1,9.2,6.8;20250629|小倉:9.6,7.6,4.3;20250705|小倉:8.8,9.2,0.7;20250706|小倉:9.1,8.8,0.6;20250712|小倉:8.7,9.4,0.5;20250713|小倉:9.1,8.6,0.5;20250719|小倉:8.8,10,16.1;20250720|小倉:9.6,9.2,8.6;20250201|京都:10.8,9.1,1.1;20250202|京都:9.5,10.5,6.7;20250209|京都:9.9,10.5,7.2;20250210|京都:9.9,9.5,5.7;20250215|京都:10.5,9.8,4.7;20250216|京都:9.5,10.6,7;20250222|京都:10.5,8.8,3.3;20250223|京都:10.8,8.8,2.7;20250426|京都:10.8,8.2,5.7;20250427|京都:11.2,7.7,5.2;20250503|京都:9.8,10.1,12;20250504|京都:10.6,8.1,7.9;20250510|京都:9.6,11,15.8;20250511|京都:10.2,8.2,11.5;20250517|京都:10.1,8.8,7.4;20250518|京都:10.1,10.7,12.8;20250524|京都:11.2,6.9,4.8;20250525|京都:8.6,12.2,16.4;20250531|京都:11.1,7.5,5.1;20250601|京都:11.3,7.2,3.1;20251004|京都:9.4,10.9,11.9;20251005|京都:10,10.4,14.1;20251011|京都:10.9,8.6,2.6;20251012|京都:11,8,2.4;20251013|京都:10.8,7.3,2.8;20251018|京都:10.3,8.6,9.9;20251019|京都:10.8,8.4,7.2;20251025|京都:10.6,8.1,3.4;20251026|京都:9.7,11.4,14.5;20251101|京都:10.4,10.4,15.9;20251102|京都:10.5,9.1,9.7;20251108|京都:10.7,9,3.8;20251109|京都:10.3,9,5.8;20251115|京都:10.8,8.8,5.1;20251116|京都:11.3,9,4.9;20251122|京都:10.7,8,1.8;20251123|京都:10.5,7.3,1.7;20251129|京都:10.9,8.4,4.8;20251130|京都:10.9,8.8,4.2;20250105|中山:10.2,13.6,1.8;20250106|中山:10.1,14,1.6;20250111|中山:10,13.9,7.2;20250112|中山:10,13.2,5.3;20250113|中山:10,13.3,4.9;20250118|中山:10.7,12.8,1.6;20250119|中山:10.5,12.1,1.8;20250125|中山:10.2,12.7,2.5;20250126|中山:9.9,12.3,2.5;20250301|中山:10,12.2,1.7;20250302|中山:10.1,11.8,1.8;20250308|中山:9.5,14.7,10.7;20250309|中山:8.5,14.8,12.8;20250315|中山:9.8,11.7,7.3;20250316|中山:9.1,13,10.6;20250322|中山:9.3,13.6,11;20250323|中山:9.7,12.2,10;20250329|中山:9.6,12,5.2;20250330|中山:9,12.6,9;20250405|中山:9,14.6,10.7;20250406|中山:9.5,13.1,8.2;20250412|中山:9.4,12.3,8.2;20250413|中山:9.7,11.7,3.8;20250419|中山:10.3,10.6,3.4;20250420|中山:10.6,10.8,2.5;20250906|中山:9.6,14.5,11.1;20250907|中山:9.9,13.1,6.4;20250913|中山:8.3,15.7,17.2;20250914|中山:9.8,13.2,9.6;20250915|中山:9.9,12.6,5.7;20250920|中山:9.2,13.9,10.5;20250921|中山:9.5,13.6,8;20250927|中山:10.2,12.3,2.4;20250928|中山:10.3,12.4,1.7;20251206|中山:10.1,10.7,1.3;20251207|中山:10.4,10.6,1.6;20251213|中山:10.3,10.4,1.4;20251214|中山:9.9,11.3,5.5;20251220|中山:10,10.8,4.9;20251221|中山:8.9,14.5,15.2;20251227|中山:9.8,11.9,7.4;20251228|中山:9.5,11.9,5.9;20250503|新潟:9.5,12.4,8.5;20250504|新潟:8.8,13.7,9.6;20250510|新潟:9,14.4,8.1;20250511|新潟:9.1,14.5,9.6;20250517|新潟:10,11.6,3.3;20250518|新潟:9,13.3,7.4;20250524|新潟:9.7,11.5,5.9;20250525|新潟:9,13.6,8.5;20250726|新潟:9.7,12.4,3;20250727|新潟:9.1,12.7,3;20250802|新潟:9.2,12.6,2.1;20250803|新潟:9.4,12.1,2;20250809|新潟:9.3,13.1,5.9;20250810|新潟:9.5,11.3,4.1;20250816|新潟:9.3,12.2,7.3;20250817|新潟:9.1,12,6.5;20250823|新潟:9.3,11.8,2.7;20250824|新潟:9,12.4,2.7;20250830|新潟:9.4,11.3,4.1;20250831|新潟:9.5,12.2,4.2;20251018|新潟:9.6,12.3,6.7;20251019|新潟:9,15.4,12.3;20251025|新潟:9.4,11.2,3.3;20251026|新潟:9.3,11.4,6.2;20250726|札幌:7.5,13.5,4.4;20250727|札幌:6.9,13,6.6;20250802|札幌:7.7,11.8,3.9;20250803|札幌:7.5,13.4,2.1;20250809|札幌:7,14,13.9;20250810|札幌:7.2,12.8,9.8;20250816|札幌:7.4,13.6,4.7;20250817|札幌:7.7,12.5,2.7;20250823|札幌:7,14,11;20250824|札幌:7.6,13.2,8.1;20250830|札幌:7.3,13.9,13.7;20250831|札幌:7.5,15.3,11.1;20250906|札幌:7.7,12,6.2;20250907|札幌:7.1,12.9,3.5;20250201|東京:9.4,14.4,1.5;20250202|東京:8.7,13,4.3;20250208|東京:9.4,15,3.2;20250209|東京:9.5,14.1,2.7;20250215|東京:9.1,13,1.9;20250216|東京:9.3,12.9,1.8;20250222|東京:9.1,11.7,2.2;20250223|東京:9.5,12.8,2.2;20250426|東京:9.5,12.3,7.6;20250427|東京:9.2,13,8.2;20250503|東京:9.2,17.2,14.4;20250504|東京:9.4,13.5,9.4;20250510|東京:8.9,14,9.3;20250511|東京:9.4,14.3,9.6;20250517|東京:9.4,13.2,3.4;20250518|東京:8.9,17.7,13.5;20250524|東京:9.7,12.8,3.8;20250525|東京:8.9,17.8,16;20250531|東京:8.9,17.9,12.1;20250601|東京:9.2,18.2,13.6;20250607|東京:9.3,14.3,3.7;20250608|東京:9.5,14.7,3.2;20250614|東京:9.4,13.3,6.2;20250615|東京:8.7,17.1,11.6;20250621|東京:9.4,12.7,2.1;20250622|東京:9.6,13.2,1.8;20251004|東京:9.6,14.2,5.5;20251005|東京:9.9,14.4,5.2;20251011|東京:9.7,12.7,2.3;20251012|東京:10.2,12.7,5.5;20251013|東京:9.7,13.5,3.7;20251018|東京:9.3,14.1,3.7;20251019|東京:9.6,13.3,2.8;20251025|東京:9.6,15.2,8.9;20251026|東京:8.6,17.4,15.9;20251101|東京:9.1,17,15.2;20251102|東京:9.3,12.6,11.3;20251108|東京:9.2,13,3.4;20251109|東京:9.1,12.6,3.3;20251115|東京:9.6,12.5,3.7;20251116|東京:9.3,12.1,2.7;20251123|東京:9.2,14,2.5;20251124|東京:9.2,14.1,2.3;20251129|東京:9.1,13.5,2.6;20251130|東京:9.3,14.1,2;20260314|中京:9.5,12.7,2.4;20260315|中京:9.9,12,1.4;20260321|中京:10.1,12,7.5;20260322|中京:10.7,11.5,6;20260328|中京:9.8,13.1,10.1;20260329|中京:10.4,11.6,6.1;20260725|中京:9.9,13.9,1.4;20260726|中京:9.5,13.8,1.2;20260801|中京:9.7,14.5,4.3;20260802|中京:9.9,14.1,2.7;20260808|中京:10.3,13.5,3;20260809|中京:10.2,12.9,2.6;20260815|中京:10.3,13.9,4.5;20260816|中京:10.8,13.1,3.4;20260822|中京:10.6,13.9,0.2;20260823|中京:10.6,13.4,1.2;20260829|中京:10.5,13.6,7.8;20260830|中京:10.7,13.4,7.4;20260411|福島:9.5,9.7,4.6;20260412|福島:9.5,10.2,2.8;20260418|福島:9.5,11.3,4.1;20260419|福島:9.7,10.3,3.5;20260425|福島:9.8,8.4,2.5;20260426|福島:10,8.5,1.8;20260627|福島:9.4,13.9,10;20260628|福島:9.7,11.6,6.6;20260704|福島:9.1,14.2,13.6;20260705|福島:9.3,13,7.1;20260711|福島:9.4,11.4,1.2;20260712|福島:8.6,13.5,6.7;20260718|福島:9.6,11.1,2.7;20260719|福島:9.8,11.7,1.2;20260613|函館:6.5,16.2,5.4;20260614|函館:6.5,16.3,8.9;20260620|函館:6.7,15.8,4.2;20260621|函館:6.7,15.7,3.2;20260627|函館:6.2,17.7,16.8;20260628|函館:6.4,16.5,10.3;20260704|函館:7.1,14.4,4.1;20260705|函館:7.3,15.5,2.5;20260711|函館:7,15.2,8.3;20260712|函館:6.2,16.7,15.2;20260718|函館:7.7,14.9,6.9;20260719|函館:6.4,19.7,16.7;20260221|阪神:9,13.1,2.8;20260222|阪神:9,11.7,2.7;20260228|阪神:8.5,12.9,8.5;20260301|阪神:8.8,13.3,8.2;20260307|阪神:8.4,13.3,9.8;20260308|阪神:9,12.3,7;20260314|阪神:9.6,10.9,4;20260315|阪神:9.7,10.7,3.9;20260321|阪神:9.1,13,9;20260322|阪神:9.3,11.4,8;20260328|阪神:9,12.5,8.6;20260329|阪神:9.3,12.9,6.7;20260404|阪神:9.2,12.2,7.3;20260405|阪神:8.5,12.9,16.5;20260411|阪神:8.6,13,15.9;20260412|阪神:8.9,12.3,10.8;20260418|阪神:9.4,12.1,6.5;20260419|阪神:9.7,10.4,5.1;20260606|阪神:9.9,10.9,6.2;20260607|阪神:9.9,10.8,3.9;20260613|阪神:9.7,11.8,4.6;20260614|阪神:9.9,10.8,3;20260620|阪神:9.7,10.2,4.8;20260621|阪神:9,15.6,19.4;20260905|阪神:8.1,16.4,13.1;20260906|阪神:8.4,13.6,7.1;20260912|阪神:8.3,13.2,9.7;20260913|阪神:8.6,13.5,8.4;20260919|阪神:8.6,12.1,4.9;20260920|阪神:8.6,10.9,4;20260921|阪神:9,11.1,2.5;20260926|阪神:8.7,10.8,0.8;20260927|阪神:8.2,12.5,5.4;20260124|小倉:10.5,7.5,2.1;20260125|小倉:10.5,7.2,1.8;20260131|小倉:10.5,7,1.5;20260201|小倉:10.8,7.3,1.7;20260207|小倉:10,7.7,1.9;20260208|小倉:9.6,9.4,5.3;20260214|小倉:9.8,8.7,4.3;20260215|小倉:9.1,9.5,6.8;20260221|小倉:9.8,8.8,1.8;20260222|小倉:9.6,8.6,1.8;20260228|小倉:8.8,10.7,15.6;20260301|小倉:9.6,9.3,12.9;20260627|小倉:8.8,13.4,20.3;20260628|小倉:9.1,10.3,12;20260704|小倉:8.9,9.5,9.6;20260705|小倉:7.7,10.5,14.2;20260711|小倉:9.8,9.4,2.4;20260712|小倉:9.8,9.1,2.1;20260718|小倉:9.7,10.1,11.2;20260719|小倉:10.2,9.2,5.6;20260104|京都:10.7,9.2,3.9;20260105|京都:10.8,8.7,3;20260110|京都:10.4,9.8,1.1;20260111|京都:10.4,8.3,1;20260112|京都:11,7.9,1.3;20260117|京都:10.4,7.8,1;20260118|京都:10.5,8,0.9;20260124|京都:10.5,8.8,1.3;20260125|京都:10.6,7.5,1;20260131|京都:10.8,9.1,1.4;20260201|京都:10.7,9,1.1;20260207|京都:10.7,8.1,1.5;20260210|京都:10.9,9.2,3.2;20260214|京都:10.9,8.5,8.8;20260215|京都:10.9,8.7,7.2;20260425|京都:10.2,8.1,10.1;20260426|京都:10.3,6.6,8;20260502|京都:9.8,10,10.7;20260503|京都:10.3,7.8,7.9;20260509|京都:10.9,7.3,4;20260510|京都:11.3,6.5,2.5;20260516|京都:10.4,6.7,1.1;20260517|京都:10.3,6.2,1.1;20260523|京都:9.8,8,7.6;20260524|京都:10.2,7.2,7;20260530|京都:10.2,8.1,5.2;20260531|京都:10.3,6.6,3.2;20260104|中山:9.4,13.1,7.9;20260105|中山:9.7,12.8,7.4;20260110|中山:10,11.6,5.6;20260111|中山:10,11.3,4.1;20260112|中山:10.3,10.9,2.2;20260117|中山:10.1,11.5,1.5;20260118|中山:10.5,11.2,1.5;20260124|中山:10.7,10.4,1.3;20260125|中山:10.8,10.6,1.2;20260228|中山:10,13.5,11.3;20260301|中山:10.3,11.3,7.5;20260307|中山:8.9,14,12.8;20260308|中山:9.5,12.8,10.8;20260314|中山:9.8,12.1,3.3;20260315|中山:10,10.4,2.3;20260321|中山:9.8,11.5,4;20260322|中山:10,10.6,3.4;20260328|中山:9.1,14.5,13.1;20260329|中山:9.4,13.1,10.8;20260404|中山:9.2,13.4,8.8;20260405|中山:7.9,14.2,14.3;20260411|中山:9,13.5,12.6;20260412|中山:9.3,12.6,8;20260418|中山:9.6,10.6,4.9;20260419|中山:9.8,10.1,4.4;20260905|中山:8.5,14.6,13.4;20260906|中山:9.1,13.4,8.4;20260912|中山:7.7,14.5,15.3;20260913|中山:8.2,14.2,14.8;20260919|中山:10.1,12.8,5.8;20260920|中山:10,13.2,5.9;20260922|中山:7.4,15.7,11.6;20260926|中山:8.3,15.9,10.3;20260927|中山:8.6,13.5,8.9;20260502|新潟:7.1,17.8,17.1;20260503|新潟:8.6,14.3,8.8;20260509|新潟:8.6,14.4,8.7;20260510|新潟:9.2,11.4,5.2;20260516|新潟:9.5,11.6,2.8;20260517|新潟:9.5,11.4,2.2;20260523|新潟:8.8,14.6,10.7;20260524|新潟:8.8,13.3,8.6;20260725|新潟:9.6,13.4,8.6;20260726|新潟:9.6,12.7,9.5;20260801|新潟:9.7,12.6,7.9;20260802|新潟:9.8,11.8,6.1;20260808|新潟:9.5,12.2,2.2;20260809|新潟:9.4,12.5,2.2;20260815|新潟:10,12.2,1.9;20260816|新潟:9.7,11.3,1.9;20260822|新潟:9.9,12.7,2.5;20260823|新潟:9.9,11.8,1.9;20260829|新潟:9.7,11.9,2.4;20260830|新潟:9.8,13,5.6;20260725|札幌:7.6,13.4,5.3;20260726|札幌:7.6,12.3,3.5;20260801|札幌:7.3,13.5,9;20260802|札幌:7.3,13.2,7.7;20260808|札幌:8.1,12.1,2.1;20260809|札幌:8,14.2,4.9;20260815|札幌:7.8,13.3,2.3;20260816|札幌:8,11.9,2.1;20260822|札幌:8.1,12.3,3.4;20260823|札幌:8.2,12.2,2.6;20260829|札幌:7.9,15.5,10.1;20260830|札幌:7.9,13,7.7;20260905|札幌:8,13.9,12.7;20260906|札幌:7.8,12.7,9.8;20260131|東京:9.6,13.2,1.5;20260201|東京:9.7,12.5,1.3;20260207|東京:9.6,12.8,1.3;20260210|東京:10.1,14,8.6;20260214|東京:9.6,13,6.3;20260215|東京:9.4,12.4,5.7;20260221|東京:9.8,12.7,1.6;20260222|東京:9.7,12.6,1.1;20260425|東京:9.3,15.2,8.6;20260426|東京:9.7,14.2,8.1;20260502|東京:9.5,15.1,12;20260503|東京:9.3,13.8,7.8;20260509|東京:9.9,14.1,3.2;20260510|東京:9.5,14.1,2.7;20260516|東京:10,13.2,2.4;20260517|東京:9.8,13.2,1.9;20260523|東京:9.7,12.9,11.2;20260524|東京:9.3,13.2,9.6;20260530|東京:9.9,13.7,2.9;20260531|東京:9.8,12.5,2;20260606|東京:9.9,16,8.3;20260607|東京:9.9,14.5,4.5;20260613|東京:9.8,17.7,12.3;20260614|東京:10,13.1,7.6;20260620|東京:8.5,14.2,7.7;20260621|東京:8.3,19.9,16.7';
+
+/* ---------- 馬場履歴パース ---------- */
+var GI_BABA = null, GI_BABA_KEY = '';
+function giBaba(){
+  var o = null;
+  try { o = giBabaLs(); } catch(e){}
+  var k2 = o ? 'o' + Object.keys(o.d).length + ':' + (o.at || 0) : 'o0';
+  if (GI_BABA && GI_BABA_KEY === k2) return GI_BABA;   /* ★第133弾: 追加分が変わったら作り直し */
+  GI_BABA = {};
+  GI_BABA_KEY = k2;
+  try {
+    GI_BABA_STR.split(';').forEach(function(ent){
+      var kv = ent.split(':'), cs = kv[1].split(',');
+      /* ★第133弾修正: キーは '_' 区切りで統一(giCompute/giBabaRawの検索と合わせる。
+         ※第131弾〜132弾は '|' のままだったため埋め込み馬場が一度も参照されず、
+           馬場点b(重み1.0)が実質ゼロのまま検証(cov3 87.6%)より弱い状態で動いていた。
+           検証時のbaba_date.jsonは '_' キーで b単体85.9% = 最強要素として機能していた。 */
+      GI_BABA[kv[0].replace('|', '_')] = { cu: parseFloat(cs[0]), sw: (cs[1] === '' ? null : parseFloat(cs[1])), dw: parseFloat(cs[2]) };
+    });
+  } catch(e){}
+  if (o){
+    for (var kk in o.d){
+      var v = o.d[kk] || {};
+      var k3 = kk.replace('|', '_'), cur = GI_BABA[k3] || {};
+      GI_BABA[k3] = { cu: (v.cu != null && isFinite(v.cu) ? v.cu : cur.cu), sw: (v.sw != null && isFinite(v.sw) ? v.sw : cur.sw), dw: (v.dw != null && isFinite(v.dw) ? v.dw : cur.dw) };
+    }
+  }
+  return GI_BABA;
+}
+
+/* ---------- 索引ビルド(学習DBから・メモリキャッシュ) ---------- */
+var giCache = null;
+function giKey(){
+  var n = 0;
+  try { var r = (typeof diLs === 'function') ? diLs().races : null; if (r) n = Object.keys(r).length; } catch(e){}
+  var b = 0;
+  try { b = Object.keys(giBabaLs().d).length; } catch(e){}   /* ★第133弾: 馬場履歴の追記でもキャッシュ更新 */
+  return (typeof dbFixStamp === 'function' ? dbFixStamp() : '0') + '_' + n + '_b' + b;
+}
+function giMed(a){ a.sort(function(x, y){ return x - y; }); return a[Math.floor(a.length / 2)]; }
+function giNormName(s){ return String(s || '').replace(/\(GI{0,3}\)|（GI{0,3}）|\(LI{0,2}\)|（LI{0,2}）|\(OP\)|（OP）|\(H\)|（H）/g, ''); }
+function giParseT(t){
+  var s = String(t || ''), m;
+  m = s.match(/^(\d+):(\d{2}\.\d)$/); if (m) return parseInt(m[1], 10) * 60 + parseFloat(m[2]);
+  m = s.match(/^(\d{2}\.\d)$/); if (m) return parseFloat(m[1]);
+  return null;
+}
+function giRaceClsOf(txt){
+  txt = String(txt || '');
+  if (/(G1(?![0-9])|GI(?![I]))/.test(txt)) return 8.6;
+  if (/(G2(?![0-9])|GII(?![I]))/.test(txt)) return 7.4;
+  if (/(G3(?![0-9])|GIII|Jpn)/.test(txt)) return 6.4;
+  if (/障害/.test(txt)) return 5.0;
+  if (/リステッド|リストッド|\(L\)|（L）|\(OP\)|（OP）|オープン|3000万/.test(txt)) return 6.0;
+  if (/3勝|1600万/.test(txt)) return 5.8;
+  if (/2勝|1000万/.test(txt)) return 5.0;
+  if (/1勝|500万/.test(txt)) return 4.2;
+  if (/新馬/.test(txt)) return 2.2;
+  if (/未勝利/.test(txt)) return 3.2;
+  return 4.6;
+}
+function giSfOf(r){ return /ダ/.test(String(r.surf || '') + String(r.dist || '')) ? 'ダ' : (/障/.test(String(r.surf || '') + String(r.dist || '')) ? '障' : '芝'); }
+
+function giBuild(){
+  var key = giKey();
+  if (giCache && giCache.key === key) return giCache;
+  var races = {};
+  try { races = ((typeof diLs === 'function') ? diLs() : { races: {} }).races || {}; } catch(e){}
+  var BABA = giBaba();
+  var byName = {}, raceField = {}, PS = {}, menu = {}, raceAges = {}, JT = {};
+  for (var rid in races){
+    var rec = races[rid]; if (!rec) continue;
+    var m = rec.meta || {};
+    var d8 = String(m.date8 || '');
+    if (d8.length !== 8) continue;
+    var dm = String(m.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+    var rows = rec.rows || [];
+    /* 勝ち時計→標準時計テーブル */
+    var winT = null, minL3 = null, i;
+    for (i = 0; i < rows.length; i++){
+      var o0 = parseInt(rows[i].order, 10) || 0;
+      if (o0 === 1 && winT == null) winT = giParseT(rows[i].time);
+      var l3f = parseFloat(rows[i].last3);
+      if (isFinite(l3f) && l3f > 25 && l3f < 55 && (minL3 == null || l3f < minL3)) minL3 = l3f;
+    }
+    if (dm && winT != null){
+      var mk = dm[1] + dm[2] + '|' + String(m.place || '');
+      (menu[mk] = menu[mk] || []).push(winT);
+    }
+    var fld = [];
+    for (i = 0; i < rows.length; i++){
+      var r = rows[i], nm = String(r.name || '').trim();
+      if (!nm) continue;
+      var o = parseInt(r.order, 10) || 0;
+      if (o < 1) continue;
+      var sa = String(r.sexAge || ''), am = sa.match(/[牡牝セ闘](\d{1,2})$/);
+      var run = { nm: nm, date8: d8, place: String(m.place || ''), rnum: String(m.rnum || ''), rname: String(m.name || ''),
+        surf: String(m.surface || ''), dist: String(m.dist || ''), order: o,
+        time: giParseT(r.time), last3: parseFloat(r.last3) || null,
+        l3d: (isFinite(parseFloat(r.last3)) && minL3 != null) ? Math.round((parseFloat(r.last3) - minL3) * 10) / 10 : null,
+        pass1: parseInt(String(r.passing || '').split('-')[0], 10) || 0,
+        jockey: String(r.jockey || '').trim(), trainer: String(r.trainer || '').replace(/^\[.*?\]\s*/, '').trim(),
+        age: am ? parseInt(am[1], 10) : null };
+      (byName[nm] = byName[nm] || []).push(run);
+      fld.push({ nm: nm, o: o });
+      if (o <= 3 && run.age != null){
+        var ak = run.place + '|' + giNormName(run.rname);
+        (raceAges[ak] = raceAges[ak] || []).push([d8, run.age]);
+      }
+      /* 騎手・厩舎の前方累積(as-of) */
+      [['jockey', run.jockey], ['trainer', run.trainer]].forEach(function(pair){
+        if (!pair[1]) return;
+        var p = JT[pair[0]] || (JT[pair[0]] = {});
+        var a = p[pair[1]] || (p[pair[1]] = { d: [], n: [0], w3: [0] });
+        a.d.push(d8); a.n.push(a.n[a.n.length - 1] + 1); a.w3.push(a.w3[a.w3.length - 1] + (o <= 3 ? 1 : 0));
+      });
+    }
+    if (fld.length >= 2) raceField[d8 + '|' + String(m.place || '') + '|' + String(m.rnum || '').padStart(2, '0')] = fld;
+  }
+  for (var nm2 in byName){
+    byName[nm2].sort(function(a, b){ return a.date8 < b.date8 ? -1 : (a.date8 > b.date8 ? 1 : 0); });
+    var o2 = { 芝: null, ダ: null };
+    ['芝', 'ダ'].forEach(function(sf){
+      var rs = byName[nm2].filter(function(r){ return giSfOf(r) === sf; });
+      if (!rs.length) return;
+      var d = [], p3 = [0], acc = 0;
+      for (var j = 0; j < rs.length; j++){ d.push(rs[j].date8); if (rs[j].order <= 3) acc++; p3.push(acc); }
+      o2[sf] = { d: d, p3: p3 };
+    });
+    PS[nm2] = o2;
+  }
+  for (var mk2 in menu) menu[mk2] = { med: giMed(menu[mk2]), n: menu[mk2].length };
+  giCache = { key: key, byName: byName, raceField: raceField, PS: PS, menu: menu, raceAges: raceAges, JT: JT, BABA: BABA };
+  return giCache;
+}
+
+/* ---------- コア計算(idx_coreと同一式のポート) ---------- */
+function giZ(vals){
+  var v = vals.filter(function(x){ return x != null && isFinite(x); });
+  if (v.length < 2) return vals.map(function(){ return null; });
+  var mean = v.reduce(function(a, x){ return a + x; }, 0) / v.length;
+  var sd = Math.sqrt(v.reduce(function(a, x){ return a + (x - mean) * (x - mean); }, 0) / v.length);
+  return vals.map(function(x){ return (x == null || !isFinite(x)) ? null : (sd > 0.02 ? Math.max(0, Math.min(100, 50 + 14 * (x - mean) / sd)) : 50); });
+}
+function giLower(arr, v){ var lo = 0, hi = arr.length; while (lo < hi){ var mid = (lo + hi) >> 1; if (arr[mid] < v) lo = mid + 1; else hi = mid; } return lo; }
+function giUpper(arr, v){ var lo = 0, hi = arr.length; while (lo < hi){ var mid = (lo + hi) >> 1; if (arr[mid] <= v) lo = mid + 1; else hi = mid; } return lo; }
+function giWinCount(c, nm, sf, dFrom, dTo){
+  var ps = c.PS[nm] && c.PS[nm][sf];
+  if (!ps) return { n: 0, n3: 0 };
+  var lo = giUpper(ps.d, dFrom), hi = giLower(ps.d, dTo);
+  if (hi <= lo) return { n: 0, n3: 0 };
+  return { n: hi - lo, n3: ps.p3[hi] - ps.p3[lo] };
+}
+function giAdjF(c, jr, targetD8){
+  if (!jr.rnum) return 0;
+  key = jr.date8 + '|' + String(jr.place || '') + '|' + String(jr.rnum || '').padStart(2, '0');
+  var f = c.raceField[key];
+  var out = 0;
+  if (f){
+    var sf = giSfOf(jr), n = 0, n3 = 0;
+    for (var i = 0; i < f.length; i++){
+      if (f[i].nm === jr.nm) continue;
+      var w = giWinCount(c, f[i].nm, sf, jr.date8, targetD8);
+      n += w.n; n3 += w.n3;
+    }
+    if (n >= 10) out = Math.max(-0.5, Math.min(0.5, 3.0 * (n3 / n - 0.22)));
+  }
+  return out;
+}
+function giPatternScore(jr){
+  var o = jr.order;
+  if (o >= 1 && o <= 3) return 1;
+  if (o >= 1 && o <= 8){
+    var p1 = parseInt(String(jr.passing || '').split('-')[0], 10) || 0;
+    return ((jr.l3d != null && isFinite(jr.l3d) && jr.l3d <= 0.5) || (p1 >= 1 && p1 <= 3)) ? 0.5 : 0;
+  }
+  if (o <= 12) return (jr.l3d != null && isFinite(jr.l3d) && jr.l3d <= 0.3) ? 0.3 : 0;
+  return 0;
+}
+function giPriorOf(c, name, raceDate, surfKey){
+  var runs = c.byName[name];
+  if (!runs) return [];
+  var lo = 0, hi = runs.length;
+  while (lo < hi){ var mid = (lo + hi) >> 1; if (runs[mid].date8 < raceDate) lo = mid + 1; else hi = mid; }
+  var out = [];
+  for (var i = 0; i < lo; i++) if (giSfOf(runs[i]) === surfKey) out.push(runs[i]);
+  return out;
+}
+function giRaceRunScore(jr, targetD8, c){
+  var base = giRaceClsOf(jr.rname);
+  if (jr.l3d != null && isFinite(jr.l3d)) base -= Math.min(0.9, Math.max(0, jr.l3d) * 0.22);
+  var p1 = parseInt(String(jr.passing || '').split('-')[0], 10) || 0;
+  if (jr.order >= 1 && jr.order <= 3 && p1 >= 1 && p1 <= 3) base += 0.30;
+  base += giAdjF(c, jr, targetD8);
+  return base;
+}
+function giRaceRawF(c, priorSame, targetD8){
+  var rs = priorSame.filter(function(r){ return r.order >= 1; }).slice(-8);
+  if (!rs.length) return null;
+  var best3 = null, acc = 0, wt = 0;
+  for (var i = 0; i < rs.length; i++){
+    var sc = giRaceRunScore(rs[i], targetD8, c), w = 1 + i * 0.25;
+    acc += sc * w; wt += w;
+    if (rs[i].order >= 1 && rs[i].order <= 3){ var w2 = 1.4 + i * 0.25; if (best3 == null || sc * w2 > best3) best3 = sc * w2; }
+  }
+  var v = acc / (wt || 1);
+  if (best3 != null) v = v * 0.55 + (best3 / 1.4) * 0.45;
+  return v;
+}
+function giCourseRawP(c, priorSame, surfKey, m, venue, jockey){
+  var oks = priorSame.filter(function(r){ return r.order >= 1; });
+  if (oks.length < 3) return null;
+  var byDistEx = {}, byTrack = {};
+  for (var i = 0; i < oks.length; i++){
+    var r = oks[i];
+    var dm = parseInt(String(r.dist || '').replace(/[^0-9]/g, ''), 10) || 0;
+    var sc = giPatternScore(r);
+    if (dm){ var k = surfKey + dm + 'm'; if (!byDistEx[k]) byDistEx[k] = { rides: 0, sc: 0 }; byDistEx[k].rides++; byDistEx[k].sc += sc; }
+    if (r.place){ var k2 = String(r.place); if (!byTrack[k2]) byTrack[k2] = { rides: 0, sc: 0 }; byTrack[k2].rides++; byTrack[k2].sc += sc; }
+  }
+  function cell(x, w){ if (!x || (x.rides || 0) < 2) return null; var k = x.rides; return { r: x.sc / k, w: w * (k / (k + 6)) }; }
+  var overall = oks.reduce(function(a, r){ return a + giPatternScore(r); }, 0) / oks.length;
+  var cells = [
+    { r: overall, w: 0.40 * (oks.length / (oks.length + 8)) },
+    cell(byDistEx[surfKey + m + 'm'], 0.34),
+    cell(byTrack[venue], 0.26)
+  ];
+  var acc = 0, wt = 0;
+  cells.forEach(function(x){ if (x){ acc += x.r * x.w; wt += x.w; } });
+  if (!(wt > 0)) return null;
+  var v = acc / wt;
+  var jk = String(jockey || '');
+  if (jk){
+    var withJ = oks.filter(function(jr){ return String(jr.jockey || '') === jk; });
+    if (withJ.length >= 2){
+      var w2 = 0, p2 = 0;
+      withJ.forEach(function(jr){ var o = parseInt(jr.order, 10) || 99; if (o === 1) w2++; if (o <= 3) p2++; });
+      var chem = (w2 + 0.5 * (p2 - w2)) / withJ.length;
+      v += Math.max(-0.12, Math.min(0.12, (chem - 0.35) * 0.3));
+    }
+  }
+  return Math.max(0, Math.min(1.15, v));
+}
+function giBabaRaw(c, priorSame, today, surfKey){
+  if (!today) return null;
+  var isD = surfKey === 'ダ';
+  var rel = isD ? today.dw : today.sw;
+  if (rel == null) return null;
+  var runs2 = [];
+  for (var i = 0; i < priorSame.length; i++){
+    var r = priorSame[i];
+    if (r.order < 1) continue;
+    var b = c.BABA[r.date8 + '_' + r.place];
+    if (!b || !(b.cu > 0)) continue;
+    var swv = isD ? b.dw : b.sw;
+    if (swv == null) continue;
+    runs2.push({ cu: b.cu, sw: swv, hit: r.order <= 3 ? 1 : 0 });
+  }
+  if (!runs2.length) return null;
+  var pAll = runs2.reduce(function(a, b){ return a + b.hit; }, 0) / runs2.length;
+  var sw = 0, swh = 0;
+  for (var j = 0; j < runs2.length; j++){
+    var r2 = runs2[j];
+    var w = isD ? Math.exp(-Math.pow((r2.sw - rel) / 3, 2))
+                : Math.exp(-Math.pow((r2.cu - today.cu) / 1.5, 2)) * Math.exp(-Math.pow((r2.sw - rel) / 3, 2));
+    sw += w; swh += w * r2.hit;
+  }
+  return (swh + pAll * 3) / (sw + 3);
+}
+
+/* ---------- 追加要素 ---------- */
+function giStyleOf(pass1){ return pass1 > 0 && pass1 <= 2 ? 'E' : (pass1 <= 5 ? 'S' : (pass1 <= 9 ? 'K' : 'C')); }
+function giIntBucket(days){ return days == null ? null : (days <= 13 ? 1 : (days <= 30 ? 2 : (days <= 60 ? 3 : (days <= 120 ? 4 : 5)))); }
+function giDayDiff(d1, d2){ return Math.round((Date.UTC(+d2.slice(0, 4), +d2.slice(4, 6) - 1, +d2.slice(6, 8)) - Date.UTC(+d1.slice(0, 4), +d1.slice(4, 6) - 1, +d1.slice(6, 8))) / 86400000); }
+function giAsOfRate(P, k, d8){
+  var p = P[k]; if (!p) return null;
+  var lo = giLower(p.d, d8);
+  if (lo < 30) return null;
+  return p.w3[lo] / p.n[lo];
+}
+function giAgeFit(c, place, rname, d8, age){
+  if (age == null) return null;
+  var h = c.raceAges[String(place || '') + '|' + giNormName(rname)];
+  if (!h) return null;
+  var tot = 0, hit = 0;
+  for (var i = 0; i < h.length; i++){ if (h[i][0] >= d8) continue; tot++; if (h[i][1] === age) hit++; }
+  if (tot < 6) return null;
+  return hit / tot;
+}
+
+/* ---------- 指数計算 ---------- */
+/* ctx: { date8, place, rname, surf('芝'|'ダ'), m(距離数値), rows:[{no,name,jockey,age?}] }
+   戻り値: { v:1, s:{no:score(1-99)}, r:{no:{factor:rank or null}} } */
+function giCompute(ctx){
+  var out = { v: 1, s: {}, r: {} };
+  try {
+    var c = giBuild();
+    var d8 = String(ctx.date8 || ''), surf = ctx.surf === 'ダ' ? 'ダ' : '芝';
+    var today = c.BABA[d8 + '_' + ctx.place];
+    var FN = ['rF', 'b', 'cP', 't', 'l3', 'dst', 'age', 'jky', 'trn', 'te', 'sty', 'itv'];
+    var raws = {}; FN.forEach(function(f){ raws[f] = []; });
+    var hs = (ctx.rows || []).filter(function(r){ return r && r.name; });
+    hs.forEach(function(h){
+      var nm = String(h.name);
+      var prior = giPriorOf(c, nm, d8, surf);
+      raws.rF.push(prior.length ? giRaceRawF(c, prior, d8) : null);
+      raws.b.push(prior.length ? giBabaRaw(c, prior, today, surf) : null);
+      raws.cP.push(prior.length ? giCourseRawP(c, prior, surf, ctx.m, ctx.place, h.jockey) : null);
+      /* 当日馬齢: rows指定があればそれ、無ければ直近走の年齢+経过年数 */
+      var age = (h.age != null) ? h.age : null;
+      if (age == null && prior.length){
+        var lr = prior[prior.length - 1];
+        if (lr && lr.age != null) age = lr.age + Math.max(0, (+d8.slice(0, 4)) - (+lr.date8.slice(0, 4)));
+      }
+      var same = prior;   /* 同面の過去走(giPriorOfで面フィルタ済み) */
+      var oks = same.filter(function(r){ return r.order >= 1; });
+      function srm(ok3, tot){ return (tot >= 3 && ok3 > 0) ? ok3 / tot : null; }
+      var rAll = srm(oks.filter(function(r){ return r.order <= 3; }).length, oks.length);
+      /* 持ちタイム */
+      var tBest = null;
+      same.forEach(function(run){
+        if (run.time == null || !run.dist) return;
+        var std = c.menu[String(run.dist).replace('m', '') + '|' + run.place];
+        if (!std || std.n < 3) return;
+        var dd = run.time - std.med;
+        if (tBest == null || dd < tBest) tBest = dd;
+      });
+      raws.t.push(tBest);
+      /* 上り3F平均(直近8) */
+      var l3s = same.map(function(r){ return r.l3d; }).filter(function(v){ return v != null && isFinite(v); }).slice(-8);
+      raws.l3.push(l3s.length ? l3s.reduce(function(a, v){ return a + v; }, 0) / l3s.length : null);
+      /* テン(1角位置平均) */
+      var p1s = same.slice(-8).map(function(r){ return r.pass1; }).filter(function(v){ return v > 0; });
+      raws.te.push(p1s.length ? p1s.reduce(function(a, v){ return a + v; }, 0) / p1s.length : null);
+      /* 距離適性(±200m) */
+      var atD = oks.filter(function(r){ var dm = parseInt(String(r.dist || '').replace(/[^0-9]/g, ''), 10) || 0; return dm && Math.abs(dm - ctx.m) <= 200; });
+      var rD = srm(atD.filter(function(r){ return r.order <= 3; }).length, atD.length);
+      raws.dst.push((rD != null && rAll != null) ? rD - rAll : null);
+      /* 脚質 */
+      var lr2 = same[same.length - 1];
+      var stl = lr2 ? giStyleOf(lr2.pass1) : null;
+      var atS = stl ? oks.filter(function(r){ return giStyleOf(r.pass1) === stl; }) : [];
+      var rS = srm(atS.filter(function(r){ return r.order <= 3; }).length, atS.length);
+      raws.sty.push((rS != null && rAll != null) ? rS - rAll : null);
+      /* レース間隔 */
+      var gap = lr2 ? giDayDiff(lr2.date8, d8) : null;
+      var bk = giIntBucket(gap), atI = [];
+      for (var i = 1; i < same.length; i++){
+        if (giIntBucket(giDayDiff(same[i - 1].date8, same[i].date8)) === bk) atI.push(same[i]);
+      }
+      var rI = srm(atI.filter(function(r){ return r.order <= 3; }).length, atI.length);
+      raws.itv.push((rI != null && rAll != null) ? rI - rAll : null);
+      /* 好走年齢 */
+      raws.age.push(giAgeFit(c, ctx.place, ctx.rname, d8, age));
+      /* 騎手・厩舎(as-of複勝率) */
+      raws.jky.push(h.jockey ? giAsOfRate(c.JT.jockey, String(h.jockey), d8) : null);
+      var trn = (lr2 && lr2.trainer) ? lr2.trainer : '';
+      raws.trn.push(trn ? giAsOfRate(c.JT.trainer, trn, d8) : null);
+    });
+    /* z化(小さいほど良い要素は反転) */
+    var inv = { t: 1, l3: 1, te: 1 };
+    var Z = {};
+    FN.forEach(function(f){
+      Z[f] = giZ(raws[f].map(function(v){ return (v == null ? null : (inv[f] ? -v : v)); }));
+    });
+    /* 加重合成(欠測は除外して再正規化) */
+    var scores = hs.map(function(h, i){
+      var acc = 0, tw = 0;
+      FN.forEach(function(f){ if (Z[f][i] != null){ acc += Z[f][i] * GI_W[f]; tw += GI_W[f]; } });
+      return tw > 0 ? acc / tw : null;
+    });
+    /* ★第132弾ガード(診断実測): コア要素(レース質/馬場/コース適性)が1つも測定できない馬
+       (=同面の過去走が1走も無い馬)は騎手・年齢だけで上位に来てしまう事故を起こす
+       (指数1位馬券内42.9% vs コアあり55.7%・全レースの18%で薄データ馬が1位)。
+       → コア測定可能馬が3頭以上いるレースでは指数対象外(null=「—」/旧式フォールバック)。
+         3頭未満のレース(新馬・未勝利など)は全馬対象のまま(全員薄いので相対的にフェア)。 */
+    var coreN = hs.map(function(h, i){
+      return (Z.rF[i] != null ? 1 : 0) + (Z.b[i] != null ? 1 : 0) + (Z.cP[i] != null ? 1 : 0);
+    });
+    var nCore = 0;
+    coreN.forEach(function(v){ if (v >= 1) nCore++; });
+    var giGuard = nCore >= 3;
+    /* 内訳用順位(zの高い順=1位) */
+    var ranks = {};
+    FN.forEach(function(f){
+      var ord = Z[f].map(function(v, i){ return [v, i]; }).filter(function(x){ return x[0] != null; })
+        .sort(function(a, b){ return b[0] - a[0]; });
+      var rk = {};
+      ord.forEach(function(x, i){ rk[x[1]] = i + 1; });
+      ranks[f] = rk;
+    });
+    hs.forEach(function(h, i){
+      var no = String(h.no == null ? '' : h.no);
+      out.s[no] = (scores[i] == null || (giGuard && coreN[i] === 0)) ? null : Math.max(1, Math.min(99, Math.round(scores[i] * 10) / 10));
+      var rr = {};
+      FN.forEach(function(f){ rr[f] = (ranks[f][i] != null) ? ranks[f][i] : null; });
+      out.r[no] = rr;
+    });
+  } catch(e){}
+  return out;
+}
+
+/* ---------- 予想時スナップショット(第102弾規約) ---------- */
+function aiFreezeGidx(rows, mm){
+  try {
+    if (typeof klStatsN === 'function' && klStatsN() === 0) return null;
+    var hs = (rows || []).filter(function(r){ return r && r.name; });
+    if (hs.length < 3) return null;
+    var meta = mm || {};
+    var dm = String(meta.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+    var surfKey = dm ? dm[1] : (/ダ/.test(String(meta.surface || '')) ? 'ダ' : '芝');
+    var g = giCompute({ date8: String(meta.date8 || ''), place: String(meta.place || ''), rname: String(meta.name || ''),
+      surf: surfKey, m: dm ? parseInt(dm[2], 10) : 0,
+      rows: hs.map(function(r){ return { no: r.no, name: r.name, jockey: r.jockey || '', age: null }; }) });
+    var n = 0;
+    for (var k in g.s) if (g.s[k] != null) n++;
+    if (n < 3) return null;
+    return g;
+  } catch(e){ return null; }
+}
+
+/* ---------- ★第133弾: 馬場履歴の追記(ボタン・自動蓄積) ----------
+   埋め込みGI_BABA_STR(ビルド時点)に加えて、localStorage khl_gi_baba_v1 の追加分を優先マージ。
+   - p17の「🌤 JRA公式から当日馬場を取得」が成功するたび自動で追記される
+   - 🔧カードの「🌤 今日の全開催場を取得」ボタンで当日ぶんを一括追記できる
+   - 📤書き出し/📥読み込みで端末間移動や最新データの反映ができる（zip更新を待たなくてよい） */
+var GI_BABA_LS = 'khl_gi_baba_v1';
+function giBabaLs(){
+  try {
+    var o = JSON.parse(localStorage.getItem(GI_BABA_LS) || 'null');
+    if (o && o.v === 1 && o.d) return o;
+  } catch(e){}
+  return { v: 1, d: {} };
+}
+function giBabaLsSave(o){ try { localStorage.setItem(GI_BABA_LS, JSON.stringify(o)); } catch(e){} }
+/* date8省略時は今日。cu/sw/dwのうち数値のものだけ更新（既存値は保持） */
+function giBabaUpsert(date8, place, cu, sw, dw){
+  try {
+    if (!place) return false;
+    if (!/^\d{8}$/.test(String(date8 || ''))){
+      var t = new Date();
+      date8 = '' + t.getFullYear() + String(t.getMonth() + 1).padStart(2, '0') + String(t.getDate()).padStart(2, '0');
+    }
+    var o = giBabaLs(), k = String(date8) + '|' + String(place), cur = o.d[k] || {};
+    /* Number(null)===0 になるため null/undefined/空文字は「更新なし」とする */
+    if (cu != null && cu !== '' && isFinite(Number(cu))) cur.cu = Number(cu);
+    if (sw != null && sw !== '' && isFinite(Number(sw))) cur.sw = Number(sw);
+    if (dw != null && dw !== '' && isFinite(Number(dw))) cur.dw = Number(dw);
+    o.d[k] = cur; o.at = Date.now();
+    giBabaLsSave(o);
+    return true;
+  } catch(e){ return false; }
+}
+function giBabaExport(){
+  try { return JSON.stringify(giBabaLs()); } catch(e){ return ''; }
+}
+/* {"v":1,"d":{...}} 形式を読み込んでマージ（壊れた値はスキップ） */
+function giBabaImport(text){
+  var n = 0;
+  try {
+    var p = JSON.parse(String(text || ''));
+    if (!p || p.v !== 1 || !p.d) return 0;
+    var o = giBabaLs();
+    for (var k in p.d){
+      if (!/^\d{8}\|[^|]+$/.test(k)) continue;
+      var v = p.d[k] || {}, cur = o.d[k] || {}, used = false;
+      ['cu', 'sw', 'dw'].forEach(function(f){ var x = v[f]; if (x != null && x !== '' && isFinite(Number(x))){ cur[f] = Number(x); used = true; } });
+      if (used){ o.d[k] = cur; n++; }
+    }
+    o.at = Date.now();
+    giBabaLsSave(o);
+  } catch(e){ return 0; }
+  return n;
+}
+function giBabaStatus(){
+  var o = giBabaLs();
+  var baseN = 0, baseLast = '', ovrN = 0, ovrFirst = '', ovrLast = '';
+  try {
+    GI_BABA_STR.split(';').forEach(function(ent){
+      var k = ent.split(':')[0];
+      baseN++;
+      var d8 = k.split('|')[0];
+      if (d8 > baseLast) baseLast = d8;
+    });
+  } catch(e){}
+  var ks = Object.keys(o.d).sort();
+  ovrN = ks.length;
+  if (ovrN){ ovrFirst = ks[0].split('|')[0]; ovrLast = ks[ovrN - 1].split('|')[0]; }
+  return { baseN: baseN, baseLast: baseLast, ovrN: ovrN, ovrFirst: ovrFirst, ovrLast: ovrLast };
+}
+function giBabaChipText(){
+  var s = giBabaStatus();
+  var t = '埋込' + s.baseN + '日';
+  if (s.baseLast) t += '(〜' + s.baseLast.slice(2).replace(/^(....)/, '$1/');
+  if (s.ovrN) t += '＋端末' + s.ovrN + '日';
+  return t;
+}
+
+/* ★第134弾: 測定日(月日だけ)からdate8を推定。年は「今日との距離が -1〜70日」に入る候補から
+   選ぶ（1月に前年12月の測定＝年跨ぎに対応。yHintは開催ページの年）。70日より古い測定は
+   保存しない（JRAのページにも直近の開催ぶんしか残らないため）。 */
+function giBabaD8(u, yHint){
+  try {
+    if (!u || !u.m || !u.d) return null;
+    var t = new Date();
+    var today8 = '' + t.getFullYear() + String(t.getMonth() + 1).padStart(2, '0') + String(t.getDate()).padStart(2, '0');
+    var ys = [];
+    [(yHint != null && isFinite(yHint) ? yHint : null), t.getFullYear(), t.getFullYear() - 1, t.getFullYear() + 1].forEach(function(y){
+      if (y != null && ys.indexOf(y) < 0) ys.push(y);
+    });
+    for (var i = 0; i < ys.length; i++){
+      var d8 = '' + ys[i] + String(u.m).padStart(2, '0') + String(u.d).padStart(2, '0');
+      var dd = giDayDiff(d8, today8);
+      if (dd >= -1 && dd <= 70) return d8;
+    }
+  } catch(e){}
+  return null;
+}
+/* JRA公式の馬場測定を取得して履歴へ一括追記（中継が必要・p17のパーサを利用）。
+   ★第134弾: 「最新の1件だけ」ではなく**ページに残っている全測定日**を日ごとに取り込みます
+   （各日の最終測定値を採用）。JRAのデータには前回開催ぶんが残っている場もあるので、
+   直近レースを学習DBへ取込んだときにgiBabaAuto()から自動で呼ばれます。 */
+function giBabaFetchAll(){
+  return new Promise(function(resolve, reject){
+    try {
+      if (typeof jraFetch !== 'function') throw new Error('中継取得関数が見つかりません（ローカルサーバー/Vercel等の中継が必要です）');
+      jraFetch('/keiba/baba/index.html').then(function(html){
+        var idxMap = (typeof jraParseVenueIndex === 'function') ? jraParseVenueIndex(html).map : {};
+        return Promise.all([jraFetch('/keiba/baba/_data_cushion.html'), jraFetch('/keiba/baba/_data_moist.html')])
+          .then(function(arr){
+            var cuH = arr[0], muH = arr[1], done = [], skipped = [];
+            /* ★第134弾: 本日の開催場だけでなく、データにブロックが残っている全場が対象
+               （前回開催ぶんが残っている場もある＝取りこぼさない） */
+            var venues = (typeof JRA_VENUES !== 'undefined' && JRA_VENUES && JRA_VENUES.length) ? JRA_VENUES.slice() : Object.keys(idxMap);
+            venues.forEach(function(v){
+              try {
+                var days = {};
+                jraParseCushion(cuH, v).forEach(function(u){
+                  var d8 = giBabaD8(u); if (!d8) return;
+                  var x = days[d8] || (days[d8] = {});
+                  if (x._cuT == null || u.h * 60 + u.min >= x._cuT){ x.cu = u.v; x._cuT = u.h * 60 + u.min; }
+                });
+                jraParseMoist(muH, v).forEach(function(u){
+                  var d8 = giBabaD8(u); if (!d8 || !u.turf || !u.dirt) return;
+                  var x = days[d8] || (days[d8] = {});
+                  if (x._muT == null || u.h * 60 + u.min >= x._muT){
+                    if (isFinite(u.turf.mg) && isFinite(u.turf.m4c)) x.sw = (u.turf.mg + u.turf.m4c) / 2;
+                    if (isFinite(u.dirt.mg) && isFinite(u.dirt.m4c)) x.dw = (u.dirt.mg + u.dirt.m4c) / 2;
+                    x._muT = u.h * 60 + u.min;
+                  }
+                });
+                var n = 0;
+                Object.keys(days).forEach(function(d8){
+                  var x = days[d8];
+                  if (x.cu == null && x.sw == null && x.dw == null) return;
+                  giBabaUpsert(d8, v, x.cu, x.sw, x.dw); n++;
+                });
+                if (n > 0) done.push(v + n + '日');
+                else if (idxMap[v]) skipped.push(v);   /* 本日開催のはずなのに取れない場だけ報告 */
+              } catch(e){ if (idxMap[v]) skipped.push(v); }
+            });
+            if (!done.length && !skipped.length) throw new Error('馬場データが見つかりません（JRA開催のない日か、ページ構成が変わった可能性）');
+            resolve({ done: done, skipped: skipped });
+          });
+      }).catch(function(e){ reject(e); });
+    } catch(e){ reject(e); }
+  });
+}
+/* ★第134弾: 学習DBへの取込(diSet)に紐づけて馬場履歴を自動取得（🤖自動マクロ(E3)・既定ON）。
+   - 対象: 保存されたレース日が「今日〜70日前」の範囲（JRAのページに測定が残っている期間）
+   - スロットル: 6時間に1回だけ（手動の🌤ボタンはいつでも押せます）
+   - 失敗しても静か（何も表示しない）・成功したら🔧カードのchipだけ更新 */
+function giBabaAuto(date8){
+  try {
+    date8 = String(date8 || '');
+    if (!/^\d{8}$/.test(date8)) return false;
+    if (typeof amOn === 'function' && !amOn('babaAuto')) return false;
+    var t = new Date();
+    var today8 = '' + t.getFullYear() + String(t.getMonth() + 1).padStart(2, '0') + String(t.getDate()).padStart(2, '0');
+    var dd = giDayDiff(date8, today8);
+    if (dd < 0 || dd > 70) return false;
+    var o = giBabaLs();
+    if (o.autoAt && (Date.now() - o.autoAt) < 6 * 3600 * 1000) return false;
+    o.autoAt = Date.now();
+    giBabaLsSave(o);
+    giBabaFetchAll().then(function(r){
+      try { var chip = document.getElementById('giBabaChip'); if (chip) chip.textContent = giBabaChipText(); } catch(e){}
+      try { if (r && r.done && r.done.length) console.log('🌤 馬場履歴を自動取得しました: ' + r.done.join('・')); } catch(e){}
+    }).catch(function(){});
+    return true;
+  } catch(e){ return false; }
+}
+function initGiBaba(){
+  var chip = document.getElementById('giBabaChip');
+  if (chip) chip.textContent = giBabaChipText();
+  var btn = document.getElementById('giBabaFetchBtn');
+  if (btn) btn.addEventListener('click', function(){
+    var msg = document.getElementById('giBabaMsg');
+    function put(t, warn){ if (msg){ msg.className = 'small ' + (warn ? 'warn' : ''); msg.textContent = t; } }
+    put('JRA公式から本日の馬場を取得中…（中継経由・数秒）');
+    giBabaFetchAll().then(function(r){
+      var chip2 = document.getElementById('giBabaChip');
+      if (chip2) chip2.textContent = giBabaChipText();
+      put('✅ 追記しました: ' + (r.done.join('・') || 'なし') + '（各日の最終測定値・直近の開催ぶん）' + (r.skipped.length ? '（取得できずスキップ: ' + r.skipped.join('・') + '）' : '') + '。指数の馬場点に即反映されます。');
+    }).catch(function(e){
+      put('⚠ ' + (e && e.message ? e.message : e), 1);
+    });
+  });
+  var ob = document.getElementById('giBabaOutBtn');
+  if (ob) ob.addEventListener('click', function(){
+    var io = document.getElementById('giBabaIo');
+    if (io){ io.value = giBabaExport(); }
+  });
+  var ib = document.getElementById('giBabaInBtn2');
+  if (ib) ib.addEventListener('click', function(){
+    var io = document.getElementById('giBabaIo'), msg = document.getElementById('giBabaMsg');
+    try {
+      var n = giBabaImport(io ? io.value : '');
+      var chip2 = document.getElementById('giBabaChip');
+      if (chip2) chip2.textContent = giBabaChipText();
+      if (msg) msg.textContent = n > 0 ? ('✅ ' + n + '日分を読み込みました（既存とマージ）。指数の馬場点に即反映されます。') : '読み込めるデータがありません（{"v":1,"d":{...}} 形式）';
+    } catch(e){ if (msg){ msg.className = 'small warn'; msg.textContent = '⚠ 読み込みに失敗: ' + (e && e.message ? e.message : e); } }
+  });
+}
+
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
@@ -46913,6 +48407,8 @@ function boot(){
   idleInit('initLive', function(){ if (typeof initLive === 'function') safeInit('initLive', initLive); });
   idleInit('initGc', function(){ if (typeof initGc === 'function') safeInit('initGc', initGc); });
   idleInit('initJrdb', function(){ if (typeof initJrdb === 'function') safeInit('initJrdb', initJrdb); });   // ★第114弾: ⚔️対戦表PDF(jradb)
+  idleInit('initDbfix', function(){ if (typeof initDbfix === 'function') safeInit('initDbfix', initDbfix); });   // ★第127弾: 🔧学習DB修正データ(距離・面)
+  idleInit('initGiBaba', function(){ if (typeof initGiBaba === 'function') safeInit('initGiBaba', initGiBaba); });   // ★第133弾: 🌤指数用馬場履歴
   idleInit('initTenki', function(){ if (typeof initTenki === 'function') safeInit('initTenki', initTenki); });
   idleInit('initTl', function(){ if (typeof initTl === 'function') safeInit('initTl', initTl); });   // 勝ちタイムのレベル(🎯/⚠️)
   idleInit('initPf', function(){ if (typeof initPf === 'function') safeInit('initPf', initPf); });   // ★第16弾: 展開学習(ペース適性×コーナー通過順バイアス)
