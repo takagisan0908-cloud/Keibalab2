@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-07 第156弾（UI大再編・タブ大統合・予測エンジン・学習ロジックは完全不変: ユーザー指示8項目+ask_user回答どおり。①タブバー6枚化=🤖③AI展開予測(初期)・📋出馬表(新)・🌤天気予報(新)・📒馬ノート・🗄データベース・🤖AI提案。トップ・①データ入力・②展開予想のタブと目次を廃止・⑤JRA映像と⑥重賞は目次のみ・振り返り・海外競馬・払戻DBの導線も削除。②廃止タブのsectionはlegacyStore(display:none)へ格納（id全温存・JS不変・旧live-shutubaはliveShutubaLegacyにid変更）。③移設: 一括取得(preCard)→AI提案タブ・レース情報→AI提案タブ(details#riFold最小表示)・バックテスト(btCard)→データベースタブ・AI予想の自己学習→データベースタブ・天気予報カード→天気予報タブ・コース特徴→天気予報タブ(競馬場セレクタcsVenueSel・当日開催場を自動選択)・ライブ3サブタブ(出馬表/オッズ/結果払戻+自動更新)→出馬表タブ。④新モジュールsrc/p93_shutuba.js: 📋出馬表タブ=日付選択→1日ごと折り込み→1レースごと折り込みで複数日同時閲覧(khl_sb_days_v1上限14日)・各レースにペース診断と保存済みAI印を添付・馬名タップでnetkeibaプロフィール+戦績+成績分析をポップアップ・未取得の日は一括取得(preDayFetch)で自動取得。⑤goTabエイリアス(GT_ALIAS)で旧タブIDへの遷移を新タブへ読替(top→sim・input→shutuba・kentai→aiprop・lookback→shutuba・overseas→sim)。⑥機能内部化: 重み自動補正wtOn常時ON・モデル情報/ファクター寄与(apToolsCard)はdisplay:noneで表示だけ消す・手動入力UI(URL直接取込・レース名検索)はlegacyStoreで非表示(コード残置)。⑦自動化統合: 一括取得(preOneRace)にうましる調教取込(重賞のみ・hsへ直接反映)と前走タイム評価(tlScanAll)を統合・AI提案の更新ボタンが最新オッズも取得・未発走を再予想ボタンが当日トラックバイアス取得(baTick)→再予想→展開学習(learnDayRun)と展開の学習更新(pfPaint)を一括実行。⑧旧タブへの案内文言10箇所修正。検証: node --test 121ファイル全部緑(新規mk156=71項目+既存8件更新)・p2_body手術のdiv収支0・重複idなし。変更: p2_body・p10_main・p35_nav・p38_live・p53_prefetch・p61_wtauto・p64_jockeyui・p23_course・p93_shutuba(新)・build.py・tests 9件）</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-07 第157弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1332,7 +1332,8 @@ html[data-theme="light"] .page-top-hero{
 </section>
 
 <section class="page" id="t-horse">
-  <details class="card fold" open>
+  <!-- ★第157弾: 初期状態を開いたまま→折りたたみ（ユーザー指示・中身と機能は不変） -->
+  <details class="card fold">
     <summary class="foldhead">
       <span class="fmark"></span>
       <h2>📄 レース後「短評ページ」を貼り付け → 対象馬へ登録</h2>
@@ -3145,7 +3146,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-07 第156弾（UI大再編・タブ大統合・予測エンジン・学習ロジックは完全不変: ユーザー指示8項目+ask_user回答どおり。①タブバー6枚化=🤖③AI展開予測(初期)・📋出馬表(新)・🌤天気予報(新)・📒馬ノート・🗄データベース・🤖AI提案。トップ・①データ入力・②展開予想のタブと目次を廃止・⑤JRA映像と⑥重賞は目次のみ・振り返り・海外競馬・払戻DBの導線も削除。②廃止タブのsectionはlegacyStore(display:none)へ格納（id全温存・JS不変・旧live-shutubaはliveShutubaLegacyにid変更）。③移設: 一括取得(preCard)→AI提案タブ・レース情報→AI提案タブ(details#riFold最小表示)・バックテスト(btCard)→データベースタブ・AI予想の自己学習→データベースタブ・天気予報カード→天気予報タブ・コース特徴→天気予報タブ(競馬場セレクタcsVenueSel・当日開催場を自動選択)・ライブ3サブタブ(出馬表/オッズ/結果払戻+自動更新)→出馬表タブ。④新モジュールsrc/p93_shutuba.js: 📋出馬表タブ=日付選択→1日ごと折り込み→1レースごと折り込みで複数日同時閲覧(khl_sb_days_v1上限14日)・各レースにペース診断と保存済みAI印を添付・馬名タップでnetkeibaプロフィール+戦績+成績分析をポップアップ・未取得の日は一括取得(preDayFetch)で自動取得。⑤goTabエイリアス(GT_ALIAS)で旧タブIDへの遷移を新タブへ読替(top→sim・input→shutuba・kentai→aiprop・lookback→shutuba・overseas→sim)。⑥機能内部化: 重み自動補正wtOn常時ON・モデル情報/ファクター寄与(apToolsCard)はdisplay:noneで表示だけ消す・手動入力UI(URL直接取込・レース名検索)はlegacyStoreで非表示(コード残置)。⑦自動化統合: 一括取得(preOneRace)にうましる調教取込(重賞のみ・hsへ直接反映)と前走タイム評価(tlScanAll)を統合・AI提案の更新ボタンが最新オッズも取得・未発走を再予想ボタンが当日トラックバイアス取得(baTick)→再予想→展開学習(learnDayRun)と展開の学習更新(pfPaint)を一括実行。⑧旧タブへの案内文言10箇所修正。検証: node --test 121ファイル全部緑(新規mk156=71項目+既存8件更新)・p2_body手術のdiv収支0・重複idなし。変更: p2_body・p10_main・p35_nav・p38_live・p53_prefetch・p61_wtauto・p64_jockeyui・p23_course・p93_shutuba(新)・build.py・tests 9件）</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-07 第157弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -6971,13 +6972,22 @@ function aiDepRec(rid){
   return out;
 }
 /* 2=解析済み(即表示) 1=出馬表アリ未解析 0=出馬表にAIセクション無し -1=出馬表キャッシュ無し */
+/* ★第157弾: 結果を rid×保存世代 でメモ。レースボタンの描画のたびに全レースぶん
+   nkCardGet（キャッシュ全体の読み直し＋解凍）をしてタブが重くなっていたのを止めます。
+   NK_CARD_GEN（p12・保存のたびに増える）が変わったら計算し直すので正確性は不変。 */
+var AI_DEP_ST_MEM = {};
 function aiDepState(rid){
   if (AI_DEP_CACHE[rid]) return 2;
+  var g = (typeof NK_CARD_GEN !== 'undefined') ? NK_CARD_GEN : -1;
+  var m = AI_DEP_ST_MEM[rid];
+  if (m && m.g === g) return m.st;
+  var st = -1;
   try {
     var h = (typeof nkCardGet === 'function') ? nkCardGet(String(rid)) : null;
-    if (!h) return -1;
-    return String(h).indexOf('DevelopImg01') >= 0 ? 1 : 0;
-  } catch(e){ return -1; }
+    st = h ? (String(h).indexOf('DevelopImg01') >= 0 ? 1 : 0) : -1;
+  } catch(e){ st = -1; }
+  AI_DEP_ST_MEM[rid] = { st: st, g: g };
+  return st;
 }
 /* HTML→解析→（表示中なら）描画。force再取得やワーム共通の入口。 */
 function aiDepUseText(rid, t){
@@ -8031,15 +8041,37 @@ function nkCardBytes(o){
   for (var k in h){ if (h[k] && h[k].s) n += k.length + String(h[k].s).length + 40; }
   return n * 2;   // JS文字列は UTF-16 なので ×2
 }
+/* ★第157弾: nkCardLs をメモ化。③AI展開予測タブを開くたびにレースボタンの状態判定
+   （aiDepState→nkCardGet）がキャッシュ保存済みJSON全体（〜2.5MB）を何度も
+   localStorage から読んで JSON.parse し直していたのがタブが重い主因でした。
+   書き込み（nkCardSave/nkCardClear）と storage イベントで必ず無効化するので
+   整合性は従来どおり。読み取りのみ最大1.5秒だけ使い回します。 */
+var NK_CARD_MEM = { at: 0, o: null };
+var NK_CARD_GEN = 0;   /* 保存世代カウンタ（状態キャッシュが「保存後に変わった」ことを検知する用） */
 function nkCardLs(){
   try {
+    var now = Date.now();
+    if (NK_CARD_MEM.o && (now - NK_CARD_MEM.at) < 1500) return NK_CARD_MEM.o;
     var o = JSON.parse(localStorage.getItem(NK_CARD_LS) || 'null');
     if (!o || typeof o !== 'object' || !o.h) o = { h: {} };
+    NK_CARD_MEM = { at: now, o: o };
     return o;
   } catch(e){ return { h: {} }; }
 }
+try {
+  if (typeof window !== 'undefined' && window.addEventListener){
+    window.addEventListener('storage', function(e){
+      if (!e || e.key === NK_CARD_LS) NK_CARD_MEM = { at: 0, o: null };
+    });
+  }
+} catch(e){}
 function nkCardSave(o){
-  try { localStorage.setItem(NK_CARD_LS, JSON.stringify(o)); return true; }
+  try {
+    localStorage.setItem(NK_CARD_LS, JSON.stringify(o));
+    NK_CARD_MEM = { at: Date.now(), o: o };   /* ★第157弾: 書いた内容をそのままメモへ */
+    NK_CARD_GEN++;
+    return true;
+  }
   catch(e){
     // 保存領域がいっぱい → 古いものから半分落として1回だけ retry
     try {
@@ -8088,6 +8120,18 @@ function nkCardGet(rid){
 }
 /* 保存済みかどうかだけ（呼び出し側が「キャッシュから復元」と表示するため） */
 function nkCardHas(rid){ return !!nkCardGet(rid); }
+/* ★第157弾: HTMLを展開（解凍）せずに「キャッシュから返せるか」だけ判定。
+   一覧の飾り（✓/⏳/📥など）のために全レースぶん nkCardGet すると重いので、
+   存在と期限だけ見る高速版。内容までは保証しない（取得は従来どおり nkCardGet） */
+function nkCardHasFast(rid){
+  rid = String(rid || '');
+  if (!rid) return false;
+  var it = null;
+  try { it = (nkCardLs().h || {})[rid]; } catch(e){ return false; }
+  if (!it || !it.s) return false;
+  if (!it.t || (Date.now() - it.t) > nkCardTtlMs(it)) return false;
+  return true;
+}
 /* ★第22弾: 出馬表HTMLの <title> からレース名を拾う
    （「チャレンジＣ(G3) 出馬表 | 2026年9月12日 阪神11R レース情報(JRA) - netkeiba」→「チャレンジＣ(G3)」）
    記事から参照したときに「何というレースの出馬表か」を出せるようにするため。 */
@@ -8115,6 +8159,7 @@ function nkCardSet(rid, html, d8){
 }
 function nkCardClear(){
   try { localStorage.removeItem(NK_CARD_LS); } catch(e){}
+  NK_CARD_MEM = { at: 0, o: null }; NK_CARD_GEN++;   /* ★第157弾 */
   NK_CARD_STAT.hit = NK_CARD_STAT.miss = NK_CARD_STAT.set = NK_CARD_STAT.drop = 0;
 }
 function nkCardCount(){
@@ -33279,7 +33324,11 @@ function preListClear(){
 }
 /* 出馬表HTMLが端末に入っているか（＝通信せず開けるか） */
 function preHasCard(rid){
-  try { return (typeof nkCardHas === 'function') && nkCardHas(rid); } catch(e){ return false; }
+  /* ★第157弾: 一覧描画用はHTMLを展開しない高速判定を優先（無ければ従来の nkCardHas） */
+  try {
+    if (typeof nkCardHasFast === 'function') return nkCardHasFast(rid);
+    return (typeof nkCardHas === 'function') && nkCardHas(rid);
+  } catch(e){ return false; }
 }
 /* 事前予想を保存しないレースでも、出馬表だけは必ず端末に入れておく */
 function preEnsureCard(rid, d8, force){
