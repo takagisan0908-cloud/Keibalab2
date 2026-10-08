@@ -1297,6 +1297,7 @@ html[data-theme="light"] .page-top-hero{
     <div class="cardhead">
       <h2>🏟 地方競馬（NAR）の出馬表・AI展開予測</h2>
       <span class="chip">netkeiba</span>
+      <span class="chip" id="narVer" style="background:#5b3a8f;color:#fff">v161</span>
       <span class="sp"></span>
       <span class="small muted">日付 → 開催場 → その場の全レース</span>
     </div>
@@ -48527,7 +48528,7 @@ var NAR_OBS = {"v":20261007,"races":12498,"horses":127839,"span":"2025年6月〜
    ========================================================= */
 
 var NAR_DAY_LS  = 'khl_nar_day_v1';
-var NAR_CARD_LS = 'khl_nar_card_v1';
+var NAR_CARD_LS = 'khl_nar_card_v2';   /* ★第161弾: v1→v2（修正前に取り込んだ「AIなし/オッズなし」ページのキャッシュを一斉無効化） */
 var NAR_BASE = 'https://nar.netkeiba.com';
 var NAR_CUR = { d8: '', jyo: '' };   /* 選択中（日付・場コード） */
 
@@ -48772,20 +48773,20 @@ function narFillRace(rid, body){
     } catch(e){}
     if (!cached) narCardSet(rid, html, pre);
     body.setAttribute('data-done', '1');
-    body.innerHTML = narRaceHtml(rid, html);
+    body.innerHTML = narRaceHtml(rid, html, cached ? '📦' : '🔄');
     narWireRace(body, rid, html);
   }).catch(function(e){
     body.innerHTML = '<div class="small" style="color:var(--err-ink)">⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e)) + '（もう一度開き直してください）</div>';
   });
 }
-function narRaceHtml(rid, html){
+function narRaceHtml(rid, html, srcMark){
   var meta = {};
   try { meta = (typeof nkParseRaceMeta === 'function') ? (nkParseRaceMeta(html) || {}) : {}; } catch(e){}
   var head = [meta.date || '', meta.place || '', (meta.rnum || '') + 'R', meta.name || '',
     (meta.surface || '') + (meta.dist || '') + 'm', meta.baba || '', meta.startTime || '', meta.wx ? '天気:' + meta.wx : ''].filter(Boolean).join(' ');
   var ai = null;
   try { ai = (typeof aiDepParse === 'function') ? aiDepParse(html) : null; } catch(e){ ai = null; }
-  var h = ['<div class="small muted" style="margin:0 0 6px">' + esc(head) + '</div>'];
+  var h = ['<div class="small muted" style="margin:0 0 6px">' + (srcMark ? '<b>' + srcMark + '</b> ' : '') + esc(head) + '</div>'];   /* ★第161弾: 📦=キャッシュ/🔄=新規取得（問い合わせ時の切り分け用） */
   /* AI展開予測（中央③と同じエンジン。観測DBの馬券内率は中央の数字なので地方では非表示） */
   h.push('<div id="narDep_' + esc(rid) + '_adStage"></div>');
   if (!ai) h.push('<div class="small muted" style="margin:2px 0 6px">※ このレースには netkeiba AI展開予測がまだ公開されていません（前日14時頃〜当日に順次公開。明日以降のレースは未公開が普通です）。開き直すと自動で再取得します。</div>');
