@@ -48544,7 +48544,16 @@ function narDaySet(d8, venues){
   o.days[d8] = { at: Date.now(), venues: venues };
   var ks = Object.keys(o.days).sort();
   while (ks.length > 40){ delete o.days[ks.shift()]; }   /* 40日ぶん保持 */
-  try { localStorage.setItem(NAR_DAY_LS, JSON.stringify(o)); } catch(e){}
+  try { localStorage.setItem(NAR_DAY_LS, JSON.stringify(o)); }
+  catch(e){
+    /* ★第163弾・補修: クォータ超過などで書けないときは古い日付から間引いて再試行
+       （それでもダメなら諦めるが NAR_CUR.venues のメモリ側で動くので場クリックは死なない） */
+    try {
+      var ks2 = Object.keys(o.days).sort();
+      while (ks2.length > 1){ delete o.days[ks2.shift()]; }
+      localStorage.setItem(NAR_DAY_LS, JSON.stringify(o));
+    } catch(e2){}
+  }
 }
 function narCardLs(){
   try { var o = JSON.parse(localStorage.getItem(NAR_CARD_LS) || 'null'); if (o && o.h) return o; } catch(e){}
@@ -48686,6 +48695,7 @@ function narLoadDay(d8){
   var cached = null;
   try { var c = narDayLs().days[d8]; if (c && c.venues && (Date.now() - c.at) < 3600 * 1000) cached = c.venues; } catch(e){}
   var done = function(venues){
+    NAR_CUR.venues = venues;   /* ★第163弾・補修: キャッシュが読めない環境でも場クリックが動くようにメモリにも保持 */
     narDaySet(d8, venues);
     narRenderVenues(d8, venues);
     narMsg(venues.length ? '' : 'この日は地方競馬の開催が見つかりませんでした');
@@ -48719,10 +48729,13 @@ function narRenderVenues(d8, venues){
 }
 function narShowVenue(d8, jyo){
   NAR_CUR.jyo = String(jyo);
-  var v = null;
-  try { var c = narDayLs().days[d8]; (c && c.venues || []).forEach(function(x){ if (x.jyo === String(jyo)) v = x; }); } catch(e){}
-  var box = $('narRacesBox'); if (!box || !v) return;
-  narRenderVenues(d8, (narDayLs().days[d8] || {}).venues || []);
+  var v = null, list = null;
+  try { var c = narDayLs().days[d8]; if (c && c.venues) list = c.venues; } catch(e){}
+  if (!list && NAR_CUR.d8 === String(d8) && NAR_CUR.venues) list = NAR_CUR.venues;   /* ★第163弾・補修: キャッシュ欠落時はメモリから（場は出るのにレース一覧が出ない無言no-opの解消） */
+  (list || []).forEach(function(x){ if (x.jyo === String(jyo)) v = x; });
+  var box = $('narRacesBox'); if (!box) return;
+  if (!v){ box.innerHTML = '<div class="small">⚠ レース一覧が見つかりません。日付を選び直して「🔍 開催を取得」を押してください。</div>'; return; }
+  narRenderVenues(d8, list || [v]);
   var h = ['<div class="small" style="font-weight:700;margin:4px 0 6px">🏟 ' + esc(v.name) + ' ' + esc((v.kai || '') + '回' + (v.nichi || '') + '日目') +
     (v.baba ? '・' + esc(v.baba) : '') + '　' + v.races.length + 'レース</div>'];
   v.races.forEach(function(r){
@@ -48939,6 +48952,10 @@ function narDepChk(){ if (typeof aiDepChk === 'function') aiDepChk(); }
 
 /* ---------- 初期化 ---------- */
 function narInit(){
+  /* ★第163弾・補修: 旧バージョンキーの孤立データを掃除（khl_nar_day_v1=第163弾でv2化・khl_nar_card_v1=第161弾でv2化。
+     localStorageがパンクすると日付キャッシュが書けず「場は出るのにレース一覧が出ない」症状になるため） */
+  try { localStorage.removeItem('khl_nar_day_v1'); } catch(e){}
+  try { localStorage.removeItem('khl_nar_card_v1'); } catch(e){}
   var btn = $('narBtn');
   if (btn) btn.addEventListener('click', function(){ narLoadDay(($('narDate') && $('narDate').value) || ''); });
   var td = $('narToday');
