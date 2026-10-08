@@ -1171,13 +1171,14 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-07 第157弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第160弾</b></div>
 </aside>
 
 <nav class="tabs">
   <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
   <button class="tab active" data-t="t-sim">🤖 ③ AI展開予測</button>
   <button class="tab" data-t="t-shutuba">📋 出馬表</button>
+  <button class="tab" data-t="t-nar">🏟 地方</button>
   <button class="tab" data-t="t-tenki">🌤 天気予報</button>
   <button class="tab" data-t="t-horse">📒 馬ノート<span class="tsub">(短評DB)</span></button>
   <button class="tab" data-t="t-database">🗄 データベース</button>
@@ -1290,6 +1291,29 @@ html[data-theme="light"] .page-top-hero{
     </div>
   </div>
 </section>
+<!-- ================= 🏟 地方競馬（★第159弾: netkeiba NAR・日付→開催場→全レース+AI展開予測） ================= -->
+<section class="page" id="t-nar">
+  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
+    <div class="cardhead">
+      <h2>🏟 地方競馬（NAR）の出馬表・AI展開予測</h2>
+      <span class="chip">netkeiba</span>
+      <span class="sp"></span>
+      <span class="small muted">日付 → 開催場 → その場の全レース</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
+      <label class="small" style="display:inline-flex;align-items:center;gap:4px">📅
+        <input type="date" id="narDate" style="font-family:inherit;font-size:.9rem;padding:3px 6px">
+      </label>
+      <button type="button" class="btn primary" id="narBtn">🔍 開催を取得</button>
+      <button type="button" class="btn ghost" id="narToday">今日</button>
+      <span class="small muted" id="narMsg"></span>
+    </div>
+    <div class="small muted" style="margin:0 0 6px">地方は1日に多くの場で開催されるため、日付を取得したあと<b>開催場の候補から選ぶ</b>と、その場の全レース（1R〜）が折り込みで並びます。各レースの折り込みを開くと<b>出馬表</b>と <b>netkeiba AI展開予測</b>（中央の③と同じ走路図・スタート後/3角/4角・出遅れ率/騎手傾向の考慮）が表示されます。馬名をタップするとその馬のプロフィール（netkeiba・戦績と成績分析）が出ます。取得した出馬表は端末内にキャッシュします（6時間）。</div>
+    <div id="narVenueBox" style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px"></div>
+    <div id="narRacesBox"><div class="small muted">上で日付を選んで「🔍 開催を取得」を押してください（門別・盛岡・水沢・浦和・船橋・大井・川崎・金沢・笠松・名古屋・園田・姫路・高知・佐賀・帯広ば）。</div></div>
+  </div>
+</section>
+
 <!-- ================= 🌤 天気予報（★第156弾: 新タブ。①の☀️天気予報カードを移設+コース特徴を場選択式へ） ================= -->
 <section class="page" id="t-tenki">
     <!-- ★第115弾: 📋テキスト貼り付け取込カードは削除（ユーザー指示・p7_import.jsのJSと保存データは残存・pasteFoldOpenはnullガード済み）。
@@ -3146,7 +3170,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-07 第157弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第160弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -6254,7 +6278,11 @@ if (typeof AI_DEP_CSS_RAW !== "undefined") AI_DEP_CSS_RAW += ".adw .Waku1{backgr
    位置・数値・ラベルを表示する。AIセクションは「レース前日14時頃公開」なので、
    それより前のキャッシュに含まれないときは再取得を案内する。
    ===================================================================== */
-var AI_DEP = { rid: '', html: '', data: null, corner: 'C1', oso: false, kishi: false, loading: false };
+var AI_DEP = { rid: '', html: '', data: null, corner: 'C1', oso: false, kishi: false, loading: false, boxId: '' };
+/* ★第159弾: 描画先切り替え。AI_DEP.boxId が空なら中央③（#adStage）へ、
+   'narDep_xx' 等が入っていれば地方タブのコンテナへ描画します（idは boxId + '_adStage' 等に接頭）。
+   netkeiba地方(NAR)の出馬表にも同じAI展開予測セクションがあるため③の描画エンジンをそのまま再利用。 */
+function adElId(base){ return (AI_DEP.boxId ? AI_DEP.boxId + '_' : '') + base; }
 /* ★第41弾: 一括取得した日は「レースボタン」で即切替にする。
    解析済みのデータはメモリキャッシュ（AI_DEP_CACHE）に保持し、二度目のクリックは通信・解析ゼロで描画。
    未クリックのレースはタブを開いた後バックグラウンドで順に解析（1件ずつ setTimeout でUIを止めない）しておく。 */
@@ -6815,7 +6843,7 @@ function aiDepPositions(){
   if (!d) return;
   var ck = AI_DEP.corner, mode = aiDepModeKey();
   var V = (d.variants[mode] && d.variants[mode][ck]) || {};
-  var pane = (typeof $ === 'function') ? $('adTrack') : null;
+  var pane = (typeof $ === 'function') ? $(adElId('adTrack')) : null;
   if (pane && pane.querySelectorAll){
     var marks = pane.querySelectorAll('span.HorseIcon');
     for (var q = 0; q < marks.length; q++){
@@ -6853,15 +6881,15 @@ function aiDepPositions(){
       }, 1500);
     } catch(e){}
   }
-  var tb = (typeof $ === 'function') ? $('adTabs') : null;
+  var tb = (typeof $ === 'function') ? $(adElId('adTabs')) : null;
   if (tb && tb.querySelectorAll){
     var lis = tb.querySelectorAll('li');
     var idx = (ck === 'C2' ? 1 : ck === 'C3' ? 2 : 0);
     for (var q = 0; q < lis.length; q++){ if (lis[q].className != null) lis[q].className = String(lis[q].className).replace(/\s*Active/g, '') + (q === idx ? ' Active' : ''); }
   }
-  var al = $('adActiveLine'); if (al && al.style) al.style.width = aiDepAdv(ck);
-  var ab = $('adActiveBg'); if (ab && ab.style) ab.style.left = 'calc(100% / 6 + ' + (ck === 'C2' ? '33.3' : ck === 'C3' ? '67' : '0') + '% - 9px)';
-  var cap = (typeof $ === 'function') ? $('adCap') : null;
+  var al = $(adElId('adActiveLine')); if (al && al.style) al.style.width = aiDepAdv(ck);
+  var ab = $(adElId('adActiveBg')); if (ab && ab.style) ab.style.left = 'calc(100% / 6 + ' + (ck === 'C2' ? '33.3' : ck === 'C3' ? '67' : '0') + '% - 9px)';
+  var cap = (typeof $ === 'function') ? $(adElId('adCap')) : null;
   if (cap){
     var lab = { C1: 'スタート後', C2: '3コーナー', C3: '4コーナー' }[ck];
     var md = mode === 'none' ? '' : (mode === 'oso' ? '／出遅れ率考慮' : mode === 'kishi' ? '／騎手傾向考慮' : '／出遅れ率＋騎手傾向考慮');
@@ -6871,7 +6899,7 @@ function aiDepPositions(){
 var AI_DEPModeSafe = aiDepPositions;   /* 後方互換（実体は aiDepPositions） */
 function aiDepModeKey(){ return (AI_DEP.oso ? (AI_DEP.kishi ? 'both' : 'oso') : (AI_DEP.kishi ? 'kishi' : 'none')); }
 function aiDepRender(){
-  var box = (typeof $ === 'function') ? $('adStage') : null;
+  var box = (typeof $ === 'function') ? $(adElId('adStage')) : null;
   if (!box) return;
   var d = AI_DEP.data;
   if (!d){ box.innerHTML = ''; return; }
@@ -6891,35 +6919,39 @@ function aiDepRender(){
        Txt02/Txt03 の別クラスを付けると样式なしで左上に固まり「ずれ」になっていた（修正済） */
     bias = '<div class="DevelopBiasTxt">' + d.biasTxt.map(function(t){ return '<span class="Txt01">' + aiDepEsc(t) + '</span>'; }).join('') + '</div>';
   }
+  var fnTab = AI_DEP.boxId ? 'narDepTab' : 'aiDepTab';   /* ★第159弾: 地方タブ用の配線 */
+  var fnChk = AI_DEP.boxId ? 'narDepChk' : 'aiDepChk';
   var tabs = '<ul class="PositionTab">' + [['C1', 'スタート後'], ['C2', '3コーナー'], ['C3', '4コーナー']].map(function(x, i){
-    return '<li' + (AI_DEP.corner === x[0] ? ' class="Active"' : '') + '><a onclick="aiDepTab(\'' + x[0] + '\')"><span class="Btn">' + x[1] + '</span><span class="Pointer"></span></a></li>';
+    return '<li' + (AI_DEP.corner === x[0] ? ' class="Active"' : '') + '><a onclick="' + fnTab + '(\'' + x[0] + '\')"><span class="Btn">' + x[1] + '</span><span class="Pointer"></span></a></li>';
   }).join('') + '</ul>' +
-  '<span class="PositionBtn_ActiveBg" id="adActiveBg" style="left:calc(100% / 6 - 9px)"></span>' +
-  '<span class="ActiveLine" id="adActiveLine" style="width:' + aiDepAdv(AI_DEP.corner) + '"></span>';
+  '<span class="PositionBtn_ActiveBg" id="' + adElId('adActiveBg') + '" style="left:calc(100% / 6 - 9px)"></span>' +
+  '<span class="ActiveLine" id="' + adElId('adActiveLine') + '" style="width:' + aiDepAdv(AI_DEP.corner) + '"></span>';
   box.innerHTML = aiDepCssMount() +
     '<div class="adCtl">' +
-      '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="adChkOso"' + (AI_DEP.oso ? ' checked' : '') + ' onchange="aiDepChk()"> 出遅れ率考慮</label>' +
-      '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="adChkKishi"' + (AI_DEP.kishi ? ' checked' : '') + ' onchange="aiDepChk()"> 騎手傾向考慮</label>' +
-      '<span class="small muted" id="adCap"></span>' +
+      '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="' + adElId('adChkOso') + '"' + (AI_DEP.oso ? ' checked' : '') + ' onchange="' + fnChk + '()"> 出遅れ率考慮</label>' +
+      '<label class="small" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="' + adElId('adChkKishi') + '"' + (AI_DEP.kishi ? ' checked' : '') + ' onchange="' + fnChk + '()"> 騎手傾向考慮</label>' +
+      '<span class="small muted" id="' + adElId('adCap') + '"></span>' +
     '</div>' +
     aiDepInfoHtml(d) +
     '<div class="AiTenkaiBlock02' + (d.surface ? ' ' + d.surface : '') + '">' +
       '<div class="DevelopImgArea">' +
-        '<div class="PositionBtn_Group" id="adTabs">' + tabs + '</div>' +
-        '<div class="' + paneCls + '" id="adTrack">' + bias + hs + '</div>' +
+        '<div class="PositionBtn_Group" id="' + adElId('adTabs') + '">' + tabs + '</div>' +
+        '<div class="' + paneCls + '" id="' + adElId('adTrack') + '">' + bias + hs + '</div>' +
       '</div>' +
     '</div>' +
     aiDepHeatHtml(d) + aiDepPickupHtml(d) +   /* ★第124弾: AI推奨馬の直近実績はユーザー指示で非表示に */
-    (typeof adKaisetuHtml === 'function' ? adKaisetuHtml(d, AI_DEP.rid) : '') +
-    (typeof aiSumHtml === 'function' ? aiSumHtml(AI_DEP.rid) : '');
-  var cap = $('adCap');
+    /* ★第159弾: 地方(NAR)表示のときはJRA観測DBベースの展開解説・AI総合スコアを出さない
+       （観測は中央競馬の数字なので地方には当てはまらない。誤解を避けるため省略） */
+    (!AI_DEP.boxId && typeof adKaisetuHtml === 'function' ? adKaisetuHtml(d, AI_DEP.rid) : '') +
+    (!AI_DEP.boxId && typeof aiSumHtml === 'function' ? aiSumHtml(AI_DEP.rid) : '');
+  var cap = $(adElId('adCap'));
   if (cap){ var lab = { C1: 'スタート後', C2: '3コーナー', C3: '4コーナー' }[AI_DEP.corner];
     cap.innerHTML = aiDepEsc('📍 ' + lab + '・隊列は左=先頭（netkeiba保存HTMLより・通信ゼロ）'); }
-  try { if (typeof aiSumOnRender === 'function') aiSumOnRender(AI_DEP.rid); } catch(e){}
+  try { if (!AI_DEP.boxId && typeof aiSumOnRender === 'function') aiSumOnRender(AI_DEP.rid); } catch(e){}
 }
 function aiDepTab(c){ if (c !== 'C1' && c !== 'C2' && c !== 'C3') return; AI_DEP.corner = c; aiDepPositions(); }
 function aiDepChk(){
-  var o = (typeof $ === 'function') ? $('adChkOso') : null, k = (typeof $ === 'function') ? $('adChkKishi') : null;
+  var o = (typeof $ === 'function') ? $(adElId('adChkOso')) : null, k = (typeof $ === 'function') ? $(adElId('adChkKishi')) : null;
   AI_DEP.oso = !!(o && o.checked); AI_DEP.kishi = !!(k && k.checked);
   aiDepRender();
 }
@@ -7114,6 +7146,7 @@ function aiDepLoad(force){
 }
 /* ③タブを開いたときに呼ばれる（p10_main の goTab から） */
 function aiDepEnter(){
+  AI_DEP.boxId = '';   /* ★第159弾: 中央③へ戻ったら描画先を必ずadStageへ戻す */
   var days = aiDepDays();
   if (!AI_DEP_D8 || (days.length && days.indexOf(AI_DEP_D8) < 0)){
     var want = '';
@@ -7774,8 +7807,12 @@ function adKaisetuHtml(d, rid){
      ペース・距離帯・4C番手の観測差分で補正して値を分散） ③AI予測の動きに予測番手（ｽﾀｰﾄ-3角-4角）を併記 */
   var markJpn = { UP: '加速', DN: '減速', '--': '—' };
   var AD_B5_JPN = { '1': '先頭団', '2': '好位', '3': '中団', '4': '後方', '5': '最後方' };  /* ★第155弾 */
-  var trs = rows.map(function(r){
-    var e = adKaiEstOf(r, pace, distB);
+  /* ★第158弾: 表は馬券内率（観測×隊列推定）の高い順に並べ替え（ユーザー指示）。
+     候補選定（◎○△▲✂）は従来どおり人気順の rows で行うので文面は不変・表示だけ並べ替えます */
+  var disp = rows.map(function(r){ return { r: r, e: adKaiEstOf(r, pace, distB) }; });
+  disp.sort(function(a, b){ return (b.e.rate - a.e.rate) || ((a.r.popN || 99) - (b.r.popN || 99)) || (a.r.c3 - b.r.c3); });
+  var trs = disp.map(function(x){
+    var r = x.r, e = x.e;
     var badge = r === axis ? '<span class="kaiB kaiJ">◎</span>' :
       tai.indexOf(r) >= 0 ? '<span class="kaiB kaiO">○</span>' :
       jiten.indexOf(r) >= 0 ? '<span class="kaiB kaiT">△</span>' :
@@ -7786,10 +7823,19 @@ function adKaisetuHtml(d, rid){
     var pc = e.rate >= 0.4 ? '#3f8f5f' : e.rate >= 0.2 ? '#2f7fc4' : e.rate >= 0.1 ? '#c8862f' : '#b0876a';
     var lv = parseInt(r.markLv, 10) || 0;
     var mk = r.mark === 'UP' ? ('伸び＋' + (lv >= 2 ? '＋' : '') + (lv >= 3 ? '＋' : '')) : markJpn[r.mark];
-    var rks = Math.round(r.c1) + '-' + Math.round(r.c2) + '-' + Math.round(r.c3);
+    /* ★第159弾: 動きの予測番手数字（1-1-2等）は非表示に（ユーザー指示）。
+       前前前のバッジ＋▲▼（第158弾）で十分読み取れるように。 */
+    var rks = '';   /* ★第159弾: 動きの予測番手数字（1-1-2等）は非表示（ユーザー指示）。前中後バッジ＋▲▼で十分 */
+    /* ★第158弾: 3角→4角の上下を▲▼で見える化。AIの予測位置は「下がる」馬も実際に多い
+       （全期間観測102,961頭で3角→4角の下げ予測25.5%・ｽﾀｰﾄ→3角32.1%）が、
+       数字だけでは前後の判定が一目で分からなかった。netkeibaに直線の減速マークは
+       存在しないため、失速・後退はこの番手の下がりで表現される */
+    var d23 = r.c3 - r.c2;
+    var dir = d23 > 0.5 ? '<span class="kaiDn">▼' + Math.max(1, Math.round(d23)) + '</span>'
+      : (d23 < -0.5 ? '<span class="kaiUp">▲' + Math.max(1, Math.round(-d23)) + '</span>' : '');
     return '<tr class="' + cls + '"><td>' + r.no + '</td><td class="kaiNm">' + adKaiEsc(r.name) + '</td>' +
       '<td>' + (r.popN != null ? r.popN : '—') + '</td><td>' + (r.odds ? r.odds : '—') + '</td>' +
-      '<td><span class="kaiP kaiP' + r.b3 + '">' + adKaiPathJpn(r.path) + '</span><span class="kaiN"> ' + rks + '</span></td>' +
+      '<td><span class="kaiP kaiP' + r.b3 + '">' + adKaiPathJpn(r.path) + '</span><span class="kaiN"> ' + rks + '</span>' + dir + '</td>' +
       '<td>' + (Math.round(r.c3 * 10) / 10) + '<span class="kaiN"> ' + (AD_B5_JPN[r.b5] || '') + '</span></td><td>' + mk + '</td>' +
       '<td><span class="kaiBar"><i style="width:' + pw + '%;background:' + pc + '"></i><em>' + adKaiPct(e.rate) + '%</em></span><span class="kaiN">n=' + e.n + '</span></td>' +
       '<td>' + badge + '</td></tr>';
@@ -7811,9 +7857,10 @@ function adKaisetuHtml(d, rid){
   var userN = adObsUserRaces();
   var src = '出典: 観測DB（AI展開予測の位置どり×実際の着順を突合）' + AD_OBS.races + 'レース／' + AD_OBS.horses + '頭（' + AD_OBS.span + '）' +
     (userN ? '＋この端末で追加取得した' + userN + 'レース相当' : '') + '。評価は参考表示でAI印・総合点には影響しません。◎でも馬券内は約55%・▲穴は約12%です。「根拠が数字で見える」材料として、時計・馬場・相手関係と併用してください。' +
-    '<br>列の意味: 4C番手＝4コーナー時点の予測通過位置（小数は同位置馬の平均）／AI予測の動きの数字＝ｽﾀｰﾄ後-3角-4角の予測番手／' +
+    '<br>列の意味: 4C番手＝4コーナー時点の予測通過位置（小数は同位置馬の平均）／AI予測の動き＝前中後の隊列と3角→4角の上下（▲上前・▼後退）／' +
     '直線伸び＝netkeiba AI「直線での伸び方3段階」（＋＝少し伸びる・＋＋＝伸びる・＋＋＋＝大きく伸びる。netkeibaに減速マークは存在しない）／' +
-    '馬券内率＝人気6帯×4C5分割(先頭団〜最後方)の30セル観測値を基地に4C番手で補間した推定値（n=は基地セルの件数・第155弾・全期間観測で旧12セル+多段補正より高精度を確認済み）。4C番手の横の小字が5分割帯です。';
+    '馬券内率＝人気6帯×4C5分割(先頭団〜最後方)の30セル観測値を基地に4C番手で補間した推定値（n=は基地セルの件数・第155弾・全期間観測で旧12セル+多段補正より高精度を確認済み）。4C番手の横の小字が5分割帯です。' +
+    '<br>★第158弾: 表は<b>馬券内率の高い順</b>に並べています（同率は人気順）。<b>▲は3角→4角で上前・▼は後退</b>（▼の数字＝後退した番手数。全期間観測で4分の1の馬が後退予測）。netkeiba AIに直線の減速マークは存在しないため、失速・後退はこの番手の下がりで表現しています。';
   return adKaiCss() +
     '<div class="adKai" id="adKaisetu">' +
     '<div class="adKaiH">📝 展開解説 <small>AI予測の動き × 観測' + AD_OBS.races + 'レースの統計から自動生成</small></div>' +
@@ -7836,6 +7883,8 @@ function adKaiCss(){
     '.adKai .adKaiBody p{margin:6px 0}' +
     '.adKai .u{text-decoration:underline;text-decoration-color:rgba(224,145,47,.6);text-underline-offset:3px}' +
     '.adKai .adKaiScr{overflow-x:auto;-webkit-overflow-scrolling:touch}' +
+    '.adKai .kaiUp{color:#1c6e42;font-weight:800;font-size:.7rem;white-space:nowrap}' +
+    '.adKai .kaiDn{color:#b3261e;font-weight:800;font-size:.7rem;white-space:nowrap}' +
     '.adKai table.kaiTbl{border-collapse:collapse;width:100%;font-size:.78rem;margin:4px 0 8px}' +
     '.adKai table.kaiTbl th{background:#f6f1e6;color:#6b6353;font-weight:600;padding:4px 5px;border-bottom:2px solid #e6dcc8;white-space:nowrap;font-size:.68rem}' +
     '.adKai table.kaiTbl td{padding:3px 5px;border-bottom:1px solid #f0ebdf;text-align:center;white-space:nowrap}' +
@@ -22922,6 +22971,7 @@ var NAV_ITEMS = [
   /* ★第156弾: 目次もタブ大統合に合わせて整理（トップ・①・②・振り返り・海外・払戻DBは削除、⑤⑥は目次のみ） */
   { t:'t-sim',      icon:'🤖', name:'AI展開予測',           sub:'スタート後/3角/4角の位置マップ＋ポジション別複勝率（保存済み出馬表から・通信ゼロ）', cur:true },
   { t:'t-shutuba',  icon:'📋', name:'出馬表',                sub:'日付選択で全レース折り込み表示・展開予想（ペース診断）添付・馬名タップでプロフィール・オッズ・結果払戻' },
+  { t:'t-nar',      icon:'🏟', name:'地方競馬（NAR）',     sub:'日付→開催場→全レースの出馬表＋netkeiba AI展開予測（中央の③と同じ走路図）' },   /* ★第159弾 */
   { t:'t-tenki',    icon:'🌤', name:'天気予報',              sub:'当日開催場の1時間ごと天気＋開催場のコース特徴（JRA公式）' },
   { t:'t-aiprop',   icon:'🤖', name:'AI提案',                sub:'その日の全レースの印・一括取得・再予想・レース情報・妙味馬比較' },
   { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・バックテスト・AI予想の自己学習' },
@@ -48455,6 +48505,349 @@ function initGiBaba(){
   });
 }
 
+/* ★第160弾 自動生成ファイル（手書き禁止）: results/nar_genobs.js がNAR観測DBから生成。
+   クロール進行ごとに再生成→build。セル構造は中央AD_OBS(p66)と互換（値=[n,馬券内数]）。
+   元データ: /home/user/nar_data/obs_nar_v1.jsonl.gz（repo外・rid単位・再開可能クローラ） */
+var NAR_OBS = {"v":20261007,"races":12498,"horses":127839,"span":"2025年6月〜2026年10月・NAR平地（AI予測あり）","pop":{"23|前":[14503,7855],"1|前":[10244,8022],"46|中":[17112,4787],"7|中":[15637,1691],"7|後":[33537,2221],"46|後":[9982,2490],"46|前":[10119,2901],"23|中":[8128,4265],"1|中":[1877,1389],"23|後":[2275,1124],"7|前":[4089,504],"1|後":[336,231]},"pop5":{"2|1":[5906,3587],"3|1":[3675,1730],"1|2":[2649,1991],"46|2":[10300,2942],"46|3":[10209,2874],"79|3":[7401,951],"79|4":[10653,1067],"46|4":[7867,2048],"a|5":[9995,296],"79|5":[9943,823],"1|1":[8499,6711],"79|2":[4292,600],"3|3":[2446,1152],"46|1":[4966,1421],"3|2":[4575,2105],"1|3":[879,641],"46|5":[3871,893],"2|3":[1661,988],"3|4":[1284,589],"79|1":[1320,199],"a|3":[2289,115],"1|5":[93,60],"3|5":[479,212],"2|2":[3861,2294],"a|4":[5947,278],"1|4":[337,239],"2|4":[788,463],"a|2":[1159,68],"2|5":[231,124],"a|1":[264,19]},"b5":{"1":[24630,13667],"2":[26836,10000],"3":[24885,6721],"4":[26876,4684],"5":[24612,2408]},"pth":{"前前前":[25885,13752],"前中前":[3146,1551],"中前中":[2738,723],"中中中":[19167,5441],"後後後":[32711,3547],"中前前":[6417,2563],"前後中":[590,233],"後中後":[3230,397],"前中中":[6103,2272],"中中前":[2210,957],"後後中":[2161,537],"中中後":[2275,423],"中後後":[6573,1358],"前前中":[2041,673],"中後中":[3208,938],"後前前":[839,292],"後中中":[5986,1181],"前中後":[364,104],"後前中":[760,134],"前後後":[700,175],"後中前":[298,103],"後前後":[106,19],"前前後":[70,19],"前後前":[64,25],"中前後":[101,24],"後後前":[27,11],"中後前":[69,28]},"mrk":{"前|UP":[35857,18407],"中|UP":[38790,11568],"中|--":[3964,564],"後|UP":[32549,5096],"後|--":[13581,970],"前|--":[3098,875]}};
+
+/* =========================================================
+   p94_nar.js — ★第159弾: 🏟 地方競馬タブ（netkeiba NAR・nar.netkeiba.com）
+   ---------------------------------------------------------
+   流れ: 📅日付選択 → 開催場の候補ボタン → 場の全レース（1R〜折り込み） →
+         各レースの出馬表 + netkeiba「AI展開予測」（中央③と同じ描画エンジンを再利用）。
+   データソース（2026-10-07 実ページで構造確認済み・すべて静的HTML=JS不要）:
+     日付→全場のレース一覧: https://nar.netkeiba.com/top/race_list_sub.html?kaisai_date=YYYYMMDD
+       <dl class="RaceList_DataList"> が場ごと / <li class="RaceList_DataItem"> がレースごと
+     出馬表: https://nar.netkeiba.com/race/shutuba.html?race_id=YYYYxxnnnnR（12桁）
+       ・RaceTable01 ShutubaTable（枠/馬番/馬名/性齢/斤量/騎手/厩舎/馬体重/オッズ/人気）
+       ・AI展開予測セクション（DevelopImg01 + HorseIcon + PositionTab）＝中央と同一構造
+         → p65 aiDepParse / aiDepRender をそのまま使用（AI_DEP.boxId で描画先を切り替え）
+   注意: 展開解説の観測DB（馬券内率など）は中央競馬の統計なので地方では出しません。
+   予測エンジン・学習DB・中央タブの状態には一切書き込みません（読み取り専用）。
+   ========================================================= */
+
+var NAR_DAY_LS  = 'khl_nar_day_v1';
+var NAR_CARD_LS = 'khl_nar_card_v1';
+var NAR_BASE = 'https://nar.netkeiba.com';
+var NAR_CUR = { d8: '', jyo: '' };   /* 選択中（日付・場コード） */
+
+function narMsg(m){ var el = $('narMsg'); if (el) el.innerHTML = m || ''; }
+
+/* ---------- 保存（日付一覧・出馬表キャッシュ） ---------- */
+function narDayLs(){
+  try { var o = JSON.parse(localStorage.getItem(NAR_DAY_LS) || 'null'); if (o && o.days) return o; } catch(e){}
+  return { days: {} };
+}
+function narDaySet(d8, venues){
+  var o = narDayLs();
+  o.days[d8] = { at: Date.now(), venues: venues };
+  var ks = Object.keys(o.days).sort();
+  while (ks.length > 40){ delete o.days[ks.shift()]; }   /* 40日ぶん保持 */
+  try { localStorage.setItem(NAR_DAY_LS, JSON.stringify(o)); } catch(e){}
+}
+function narCardLs(){
+  try { var o = JSON.parse(localStorage.getItem(NAR_CARD_LS) || 'null'); if (o && o.h) return o; } catch(e){}
+  return { h: {} };
+}
+function narCardSave(o){ try { localStorage.setItem(NAR_CARD_LS, JSON.stringify(o)); } catch(e){
+  try { var ks = Object.keys(o.h || {}).sort(function(a, b){ return (o.h[a].t || 0) - (o.h[b].t || 0); });
+    for (var i = 0; i < Math.ceil(ks.length / 2); i++) delete o.h[ks[i]];
+    localStorage.setItem(NAR_CARD_LS, JSON.stringify(o));
+  } catch(e2){}
+} }
+function narCardSet(rid, html){
+  rid = String(rid || '');
+  if (!rid || !html || html.length < 300) return false;
+  var o = narCardLs();
+  o.h[rid] = { t: Date.now(), s: (typeof cmpPack === 'function') ? cmpPack(html) : html };
+  var ks = Object.keys(o.h);
+  while (ks.length > 60){ ks.sort(function(a, b){ return (o.h[a].t || 0) - (o.h[b].t || 0); }); delete o.h[ks.shift()]; }
+  narCardSave(o);
+  return true;
+}
+function narCardGet(rid){
+  rid = String(rid || '');
+  var it = null;
+  try { it = (narCardLs().h || {})[rid]; } catch(e){ return null; }
+  if (!it || !it.s) return null;
+  var ttl = 6 * 3600 * 1000;   /* 当日も過去も6時間（地方は夕方〜夜間発売が多いので短め） */
+  if (!it.t || (Date.now() - it.t) > ttl) return null;
+  try {
+    var html = (typeof cmpUnpack === 'function') ? cmpUnpack(it.s) : it.s;
+    return (html && html.length >= 300) ? html : null;
+  } catch(e){ return null; }
+}
+
+/* ---------- 取得 ---------- */
+function narGet(url){
+  if (typeof stFetchHtml === 'function') return stFetchHtml(url);
+  if (typeof histFetchHtml === 'function') return histFetchHtml(url);
+  return Promise.reject(new Error('取得機能が読み込まれていません（URL取込の通信設定をご確認ください）'));
+}
+function narDayUrl(d8){ return NAR_BASE + '/top/race_list_sub.html?kaisai_date=' + d8; }
+function narRaceUrl(rid){ return NAR_BASE + '/race/shutuba.html?race_id=' + rid; }
+
+/* ---------- パーサ: 日付→場ごとのレース一覧 ---------- */
+function narTxt(seg){
+  return String(seg == null ? '' : seg).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+}
+function narParseDay(html){
+  var out = [];
+  var blocks = String(html || '').split(/<dl class="RaceList_DataList"/).slice(1);
+  blocks.forEach(function(b){
+    var jm = b.match(/jyo_cd=(\d+)/);
+    if (!jm) return;
+    var tm = b.match(/<small>(\d+)回<\/small>\s*([^<]+?)\s*<small>(\d+)日目/);
+    var name = tm ? tm[2].trim() : ('場' + jm[1]);
+    var da = (b.match(/<span class="Da">ダ：([^<]*)<\/span>/) || [])[1] || '';
+    var sh = (b.match(/<span class="Shiba">芝：([^<]*)<\/span>/) || [])[1] || '';
+    var races = [];
+    var lis = b.split(/<li class="RaceList_DataItem/).slice(1);
+    lis.forEach(function(li){
+      var rm = li.match(/shutuba\.html\?race_id=(\d+)/);
+      if (!rm) return;
+      var num = (li.match(/<div class="Race_Num">[\s\S]*?(\d+)R/) || [])[1] || '';
+      var nm = narTxt((li.match(/<span class="ItemTitle">([\s\S]*?)<\/span>/) || [])[1]);
+      var tm2 = (li.match(/<div class="RaceData">[\s\S]*?<span>(\d\d:\d\d)<\/span>/) || [])[1] || '';
+      var dm = li.match(/<span class="(Dart|Turf)">((ダ|芝)(\d+)m)<\/span>/);
+      var heads = (li.match(/(\d+)頭/) || [])[1] || '';
+      races.push({
+        rid: rm[1], rnum: num, name: nm, time: tm2,
+        dist: dm ? dm[4] : '', surface: dm ? (dm[3] === 'ダ' ? 'ダ' : '芝') : '', heads: heads
+      });
+    });
+    if (races.length) out.push({ jyo: jm[1], name: name, kai: tm ? tm[1] : '', nichi: tm ? tm[3] : '',
+      baba: (da ? 'ダ:' + da.trim() : '') + (sh && sh.trim() !== '−' ? (da ? ' ' : '') + '芝:' + sh.trim() : ''), races: races });
+  });
+  return out;
+}
+
+/* ---------- パーサ: 出馬表テーブル ---------- */
+function narParseShutuba(html){
+  var out = [];
+  var m = String(html || '').match(/<table class="RaceTable01 ShutubaTable">[\s\S]*?<\/table>/);
+  if (!m) return out;
+  var trs = m[0].split(/<tr class="HorseList"/).slice(1);
+  trs.forEach(function(tr){
+    var seg = tr.split('</tr>')[0];
+    var frame = (seg.match(/class="Waku\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
+    var no = (seg.match(/class="Umaban\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
+    var hm = seg.match(/horse\/(\d+)"[^>]*title="([^"]+)"/);
+    if (!no && !hm) return;
+    var sexAge = narTxt((seg.match(/class="Age">([^<]+)/) || [])[1]);
+    var wt = (seg.match(/<td class="Txt_C">\s*([\d.]+)\s*<\/td>/) || [])[1] || '';
+    var jk = narTxt((seg.match(/class="Jockey">\s*<a[^>]*title="([^"]+)"/) || [])[1]);
+    var odds = (seg.match(/class="Odds_Ninki">([\d.]+)/) || [])[1] || '';
+    var pop = (seg.match(/BgBlue02">\s*<span>(\d+)<\/span>/) || [])[1] || '';
+    out.push({ frame: frame, no: no || (out.length + 1), name: hm ? hm[2] : '', nk: hm ? hm[1] : '',
+      sexAge: sexAge, weight: wt, jockey: jk, odds: odds, pop: pop });
+  });
+  return out;
+}
+
+/* ---------- UI: 日付→場候補 ---------- */
+function narD8Of(v){ return String(v || '').replace(/[^0-9]/g, ''); }
+function narLoadDay(d8){
+  d8 = narD8Of(d8);
+  if (!/^\d{8}$/.test(d8)){ narMsg('⚠ 日付を選んでください'); return; }
+  NAR_CUR.d8 = d8; NAR_CUR.jyo = '';
+  var cached = null;
+  try { var c = narDayLs().days[d8]; if (c && c.venues && (Date.now() - c.at) < 3600 * 1000) cached = c.venues; } catch(e){}
+  var done = function(venues){
+    narDaySet(d8, venues);
+    narRenderVenues(d8, venues);
+    narMsg(venues.length ? '' : 'この日は地方競馬の開催が見つかりませんでした');
+  };
+  if (cached){ done(cached); return; }
+  narMsg('📥 ' + d8.slice(0,4) + '/' + d8.slice(4,6) + '/' + d8.slice(6,8) + ' の地方開催を取得中…');
+  narGet(narDayUrl(d8)).then(function(html){
+    var venues = narParseDay(html);
+    if (!venues.length) throw new Error('開催一覧を解析できませんでした（netkeiba側の変更の可能性）');
+    done(venues);
+  }).catch(function(e){
+    narMsg('⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e)));
+    var c = null;
+    try { c = narDayLs().days[d8]; } catch(e2){}
+    if (c && c.venues) narRenderVenues(d8, c.venues);   /* 期限切れキャッシュでも緊急表示 */
+  });
+}
+function narRenderVenues(d8, venues){
+  var box = $('narVenueBox'); if (!box) return;
+  var rb = $('narRacesBox'); if (rb) rb.innerHTML = '<div class="small muted">開催場を選ぶと、その場の全レース（1R〜）がここに並びます。各レースの折り込みを開くと出馬表と netkeiba AI展開予測が表示されます。</div>';
+  box.innerHTML = venues.map(function(v){
+    var n = v.races.length;
+    return '<button type="button" class="btn' + (NAR_CUR.jyo === v.jyo ? ' primary' : '') + '" data-narjyo="' + esc(v.jyo) + '" ' +
+      'title="' + esc(v.name + ' ' + v.kai + '回' + v.nichi + '日目') + '" style="font-size:.85rem;padding:5px 12px">' +
+      esc(v.name) + '<span style="font-weight:400;font-size:.75rem"> ' + esc((v.kai || '') + '回' + (v.nichi || '') + '日目') +
+      (v.baba ? ' ' + esc(v.baba) : '') + '・' + n + 'R</span></button>';
+  }).join(' ');
+  box.querySelectorAll('[data-narjyo]').forEach(function(b){
+    b.addEventListener('click', function(){ narShowVenue(d8, b.getAttribute('data-narjyo')); });
+  });
+}
+function narShowVenue(d8, jyo){
+  NAR_CUR.jyo = String(jyo);
+  var v = null;
+  try { var c = narDayLs().days[d8]; (c && c.venues || []).forEach(function(x){ if (x.jyo === String(jyo)) v = x; }); } catch(e){}
+  var box = $('narRacesBox'); if (!box || !v) return;
+  narRenderVenues(d8, (narDayLs().days[d8] || {}).venues || []);
+  var h = ['<div class="small" style="font-weight:700;margin:4px 0 6px">🏟 ' + esc(v.name) + ' ' + esc((v.kai || '') + '回' + (v.nichi || '') + '日目') +
+    (v.baba ? '・' + esc(v.baba) : '') + '　' + v.races.length + 'レース</div>'];
+  v.races.forEach(function(r){
+    h.push('<details class="sbRace" data-narid="' + esc(r.rid) + '">' +
+      '<summary style="cursor:pointer;padding:7px 10px;font-size:.9rem;border:1px solid var(--line2);border-radius:8px;background:var(--card);display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      '<b>' + esc(r.rnum) + 'R</b><span>' + esc(r.time) + '</span><span style="text-align:left">' + esc(r.name) + '</span>' +
+      '<span class="chip">' + esc(r.surface + (r.dist ? r.dist + 'm' : '')) + '</span>' +
+      '<span class="small muted">' + esc(r.heads) + '頭</span></summary>' +
+      '<div class="narBody" data-narbody="' + esc(r.rid) + '" style="margin-top:6px"><div class="small muted">⏳ 開いています…</div></div></details>');
+  });
+  box.innerHTML = h.join('');
+  box.querySelectorAll('details.sbRace').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if (d.open) narFillRace(d.getAttribute('data-narid'), d.querySelector('.narBody'));
+    });
+  });
+}
+
+/* ★第160弾: 地方観測DB（NAR_OBS・nar_genobs.jsが生成）からの馬券内率セル。
+   中央p66 adObsCellと同じ[n,馬券内数]形式。セルが薄い(n<30)ときは4C五分割帯へフォールバック。 */
+function narObsCell(key){
+  try {
+    var g = key.split(':'), grp = g[0], k = key.slice(grp.length + 1);
+    var c = (NAR_OBS[grp] || {})[k];
+    return c ? { n: c[0] | 0, h: c[1] | 0, rate: c[1] / c[0] } : { n: 0, h: 0, rate: 0 };
+  } catch(e){ return { n: 0, h: 0, rate: 0 }; }
+}
+function narKaiCellOf(r){
+  var c = r.popN != null ? narObsCell('pop:' + adKaiPopBand(r.popN) + '|' + r.b3) : { n: 0, h: 0, rate: 0 };
+  if (c.n < 30) c = narObsCell('b5:' + r.b5);
+  return c;
+}
+/* ★第160弾: 材料バッジ（walk-forward事前登録定義・中央gi158と同一: ✂=後後後×7人気+ / ▲=7-12人気×4C先頭団/好位×伸びUP） */
+function narSaiMat(r){
+  if (r.p3 === '後後後' && r.popN != null && r.popN >= 7) return '✂';
+  if (r.popN != null && r.popN >= 7 && r.popN <= 12 && (r.b5 === '1' || r.b5 === '2') && r.mark === 'UP') return '▲';
+  return '';
+}
+
+/* ---------- UI: 1レースぶん（出馬表 + AI展開予測） ---------- */
+function narFillRace(rid, body){
+  if (!body || body.getAttribute('data-done')) return;
+  var cached = narCardGet(rid);
+  var getP = cached ? Promise.resolve(cached) : narGet(narRaceUrl(rid));
+  if (!cached) body.innerHTML = '<div class="small muted">📥 出馬表を取得中…（初回は数秒かかります）</div>';
+  getP.then(function(html){
+    if (!cached) narCardSet(rid, html);
+    body.setAttribute('data-done', '1');
+    body.innerHTML = narRaceHtml(rid, html);
+    narWireRace(body, rid, html);
+  }).catch(function(e){
+    body.innerHTML = '<div class="small" style="color:var(--err-ink)">⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e)) + '（もう一度開き直してください）</div>';
+  });
+}
+function narRaceHtml(rid, html){
+  var meta = {};
+  try { meta = (typeof nkParseRaceMeta === 'function') ? (nkParseRaceMeta(html) || {}) : {}; } catch(e){}
+  var head = [meta.date || '', meta.place || '', (meta.rnum || '') + 'R', meta.name || '',
+    (meta.surface || '') + (meta.dist || '') + 'm', meta.baba || '', meta.startTime || '', meta.wx ? '天気:' + meta.wx : ''].filter(Boolean).join(' ');
+  var ai = null;
+  try { ai = (typeof aiDepParse === 'function') ? aiDepParse(html) : null; } catch(e){ ai = null; }
+  var h = ['<div class="small muted" style="margin:0 0 6px">' + esc(head) + '</div>'];
+  /* AI展開予測（中央③と同じエンジン。観測DBの馬券内率は中央の数字なので地方では非表示） */
+  h.push('<div id="narDep_' + esc(rid) + '_adStage"></div>');
+  if (!ai) h.push('<div class="small muted" style="margin:2px 0 6px">※ このレースの出馬表には netkeiba AI展開予測セクションがありません（未公開=前日14時頃公開・または非対応）。</div>');
+  /* 動きサマリ（adKaiRowsは観測DBに依存しない・人気/単勝は出馬表から） */
+  if (ai){
+    try {
+      var rows = (typeof adKaiRows === 'function') ? adKaiRows(ai) : [];
+      if (rows.length){
+        var AD_B5_JPN = { '1': '先頭団', '2': '好位', '3': '中団', '4': '後方', '5': '最後方' };
+        h.push('<div class="small" style="font-weight:700;margin:8px 0 2px">🧠 AI予測の動き一覧</div>');
+        h.push('<div style="overflow-x:auto"><table class="htbl" style="font-size:.76rem;white-space:nowrap"><thead><tr>' +
+          '<th>馬番</th><th style="text-align:left">馬名</th><th>材料</th><th>人気</th><th>単勝</th><th>動き</th><th>4C番手</th><th>直線伸び</th><th>馬券内率</th></tr></thead><tbody>');
+        /* ★第160弾: 馬券内率順（中央③第158弾と同じ・同率は人気→4C番手）。馬券内率=narKaiCellOf（地方観測DB） */
+        rows.forEach(function(r){ r._cell = narKaiCellOf(r); });
+        rows.sort(function(a, b){ return (b._cell.rate - a._cell.rate) || ((a.popN || 99) - (b.popN || 99)) || (a.c3 - b.c3); });
+        rows.forEach(function(r){
+          var d23 = r.c3 - r.c2;
+          var dir = d23 > 0.5 ? '<span style="color:#b3261e;font-weight:800">▼' + Math.max(1, Math.round(d23)) + '</span>'
+            : (d23 < -0.5 ? '<span style="color:#1c6e42;font-weight:800">▲' + Math.max(1, Math.round(-d23)) + '</span>' : '');
+          var lv = parseInt(r.markLv, 10) || 0;
+          var mk = r.mark === 'UP' ? ('伸び＋' + (lv >= 2 ? '＋' : '') + (lv >= 3 ? '＋' : '')) : '—';
+          var mat = narSaiMat(r);
+          h.push('<tr><td>' + esc(r.no) + '</td><td style="text-align:left">' + esc(r.name) + '</td>' +
+            '<td>' + (mat === '▲' ? '<span style="color:#b45309;font-weight:800">▲</span>' : mat === '✂' ? '<span class="muted">✂</span>' : '') + '</td>' +
+            '<td>' + (r.popN != null ? r.popN : '—') + '</td><td>' + (r.odds ? r.odds : '—') + '</td>' +
+            '<td>' + esc(r.path) + ' ' + dir + '</td>' +
+            '<td>' + (Math.round(r.c3 * 10) / 10) + '<span class="small muted"> ' + (AD_B5_JPN[r.b5] || '') + '</span></td>' +
+            '<td>' + mk + '</td>' +
+            '<td>' + (r._cell.n > 0 ? '<em>' + (Math.round(r._cell.rate * 1000) / 10) + '%</em>' : '—') + '</td></tr>');
+        });
+        h.push('</tbody></table></div>');
+        h.push('<div class="small muted" style="margin:2px 0 4px">▲は3角→4角で上前・▼は後退。動きは netkeiba AIの予測位置（中央③と同じ形式）。' +
+          '<b>馬券内率=地方観測DB</b>（' + (typeof NAR_OBS !== 'undefined' && NAR_OBS ? NAR_OBS.races + 'R・' + esc(NAR_OBS.span || '') : '—') + '・中央③と同じ計算で地方の結果から集計）。' +
+          '▲=穴材料（7-12人気×4C先頭団/好位×伸び＋）・✂=切り捨て（後々々×7人気+）。DBは構築中のため数字は更新されます。</div>');
+      }
+    } catch(e){}
+  }
+  /* 出馬表 */
+  var list = narParseShutuba(html);
+  if (list.length){
+    h.push('<div class="small" style="font-weight:700;margin:8px 0 2px">📋 出馬表（' + list.length + '頭）</div>');
+    h.push('<div style="overflow-x:auto"><table class="htbl" style="font-size:.76rem;white-space:nowrap"><thead><tr>' +
+      '<th>枠</th><th>馬番</th><th style="min-width:110px">馬名</th><th>性齢</th><th>斤量</th><th style="min-width:80px">騎手</th><th>単勝</th><th>人気</th></tr></thead><tbody>');
+    list.forEach(function(p){
+      h.push('<tr><td>' + esc(p.frame) + '</td><td>' + esc(p.no) + '</td>' +
+        '<td style="text-align:left">' + (p.nk ? '<a href="#" data-narhp="' + esc(p.nk) + '" data-narnm="' + esc(p.name) + '" style="color:var(--info-ink);text-decoration:underline">' : '<span>') +
+        esc(p.name) + (p.nk ? '</a>' : '</span>') + '</td>' +
+        '<td>' + esc(p.sexAge) + '</td><td>' + esc(p.weight) + '</td><td style="text-align:left">' + esc(p.jockey) + '</td>' +
+        '<td>' + (p.odds ? esc(p.odds) : '—') + '</td><td>' + (p.pop ? esc(p.pop) : '—') + '</td></tr>');
+    });
+    h.push('</tbody></table></div>');
+    h.push('<div class="small muted" style="margin-top:4px">馬名をタップするとプロフィール（netkeiba・戦績と成績分析）が出ます。</div>');
+  } else {
+    h.push('<div class="small muted">出馬表テーブルを解析できませんでした。</div>');
+  }
+  return h.join('');
+}
+/* AI展開予測の描画（中央③エンジンへ描画先だけ差し替え）とイベント配線 */
+function narWireRace(body, rid, html){
+  var ai = null;
+  try { ai = (typeof aiDepParse === 'function') ? aiDepParse(html) : null; } catch(e){}
+  if (ai && typeof aiDepRender === 'function'){
+    try {
+      AI_DEP_CACHE[rid] = ai;   /* 再オープン時は即表示（中央のメモリキャッシュと共存・ridは中央と衝突しない） */
+      AI_DEP.rid = rid; AI_DEP.data = ai; AI_DEP.corner = 'C1'; AI_DEP.oso = false; AI_DEP.kishi = false;
+      AI_DEP.boxId = 'narDep_' + rid;   /* ★描画先を地方タブのコンテナへ */
+      aiDepRender();
+      aiDepPositions();
+    } catch(e){}
+  }
+  body.querySelectorAll('a[data-narhp]').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      ev.preventDefault();
+      if (typeof sbPopupOpen === 'function') sbPopupOpen(a.getAttribute('data-narhp'), a.getAttribute('data-narnm'));
+    });
+  });
+}
+/* 地方タブ内のタブ切替・チェック（中央のAI_DEP.boxIdがセットされたまま効きます） */
+function narDepTab(c){ if (typeof aiDepTab === 'function') aiDepTab(c); if (typeof aiDepPositions === 'function') aiDepPositions(); }
+function narDepChk(){ if (typeof aiDepChk === 'function') aiDepChk(); }
+
+/* ---------- 初期化 ---------- */
+function narInit(){
+  var btn = $('narBtn');
+  if (btn) btn.addEventListener('click', function(){ narLoadDay(($('narDate') && $('narDate').value) || ''); });
+  var td = $('narToday');
+  if (td) td.addEventListener('click', function(){
+    var d = new Date();
+    var v = d.getFullYear() + '-' + ('0' + (d.getMonth()+1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    var el = $('narDate'); if (el) el.value = v;
+    narLoadDay(v);
+  });
+}
+
 /* =========================================================
    p93_shutuba.js — ★第156弾(タブ大統合)
    ① 📋出馬表タブ: 日付選択 → 1日ごと折り込み → 1レースごと折り込みで
@@ -48550,7 +48943,10 @@ function sbRaceHtml(it){
   var rid = String(it.rid || '');
   var pre = null;
   try { var rec = (typeof apGet === 'function') ? apGet(rid) : null; pre = (rec && rec.pre) || null; } catch(e){}
-  var pace = (pre && pre.pace && pre.pace.label) ? (pre.pace.label + (pre.pace.score != null ? '(' + pre.pace.score + ')' : '')) : '';
+  /* ★第158弾: スコアは生の浮動小数点(0.3329999…)が出ないように整形（0=スロー〜1=ハイの指数） */
+  var pace = (pre && pre.pace && pre.pace.label)
+    ? (pre.pace.label + (pre.pace.score != null ? '（指数' + (Math.round(pre.pace.score * 100) / 100) + '）' : ''))
+    : '';
   var honmei = '';
   if (pre && pre.rows && pre.rows.length){
     var top = pre.rows.slice().sort(function(a, b){ return (a.rank || 99) - (b.rank || 99); })[0];
@@ -48623,7 +49019,7 @@ function sbFillRace(rid, d8, body){
 
 function sbTableHtml(parsed, meta, pre, marks, probs){
   var paceTxt = (pre && pre.pace && pre.pace.label)
-    ? esc(pre.pace.label) + (pre.pace.score != null ? '（スコア' + pre.pace.score + '）' : '') +
+    ? esc(pre.pace.label) + (pre.pace.score != null ? '（指数' + (Math.round(pre.pace.score * 100) / 100) + '・0=スロー〜1=ハイ）' : '') +
       (pre && pre.rows && pre.rows.length ? '・保存時のAI印つき' : '')
     : '事前予想の保存がありません（結果確定済みのレースはスキップされます）';
   var h = [];
@@ -48708,14 +49104,21 @@ function sbHorseHtml(rec, name){
   [['生年月日', birth], ['調教師', trainer], ['馬主', owner], ['生産者', breeder], ['産地', origin], ['獲得賞金(中央)', earnC], ['主な勝鞍', winsTxt]]
     .forEach(function(x){ if (x[1]) profRows.push('<tr><th style="text-align:left;padding:2px 8px 2px 0">' + x[0] + '</th><td style="padding:2px 0">' + esc(x[1]) + '</td></tr>'); });
   if (profRows.length) h.push('<table class="small" style="margin:0 0 8px">' + profRows.join('') + '</table>');
-  /* 戦績（直近8走・p34の解析と同じ行） */
+  /* ★第158弾: 戦績は全走・全列を表示（p34 hdParseRecords の実フィールド: pass=通過・last3=上り・wchg=馬体重。
+     同関数は日付昇順（古い順）で返すので reverse() で新しい順にする） */
   if (races.length){
-    h.push('<div style="font-weight:700;margin:6px 0 2px">📋 戦績（新しい順・直近8走）</div><div class="tblwrap"><table class="htbl" style="font-size:.78rem"><thead><tr>' +
-      '<th>年月日</th><th>場</th><th>レース名</th><th>着</th><th>人</th><th>騎手</th><th>着差</th><th>上3F</th><th>通過</th></tr></thead><tbody>');
-    races.slice(0, 8).forEach(function(r){
-      h.push('<tr><td>' + esc(r.date || '') + '</td><td>' + esc(r.place || '') + '</td><td style="text-align:left">' + esc(r.name || '') + '</td>' +
-        '<td>' + esc(String(r.order || '')) + '</td><td>' + esc(String(r.pop || '')) + '</td><td>' + esc(r.jockey || '') + '</td>' +
-        '<td>' + esc(r.margin || '') + '</td><td>' + esc(r.last3f || r.a3 || '') + '</td><td>' + esc(r.passing || '') + '</td></tr>');
+    var rr = races.slice().reverse();
+    h.push('<div style="font-weight:700;margin:6px 0 2px">📋 戦績（新しい順・全' + rr.length + '走）</div>' +
+      '<div style="overflow-x:auto"><table class="htbl" style="font-size:.72rem;white-space:nowrap"><thead><tr>' +
+      '<th>年月日</th><th>開催</th><th>レース名</th><th>距離</th><th>馬場</th><th>斤量</th><th>騎手</th>' +
+      '<th>人気</th><th>オッズ</th><th>着順</th><th>タイム</th><th>着差</th><th>通過</th><th>上3F</th><th>馬体重</th></tr></thead><tbody>');
+    rr.forEach(function(r){
+      h.push('<tr><td>' + esc(r.date || '') + '</td><td>' + esc(r.venueName || r.venue || '') + '</td><td style="text-align:left">' + esc(r.name || '') + '</td>' +
+        '<td>' + esc(r.dist || '') + '</td><td>' + esc(r.baba || '') + '</td><td>' + esc(r.weight || '') + '</td><td style="text-align:left">' + esc(r.jockey || '') + '</td>' +
+        '<td>' + esc(String(r.pop || '')) + '</td><td>' + esc(String(r.odds || '')) + '</td>' +
+        '<td>' + esc(r.order ? String(r.order) : String(r.orderRaw || r.status || '')) + '</td>' +
+        '<td>' + esc(r.time || '') + '</td><td>' + esc(r.margin || '') + '</td>' +
+        '<td>' + esc(r.pass || '') + '</td><td>' + esc(r.last3 || '') + '</td><td>' + esc(r.wchg || '') + '</td></tr>');
     });
     h.push('</tbody></table></div>');
   } else {
@@ -50231,6 +50634,7 @@ function boot(){
   idleInit('apdInit', function(){ if (typeof apdInit === 'function') safeInit('apdInit', apdInit); });   // ★第17弾・提案1: AI予想の診断(計測のみ)
   idleInit('initPre', function(){ if (typeof initPre === 'function') safeInit('initPre', initPre); });   // ★第17弾: 出走前の出馬表一括取得(事前予想の保存)
   idleInit('initSb', function(){ if (typeof sbInit === 'function') safeInit('sbInit', sbInit); });   // ★第156弾: 📋出馬表タブ+🌤天気タブの競馬場セレクタ
+  idleInit('initNar', function(){ if (typeof narInit === 'function') safeInit('narInit', narInit); });   // ★第159弾: 🏟地方競馬タブ
   idleInit('initPk', function(){ if (typeof initPk === 'function') safeInit('initPk', initPk); });   // ★第18弾: 軸・妙味・穴の一覧
   idleInit('initBt', function(){ if (typeof initBt === 'function') safeInit('initBt', initBt); });   // ★第18弾: バックテスト
   idleInit('initBp', function(){ if (typeof initBp === 'function') safeInit('initBp', initBp); });   // ★第18弾: 買い目提案(詳細版)
