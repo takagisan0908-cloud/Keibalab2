@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第160弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第161弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -3170,7 +3170,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第160弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第161弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -48555,11 +48555,14 @@ function narCardSave(o){ try { localStorage.setItem(NAR_CARD_LS, JSON.stringify(
     localStorage.setItem(NAR_CARD_LS, JSON.stringify(o));
   } catch(e2){}
 } }
-function narCardSet(rid, html){
+function narCardSet(rid, html, pre){
   rid = String(rid || '');
   if (!rid || !html || html.length < 300) return false;
   var o = narCardLs();
-  o.h[rid] = { t: Date.now(), s: (typeof cmpPack === 'function') ? cmpPack(html) : html };
+  /* ★第161弾: pre=1（AI予測/オッズが未掲載のページ）は短期キャッシュ。
+     netkeibaはAI展開予測を前日14時頃〜当日に順次公開するため、取り込んだ時点で未掲載のページを
+     6時間キャッシュすると「図が出ない・オッズ無し」が固まってしまう。 */
+  o.h[rid] = { t: Date.now(), p: pre ? 1 : 0, s: (typeof cmpPack === 'function') ? cmpPack(html) : html };
   var ks = Object.keys(o.h);
   while (ks.length > 60){ ks.sort(function(a, b){ return (o.h[a].t || 0) - (o.h[b].t || 0); }); delete o.h[ks.shift()]; }
   narCardSave(o);
@@ -48570,6 +48573,7 @@ function narCardGet(rid){
   var it = null;
   try { it = (narCardLs().h || {})[rid]; } catch(e){ return null; }
   if (!it || !it.s) return null;
+  if (it.p) return null;   /* ★第161弾: 未掲載ページはキャッシュから出さない（開くたび再取得して公開を拾う） */
   var ttl = 6 * 3600 * 1000;   /* 当日も過去も6時間（地方は夕方〜夜間発売が多いので短め） */
   if (!it.t || (Date.now() - it.t) > ttl) return null;
   try {
@@ -48625,21 +48629,42 @@ function narParseDay(html){
 
 /* ---------- パーサ: 出馬表テーブル ---------- */
 function narParseShutuba(html){
+  /* ★第161弾: ①PC版のオッズ/人気取りこぼし修正（netkeiba側の壊れたマークアップ対応）
+     ・オッズ: <span class="Odds_Ninki">5.0</span> の他に 開きタグが欠けた「Popular Txt_R"> 177.8</span> 形式が混在
+     ・人気 : <td class="Popular Txt_C BgBlue02|BgOrange|(無印)"> と色classが人気順で変わる（旧コードはBgBlue02のみ=約1割しか取れない）
+     ②SP版対応: モバイル環境のリレー経由だと nar.netkeiba.com が nar.sp.netkeiba.com へ302し
+     <table class="Shutuba_Table Shutuba_Simple_Table"> になる（ShutubaTable無し・オッズ/人気は1セルに「30.6<br>9人気」・
+     枠=td.Waku{N}のclass数字・馬番=セル中身・馬名はmodal/horse.html?horse_id=リンク・斤量は騎手<em>の直後の数字） */
   var out = [];
-  var m = String(html || '').match(/<table class="RaceTable01 ShutubaTable">[\s\S]*?<\/table>/);
+  var h = String(html || '');
+  var m = h.match(/<table class="RaceTable01 ShutubaTable">[\s\S]*?<\/table>/);
+  var sp = false;
+  if (!m){ m = h.match(/<table class="Shutuba_Table[^"]*">[\s\S]*?<\/table>/); sp = !!m; }
   if (!m) return out;
   var trs = m[0].split(/<tr class="HorseList"/).slice(1);
   trs.forEach(function(tr){
     var seg = tr.split('</tr>')[0];
-    var frame = (seg.match(/class="Waku\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
-    var no = (seg.match(/class="Umaban\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
-    var hm = seg.match(/horse\/(\d+)"[^>]*title="([^"]+)"/);
+    var frame = '', no = '', hm = null, wt = '', jk = '';
+    if (!sp){
+      frame = (seg.match(/class="Waku\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
+      no = (seg.match(/class="Umaban\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
+      hm = seg.match(/horse\/(\d+)"[^>]*title="([^"]+)"/);
+      wt = (seg.match(/<td class="Txt_C">\s*([\d.]+)\s*<\/td>/) || [])[1] || '';
+      jk = narTxt((seg.match(/class="Jockey">\s*<a[^>]*title="([^"]+)"/) || [])[1]);
+    } else {
+      frame = (seg.match(/class="Waku(\d+)"/) || [])[1] || '';
+      no = (seg.match(/class="Waku\d+"[^>]*>\s*(\d+)/) || [])[1] || '';
+      var x = seg.match(/horse_id=(\d+)"[^>]*>(?:<span[^>]*>\s*<\/span>)?([^<]*)<\/a>/);
+      if (x) hm = [x[0], x[1], x[2]];
+      wt = (seg.match(/<\/em>\s*([\d.]+)\s*<\/a>/) || [])[1] || '';
+      jk = narTxt((seg.match(/class="Jockey">\s*<a[^>]*><em>([^<]+)<\/em>/) || [])[1]);
+    }
     if (!no && !hm) return;
     var sexAge = narTxt((seg.match(/class="Age">([^<]+)/) || [])[1]);
-    var wt = (seg.match(/<td class="Txt_C">\s*([\d.]+)\s*<\/td>/) || [])[1] || '';
-    var jk = narTxt((seg.match(/class="Jockey">\s*<a[^>]*title="([^"]+)"/) || [])[1]);
-    var odds = (seg.match(/class="Odds_Ninki">([\d.]+)/) || [])[1] || '';
-    var pop = (seg.match(/BgBlue02">\s*<span>(\d+)<\/span>/) || [])[1] || '';
+    var odds = (seg.match(/class="Odds[^"]*">\s*([\d.]+)/) || [])[1] ||
+               (seg.match(/Popular Txt_R">\s*([\d.]+)\s*<\/span>/) || [])[1] || '';
+    var pop = (seg.match(/Popular Txt_C[^"]*">\s*<span>(\d+)<\/span>/) || [])[1] ||
+              (seg.match(/>\s*(\d+)人気/) || [])[1] || '';
     out.push({ frame: frame, no: no || (out.length + 1), name: hm ? hm[2] : '', nk: hm ? hm[1] : '',
       sexAge: sexAge, weight: wt, jockey: jk, odds: odds, pop: pop });
   });
@@ -48738,7 +48763,14 @@ function narFillRace(rid, body){
   var getP = cached ? Promise.resolve(cached) : narGet(narRaceUrl(rid));
   if (!cached) body.innerHTML = '<div class="small muted">📥 出馬表を取得中…（初回は数秒かかります）</div>';
   getP.then(function(html){
-    if (!cached) narCardSet(rid, html);
+    /* ★第161弾: AI予測セクションが無い/オッズが1頭も無いページは「未掲載」として短期キャッシュへ */
+    var pre = true;
+    try {
+      var _ai = (typeof aiDepParse === 'function') ? aiDepParse(html) : null;
+      var _rows = (typeof narParseShutuba === 'function') ? narParseShutuba(html) : [];
+      if ((_ai && Object.keys(_ai.horses).length) || _rows.some(function(r){ return parseFloat(r.odds) > 0; })) pre = false;
+    } catch(e){}
+    if (!cached) narCardSet(rid, html, pre);
     body.setAttribute('data-done', '1');
     body.innerHTML = narRaceHtml(rid, html);
     narWireRace(body, rid, html);
@@ -48756,7 +48788,7 @@ function narRaceHtml(rid, html){
   var h = ['<div class="small muted" style="margin:0 0 6px">' + esc(head) + '</div>'];
   /* AI展開予測（中央③と同じエンジン。観測DBの馬券内率は中央の数字なので地方では非表示） */
   h.push('<div id="narDep_' + esc(rid) + '_adStage"></div>');
-  if (!ai) h.push('<div class="small muted" style="margin:2px 0 6px">※ このレースの出馬表には netkeiba AI展開予測セクションがありません（未公開=前日14時頃公開・または非対応）。</div>');
+  if (!ai) h.push('<div class="small muted" style="margin:2px 0 6px">※ このレースには netkeiba AI展開予測がまだ公開されていません（前日14時頃〜当日に順次公開。明日以降のレースは未公開が普通です）。開き直すと自動で再取得します。</div>');
   /* 動きサマリ（adKaiRowsは観測DBに依存しない・人気/単勝は出馬表から） */
   if (ai){
     try {
@@ -48802,7 +48834,7 @@ function narRaceHtml(rid, html){
         '<td style="text-align:left">' + (p.nk ? '<a href="#" data-narhp="' + esc(p.nk) + '" data-narnm="' + esc(p.name) + '" style="color:var(--info-ink);text-decoration:underline">' : '<span>') +
         esc(p.name) + (p.nk ? '</a>' : '</span>') + '</td>' +
         '<td>' + esc(p.sexAge) + '</td><td>' + esc(p.weight) + '</td><td style="text-align:left">' + esc(p.jockey) + '</td>' +
-        '<td>' + (p.odds ? esc(p.odds) : '—') + '</td><td>' + (p.pop ? esc(p.pop) : '—') + '</td></tr>');
+        '<td>' + (parseFloat(p.odds) > 0 ? esc(p.odds) : '—') + '</td><td>' + (p.pop ? esc(p.pop) : '—') + '</td></tr>');
     });
     h.push('</tbody></table></div>');
     h.push('<div class="small muted" style="margin-top:4px">馬名をタップするとプロフィール（netkeiba・戦績と成績分析）が出ます。</div>');
@@ -48822,7 +48854,12 @@ function narWireRace(body, rid, html){
       AI_DEP.boxId = 'narDep_' + rid;   /* ★描画先を地方タブのコンテナへ */
       aiDepRender();
       aiDepPositions();
-    } catch(e){}
+    } catch(e){   /* ★第161弾: 描画エラーを静かに飲み込まない（ユーザーが気づけるように表示） */
+      try {
+        var bx = (typeof $ === 'function') ? $('narDep_' + rid + '_adStage') : null;
+        if (bx) bx.innerHTML = '<div class="small" style="color:#b3261e">⚠ AI図の描画でエラー: ' + esc(String((e && e.message) || e)) + '（再取得してください）</div>';
+      } catch(e2){}
+    }
   }
   body.querySelectorAll('a[data-narhp]').forEach(function(a){
     a.addEventListener('click', function(ev){
