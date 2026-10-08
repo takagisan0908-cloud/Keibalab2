@@ -48786,9 +48786,15 @@ function narRaceHtml(rid, html, srcMark){
     (meta.surface || '') + (meta.dist || '') + 'm', meta.baba || '', meta.startTime || '', meta.wx ? '天気:' + meta.wx : ''].filter(Boolean).join(' ');
   var ai = null;
   try { ai = (typeof aiDepParse === 'function') ? aiDepParse(html) : null; } catch(e){ ai = null; }
+  var list = narParseShutuba(html);   /* ★第161弾: 出馬表はここで1回だけパース（下の出馬表表示と動き一覧の人気/単勝注入で共用） */
+  if (ai && list.length){   /* ★第161弾: adKaiRowsはd.pop/d.oddsを読む——NAR出馬表のマークアップからはaiDepParse内で人気/オッズが取れないため、narParseShutubaの結果を注入する（クローラと同じ仕組み） */
+    var _pm = {}, _om = {};
+    list.forEach(function(p){ if (/^\d+$/.test(p.pop)) _pm[p.no] = parseInt(p.pop, 10); if (parseFloat(p.odds) > 0) _om[p.no] = parseFloat(p.odds); });
+    ai.pop = _pm; ai.odds = _om;
+  }
   var h = ['<div class="small muted" style="margin:0 0 6px">' + (srcMark ? '<b>' + srcMark + '</b> ' : '') + esc(head) + '</div>'];   /* ★第161弾: 📦=キャッシュ/🔄=新規取得（問い合わせ時の切り分け用） */
   /* AI展開予測（中央③と同じエンジン。観測DBの馬券内率は中央の数字なので地方では非表示） */
-  h.push('<div id="narDep_' + esc(rid) + '_adStage"></div>');
+  h.push('<div class="adw" id="narDep_' + esc(rid) + '_adStage"></div>');   /* ★第161弾: AI図のCSSは全て.adwスコープ（中央のadCardと同じ）——これが無いと走路・馬アイコン・タブが全て無スタイルになり「図が出ない」状態になる */
   if (!ai) h.push('<div class="small muted" style="margin:2px 0 6px">※ このレースには netkeiba AI展開予測がまだ公開されていません（前日14時頃〜当日に順次公開。明日以降のレースは未公開が普通です）。開き直すと自動で再取得します。</div>');
   /* 動きサマリ（adKaiRowsは観測DBに依存しない・人気/単勝は出馬表から） */
   if (ai){
@@ -48824,8 +48830,7 @@ function narRaceHtml(rid, html, srcMark){
       }
     } catch(e){}
   }
-  /* 出馬表 */
-  var list = narParseShutuba(html);
+  /* 出馬表（listは上部で1回パース済み・共用） */
   if (list.length){
     h.push('<div class="small" style="font-weight:700;margin:8px 0 2px">📋 出馬表（' + list.length + '頭）</div>');
     h.push('<div style="overflow-x:auto"><table class="htbl" style="font-size:.76rem;white-space:nowrap"><thead><tr>' +
