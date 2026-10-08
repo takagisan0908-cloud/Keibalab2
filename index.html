@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第161弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第162弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -3171,7 +3171,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第161弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第162弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -48750,6 +48750,49 @@ function narKaiCellOf(r){
   if (c.n < 30) c = narObsCell('b5:' + r.b5);
   return c;
 }
+/* ★第162弾: 馬ごとの推定馬券内率（中央p66 adKaiEstOfと同一構造をNAR_OBSセルで実装）。
+   base=人気6帯×4C五分割セル(pop5) → 4C番手は5帯レートの直線補間(logit空間・係数0.6)。 */
+function narKaiPopBand6(p){ return p === 1 ? '1' : p === 2 ? '2' : p === 3 ? '3' : p <= 6 ? '46' : p <= 9 ? '79' : 'a'; }
+function narKaiLg(x){ x = Math.min(0.85, Math.max(0.02, x)); return Math.log(x / (1 - x)); }
+function narKaiEstOf(r){
+  var b5 = r.b5 || '3';
+  var baseCell = (r.popN != null) ? narObsCell('pop5:' + narKaiPopBand6(r.popN) + '|' + b5) : null;
+  var bandC = narObsCell('b5:' + b5);
+  var bandRate = bandC.n ? bandC.rate : 0.29;
+  var base = (baseCell && baseCell.n) ? baseCell.rate : bandRate;
+  var lg = narKaiLg(base), lgBand = narKaiLg(bandRate);
+  if (r.n && r.c3){
+    var f = (r.c3 - 0.5) / r.n;
+    var kx = [0.1, 0.3, 0.5, 0.7, 0.9], rv = [];
+    for (var i = 0; i < 5; i++){ var c = narObsCell('b5:' + (i + 1)); rv.push(c.n ? c.rate : bandRate); }
+    var il = lgBand;
+    if (f <= kx[0]) il = narKaiLg(rv[0]);
+    else if (f >= kx[4]) il = narKaiLg(rv[4]);
+    else {
+      for (var i2 = 0; i2 < 4; i2++){
+        if (f >= kx[i2] && f <= kx[i2 + 1]){
+          var t2 = (f - kx[i2]) / (kx[i2 + 1] - kx[i2]);
+          il = narKaiLg(rv[i2]) + t2 * (narKaiLg(rv[i2 + 1]) - narKaiLg(rv[i2]));
+          break;
+        }
+      }
+    }
+    lg += 0.6 * (il - lgBand);
+  }
+  return { rate: Math.min(0.88, Math.max(0.02, 1 / (1 + Math.exp(-lg)))), n: (baseCell && baseCell.n) || 0 };
+}
+/* ★第162弾: 統計印 — 推定馬券内率の上位4頭に◎○▲△（同点は人気→4C番手）。参考表示で買い目・AI印には影響しない */
+function narKaiMarks(rows){
+  var est = {};
+  rows.forEach(function(r){ est[r.no] = narKaiEstOf(r).rate; });
+  var ranked = rows.slice().sort(function(a, b){
+    return (est[b.no] - est[a.no]) || ((a.popN != null ? a.popN : 99) - (b.popN != null ? b.popN : 99)) || (a.c3 - b.c3);
+  });
+  var marks = {};
+  ['◎', '○', '▲', '△'].forEach(function(m, i){ if (ranked[i]) marks[ranked[i].no] = m; });
+  return marks;
+}
+
 /* ★第160弾: 材料バッジ（walk-forward事前登録定義・中央gi158と同一: ✂=後後後×7人気+ / ▲=7-12人気×4C先頭団/好位×伸びUP） */
 function narSaiMat(r){
   if (r.p3 === '後後後' && r.popN != null && r.popN >= 7) return '✂';
@@ -48803,8 +48846,9 @@ function narRaceHtml(rid, html, srcMark){
       if (rows.length){
         var AD_B5_JPN = { '1': '先頭団', '2': '好位', '3': '中団', '4': '後方', '5': '最後方' };
         h.push('<div class="small" style="font-weight:700;margin:8px 0 2px">🧠 AI予測の動き一覧</div>');
+        var marks = narKaiMarks(rows);
         h.push('<div style="overflow-x:auto"><table class="htbl" style="font-size:.76rem;white-space:nowrap"><thead><tr>' +
-          '<th>馬番</th><th style="text-align:left">馬名</th><th>材料</th><th>人気</th><th>単勝</th><th>動き</th><th>4C番手</th><th>直線伸び</th><th>馬券内率</th></tr></thead><tbody>');
+          '<th>馬番</th><th>印</th><th style="text-align:left">馬名</th><th>材料</th><th>人気</th><th>単勝</th><th>動き</th><th>4C番手</th><th>直線伸び</th><th>馬券内率</th></tr></thead><tbody>');
         /* ★第160弾: 馬券内率順（中央③第158弾と同じ・同率は人気→4C番手）。馬券内率=narKaiCellOf（地方観測DB） */
         rows.forEach(function(r){ r._cell = narKaiCellOf(r); });
         rows.sort(function(a, b){ return (b._cell.rate - a._cell.rate) || ((a.popN || 99) - (b.popN || 99)) || (a.c3 - b.c3); });
@@ -48815,7 +48859,9 @@ function narRaceHtml(rid, html, srcMark){
           var lv = parseInt(r.markLv, 10) || 0;
           var mk = r.mark === 'UP' ? ('伸び＋' + (lv >= 2 ? '＋' : '') + (lv >= 3 ? '＋' : '')) : '—';
           var mat = narSaiMat(r);
-          h.push('<tr><td>' + esc(r.no) + '</td><td style="text-align:left">' + esc(r.name) + '</td>' +
+          var mk2 = marks[r.no] || '';
+          var mkCol = { '◎': '#b3261e', '○': '#b45309', '▲': '#7c5cbf', '△': '#2c4a80' }[mk2] || '';
+          h.push('<tr><td>' + esc(r.no) + '</td><td>' + (mk2 ? '<span style="color:' + mkCol + ';font-weight:800">' + mk2 + '</span>' : '') + '</td><td style="text-align:left">' + esc(r.name) + '</td>' +
             '<td>' + (mat === '▲' ? '<span style="color:#b45309;font-weight:800">▲</span>' : mat === '✂' ? '<span class="muted">✂</span>' : '') + '</td>' +
             '<td>' + (r.popN != null ? r.popN : '—') + '</td><td>' + (r.odds ? r.odds : '—') + '</td>' +
             '<td>' + esc(r.path) + ' ' + dir + '</td>' +
@@ -48826,7 +48872,8 @@ function narRaceHtml(rid, html, srcMark){
         h.push('</tbody></table></div>');
         h.push('<div class="small muted" style="margin:2px 0 4px">▲は3角→4角で上前・▼は後退。動きは netkeiba AIの予測位置（中央③と同じ形式）。' +
           '<b>馬券内率=地方観測DB</b>（' + (typeof NAR_OBS !== 'undefined' && NAR_OBS ? NAR_OBS.races + 'R・' + esc(NAR_OBS.span || '') : '—') + '・中央③と同じ計算で地方の結果から集計）。' +
-          '▲=穴材料（7-12人気×4C先頭団/好位×伸び＋）・✂=切り捨て（後々々×7人気+）。DBは構築中のため数字は更新されます。</div>');
+          '▲=穴材料（7-12人気×4C先頭団/好位×伸び＋）・✂=切り捨て（後々々×7人気+）。' +
+          '<b>印=統計からの推定馬券内率上位4頭（◎○▲△）</b>—人気×4C位置の観測セル+番手補間（中央③と同じ計算・参考表示で買い目には影響しません）。DBは構築中のため数字は更新されます。</div>');
       }
     } catch(e){}
   }
