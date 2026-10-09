@@ -33776,6 +33776,9 @@ function preRun(){
     try { if (typeof jlTodayD8 === 'function') d8 = jlTodayD8(); } catch(e){}
   }
   if (!/^\d{8}$/.test(d8)){ preMsg('日付を入力してください（YYYYMMDD）', true); return; }
+  /* ★第164弾・追伸2: このタブで一括取得した日付を記憶——🤖シート・🔄結果取得/再予想・🖨PDF/Excelの
+     対象日がこの日付に追従する（旧は一覧の先頭=古い取得日のままだった） */
+  try { localStorage.setItem('khl_ai_day_v1', JSON.stringify({ d8: d8, at: Date.now() })); } catch(e){}
   var force = !!($('preChkForce') && $('preChkForce').checked);
   var opt = {
     odds: true,
@@ -39922,16 +39925,36 @@ function aiRnumOf(it){
   return m ? parseInt(m[1], 10) : 99;
 }
 /* 一括取得済みのレースのうち、同じ開催日のものを場名→R番号順に */
+function aiSelD8Stored(){
+  /* ★第164弾・追伸2: このタブで最後に「📥 その日の出馬表を一括取得」した日付（リロード後も追従） */
+  try {
+    var v = JSON.parse(localStorage.getItem('khl_ai_day_v1') || 'null');
+    if (v && /^\d{8}$/.test(String(v.d8 || ''))) return String(v.d8);
+  } catch(e){}
+  return '';
+}
 function aiDayItems(){
   var out = [];
   try {
     if (typeof preListAll !== 'function') return out;
     var items = (preListAll() || []).filter(function(it){ return it && it.rid; });
     if (!items.length) return out;
-    var d8 = '';
-    try { if (typeof apMetaCur === 'function') d8 = String(apMetaCur().date8 || ''); } catch(e){}
     var has = {};
     items.forEach(function(it){ if (it.d8) has[it.d8] = 1; });
+    /* ★第164弾・追伸2: 対象日の優先順位を変更——旧は「①の現在レース→今日→一覧の先頭(=古い取得日)」で、
+       このタブで選んだ日付を一切見なかったため、日付を選んで📥取得しても🤖シートと🖨PDFが
+       別の日(以前取得した日)のままになる「取得したものにならない」バグがあった。
+       新優先順位: ①このタブのpreDate入力(見えている日付) → ②最後に一括取得した日(khl_ai_day_v1)
+       → ③①の現在レース(従来互換・URL取込) → ④今日 → ⑤一覧の先頭(従来) */
+    var d8 = '';
+    try {
+      var el = (typeof $ === 'function') ? $('preDate') : null;
+      if (el && el.value) d8 = String(el.value).replace(/[^0-9]/g, '');
+    } catch(e){}
+    if (!d8 || !has[d8]) d8 = aiSelD8Stored();
+    if (!d8 || !has[d8]){
+      try { if (typeof apMetaCur === 'function') d8 = String(apMetaCur().date8 || ''); } catch(e){}
+    }
     if (!d8 || !has[d8]){
       try { if (typeof nkTodayD8 === 'function') d8 = String(nkTodayD8() || ''); } catch(e){}
     }
