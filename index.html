@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-08 第163弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-09 第164弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2004,54 +2004,45 @@ html[data-theme="light"] .page-top-hero{
   <h2>🤖 AI提案</h2>
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-      <button id="aiSettle" class="btn primary">📥 その日の結果を取得</button>
-      <button id="aiRefresh" class="btn ghost">🔄 表示を更新</button>
-      <!-- ★第98弾: 🔁再計算（用途が被るため削除・aiRecomputeDayはJS残存）→ 🔄未発走の再予想へ置換。
-           その日の結果（トラックバイアス・コーナー通過順などの展開）と直前オッズで未発走レースだけ予想し直し、
-           印を付け直す。結果確定済みは上書きしない。終了後にExcel/PDFも新しい印で出る -->
-      <button id="aiRepred" class="btn primary" title="その日の現在までの結果（トラックバイアス・コーナー通過順などの展開）と直前オッズで、まだ発走していないレースの予想を引き直して印を付け直します。結果が確定しているレースは絶対に上書きしません。終了後のExcel/PDF保存も新しい印の内容で出ます">🔄 未発走を再予想（バイアス・直前オッズ）</button>
+      <!-- ★第164弾: 「📥 その日の結果を取得」(aiSettle)と「🔄 表示を更新」(aiRefresh)を廃止。
+           ① 出馬表一括取得は日付入力とセットでこの一番上へ昇格(旧: 下の折りたたみカードの中にあった)
+           ② 結果取得+表示更新+未発走再予想を1つの🔄ボタンへ統合(終わったレースは結果を取得し、未発走は出馬表ごと引き直して再予想) -->
+      <input type="date" id="preDate" title="出馬表を取得する開催日" aria-label="出馬表を取得する開催日" style="font-size:.9rem;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)">
+      <button id="preBtn" class="btn primary" title="選んだ日の全レースの出馬表をnetkeibaからまとめて取得し、1レースずつAI印を計算して事前予想として保存します（📌=レース前の予想。結果が出たら自動で照合して学習します）">📥 その日の出馬表を一括取得</button>
+      <button id="aiRepred" class="btn primary" title="①表示とオッズを更新 ②終わったレースは結果(着順・払戻・展開)を取得して学習に反映 ③まだ発走していないレースは出馬表とオッズを取り直して当日バイアス反映の予想に付け直します。結果が確定しているレースの予想は絶対に上書きしません。終了後のExcel/PDFも新しい印で出ます">🔄 結果を取得・未発走を再予想</button>
       <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
       <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
-      <span class="muted small">①「📥 その日の出馬表を一括取得」→発走後に「📥 その日の結果を取得」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
+      <span class="muted small">📅日付を選んで「📥 その日の出馬表を一括取得」→レース後に「🔄 結果を取得・未発走を再予想」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
     </div>
     <div class="small" style="margin-top:6px">その日の全レースに馬柱の印（◎○▲☆△）を並べ、結果が付いたレースは着順・払戻・展開（ペース／通過順位／バイアス）と突き合わせて1レースずつAIが振り返ります。緑＝印の馬が馬券内。用語: <span class="khelp" data-tip="人気乖離＝AIの評価と人気（オッズ）のズレの大きさ。プラスなら市場（人気）よりAIが上に評価している馬です">人気乖離ⓘ</span>／<span class="khelp" data-tip="EV＝期待値。AI勝率×オッズで概算し、1を超えると期待払戻が金額を上回る計算になります">EVⓘ</span></div>
-  </div>
-  <!-- ★第156弾: ①データ入力の「📥 その日の出馬表を一括取得」をここへ移設（★第156弾でうましる調教取込も統合） -->
-    <!-- ★2026-09-12 第17弾: 出走前にその日の出馬表をまとめて取得し、AI予想の「事前予想」を保存する。
-         結果が出たら自動的に突き合わせて学習する（rec.pre / b.pre）。
-         これが無いと「結果を取り込んだときに印を作り直す（再シミュレーション）」しかできず、
-         AI印の本当の成績が測れませんでした。 -->
-    <details id="preCard" style="margin-top:10px;border:1px solid #1c6e42;border-radius:8px;background:var(--card)">
-      <summary style="cursor:pointer;padding:8px;font-size:.88rem;font-weight:700;color:var(--ok-ink)">📥 その日の出馬表を一括取得 → AI予想の「事前予想」を保存（学習用）
-        <span class="chip" id="preCount" style="margin-left:6px;font-weight:400">まだ事前予想はありません</span></summary>
-      <div style="padding:0 8px 10px">
-        <div class="small muted" style="margin:2px 0 8px;line-height:1.75">
-          選んだ日の<b>全レースの出馬表</b>をnetkeibaからまとめて取得し、1レースずつ<b>AI印を計算して保存</b>します（📌事前予想＝このタブと📋出馬表タブで見られます）。
-          レース前にやっておくことで、<b>結果が出たときに「事前予想 vs 実際の結果」を突き合わせて学習</b>できるようになります。
-          <br>　📌 <b>保存されるもの</b>: 印(◎〜△)・順位・確率・各ファクターの値（オッズ/調教/持ちタイム/展開/馬場/洋芝/学習DB実績）・<b>展開予想のスコアとラベル</b>・当日の<b>トラックバイアス予想</b>・<b>🎯軸に最適馬／💠妙味馬／🕳穴馬（各1頭）</b>
-          <br>　🎯💠🕳 <b>軸・妙味・穴</b>もレースごとに選んで保存します（このタブの一覧に反映）。結果を取り込んだレースは着順と照合して 🏆1着／✅3着内 を表示します
-          <br>　🔁 <b>結果との照合は自動</b>: 結果メモの📥取込・日付指定取込・年指定一括取込のどれで結果を入れても、保存済みの事前予想と突き合わせて<b>「📌 事前予想の成績」</b>として集計します（🔬診断と🔁自己学習＝🗄データベースタブに出ます）
-          <br>　🚫 <b>いかさま防止</b>: すでに結果が確定しているレースは<b>必ずスキップ</b>します（結果を知ってから予想しても意味がないため）
-          <br>　🦵 <b>脚質は学習DBの履歴から自動補完</b>: 出馬表には脚質が無いので、学習DBの<b>過去戦の通過順</b>（その日付より前だけ）から判定して埋めます
-          <br>　※ オッズは発売中でないと取得できません（取れなかったレースは人気要素なしの予想になります）
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label class="small" style="display:inline-flex;align-items:center;gap:4px">開催日
-            <input type="date" id="preDate" style="font-family:inherit;font-size:.86rem;padding:2px 6px">
-          </label>
-          <button type="button" class="btn primary" id="preBtn">📥 一括取得して事前予想を保存</button>
-          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="各馬の馬柱（プロフィール＋全戦績）も取得します。🏇馬柱AI評価・バ場好走率・洋芝/コース適性・騎手成績/鉄砲 が使えるようになります。1頭1〜3秒かかるので全レースだと時間がかかります（取得済みはキャッシュで高速）">
-            <input type="checkbox" id="preChkDetail"> 各馬の馬柱データも取得する（時間がかかります）
-          </label>
-          <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="すでに事前予想を保存済みのレースも取り直します（オッズが動いた後などに）">
-            <input type="checkbox" id="preChkForce"> 保存済みも取り直す
-          </label>
-        </div>
-        <div id="preMsg" class="small" style="margin-top:6px"></div>
-        <div id="preStat" class="small muted" style="margin-top:4px;max-height:180px;overflow:auto"></div>
+    <!-- ★第164弾・追伸: 旧preCard（📥その日の出馬表を一括取得→事前予想を保存）はトップ行の📥ボタンと同じことを二重に持っていたため統合。
+         オプション(馬柱/保存済みも取り直す)・進捗(preMsg/preStat)・事前予想カウンタ(preCount)はこのトップカードへ。
+         説明文は機能削減しないよう折りたたみ(preCard)で残置。 -->
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+      <span class="chip" id="preCount" style="font-weight:400">まだ事前予想はありません</span>
+      <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="各馬の馬柱（プロフィール＋全戦績）も取得します。🏇馬柱AI評価・バ場好走率・洋芝/コース適性・騎手成績/鉄砲 が使えるようになります。1頭1〜3秒かかるので全レースだと時間がかかります（取得済みはキャッシュで高速）">
+        <input type="checkbox" id="preChkDetail"> 各馬の馬柱データも取得する（時間がかかります）
+      </label>
+      <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="すでに事前予想を保存済みのレースも取り直します（オッズが動いた後などに）。出馬表HTMLも強制再取得します">
+        <input type="checkbox" id="preChkForce"> 保存済みも取り直す
+      </label>
+    </div>
+    <div id="preMsg" class="small" style="margin-top:4px"></div>
+    <div id="preStat" class="small muted" style="margin-top:4px;max-height:180px;overflow:auto"></div>
+    <details id="preCard" style="margin-top:6px">
+      <summary class="small" style="cursor:pointer;color:var(--muted)">📖 「事前予想」とは（保存内容・学習のしかた）</summary>
+      <div class="small muted" style="margin-top:6px;line-height:1.75">
+        上の「📥 その日の出馬表を一括取得」で、選んだ日の<b>全レースの出馬表</b>をnetkeibaからまとめて取得し、1レースずつ<b>AI印を計算して保存</b>します（📌事前予想＝このタブと📋出馬表タブで見られます）。
+        レース前にやっておくことで、<b>結果が出たときに「事前予想 vs 実際の結果」を突き合わせて学習</b>できるようになります。
+        <br>　📌 <b>保存されるもの</b>: 印(◎〜△)・順位・確率・各ファクターの値（オッズ/調教/持ちタイム/展開/馬場/洋芝/学習DB実績）・<b>展開予想のスコアとラベル</b>・当日の<b>トラックバイアス予想</b>・<b>🎯軸に最適馬／💠妙味馬／🕳穴馬（各1頭）</b>
+        <br>　🎯💠🕳 <b>軸・妙味・穴</b>もレースごとに選んで保存します（このタブの一覧に反映）。結果を取り込んだレースは着順と照合して 🏆1着／✅3着内 を表示します
+        <br>　🔁 <b>結果との照合は自動</b>: 結果メモの📥取込・日付指定取込・年指定一括取込・🔄結果を取得 のどれで結果を入れても、保存済みの事前予想と突き合わせて<b>「📌 事前予想の成績」</b>として集計します（🔬診断と🔁自己学習＝🗄データベースタブに出ます）
+        <br>　🚫 <b>いかさま防止</b>: すでに結果が確定しているレースは<b>必ずスキップ</b>します（結果を知ってから予想しても意味がないため）
+        <br>　🦵 <b>脚質は学習DBの履歴から自動補完</b>: 出馬表には脚質が無いので、学習DBの<b>過去戦の通過順</b>（その日付より前だけ）から判定して埋めます
+        <br>　※ オッズは発売中でないと取得できません（取れなかったレースは人気要素なしの予想になります）
       </div>
     </details>
-
+  </div>
   <!-- ★第156弾: ①データ入力から移設（通常は最小表示・idは全て温存） -->
   <details class="card fold" id="riFold" style="border-color:var(--line2);padding:0">
     <summary class="foldhead"><span class="fmark"></span><h2 style="margin:0">📋 レース情報（現在のレース）</h2><span class="chip">最小表示</span><span class="sp"></span><span class="foldhint"></span></summary>
@@ -2533,7 +2524,7 @@ html[data-theme="light"] .page-top-hero{
       <div style="display:flex;justify-content:flex-end;margin:0 0 4px">
         <button type="button" class="kai-mini" id="preListClear" title="この一覧だけ消します（出馬表キャッシュ・学習DB・読み込み履歴は消えません）">一覧を消去</button>
       </div>
-      <div id="preListEmpty" class="small muted">まだありません。「📅 日付を選んで出馬表を取込」の <b>📥 一括取得して事前予想を保存</b> を押すと、その日の全レースの出馬表を端末に取り込み、ここに一覧が出ます。<br>以降はその日のどのレースを選んでも <b>netkeiba に取りに行かずパっ表示</b>されます。</div>
+      <div id="preListEmpty" class="small muted">まだありません。上の <b>📅日付 → 📥 その日の出馬表を一括取得</b> を押すと、その日の全レースの出馬表を端末に取り込み、ここに一覧が出ます。<br>以降はその日のどのレースを選んでも <b>netkeiba に取りに行かずパっ表示</b>されます。</div>
       <div id="preList" class="kai-hist"></div>
       <div class="small muted" style="margin-top:8px">出馬表は端末内に圧縮保存（最大80レース・当日はその日の終わりまで有効）。<b>出走取消や馬場変更があったとき</b>は、開いた画面の「🔄 取り直す（再取得）」で最新を取り直せます。</div>
     </div>
@@ -3171,7 +3162,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-08 第163弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-09 第164弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -22212,7 +22203,7 @@ function rkRender(){
     ? '<div class="small" style="margin:0 0 6px;color:var(--ok-ink)">⚡ <b>' + nCard + ' / ' + total +
       ' レースの出馬表が端末に保存済み</b> ― ⚡の付いたRは netkeiba に取りに行かず<b>パッと表示</b>されます（出走取消などがあったときだけ「🔄 取り直す」）。</div>'
     : '<div class="small muted" style="margin:0 0 6px">まだ端末に出馬表がありません。レースを選ぶと取得します（一度取得したレースは次回から即表示）。' +
-      'その日の全レースを先にまとめて入れておくには <b>📥 一括取得して事前予想を保存</b> を押してください。</div>';
+      'その日の全レースを先にまとめて入れておくには 🤖AI提案タブ上段の <b>📅日付 → 📥 その日の出馬表を一括取得</b> を押してください。</div>';
   box.innerHTML = head + html;
 }
 function rkSelect(rid){
@@ -33785,10 +33776,12 @@ function preRun(){
     try { if (typeof jlTodayD8 === 'function') d8 = jlTodayD8(); } catch(e){}
   }
   if (!/^\d{8}$/.test(d8)){ preMsg('日付を入力してください（YYYYMMDD）', true); return; }
+  var force = !!($('preChkForce') && $('preChkForce').checked);
   var opt = {
     odds: true,
     detail: !!($('preChkDetail') && $('preChkDetail').checked),
-    force: !!($('preChkForce') && $('preChkForce').checked)
+    force: force,
+    forceCard: force   /* ★第164弾: 「保存済みも取り直す」では出馬表HTMLも強制再取得（当日ぶんのカードキャッシュは終日有効のため、forceCardなしでは出馬表が更新されなかった） */
   };
   preBusy(true);
   preMsg('');
@@ -37183,7 +37176,8 @@ function amPreRefresh(d8){
   if (typeof preDayFetch !== 'function') return Promise.resolve({ skip: true, reason: '一括取得の仕組みがありません' });
   AM_BUSY.ref = true;
   amStat('🤖 自動: 未発走レースの事前予想を当日バイアス・直前オッズで引き直します（結果確定済みは書き換えません）…');
-  return preDayFetch(s8, { refresh: true, odds: true, force: false, forceCard: false }, function(msg){
+  /* ★第164弾: forceCardをtrueに——当日カードキャッシュが終日有効のためfalseだと出馬表が更新されない */
+  return preDayFetch(s8, { refresh: true, odds: true, force: false, forceCard: true }, function(msg){
     amStat('🤖 ' + String(msg == null ? '' : msg).replace(/</g, '&lt;'));
   }).then(function(res){
     AM_BUSY.ref = false;
@@ -39856,7 +39850,7 @@ var AI_HELP = [
   { k:'settle',t:'② その日の結果を取得',          d:'発走が過ぎたレースの着順・払戻・ペース・コーナー通過順を netkeiba 結果ページ(race.netkeiba)から取り込み、印と同じ表に並べます（払戻が確定すると同じボタンを再実行で更新）。※旧db.netkeibaページは2026-09から非会員に空ページを返すため、そちらは保険として残しています。' },
   { k:'recap', t:'③ AI振り返りコメント',          d:'結果が揃ったレースごとに、展開予想（ペース・トラックバイアス）と実際の流れ、印の馬が来た／来なかった理由を1レースずつ自動でまとめます。' },
   { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。★第99弾: 判定は<b>◎単独</b>（◎が馬券内なら✓的中・圏外なら✗ハズレ。○▲☆△が来ても◎不的中はハズレ）をチップ・当日合計・Excel/PDFの見出しに表示し、◎を外したレースは「🔍 なぜ◎は外れたか／💡 どう考えてたら勝ち馬が買えたか」を振り返りに自動で書きます。' },
-  { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の結果を取得」を押したときだけ動きます。' },
+  { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「🔄 結果を取得・未発走を再予想」を押したときだけ動きます。' },
   { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での順位（1が最高評価＝数値が小さいほど信用できる。15頭立てなら最高評価の馬が1・最低評価の馬が15。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方とも順位が小さい馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。レースLv／コースLvは<b>予想時点の学習DBで計算してスナップショットに保存</b>し、結果確定後に再ランク付けしません（★第102弾）。保存が無い古い予想はレース日以前の戦績だけで再現計算します（★第104弾）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
   { k:'recomp',t:'⑧ 🔄未発走を再予想',       d:'★第98弾: その日の現在までの結果（トラックバイアス・コーナー通過順などのレース展開）と直前の単勝オッズで、まだ発走していないレースの予想を引き直して印を付け直します（出馬表とオッズを再取得します）。結果が確定しているレースは絶対に上書きしません。旧予想は履歴（最大5版）として残るので、どこで軌道修正したか後から追えます。再予想後の📤Excel保存・🖨PDF出力は新しい印の内容で出ます。' }
@@ -39913,7 +39907,7 @@ function aiProposalRows(){
    ------------------------------------------------------------
    ・①データ入力の「📥 その日の出馬表を一括取得」で保存した事前予想（rec.pre）の
      印（◎○▲☆△）を、その日の全レースぶん表示する（EV・確率などの数値は載せない）。
-   ・「📥 その日の結果を取得」で、終わったレースの結果（着順/払戻/ペース/通過順位）を
+   ・「🔄 結果を取得・未発走を再予想」で、終わったレースの結果（着順/払戻/ペース/通過順位）を
      netkeiba DB結果ページから取り込み、印と結果を同じ表に並べて表示する。
    ・結果が揃ったレースには「🧠 AI振り返り」を付ける：
      展開予想（ペース・トラックバイアス）が実際どう転んだか、印の馬はなぜ来た/
@@ -40290,13 +40284,16 @@ function aiSettleMsg(txt){
   if (el) el.innerHTML = AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '';
 }
 function aiSettleDay(){
-  if (AI_SETTLE.busy) return;
+  /* ★第164弾: Promiseを返すように変更（結果取得→未発走再予想を1ボタンに統合した aiUpdateDay から直列実行するため）。
+     専用ボタン(📥その日の結果を取得)は廃止したが機能はそのまま・テストからも直接呼ばれる */
+  return new Promise(function(resolve){
+  if (AI_SETTLE.busy){ resolve(null); return; }
   if (typeof bfGet !== 'function' || typeof bfParseDbResult !== 'function'){
     aiSettleMsg('⚠ 取得機能が読み込めていません。ページをやり直しください。');
-    return;
+    resolve(null); return;
   }
   var items = aiDayItems();
-  if (!items.length){ aiSettleMsg('⚠ その日の一括取得データがありません。まず①で「📥 その日の出馬表を一括取得」してください。'); return; }
+  if (!items.length){ aiSettleMsg('⚠ その日の一括取得データがありません。まず「📥 その日の出馬表を一括取得」してください。'); resolve(null); return; }
   var d8 = AI_DAY_D8;
   var jobs = items.filter(function(it){
     var b = aiRecBundle(it.rid);
@@ -40304,24 +40301,27 @@ function aiSettleDay(){
     var pay = b.res && b.res.payout;
     return !(pay && pay.win);                              // 払戻まで揃っているレースはスキップ
   });
-  AI_SETTLE = { busy: true, n: jobs.length, done: 0, ok: 0, skip: items.length - jobs.length, err: 0, msg: '' };
+  AI_SETTLE = { busy: true, n: jobs.length, done: 0, ok: 0, skip: items.length - jobs.length, err: 0, notyet: 0, msg: '' };   /* ★第164弾: notyet=結果ページがまだ無い(未発走) */
   var btn = (typeof $ === 'function') ? $('aiSettle') : null;
   if (btn){ btn.disabled = true; btn.textContent = '⏳ 取得中…'; }
   function finish(){
     AI_SETTLE.busy = false;
     if (btn){ btn.disabled = false; btn.textContent = '📥 その日の結果を取得'; }
-    aiSettleMsg('完了: 結果 ' + AI_SETTLE.ok + ' レースを追加' + (AI_SETTLE.err ? '／失敗 ' + AI_SETTLE.err : '') +
+    aiSettleMsg('完了: 結果 ' + AI_SETTLE.ok + ' レースを追加' +
+      (AI_SETTLE.notyet ? '／まだ結果なし(未発走) ' + AI_SETTLE.notyet : '') +
+      (AI_SETTLE.err ? '／失敗 ' + AI_SETTLE.err : '') +
       (AI_SETTLE.feed ? '／✅ 今後の予想への学習反映 ' + AI_SETTLE.feed + ' レース' : '') +
       (AI_SETTLE.skip ? '（払戻確定済み ' + AI_SETTLE.skip + ' レースはスキップ）' : ''));
     /* ★第65弾⑤: ファクター学習のキャッシュを落として、次回のAI印計算から結果反映を効かせる */
     try { if (typeof flDrop === 'function') flDrop(); } catch(e){}
     try { if (typeof aiProposalRender === 'function') aiProposalRender(); } catch(e){}
+    resolve(null);
   }
   if (!jobs.length){
     AI_SETTLE.busy = false;
     if (btn){ btn.disabled = false; btn.textContent = '📥 その日の結果を取得'; }
     aiSettleMsg('取得が必要なレースはありません（この日の分はすべて払戻まで揃っています）。');
-    return;
+    resolve(null); return;
   }
   aiSettleMsg('結果を取得中… 0 / ' + jobs.length + ' レース');
   var seq = Promise.resolve();
@@ -40330,7 +40330,7 @@ function aiSettleDay(){
       return bfGet('https://race.netkeiba.com/race/result.html?race_id=' + it.rid).then(function(html){
         var pr = null;
         try { pr = (typeof diParseResultPage === 'function') ? diParseResultPage(html) : bfParseDbResult(html); } catch(e){ pr = null; }
-        if (!pr || !pr.rows || !pr.rows.length || pr.n < 3){ AI_SETTLE.err++; return null; }  // 未確定/取れず
+        if (!pr || !pr.rows || !pr.rows.length || pr.n < 3){ AI_SETTLE.notyet++; return null; }  /* ★第164弾: 結果ページがまだ無い=未発走は「まだ結果なし」扱い(失敗と区別) */
         var xd = null;
         try { if (typeof diExtractXD === 'function') xd = diExtractXD(html, pr); } catch(e){}
         /* ★第65弾⑤: 先に学習へフィードバック（事前予想のオッズ・脚質・出遅れ率を結合した全頭ぶんで評価） */
@@ -40350,6 +40350,21 @@ function aiSettleDay(){
     });
   });
   seq.then(finish).catch(finish);
+  });   /* ★第164弾: Promiseラップの閉じ */
+}
+/* ---------- ★第164弾: 統合更新ボタン（旧🔄表示を更新＋旧📥その日の結果を取得＋未発走再予想） ---------- */
+function aiUpdateDay(){
+  if (AI_REPRED.busy || AI_SETTLE.busy) return Promise.resolve(null);
+  /* ① 旧「🔄 表示を更新」の機能: 表示用オッズの取得+再描画 */
+  try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView(true); } catch(e){}
+  try { aiProposalRender(); } catch(e){}
+  /* ② 旧「📥 その日の結果を取得」の機能: 終わったレースの結果を先に取得(未発走は「まだ結果なし」でスキップ) */
+  return aiSettleDay().then(function(){
+    /* ③ 未発走を再予想(出馬表も強制引き直し) */
+    return aiRepredDay();
+  }).catch(function(){
+    try { return aiRepredDay(); } catch(e){ return null; }
+  });
 }
 /* ---------- 現在のレース（①で一括取得していないときだけの保険） ---------- */
 function aiCurRaceBlock(){
@@ -40407,7 +40422,7 @@ function aiProposalRender(){
       '</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
       '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
-      '「📥 その日の結果を取得」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
+      '「🔄 結果を取得・未発走を再予想」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
       'レースが進んだら <b>「🔄 未発走を再予想」</b> で、当日バイアス（コーナー通過順などの展開）と直前オッズを反映して未発走レースの印を付け直せます（結果確定済みは上書きせず保護・旧予想は履歴保存。終了後のExcel/PDFも新しい印で出ます）。' +
       '新馬戦・障害戦のレース名には「🧩 補正」チップを表示します。</div></div>';
     h += blocks;
@@ -40435,7 +40450,7 @@ function aiProposalRender(){
     h += '<div class="card"><b>📅 その日の全レース</b>' +
       '<div class="muted" style="margin-top:6px">まだ一括取得されたレースがありません。<br>' +
       '下の <b>「📥 その日の出馬表を一括取得」</b> を押すと、その日の全レースの印がここに並びます（📋出馬表タブでも同じデータを見られます）。<br>' +
-      'レースが終了したら <b>「📥 その日の結果を取得」</b> で着順・払戻・展開を突き合わせ、AI振り返りが出ます。</div>' +
+      'レースが終了したら <b>「🔄 結果を取得・未発走を再予想」</b> で着順・払戻・展開を突き合わせ、AI振り返りが出ます。</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div></div>';
   }
   var cur = aiCurRaceBlock();
@@ -40443,21 +40458,19 @@ function aiProposalRender(){
   box.innerHTML = h + aiProposalHelpHTML();
 }
 function aiProposalInit(){
-  var b = $('aiRefresh');
-  /* ★第156弾: 更新ボタンで表示を再描画＋最新単勝オッズの取得（旧②oddsFreshCardの機能を統合） */
-  if (b) b.addEventListener('click', function(){
-    try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView(true); } catch(e){}
-    try { aiProposalRender(); } catch(e){}
-  });
-  var s = $('aiSettle');
-  if (s) s.addEventListener('click', function(){ try { aiSettleDay(); } catch(e){ aiSettleMsg('⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e))); } });
+  /* ★第164弾: 「🔄 表示を更新」(aiRefresh)と「📥 その日の結果を取得」(aiSettle)のボタンは廃止。
+     機能は aiUpdateDay(結果取得+表示更新+未発走再予想の統合)へ集約し、🔄ボタン(aiRepred)から実行 */
+  var rp0 = $('aiRefresh'), s0 = $('aiSettle');
+  if (rp0) rp0.addEventListener('click', function(){ try { aiUpdateDay(); } catch(e){ aiSettleMsg('⚠ 更新に失敗: ' + esc(String((e && e.message) || e))); } });
+  if (s0) s0.addEventListener('click', function(){ try { aiSettleDay(); } catch(e){ aiSettleMsg('⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e))); } });
   var xe = $('aiExcel');
   if (xe) xe.addEventListener('click', function(){ try { aiExportExcel(); } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); } });
   var xp = $('aiPdf');
   if (xp) xp.addEventListener('click', function(){ try { aiExportPDF(); } catch(e){ aiSettleMsg('⚠ PDF(印刷)に失敗: ' + esc(String((e && e.message) || e))); } });
-  /* ★第98弾: 🔁再計算ボタン（aiRecompute・用途が被るため削除）→ 🔄未発走を再予想（aiRepred）へ置換 */
+  /* ★第98弾: 🔁再計算ボタン（aiRecompute・用途が被るため削除）→ 🔄未発走を再予想（aiRepred）へ置換
+     ★第164弾: さらに表示更新・結果取得も統合し aiUpdateDay から実行 */
   var rp = $('aiRepred');
-  if (rp) rp.addEventListener('click', function(){ try { aiRepredDay(); } catch(e){ aiSettleMsg('⚠ 再予想に失敗: ' + esc(String((e && e.message) || e))); } });
+  if (rp) rp.addEventListener('click', function(){ try { aiUpdateDay(); } catch(e){ aiSettleMsg('⚠ 更新に失敗: ' + esc(String((e && e.message) || e))); } });
   /* 旧aiRecomputeDay（通信ゼロ再計算）はJS残存。ボタンは削除済み */
   try { aiProposalRender(); } catch(e){}
 }
@@ -41360,7 +41373,7 @@ function aiRepredDay(){
   var items = aiDayItems();
   if (!items.length){ aiSettleMsg('⚠ 再予想対象がありません（①でその日の一括取得をしてください）。'); return Promise.resolve(null); }
   var d8 = AI_DAY_D8 || (typeof baToday8 === 'function' ? (baToday8() || '') : '');
-  if (!/^\d{8}$/.test(String(d8 || ''))){ aiSettleMsg('⚠ 開催日の特定ができません。🔄表示を更新のあとにもう一度押してください。'); return Promise.resolve(null); }
+  if (!/^\d{8}$/.test(String(d8 || ''))){ aiSettleMsg('⚠ 開催日の特定ができません。「📥 その日の出馬表を一括取得」を行ってからもう一度押してください。'); return Promise.resolve(null); }
   if (typeof preDayFetch !== 'function'){ aiSettleMsg('⚠ 一括取得の仕組みがありません。'); return Promise.resolve(null); }
   AI_REPRED.busy = true;
   var btn = (typeof $ === 'function') ? $('aiRepred') : null;
@@ -41375,11 +41388,13 @@ function aiRepredDay(){
   try { if (typeof learnDayRun === 'function') learnDayRun(); } catch(e){}
   if (!(biasP && typeof biasP.then === 'function')) biasP = Promise.resolve();
   return biasP.catch(function(){}).then(function(){
-  return preDayFetch(d8, { refresh: true, odds: true, force: false, forceCard: false }, function(msg){
+  /* ★第164弾バグ修正: forceCardをtrueに——当日取得ぶんの出馬表キャッシュは「その日の終わりまで」有効のため、
+     forceCard:falseのままだと何度再予想しても出馬表HTMLがキャッシュから返され更新されなかった */
+  return preDayFetch(d8, { refresh: true, odds: true, force: false, forceCard: true }, function(msg){
     aiSettleMsg('🔄 ' + String(msg == null ? '' : msg).replace(/</g, '&lt;'));
   }).then(function(res){
     AI_REPRED.busy = false;
-    if (btn){ btn.disabled = false; btn.textContent = '🔄 未発走を再予想（バイアス・直前オッズ）'; }
+    if (btn){ btn.disabled = false; btn.textContent = '🔄 結果を取得・未発走を再予想'; }
     res = res || {};
     aiSettleMsg('✅ 再予想完了: 引き直し <b>' + (res.refreshed || 0) + '</b> ／ 新規予想 ' + ((res.ok || 0) - (res.refreshed || 0)) +
       ' ／ 結果確定済みスキップ ' + (res.skipDone || 0) + ' ／ 失敗 ' + (res.fail || 0) +
@@ -41391,7 +41406,7 @@ function aiRepredDay(){
     return res;
   }).catch(function(e){
     AI_REPRED.busy = false;
-    if (btn){ btn.disabled = false; btn.textContent = '🔄 未発走を再予想（バイアス・直前オッズ）'; }
+    if (btn){ btn.disabled = false; btn.textContent = '🔄 結果を取得・未発走を再予想'; }
     aiSettleMsg('⚠ 再予想に失敗しました: ' + esc(String((e && e.message) || e)));
     return null;
   });
