@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-11 第170弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-12 第171弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -3338,7 +3338,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-11 第170弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-12 第171弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -15722,10 +15722,11 @@ function kaiListUrls(d8){
     'https://race.netkeiba.com/?pid=race_list&kaisai_date=' + d8
   ];
 }
-/* SP版レース一覧（race.sp.netkeiba.com/?pid=race_list&kaisai_date=）のパース。
+/* SP版レース一覧（race.sp.netkeiba.com/?pid=race_list&kaisai_date=）のパース【厳密版】。
    PC版(race_list_sub.html)が空や400を返す中継でも、当日の開催場・レースが取れるようにするための予備。
-   race_id は YYYY + 場コード(2) + 回(2) + 日(2) + R(2) なので、場と回次は race_id から復元できる。 */
-function kaiParseListSp(html, d8){
+   race_id は YYYY + 場コード(2) + 回(2) + 日(2) + R(2) なので、場と回次は race_id から復元できる。
+   ★第171弾: 失敗・不完全なときは kaiParseListSp(公開ラッパー)が汎用フォールバックへ自動切替。 */
+function kaiParseListSpStrict(html, d8){
   var s = String(html || ''), venues = [];
   if (!/RaceListDayWrap|jyo_tab/i.test(s)) return venues;
   var dayParts = s.split(/<div class="RaceListDayWrap"/i);
@@ -15740,7 +15741,11 @@ function kaiParseListSp(html, d8){
   var codeName = {}, cm, crx = /<li[^>]*id="cd(\d{2})"[^>]*>\s*<a[^>]*>([^<]+)<\/a>/gi;
   while ((cm = crx.exec(block)) !== null){ var n0 = kaiClean(cm[2]); if (n0) codeName[cm[1]] = n0; }
   var byCode = {}, order = [];
-  var rx = /race_id=(\d{12})[\s\S]{0,500}?<div class="Race_Num"><span>(\d{1,2})R[\s\S]{0,900}?<dt class="Race_Name">([\s\S]*?)<\/dt>\s*<dd class="Race_Data">([\s\S]*?)<\/dd>/gi, m;
+  /* ★第170弾・追記5(2026-10-12): netkeiba SP版が <div class="Race_Num Race_Fixed"> のように
+     クラスを追加してきたため、旧パターン <div class="Race_Num"><span> が一致しなくなり
+     レース一覧が0件になることがあった(SPC版フォールバックが効かない状態)。
+     → Race_Num の class は追加クラスを許容し、div と span の間の空白も許す。 */
+  var rx = /race_id=(\d{12})[\s\S]{0,700}?<div class="Race_Num[^"]*"\s*>\s*<span>(\d{1,2})R[\s\S]{0,1200}?<dt class="Race_Name">([\s\S]*?)<\/dt>\s*<dd class="Race_Data">([\s\S]*?)<\/dd>/gi, m;
   while ((m = rx.exec(block)) !== null){
     var rid = m[1], rno = parseInt(m[2], 10);
     var name = kaiClean(m[3]);
@@ -15807,9 +15812,10 @@ function kaiFetchListHtml(d8){
 function kaiListLooksValid(html){
   return /RaceList_Body|RaceList_Box|RaceList_DataList|RaceList_DataTitle|RaceListDayWrap|jyo_tab/i.test(String(html || ''));
 }
-/* ===== netkeiba レース一覧HTMLのパース（PC版 race_list_sub） ===== */
+/* ===== netkeiba レース一覧HTMLのパース（PC版 race_list_sub）【厳密版】 =====
+   ★第171弾: 失敗・不完全なときは kaiParseList(公開ラッパー)が汎用フォールバックへ自動切替。 */
 function kaiClean(s){ return (typeof nkCleanName === 'function') ? nkCleanName(s) : String(s || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
-function kaiParseList(html){
+function kaiParseListStrict(html){
   var venues = [];
   if (!html || !/<dl class="RaceList_DataList">/i.test(html)) return venues;
   var parts = String(html).split(/<dl class="RaceList_DataList">/i);
@@ -15854,6 +15860,157 @@ function kaiParseList(html){
     venues.push({ venue: vname, kaisai: kaisaiTxt, baba: baba, races: races });
   }
   return venues;
+}
+
+/* =========================================================
+   ★第171弾(2026-10-12): レース一覧パーサの自動耐性強化（汎用フォールバック）
+   ---------------------------------------------------------
+   ユーザー指示「ダメだった場合とかおかしいと思った時、勝手に修正できないか」。
+   完全な自動修復は不可能（netkeibaがHTMLをどう変えたかは取得して見るまで分からない）ため、
+   「厳密パース（従来方式・class/見出しから整形情報まで取得）が失敗・不完全なときだけ、
+     race_idリンク刈り取り方式の汎用パースへ自動フォールバックする」構造にした。
+
+   ・汎用パースは race_id（YYYY+場コード2+回2+日2+R2）自体から 場・回次・R番号 を復元し、
+     発走時刻/芝ダ距離/頭数/レース名はリンク直後の周辺テキストから拾う（class名が変わっていても良い）。
+   ・SP版の日付ブロック選別は class="RaceListDayWrap" に依存せず data-kaisaidate 属性だけで行う。
+   ・整合チェック（各会場でRが1〜12・重複なし＝別日の混入検知／会場内で場コード一致／race_id桁数）を通り、
+     かつ厳密パースより多くのレースを取れたときだけ汎用結果を採用する
+     ＝ 現行フォーマットでは常に従来どおり厳密パースの結果を返す（挙動完全不変）。
+   ・できないこと: data-kaisaidate 属性と race_id リンクの両方が消えた場合は空を返して
+     次のURL候補へ落ちる（kaiFetchListHtml）。出馬表本体/AI展開予測パースは対象外。
+   ========================================================= */
+var KAI_CODE_NAMES = { '01':'札幌','02':'函館','03':'福島','04':'新潟','05':'東京','06':'中山','07':'中京','08':'京都','09':'阪神','10':'小倉' };
+function kaiVenueNameOf(code, codeName){
+  if (codeName && codeName[code]) return codeName[code];
+  return KAI_CODE_NAMES[code] || (code + 'コード');
+}
+function kaiKaisaiFromRid(rid){
+  return (parseInt(rid.slice(6, 8), 10) || '') + '回' + (parseInt(rid.slice(8, 10), 10) || '') + '日目';
+}
+/* 整合チェック: 各会場ともRは1〜12で重複なし・race_idは10〜12桁・会場内で場コード一致 */
+function kaiVenuesOk(venues){
+  if (!venues || !venues.length) return false;
+  for (var i = 0; i < venues.length; i++){
+    var v = venues[i];
+    var rs = v && v.races;
+    if (!rs || !rs.length) return false;
+    var seen = {}, code = '';
+    for (var j = 0; j < rs.length; j++){
+      var rr = rs[j];
+      if (!rr || !/^\d{10,12}$/.test(String(rr.raceId || ''))) return false;
+      var rn = rr.r | 0;
+      if (rn < 1 || rn > 12 || seen[rn]) return false;
+      seen[rn] = 1;
+      var c = String(rr.raceId).slice(4, 6);
+      if (!code) code = c; else if (code !== c) return false;
+    }
+  }
+  return true;
+}
+function kaiRaceTotal(venues){
+  var n = 0;
+  (venues || []).forEach(function(v){ n += (v && v.races) ? v.races.length : 0; });
+  return n;
+}
+/* リンク直後の周辺テキストから 発走時刻/芝ダ距離/頭数/レース名 を拾う（class名に依存しない）。
+   レース名は ①classトークン(Race_Name/ItemTitle/RaceTitle) → ②<dt> → ③「テキストらしい<span>」の順。 */
+function kaiGenMeta(win){
+  var name = '';
+  var nm = win.match(/class="[^"]*(?:Race_Name|ItemTitle|RaceTitle)[^"]*"[^>]*>([\s\S]{0,300}?)<\//i)
+        || win.match(/<dt[^>]*>([\s\S]{0,300}?)<\/dt>/i);
+  if (nm){
+    name = kaiClean(nm[1]);
+  } else {
+    var sps = win.match(/<span[^>]*>([^<]{2,60})<\/span>/g) || [];
+    for (var i = 0; i < sps.length; i++){
+      var t = kaiClean(sps[i].replace(/^<span[^>]*>/, '').replace(/<\/span>$/, ''));
+      if (t && !/^\d{1,2}R$/.test(t) && !/^\d{1,2}:\d{2}/.test(t) && !/^[芝ダ障]/.test(t) && !/頭$/.test(t)){ name = t; break; }
+    }
+  }
+  var time = (win.match(/(\d{1,2}:\d{2})/) || [])[1] || '';
+  var cond = kaiClean((win.match(/([芝ダ障][^<]{0,12}?\d{3,4}\s*m)/) || [])[1] || '');
+  var cnt  = (win.match(/(\d{1,2})\s*頭/) || [])[1] || '';
+  return { name: name, time: time, cond: cond, count: cnt ? cnt + '頭' : '' };
+}
+/* data-kaisaidate 属性だけで対象日のブロックを切り取る（class名・タグ構造に依存しない）。
+   属性が1つも無い場合は空＝刈り取りしない（別日のレースを混ぜないため）。 */
+function kaiSpBlockByDate(s, d8){
+  var marks = [], m, rx = /data-kaisaidate="(\d{8})"/g;
+  while ((m = rx.exec(s)) !== null) marks.push({ d: m[1], i: m.index });
+  if (!marks.length) return '';
+  var want = d8 || marks[0].d;   /* 指定が無い=先頭ブロック（厳密版と同じ挙動） */
+  var out = '', found = false;
+  for (var i = 0; i < marks.length; i++){
+    var end = (i + 1 < marks.length) ? marks[i + 1].i : s.length;
+    if (marks[i].d === want){ out += s.slice(marks[i].i, end); found = true; }
+  }
+  return found ? out : '';
+}
+/* race_idリンク刈り取り（SP/PC共通）。
+   同じrace_idは出馬表/オッズ等のメニューリンクで何度も出るので初出だけ採用し、
+   「整形情報の窓」= このrace_idの初出位置 → 別race_idの初出位置 とする。 */
+function kaiHarvestRids(block, codeName){
+  var occ = [], m, rx = /race_id=(\d{12})/g;
+  while ((m = rx.exec(block)) !== null) occ.push({ rid: m[1], end: rx.lastIndex });
+  var byCode = {}, order = [], seen = {};
+  for (var i = 0; i < occ.length; i++){
+    var rid = occ[i].rid;
+    if (seen[rid]) continue;
+    seen[rid] = 1;
+    var j = i + 1;
+    while (j < occ.length && occ[j].rid === rid) j++;
+    var wEnd = (j < occ.length) ? occ[j].end : Math.min(occ[i].end + 20000, block.length);
+    var meta = kaiGenMeta(block.slice(occ[i].end, wEnd));
+    var code = rid.slice(4, 6);
+    if (!byCode[code]){
+      byCode[code] = { venue: kaiVenueNameOf(code, codeName), kaisai: '', baba: '', races: [] };
+      order.push(code);
+    }
+    var v = byCode[code];
+    if (!v.kaisai) v.kaisai = kaiKaisaiFromRid(rid);
+    v.races.push({ r: parseInt(rid.slice(10), 10), raceId: rid, name: meta.name, time: meta.time, cond: meta.cond, count: meta.count });
+  }
+  var venues = [];
+  order.forEach(function(code){
+    var v = byCode[code];
+    v.races.sort(function(a, b){ return a.r - b.r; });
+    venues.push(v);
+  });
+  return venues;
+}
+/* 汎用パース（SP版）: data-kaisaidateで対象日を切り取ってrace_id刈り取り */
+function kaiParseListSpGen(html, d8){
+  var s = String(html || '');
+  var block = kaiSpBlockByDate(s, d8);
+  if (!block) return [];
+  var codeName = {}, cm, crx = /id="cd(\d{2})"[^>]*>\s*<a[^>]*>([^<]+)<\/a>/gi;
+  while ((cm = crx.exec(block)) !== null){ var n0 = kaiClean(cm[2]); if (n0) codeName[cm[1]] = n0; }
+  return kaiHarvestRids(block, codeName);
+}
+/* 汎用パース（PC版 race_list_sub）: 1日分のページなので丸ごと刈り取り。
+   data-kaisaidate を持つページ＝SP版（複数日）なので手を出さない（kaiParseListSpの担当）。 */
+function kaiParseListGen(html){
+  var s = String(html || '');
+  if (/data-kaisaidate="\d{8}"/.test(s)) return [];
+  return kaiHarvestRids(s, null);
+}
+/* 公開関数（従来どおりの名前）: 厳密→汎用の自動フォールバック。
+   汎用結果は「整合チェックを通る かつ 厳密より多くのレースを取れた」場合だけ採用。 */
+function kaiParseListSp(html, d8){
+  var v = kaiParseListSpStrict(html, d8);
+  try {
+    var gen = kaiParseListSpGen(html, d8);
+    if (kaiVenuesOk(gen) && kaiRaceTotal(gen) > kaiRaceTotal(v)) return gen;
+  } catch(e){}
+  return v;
+}
+function kaiParseList(html){
+  var v = kaiParseListStrict(html);
+  try {
+    var gen = kaiParseListGen(html);
+    if (kaiVenuesOk(gen) && kaiRaceTotal(gen) > kaiRaceTotal(v)) return gen;
+  } catch(e){}
+  return v;
 }
 
 /* ===== レース一覧の取得と表示 ===== */
@@ -21498,13 +21655,33 @@ function diParseDateList(html){
   out.sort(function(a, b){ return (a.rnum || 0) - (b.rnum || 0) || (a.rid < b.rid ? -1 : 1); });
   return out;
 }
+/* ★第171弾: diParseDateList が0件のとき、p26のレース一覧パース（厳密→汎用フォールバック付き）へ
+   別経路として問い合わせる。netkeibaがPC版subのclass構造を変えても一括取得が生き続けるための保険。
+   学習DBへ地方競馬を入れない方針どおり、場コード01〜10（JRA）以外のrace_idはここで落とす。 */
+function diItemsFromKaiList(html){
+  var out = [];
+  try {
+    if (typeof kaiParseList !== 'function') return out;
+    var venues = kaiParseList(html) || [];
+    venues.forEach(function(v){
+      (v && v.races ? v.races : []).forEach(function(rc){
+        var code = String(rc && rc.raceId || '').slice(4, 6);
+        if (typeof KAI_CODE_NAMES === 'undefined' || !KAI_CODE_NAMES[code]) return;
+        out.push({ rid: rc.raceId, rnum: rc.r, name: rc.name || '' });
+      });
+    });
+  } catch(e){}
+  return out;
+}
 function diNetkeibaRaces(date8){
   return bfGet('https://race.netkeiba.com/top/race_list_sub.html?kaisai_date=' + date8).then(function(html){
     var items = diParseDateList(html);
+    if (!items.length) items = diItemsFromKaiList(html);   /* ★第171弾: p26経由（汎用フォールバック付き） */
     if (!items.length){
       // 古いフォーマット(トップの日別JSページ)へフォールバック
       return bfGet('https://race.netkeiba.com/top/race_list.html?kaisai_date=' + date8).then(function(h2){
         var items2 = diParseDateList(h2);
+        if (!items2.length) items2 = diItemsFromKaiList(h2);
         if (items2.length) return items2;
         throw new Error('この開催日のレース一覧をnetkeibaに見つけられませんでした');
       });
