@@ -2165,6 +2165,13 @@ html[data-theme="light"] .page-top-hero{
   .dbs-brk .cap{color:#a33; font-weight:700;}
   .dbs-brk .dbs-tag{background:#fdeeee; border-color:#d69999; color:#8a2222;}
   .dbs-brk .dbs-tag.dbs-zero{background:#3a3f39; border-color:#3a3f39; color:#ffe9e9; opacity:.9;}
+  /* ★追記4: 馬柱モーダル */
+  .dbs-hname{color:var(--link,#1e6fd0); cursor:pointer; border-bottom:1px dotted currentColor;}
+  .dbs-hname:hover{color:var(--ok-ink,#0c7c40); border-bottom-style:solid;}
+  #dbsHorseModal{position:fixed; inset:0; z-index:90; display:none; align-items:center; justify-content:center; padding:16px;}
+  .dbs-hback{position:absolute; inset:0; background:rgba(10,20,8,.55);}
+  .dbs-hcard{position:relative; z-index:1; background:var(--card,#fff); border:1px solid var(--line2,#c4d2be); border-radius:14px; max-width:940px; width:100%; max-height:86vh; overflow-y:auto; padding:14px 16px; box-shadow:0 18px 50px rgba(0,0,0,.35);}
+  .dbs-hsum{display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:8px; padding:8px 10px; background:var(--card2,#f6faf4); border:1px solid var(--line,#d8e2d3); border-radius:10px; font-size:13px;}
   @media(max-width:640px){ .dbs-menus{max-height:300px;} }
   </style>
 </section>
@@ -52788,7 +52795,7 @@ function dbsRenderResult(){
       '<td class="l">' + esc(dbsShortName(rf.name)) + '</td>' +
       '<td>' + esc((dbsSurfOf(rc) === 'ダ' ? 'ダ' : dbsSurfOf(rc)) + rf.m) + '</td>' +
       '<td>' + (rf.turn || '—') + '</td>' +
-      '<td class="l"><b>' + esc(row.name || '') + '</b></td>' +
+      '<td class="l"><b class="dbs-hname" data-dbs-horse="' + esc((row.id ? String(row.id) : 'n' + String(row.name || ''))) + '" title="この馬の馬柱(学習DB内の出走)を見る">' + esc(row.name || '') + '</b></td>' +
       '<td>' + esc(row.sexAge || '—') + '</td>' +
       '<td>' + esc(row.weight || '—') + '</td>' +
       '<td class="l">' + esc(row.jockey || '') + '</td>' +
@@ -52829,7 +52836,7 @@ function dbsRaceDetail(rc, keyset){
     h += '<tr class="' + (hit ? 'dbs-hitmark' : '') + '">' +
       '<td class="' + dbsOrdCls(parseInt(row.order, 10) || 99) + '">' + (row.order || '') + '</td>' +
       '<td>' + (row.frame || '—') + '</td><td>' + (row.no || '—') + '</td>' +
-      '<td class="l">' + (hit ? '<span class="dbs-star">★</span> ' : '') + esc(row.name || '') + '</td>' +
+      '<td class="l">' + (hit ? '<span class="dbs-star">★</span> ' : '') + '<span class="dbs-hname" data-dbs-horse="' + esc((row.id ? String(row.id) : 'n' + String(row.name || ''))) + '" title="この馬の馬柱を見る">' + esc(row.name || '') + '</span></td>' +
       '<td>' + esc(row.sexAge || '—') + '</td><td>' + esc(row.weight || '—') + '</td>' +
       '<td class="l">' + esc(row.jockey || '') + '</td>' +
       '<td>' + (row.pop || '—') + '</td><td>' + (row.odds || '—') + '</td>' +
@@ -52839,6 +52846,117 @@ function dbsRaceDetail(rc, keyset){
       '</tr>';
   });
   return h + '</tbody></table></div>';
+}
+
+/* ================= ★追記4: 馬柱ビュー(学習DB内の出走を時系列で表示) ================= */
+/* 馬ID(or 名前キー) → 出走リスト(日付昇順・前走索引を流用=未来情報ゼロ・追加取得なし) */
+function dbsHorseHist(D, key){
+  dbsIndex(D);
+  return D.horses[String(key)] || [];
+}
+/* 馬柱サマリ(着度数・勝率・連対率・馬券内率・単勝回収率) */
+function dbsHorseSum(list){
+  var c = [0, 0, 0, 0], pay = 0, odN = 0;
+  (list || []).forEach(function(e){
+    var o = parseInt(e.row.order, 10) || 99;
+    c[(o <= 3) ? o - 1 : 3]++;
+    var od = dbsOddsNum(e.row); if (od){ odN++; if (o === 1) pay += od; }
+  });
+  var n = (list || []).length;
+  return { n: n, c: c, pay: pay, odN: odN,
+    win: n ? c[0] / n : 0, renso: n ? (c[0] + c[1]) / n : 0, place3: n ? (c[0] + c[1] + c[2]) / n : 0,
+    ret: n ? pay / n : 0 };
+}
+function dbsOpenHorse(key){
+  try {
+    var body = document.getElementById('t-dbsearch');
+    if (!body) return;
+    var D = dbsData();
+    var list = dbsHorseHist(D, key);
+    /* 索引に無い馬(日付なしレースのみ等)は名前で学習DBを直接探す */
+    if (!list.length){
+      var nm = String(key).replace(/^n/, '');
+      D.races.forEach(function(rec){
+        if (!/^\d{8}$/.test(String((rec.meta || {}).date8 || ''))) return;
+        (rec.rows || []).forEach(function(row){
+          if (String(row.name || '') === nm) list.push({ d8: String(rec.meta.date8), rid: rec.rid, row: row, rec: rec });
+        });
+      });
+      list.sort(function(a, b){ return a.d8.localeCompare(b.d8); });
+    }
+    var name = list.length ? String(list[list.length - 1].row.name || '') : String(key).replace(/^n/, '');
+    var last = list.length ? list[list.length - 1] : null;
+    var b = last ? dbsBloodOf(D, last.row) : null;
+    var sum = dbsHorseSum(list);
+    /* 現在の検索条件に該当した出走に★ */
+    var keyset = {};
+    dbsHits.forEach(function(h){ keyset[h.rec.rid + '\x01' + h.row.name] = 1; });
+    var h = '<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">' +
+      '<h3 style="margin:0;font-size:1.15rem">🐎 ' + esc(name) + ' の馬柱</h3>' +
+      (last ? '<span class="chip small">' + esc(last.row.sexAge || '') + '</span>' : '') +
+      (b && b.sire ? '<span class="chip small">父 ' + esc(b.sire) + '</span>' : '') +
+      (b && b.msire ? '<span class="chip small">母父 ' + esc(b.msire) + '</span>' : '') +
+      (last && last.row.trainer ? '<span class="chip small">' + esc(last.row.trainer) + ' 厩舎</span>' : '') +
+      '<span class="sp" style="flex:1"></span>' +
+      '<button type="button" class="btn small ghost" data-dbs-act="hclose">✕ 閉じる</button></div>';
+    if (!list.length){
+      h += '<div class="dbs-nullv" style="color:var(--mut,#6b7a66)">学習DB内にこの馬の出走記録がありません<br><span class="small">(日付情報のないレースは馬柱の対象外です)</span></div>';
+    } else {
+      h += '<div class="dbs-hsum">' +
+        '<span><b>' + sum.n + '</b>走</span><span class="dbs-dash">/</span>' +
+        '<span class="dbs-tk1" style="padding:2px 8px;border-radius:6px">' + sum.c[0] + '</span><span class="dbs-dash">-</span>' +
+        '<span class="dbs-tk2" style="padding:2px 8px;border-radius:6px">' + sum.c[1] + '</span><span class="dbs-dash">-</span>' +
+        '<span class="dbs-tk3" style="padding:2px 8px;border-radius:6px">' + sum.c[2] + '</span><span class="dbs-dash">-</span>' +
+        '<span class="dbs-tk4" style="padding:2px 8px;border-radius:6px">' + sum.c[3] + '</span>' +
+        '<span>勝率 <b>' + (sum.win * 100).toFixed(1) + '%</b></span>' +
+        '<span>連対率 <b>' + (sum.renso * 100).toFixed(1) + '%</b></span>' +
+        '<span>馬券内率 <b>' + (sum.place3 * 100).toFixed(1) + '%</b></span>' +
+        '<span>単勝回収率 <b>' + (sum.ret * 100).toFixed(0) + '%</b></span></div>';
+      h += '<div class="tblwrap" style="margin-top:8px"><table class="tbl"><thead><tr>' +
+        '<th></th><th>日付</th><th>場R</th><th class="l">レース名</th><th>距離</th><th>回り</th><th>着順</th>' +
+        '<th class="l">騎手</th><th>斤量</th><th>人気</th><th>単勝</th><th>通過</th><th>上3F</th><th>体重</th><th>間隔</th><th>乗替</th>' +
+        '</tr></thead><tbody>';
+      for (var i = list.length - 1; i >= 0; i--){   /* 新しい順 */
+        var e = list[i], rc = e.rec, row = e.row, m = rc.meta || {};
+        var pv = (i > 0) ? list[i - 1] : null;
+        var changed = pv ? (String(pv.row.jockey || '') !== String(row.jockey || '')) : false;
+        var days = pv ? dbsDays(pv.d8, e.d8) : null;
+        var hit = !!keyset[rc.rid + '\x01' + row.name];
+        h += '<tr' + (hit ? ' class="dbs-hitmark"' : '') + '>' +
+          '<td>' + (hit ? '<span class="dbs-star">★</span>' : '') + '</td>' +
+          '<td>' + esc(e.d8.slice(0, 4) + '/' + e.d8.slice(4, 6) + '/' + e.d8.slice(6, 8)) + '</td>' +
+          '<td>' + esc(dbsPlaceShort(rc)) + esc(String(m.rnum || '')) + 'R</td>' +
+          '<td class="l">' + esc(dbsShortName(String(m.name || ''))) + '</td>' +
+          '<td>' + esc((dbsSurfOf(rc) === 'ダ' ? 'ダ' : dbsSurfOf(rc)) + dbsDistM(rc)) + '</td>' +
+          '<td>' + (dbsTurnOf(m.place, m.surface, dbsDistM(rc)) || '—') + '</td>' +
+          '<td class="' + dbsOrdCls(parseInt(row.order, 10) || 99) + '">' + (row.order || '') + '</td>' +
+          '<td class="l">' + esc(row.jockey || '') + '</td>' +
+          '<td>' + esc(row.weight || '—') + '</td>' +
+          '<td>' + (row.pop || '—') + '</td>' +
+          '<td>' + (row.odds || '—') + '</td>' +
+          '<td>' + esc(row.passing || '—') + '</td>' +
+          '<td>' + esc(row.last3 || '—') + '</td>' +
+          '<td>' + esc((row.weightChg || '').replace(/\(.*\)$/, '') || '—') + '</td>' +
+          '<td>' + (days != null ? Math.floor(days / 7) + '週' : '初出走') + '</td>' +
+          '<td>' + (changed ? '<span style="color:var(--warn,#e08a1e);font-weight:700">▲</span>' : '') + '</td></tr>';
+      }
+      h += '</tbody></table></div>' +
+        '<div class="small muted" style="margin-top:6px">※学習DBに保存されている出走のみ表示します(保存範囲より前の全走歴ではない可能性があります)。★=現在の検索条件に該当した出走。</div>';
+    }
+    var modal = document.getElementById('dbsHorseModal');
+    if (!modal){
+      modal = document.createElement('div');
+      modal.id = 'dbsHorseModal';
+      modal.innerHTML = '<div class="dbs-hback" data-dbs-act="hclose"></div><div class="dbs-hcard" id="dbsHorseCard"></div>';
+      body.appendChild(modal);
+    }
+    document.getElementById('dbsHorseCard').innerHTML = h;
+    modal.style.display = 'flex';
+  } catch(e){ try { dbsMsg('⚠ 馬柱の表示でエラー: ' + esc(String(e && e.message || e))); } catch(e2){} }
+}
+function dbsCloseHorse(){
+  var m = document.getElementById('dbsHorseModal');
+  if (m) m.style.display = 'none';
 }
 
 /* ================= 💾 CSV出力 ================= */
@@ -52935,6 +53053,7 @@ function dbsMsg(msg){
 function dbsOnTab(){
   var body = document.getElementById('t-dbsearch');
   if (!body) return;
+  dbsCloseHorse();   /* ★追記4: タブを開き直したら馬柱モーダルは閉じておく */
   if (!dbsWired){
     dbsWired = true;
     body.addEventListener('click', function(ev){
@@ -52964,6 +53083,8 @@ function dbsOnTab(){
           return;
         }
         if (ds.dbsRm !== undefined){ dbsRemoveTag(+ds.dbsRm); return; }
+        if (ds.dbsHorse !== undefined){ dbsOpenHorse(String(ds.dbsHorse)); return; }   /* ★追記4: 馬名タップ=馬柱 */
+        if (ds.dbsAct === 'hclose'){ dbsCloseHorse(); return; }
         if (t.id === 'dbsClr'){ dbsClrInput(); return; }   /* ⌫=入力だけ消す(タグは残す) */
         if (ds.dbsSec !== undefined){ dbsSecOpen[+ds.dbsSec] = !dbsSecOpen[+ds.dbsSec]; dbsRenderMenus(); return; }
         if (ds.dbsTk !== undefined){ dbsTapPlace(+ds.dbsTk); return; }
@@ -52989,6 +53110,7 @@ function dbsOnTab(){
       q.addEventListener('input', dbsOnInput);
       q.addEventListener('keydown', dbsOnKey);
     }
+    document.addEventListener('keydown', function(e){ if (e && e.key === 'Escape') dbsCloseHorse(); });   /* ★追記4 */
     var ax = document.getElementById('dbsAxisSel');
     if (ax) ax.addEventListener('change', function(){ dbsAxis = ax.value; if (dbsViewMode === 'group') dbsRenderResult(); });
     var vm = document.getElementById('dbsViewMode');
