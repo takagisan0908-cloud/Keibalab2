@@ -51927,7 +51927,7 @@ function dbsToday(){
   var d = new Date();
   return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
 }
-var _dbsData = null, _dbsDataVer = -1;
+var _dbsData = null, _dbsDataVer = -1, _dbsBootTry = false;
 function dbsData(force){
   var ver = (typeof diVer !== 'undefined') ? diVer : 0;
   if (!force && _dbsData && _dbsDataVer === ver) return _dbsData;
@@ -51935,34 +51935,50 @@ function dbsData(force){
   var races = [];
   Object.keys(db.races || {}).forEach(function(rid){
     var rec = db.races[rid];
-    if (!rec || !rec.meta || !String(rec.meta.date8 || '').match(/^\d{8}$/)) return;
-    if (!rec.rows || !rec.rows.length) return;
-    /* 学習DBはJRA中央の結果のみ(NARは取込経路が別・このDBには入らない) */
+    if (!rec || !rec.rows || !rec.rows.length) return;
+    /* ★修正(第170弾追記): date8 が無いレコードも基本検索対象に含める(旧実装はここで
+       全部除外して「候補が出ない」の一因になっていた)。d8='' として期間/前走系には使わない。 */
     races.push(rec);
   });
   races.sort(function(a, b){
-    return String(a.meta.date8).localeCompare(String(b.meta.date8)) ||
-           String(a.rid).localeCompare(String(b.rid));
-  });
-  /* 馬ID → 日付昇順の出走リスト(前走参照用・O(1)ポインタ) */
-  var horses = {}, pos = {};
-  races.forEach(function(rec){
-    (rec.rows || []).forEach(function(row){
-      var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
-      var list = horses[key] || (horses[key] = []);
-      list.push({ d8: String(rec.meta.date8), rid: rec.rid, row: row, rec: rec });
-      pos[key + '\x01' + rec.rid] = list.length - 1;
-    });
+    var da = /^\d{8}$/.test(String(((a.meta || {}).date8) || '')) ? String(a.meta.date8) : '99999999';
+    var dbb = /^\d{8}$/.test(String(((b.meta || {}).date8) || '')) ? String(b.meta.date8) : '99999999';
+    return da.localeCompare(dbb) || String(a.rid).localeCompare(String(b.rid));
   });
   var ped = null;
   try { ped = (typeof rsigPedMap === 'function') ? rsigPedMap() : null; } catch(e){ ped = null; }
-  _dbsData = { races: races, horses: horses, pos: pos, ped: ped, n: races.length,
+  /* ★修正(第170弾追記): 前走索引(horses/pos)は【遅延構築】に変更。基本検索(騎手/馬/距離…)
+     では全出走ぶんの索引を一切作らない(旧実装はタブを開くたび・検索のたびに全再構築して
+     メモリを圧迫=モバイルでアプリが落ちる原因になっていた)。dbsIndex() が必要な時だけ1回作る。 */
+  _dbsData = { races: races, horses: null, pos: null, ped: ped, n: races.length,
                ver: ver, today: dbsToday() };
-  _dbsDataVer = ver;
+  /* ★修正(第170弾追記): 空のスナップショットはキャッシュしない。アプリ起動直後は
+     IndexedDBからの読み込み(diBoot)がまだ完了しておらず diLs() が空を返すことがあるが、
+     diBoot は diVer を進めないため、空のままキャッシュすると一生更新されない(候補ゼロの
+     直接原因)。空のときはキャッシュを無効にしておき、次の呼び出しで引き直す。 */
+  _dbsDataVer = races.length ? ver : -1;
   return _dbsData;
+}
+/* ★前走索引(馬ID→日付昇順の出走リスト・O(1)ポインタ)を必要になった時に1回だけ構築 */
+function dbsIndex(D){
+  if (D.horses) return D;
+  var horses = {}, pos = {};
+  D.races.forEach(function(rec){
+    var d8 = String(((rec.meta || {}).date8) || '');
+    if (!/^\d{8}$/.test(d8)) return;   /* 日付なしは前走参照に使わない */
+    (rec.rows || []).forEach(function(row){
+      var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
+      var list = horses[key] || (horses[key] = []);
+      list.push({ d8: d8, rid: rec.rid, row: row, rec: rec });
+      pos[key + '\x01' + rec.rid] = list.length - 1;
+    });
+  });
+  D.horses = horses; D.pos = pos;
+  return D;
 }
 /* 前走(対象レースより前だけ=未来情報ゼロ)。無ければ null */
 function dbsPrevOf(D, rec, row){
+  if (!D.horses) dbsIndex(D);
   var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
   var list = D.horses[key];
   if (!list) return null;
@@ -51976,6 +51992,7 @@ function dbsPrevOf(D, rec, row){
 }
 /* N連続騎乗: 現レースを含め直近から同じ騎手が何連続か */
 function dbsTsuzuki(D, rec, row){
+  if (!D.horses) dbsIndex(D);
   var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
   var list = D.horses[key];
   if (!list) return 1;
@@ -52079,12 +52096,13 @@ function dbsTagMatch(D, rec, row, rf, t){
       return po >= 6;
     }
     case 'past': {
+      if (!/^\d{8}$/.test(rf.d8)) return false;   /* 日付なしは期間条件の対象外 */
       var y = +v, base = String(+rf.today.slice(0, 4) - y) + rf.today.slice(4);
       return rf.d8 >= base;
     }
-    case 'year': return rf.d8.slice(0, 4) === String(v);
-    case 'ymore': return rf.d8.slice(0, 4) >= String(v);
-    case 'yless': return rf.d8.slice(0, 4) <= String(v);
+    case 'year': return /^\d{8}$/.test(rf.d8) && rf.d8.slice(0, 4) === String(v);
+    case 'ymore': return /^\d{8}$/.test(rf.d8) && rf.d8.slice(0, 4) >= String(v);
+    case 'yless': return /^\d{8}$/.test(rf.d8) && rf.d8.slice(0, 4) <= String(v);
   }
   return true;
 }
@@ -52188,8 +52206,15 @@ function dbsGroupBy(hits, axis, D){
 }
 
 /* ================= 候補メニュー(学習DBの中身から自動生成) ================= */
-function dbsIt(cat, v, label, k){ return { cat: cat, v: v, label: label, k: (k ? k + ' ' : '') + label }; }
+function dbsIt(cat, v, label, k){
+  var kk = (k ? k + ' ' : '') + label;
+  /* ★修正(第170弾追記): よみ正規化済みキー(nk)を事前計算(旧実装はキーを打つたびに
+     全候補へ dbsNorm を実行していて学習DBが大きいと重かった) */
+  return { cat: cat, v: v, label: label, k: kk, nk: dbsNorm(kk) };
+}
+var _dbsMenuCache = null;   /* ★修正(第170弾追記): 候補プールはデータが変わるまで作り直さない */
 function dbsMenus(D){
+  if (_dbsMenuCache && _dbsMenuCache.D === D) return _dbsMenuCache.M;
   var joy = {}, tr = {}, hors = {}, sire = {}, msire = {}, places = {}, dists = {}, names = {}, years = {};
   D.races.forEach(function(rec){
     var rf = { place: dbsPlaceShort(rec) };
@@ -52275,6 +52300,7 @@ function dbsMenus(D){
   var ys = Object.keys(years).sort();
   if (ys.length){ y7.push(dbsIt('ymore', ys[0], ys[0] + '年以降', 'いこう')); y7.push(dbsIt('yless', ys[ys.length - 1], ys[ys.length - 1] + '年以前', 'いぜん')); }
   M.push({ title: '期間', items: y7, short: 6 });
+  _dbsMenuCache = { D: D, M: M };
   return M;
 }
 
@@ -52314,10 +52340,27 @@ function dbsRenderTags(){
   el.innerHTML = h;
 }
 /* ---------- 描画: 候補メニュー ---------- */
+var _dbsMenuHtml = null;   /* ★修正(第170弾追記): メニューHTMLは(データ・タグ・開閉状態)が
+  変わるまで作り直さない(innerHTMLの大量再構築を止める=モバイルのメモリ/電池対策) */
 function dbsRenderMenus(){
   var el = document.getElementById('dbsMenus');
   if (!el) return;
   var D = dbsData();
+  if (!D.n){
+    el.innerHTML = '<div class="dbs-menu"><h4>候補メニュー</h4><div class="small muted" style="line-height:2">📦 学習DBが空です。<br>・<b>🗄 データベースタブ</b>でレース結果を取得する<br>・💾バックアップ(JSON)から📥復元する<br>ことで、このタブで検索できるようになります。<br><span style="font-size:.9em">※この端末の保存データだけを対象にします(通信・追加取得はしません)。※index.htmlを前とは別のフォルダで開くと保存領域が別になってしまうので、同じ場所で開いてください。</span></div></div>';
+    el.style.display = '';
+    var pred0 = document.getElementById('dbsPredict');
+    if (pred0){ pred0.style.display = 'none'; pred0.innerHTML = ''; }
+    return;
+  }
+  var sig = dbsTags.map(function(t){ return t.cat + ':' + t.v; }).join('|') + '#' + JSON.stringify(dbsSecOpen);
+  if (_dbsMenuHtml && _dbsMenuHtml.D === D && _dbsMenuHtml.sig === sig){
+    /* キャッシュ命中=DOMはそのまま・表示を戻すだけ(innerHTMLの再解析ゼロ) */
+    el.style.display = '';
+    var pred1 = document.getElementById('dbsPredict');
+    if (pred1){ pred1.style.display = 'none'; pred1.innerHTML = ''; }
+    return;
+  }
   var M = dbsMenus(D);
   var h = '';
   M.forEach(function(sec, si){
@@ -52336,22 +52379,38 @@ function dbsRenderMenus(){
   });
   el.innerHTML = h;
   el.style.display = '';
+  _dbsMenuHtml = { D: D, sig: sig, html: h };
   var pred = document.getElementById('dbsPredict');
   if (pred){ pred.style.display = 'none'; pred.innerHTML = ''; }
 }
 /* ---------- 予測キーワード ---------- */
+var _dbsInpT = 0;
 function dbsOnInput(){
+  /* ★修正(第170弾追記): 130ms デバウンス — 1文字打つたびに全候補走査していたのを止める
+     (スマホのフリック入力で1語に6〜10回発火して重かった) */
+  clearTimeout(_dbsInpT);
+  _dbsInpT = setTimeout(dbsOnInputNow, 130);
+}
+function dbsOnInputNow(){
+  try {
   var q = dbsNorm((document.getElementById('dbsQ') || {}).value || '');
   var menus = document.getElementById('dbsMenus'), pred = document.getElementById('dbsPredict');
   if (!menus || !pred) return;
   if (!q){ dbsRenderMenus(); return; }
   var D = dbsData();
+  if (!D.n){
+    /* 学習DBが空(起動直後のIndexedDB読込待ちの可能性もあるので、空でも案内だけ出す) */
+    menus.style.display = 'none'; pred.style.display = 'block';
+    pred.innerHTML = '<div class="dbs-pnote">📦 学習DBが空です — 🗄データベースタブでレース結果を取得(または💾バックアップから📥復元)すると、ここで検索できるようになります。</div>';
+    dbsPredList = [];
+    return;
+  }
   var M = dbsMenus(D);
   var starts = [], contains = [];
   M.forEach(function(sec){
     sec.items.forEach(function(item){
       if (dbsIsAdded(item)) return;
-      var k = dbsNorm(item.k);
+      var k = item.nk || dbsNorm(item.k);
       if (k.indexOf(q) === 0) starts.push({ item: item, sec: sec.title });
       else if (k.indexOf(q) >= 0) contains.push({ item: item, sec: sec.title });
     });
@@ -52371,6 +52430,7 @@ function dbsOnInput(){
   menus.style.display = 'none';
   pred.style.display = 'block';
   pred.innerHTML = h;
+  } catch(e){ try { dbsMsg('⚠ 検索入力でエラー: ' + esc(String(e && e.message || e))); } catch(e2){} }
 }
 function dbsClrInput(){
   var q = document.getElementById('dbsQ');
@@ -52414,11 +52474,15 @@ function dbsToggleHints(){
 
 /* ---------- 検索実行 ---------- */
 function dbsDoSearch(){
-  var D = dbsData(true);   /* 検索ボタン押下時に学習DBを引き直す(取込後の変化に追従) */
+  try {
+  /* ★修正(第170弾追記): dbsData(true)の強制全再構築をやめる(diVer が変わった時だけ
+     引き直す=取込後は自動で追従する。旧実装は検索のたびに全レース再構築で重かった) */
+  var D = dbsData();
   var r = dbsRun(D, dbsTags);
   dbsSearched = true; dbsHits = r.hits; dbsNRaces = r.nRaces;
   dbsPlaceFilter = null; dbsOpenRace = ''; dbsViewLimit = 20;
   dbsRenderResult();
+  } catch(e){ try { dbsMsg('⚠ 検索でエラー: ' + esc(String(e && e.message || e))); } catch(e2){} }
 }
 function dbsMoreRows(){ dbsViewLimit += 20; dbsRenderResult(); }
 function dbsTapPlace(p){ dbsPlaceFilter = (dbsPlaceFilter === p) ? null : p; dbsRenderResult(); }
@@ -52519,7 +52583,7 @@ function dbsRenderResult(){
     html += '<tr class="dbs-hrow' + (dbsOpenRace === String(rc.rid) ? ' open' : '') + '" data-dbs-race="' + esc(String(rc.rid)) + '">' +
       '<td class="chev">' + (dbsOpenRace === String(rc.rid) ? '▾' : '▸') + '</td>' +
       '<td class="' + dbsOrdCls(parseInt(row.order, 10) || 99) + '">' + (row.order || '') + '</td>' +
-      '<td>' + esc(rf.d8.slice(0, 4) + '/' + rf.d8.slice(4, 6) + '/' + rf.d8.slice(6, 8)) + '</td>' +
+      '<td>' + (/^\d{8}$/.test(rf.d8) ? esc(rf.d8.slice(0, 4) + '/' + rf.d8.slice(4, 6) + '/' + rf.d8.slice(6, 8)) : '—') + '</td>' +
       '<td>' + esc(rf.place) + esc(String((rc.meta || {}).rnum || '')) + 'R</td>' +
       '<td class="l">' + esc(dbsShortName(rf.name)) + '</td>' +
       '<td>' + esc((dbsSurfOf(rc) === 'ダ' ? 'ダ' : dbsSurfOf(rc)) + rf.m) + '</td>' +
@@ -52552,7 +52616,7 @@ function dbsShortName(nm){
 function dbsRaceDetail(rc, keyset){
   var D = dbsData();
   var m = rc.meta || {};
-  var h = '<div class="dbs-rhead">' + esc(m.date8 ? m.date8.slice(0, 4) + '/' + m.date8.slice(4, 6) + '/' + m.date8.slice(6, 8) : '') + ' ' +
+  var h = '<div class="dbs-rhead">' + (/^\d{8}$/.test(String(m.date8 || '')) ? esc(m.date8.slice(0, 4) + '/' + m.date8.slice(4, 6) + '/' + m.date8.slice(6, 8)) : '') + ' ' +
     esc(dbsPlaceShort(rc)) + esc(String(m.rnum || '')) + 'R ' + esc(m.name || '') +
     ' <span>' + esc(String(m.dist || '')) + '・' + esc(m.tenko || '—') + '/' + esc(m.baba || '—') + '・' +
     (dbsTurnOf(m.place, m.surface, dbsDistM(rc)) === '直' ? '直線' : dbsTurnOf(m.place, m.surface, dbsDistM(rc)) + '回り') +
@@ -52578,6 +52642,7 @@ function dbsRaceDetail(rc, keyset){
 }
 
 /* ================= 💾 CSV出力 ================= */
+var DBS_CSV_MAX = 50000;   /* ★修正(第170弾追記): 巨大CSVでブラウザが落ちないようにする上限 */
 function dbsCsv(){
   var cols = ['日付', '場', 'R', 'レース名', '面', '距離m', '回り', '着順', '枠', '馬番', '馬名', '性齢', '斤量', '騎手', '人気', '単勝', '通過', '上3F', '調教師', '前走間隔日'];
   function q(v){
@@ -52590,7 +52655,9 @@ function dbsCsv(){
     var o = parseInt(h.row.order, 10) || 99;
     return (dbsPlaceFilter === 4) ? o > 3 : o === dbsPlaceFilter;
   });
+  var capped = false;
   view.forEach(function(h){
+    if (lines.length > DBS_CSV_MAX){ capped = true; return; }
     var m = h.rec.meta || {};
     var pv = h.prev;
     lines.push([
@@ -52601,6 +52668,7 @@ function dbsCsv(){
       pv ? dbsDays(pv.d8, h.rf.d8) : ''
     ].map(q).join(','));
   });
+  if (capped) lines.push(q('※行数上限' + DBS_CSV_MAX + '件で切り詰めました(全' + view.length + '件)'));
   return '\ufeff' + lines.join('\r\n');
 }
 function dbsCsvSave(){
@@ -52670,6 +52738,7 @@ function dbsOnTab(){
   if (!dbsWired){
     dbsWired = true;
     body.addEventListener('click', function(ev){
+      try {
       var t = ev.target;
       while (t && t !== body){
         var ds = t.dataset || {};
@@ -52713,6 +52782,7 @@ function dbsOnTab(){
         }
         t = t.parentElement;
       }
+      } catch(e){ try { dbsMsg('⚠ 操作でエラー: ' + esc(String(e && e.message || e))); } catch(e2){} }
     });
     var q = document.getElementById('dbsQ');
     if (q){
@@ -52737,15 +52807,37 @@ function dbsOnTab(){
       });
     }
   }
-  /* タブを開くたび: 学習DBを引き直して候補を再生成(取込後の変化に追従) */
-  try { dbsData(true); } catch(e){}
+  /* ★修正(第170弾追記):
+     (1) タブを開くたびの dbsData(true) 強制全再構築をやめる(diVer 変化時だけ引き直す。
+         取込(diSet)は diVer を進めるので自動で追従する)
+     (2) アプリ起動直後は IndexedDB からの読み込み(diBoot)が非同期でまだ完了しておらず
+         diLs() が空を返すことがある(この間にタブを開くと候補ゼロになる=ユーザー報告の
+         「候補が出ない」の直接原因)。diBoot 完了後に学習DBを引き直して画面を作り直す。 */
+  try {
+    var D0 = dbsData();
+    if (!D0.n && typeof diBoot === 'function' && typeof diMode !== 'undefined' && diMode !== 'idb' && !_dbsBootTry){
+      _dbsBootTry = true;
+      Promise.resolve(diBoot()).then(function(){
+        _dbsBootTry = false;
+        try {
+          var D1 = dbsData(true);
+          if (D1.n){
+            dbsRenderTags(); dbsRenderMenus(); dbsCondRender(); dbsRenderResult();
+            var st = document.getElementById('dbsStat');
+            if (st) st.innerHTML = dbsStatHtml(D1);
+          }
+        } catch(e){}
+      }).catch(function(){ _dbsBootTry = false; });
+    }
+  } catch(e){}
   var stat = document.getElementById('dbsStat');
-  if (stat){
-    var D = dbsData();
-    stat.innerHTML = '📦 学習DB <b>' + D.n + '</b> レース(通信ゼロ・追加取得はしません)' +
-      (D.ped ? '' : '・<span style="color:var(--warn,#e08a1e)">血統マップ未読み込み(父/母父検索はできません)</span>');
-  }
+  if (stat) stat.innerHTML = dbsStatHtml(dbsData());
   dbsRenderTags(); dbsRenderMenus(); dbsCondRender(); dbsRenderResult();
+}
+function dbsStatHtml(D){
+  if (!D.n) return '📦 学習DB <b>0</b> レース(空)';
+  return '📦 学習DB <b>' + D.n + '</b> レース(通信ゼロ・追加取得はしません)' +
+    (D.ped ? '' : '・<span style="color:var(--warn,#e08a1e)">血統マップ未読み込み(父/母父検索はできません)</span>');
 }
 
 /* =========================================================
