@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-11 第168弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-11 第170弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1182,6 +1182,7 @@ html[data-theme="light"] .page-top-hero{
   <button class="tab" data-t="t-tenki">🌤 天気予報</button>
   <button class="tab" data-t="t-horse">📒 馬ノート<span class="tsub">(短評DB)</span></button>
   <button class="tab" data-t="t-database">🗄 データベース</button>
+  <button class="tab" data-t="t-dbsearch">🔎 データ検索</button>
   <button class="tab" data-t="t-aiprop">🤖 AI提案</button>
   <!-- ★第156弾: タブ大統合。トップ・①データ入力・②展開予想は廃止(機能はAI提案/出馬表/天気予報/データベースへ移設 or 内部化)、⑤JRA映像と⑥重賞はタブバーから削除(☰目次からのみ)。振り返り・海外競馬・払戻DBの導線も削除 -->
 </nav>
@@ -2000,6 +2001,168 @@ html[data-theme="light"] .page-top-hero{
 </section>
 
 <!-- ================= 🤖 AI提案（回収率改善） ================= -->
+<section class="page" id="t-dbsearch">
+  <!-- ★第170弾: 🔎データ検索タブ(第165弾設計の実装・学習DB検索・閲覧・ウマホ風UI)。p97_dbsearch.js が描画 -->
+  <h2>🔎 データ検索</h2>
+  <div class="card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <b>🔍 学習DB検索・閲覧</b>
+      <span class="chip small" id="dbsStat">📦 学習DB…</span>
+      <span class="sp" style="flex:1"></span>
+      <span class="small muted">条件タグをANDで組み合わせて学習DB(結果データ)を検索・閲覧します(通信ゼロ・予想計算には無関係)</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <input id="dbsCondName" placeholder="条件名(保存する時)" style="font-size:.85rem;padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--card)">
+      <select id="dbsCondSel" style="font-size:.85rem;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)"></select>
+      <button type="button" class="btn small" data-dbs-act="condsave">💾 条件を保存</button>
+      <button type="button" class="btn small ghost" data-dbs-act="condload">📖 呼出</button>
+      <button type="button" class="btn small ghost" data-dbs-act="conddel">🗑 削除</button>
+    </div>
+    <div id="dbsMsg" class="small" style="margin-top:4px"></div>
+  </div>
+
+  <div class="card">
+    <div class="dbs-search-box" id="dbsBox">
+      <span class="cell close" data-dbs-act="reset" title="すべてクリア">×</span>
+      <span class="cell box"><input id="dbsQ" type="text" autocomplete="off" placeholder="例: 馬名・騎手・1600m・乗り替わり…"></span>
+      <span class="cell del" id="dbsClr" title="入力を消す">⌫</span>
+    </div>
+    <span class="dbs-hints-link" data-dbs-act="hint">💡 検索のヒント</span>
+    <div class="dbs-hints" id="dbsHints">
+      ・一覧に見当たらない場合も、とりあえず入力してみましょう。予測キーワードが出てきます。<br>
+      ・予測キーワードが出ている状態でエンターを押せば、最初のキーワードが採用されます。<br>
+      ・「1600m」と入力したい場合、「せんろっぴゃく」のようにひらがなで打てば予測キーワードに出てきます。<br>
+      ・候補は学習DBの中身から自動生成しています(保存済みのレースに無い騎手・馬名は出ません)。
+    </div>
+
+    <div class="dbs-added">
+      <h3>検索条件</h3>
+      <div class="dbs-tagrow" id="dbsTags"></div>
+      <div class="dbs-tagrow" id="dbsBloodRow" style="display:none;margin-top:6px;align-items:center">
+        <label class="small" style="display:inline-flex;gap:4px;align-items:center" title="血統マップに登録されていない馬も「血統不明」として該当に含めます(既定は除外=変な取りこぼしを出さないため)">
+          <input type="checkbox" id="dbsBloodUnk" data-dbs-act="bloodunk"> 血統不明の馬も含める
+        </label>
+      </div>
+      <div class="dbs-tagrow" style="margin-top:8px">
+        <button type="button" class="dbs-gosearch" data-dbs-act="go">🔍 この条件で検索</button>
+        <button type="button" class="btn small ghost" data-dbs-act="reset">リセット</button>
+        <span class="dbs-empty-note" id="dbsTagNote"></span>
+      </div>
+    </div>
+
+    <div class="dbs-menus" id="dbsMenus"></div>
+    <div class="dbs-predict" id="dbsPredict" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <b>検索結果</b>
+      <span class="small muted">(条件を変えたら「🔍 この条件で検索」を押してください)</span>
+      <span class="sp" style="flex:1"></span>
+      <span id="dbsViewMode" style="display:none;gap:4px">
+        <button type="button" class="btn small on" data-dbs-vm="list">🔍 一覧</button>
+        <button type="button" class="btn small ghost" data-dbs-vm="group">📊 内訳</button>
+      </span>
+      <button type="button" class="btn small ghost" data-dbs-act="csv">💾 CSV</button>
+    </div>
+    <div id="dbsSumBox"><div class="dbs-nullv">まだ検索していません — 条件を選んで「🔍 この条件で検索」</div></div>
+    <div class="dbs-dochi" id="dbsDochi" style="display:none">
+      <span class="cap">着度数</span>
+      <span id="dbsTks"></span>
+      <span class="small muted">← 数字をタップするとその着順の馬だけに絞り込まれます</span>
+    </div>
+    <div class="dbs-komoku" id="dbsKomoku" style="display:none"></div>
+    <div id="dbsGroupCtl" style="display:none;margin-top:8px" class="row">
+      <b class="small">📊 内訳軸</b>
+      <select id="dbsAxisSel" class="small" style="padding:4px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)">
+        <option value="waku">枠</option><option value="noband">馬番帯</option><option value="popband">人気帯</option>
+        <option value="jockey">騎手</option><option value="trainer">調教師</option><option value="place">競馬場</option>
+        <option value="distband">距離帯</option><option value="month">月</option><option value="style">脚質</option>
+        <option value="turn">回り(右/左)</option><option value="weight">斤量帯</option><option value="sire">父</option>
+      </select>
+      <span class="small muted">検索結果をこの軸でグループ分けして成績を一覧にします(例: 東京×芝1600×枠 → 枠別成績表)</span>
+    </div>
+    <div id="dbsGroup" style="display:none;margin-top:6px"></div>
+    <div class="tblwrap"><table class="tbl" id="dbsList"></table></div>
+    <button type="button" class="dbs-morehist" id="dbsMoreBtn" style="display:none" data-dbs-act="more">もっと見る</button>
+    <div class="dbs-endnote" id="dbsEndNote" style="display:none">これ以上データがありません</div>
+  </div>
+
+  <div class="card small muted" style="line-height:1.8">
+    <b>このタブについて</b><br>
+    ・学習DB(🗄データベースタブで取得・蓄積した結果データ)を検索・閲覧する機能です。<b>予想の計算・AI印・買い目には一切影響しません</b>(読み取り専用)。<br>
+    ・前走系の条件(間隔・乗り替わり・距離変化・前走着順)は学習DB内の<b>対象レースより前</b>の走歴だけから計算します(未来情報ゼロ)。<br>
+    ・父/母父は内蔵の血統マップ(p92・2021年以降のJRA出走馬が中心)で判定します。未登録馬は既定で除外(上のトグルで含められます)。<br>
+    ・回り(右/左)は競馬場テーブルから導出(JRA10場は固定・新潟芝1000mのみ直線)。馬名・騎手の「よみ」入力はカタカナ読みに対応(漢字名は部分一致)。<br>
+    ・追加取得はしません(学習DBに無いレースは出ません)。検索条件の保存だけが新規保存(khl_dbsearch_v1)です。
+  </div>
+
+  <style>
+  /* ★第170弾: データ検索タブ専用スタイル(ウマホ風・このタブ内だけ) */
+  #dbsearchBody, #t-dbsearch{ --dbs-acc2:#17a763; }
+  .dbs-search-box{display:table; width:100%; border:2px solid var(--line2,#c4d2be); border-radius:10px; background:var(--card,#fff);}
+  .dbs-search-box .cell{display:table-cell; vertical-align:middle; cursor:pointer; color:var(--mut,#6b7a66); text-align:center;}
+  .dbs-search-box .close{width:38px; font-size:16px;}
+  .dbs-search-box .del{width:38px; font-size:15px;}
+  .dbs-search-box .box{cursor:text;}
+  .dbs-search-box input{width:100%; border:none; outline:none; font-size:16px; padding:11px 4px; background:transparent; color:var(--ink,#23311f);}
+  .dbs-hints-link{font-size:12px; color:var(--link,#1e6fd0); cursor:pointer; margin-top:6px; display:inline-block;}
+  .dbs-hints{display:none; margin-top:6px; background:#fff8e3; border:1px solid #eadfa8; border-radius:8px; padding:8px 12px; font-size:12px; line-height:1.8;}
+  .dbs-hints.open{display:block;}
+  .dbs-added{margin-top:10px; border-top:1px dashed var(--line2,#c4d2be); padding-top:10px;}
+  .dbs-added h3{font-size:12px; color:var(--mut,#6b7a66); font-weight:700; margin-bottom:6px;}
+  .dbs-tagrow{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .dbs-tag{display:inline-flex; align-items:center; gap:5px; background:#eef7ea; border:1.5px solid var(--dbs-acc2); color:#0b5c33; border-radius:20px; padding:3px 6px 3px 11px; font-size:13px; font-weight:600;}
+  .dbs-tag button{border:none; background:rgba(12,124,64,.14); color:#0b5c33; width:18px; height:18px; border-radius:50%; font-size:11px; cursor:pointer; font-weight:800;}
+  .dbs-tag button:hover{background:#d64545; color:#fff;}
+  .dbs-gosearch{background:linear-gradient(135deg,#1bb76e,#0e8a47); color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13.5px; font-weight:700; cursor:pointer;}
+  .dbs-gosearch:active{transform:scale(.97);}
+  .dbs-empty-note{font-size:12px; color:var(--mut,#6b7a66);}
+  .dbs-menus{margin-top:12px; max-height:380px; overflow-y:auto; padding-right:2px;}
+  .dbs-menu{margin-bottom:12px;}
+  .dbs-menu h4{font-size:11.5px; color:var(--mut,#6b7a66); font-weight:700; margin-bottom:5px; border-left:3px solid var(--dbs-acc2); padding-left:7px;}
+  .dbs-pills{display:flex; flex-wrap:wrap; gap:6px;}
+  .dbs-pill{border:1px solid var(--line2,#c4d2be); background:var(--card,#fff); color:var(--ink,#23311f); border-radius:16px; padding:3px 12px; font-size:13px; cursor:pointer;}
+  .dbs-pill:hover{border-color:var(--dbs-acc2); background:#eef7ea;}
+  .dbs-morebtn{border:none; background:transparent; color:var(--link,#1e6fd0); font-size:12px; cursor:pointer; padding:3px 6px;}
+  .dbs-predict{margin-top:10px; border:1px solid var(--line2,#c4d2be); border-radius:10px; background:var(--card,#fff); max-height:320px; overflow-y:auto;}
+  .dbs-pitem{display:flex; justify-content:space-between; align-items:center; width:100%; padding:9px 13px; border:none; border-bottom:1px solid var(--line,#d8e2d3); background:transparent; cursor:pointer; text-align:left; font-size:14px; color:var(--ink,#23311f);}
+  .dbs-pitem:hover{background:#eef7ea;}
+  .dbs-pitem .lab b{color:#0c7c40;}
+  .dbs-pitem .sec{font-size:10.5px; color:var(--mut,#6b7a66); flex:none; margin-left:12px;}
+  .dbs-pnote{padding:7px 13px; font-size:11px; color:var(--mut,#6b7a66); background:var(--card2,#f6faf4); border-radius:0 0 9px 9px;}
+  .dbs-sumline{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:8px;}
+  .dbs-sumnum{font-size:20px; font-weight:800;}
+  .dbs-sumlab{font-size:11px; color:var(--mut,#6b7a66); display:block; font-weight:600;}
+  .dbs-dochi{display:flex; align-items:center; gap:6px; margin-top:10px; padding:10px; background:var(--card2,#f6faf4); border:1px solid var(--line,#d8e2d3); border-radius:10px; flex-wrap:wrap;}
+  .dbs-dochi .cap{font-size:12px; color:var(--mut,#6b7a66); font-weight:700; margin-right:4px;}
+  .dbs-tk{border:none; border-radius:8px; font-size:19px; font-weight:800; padding:4px 13px; cursor:pointer; transition:.12s; opacity:.55;}
+  .dbs-tk:hover{opacity:.85;}
+  .dbs-tk.on{opacity:1; transform:scale(1.12); outline:2px solid var(--ink,#23311f); outline-offset:1px;}
+  .dbs-tk1{background:#d3f3df; color:#0c7c40;}
+  .dbs-tk2{background:#d8e8fb; color:#1a5fb8;}
+  .dbs-tk3{background:#fde9cf; color:#b06a00;}
+  .dbs-tk4{background:#e8e8e4; color:#777;}
+  .dbs-dash{color:var(--mut,#6b7a66); font-weight:700;}
+  .dbs-komoku{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:13px;}
+  .dbs-komoku b{font-size:15px;}
+  .dbs-hrow{cursor:pointer;}
+  .dbs-hrow:hover{background:#f2f8ef;}
+  .dbs-hrow.open{background:#eaf5e6;}
+  .dbs-hrow .chev{color:var(--mut,#6b7a66); font-size:10px;}
+  #t-dbsearch .o1{color:#0c7c40; font-weight:800;} #t-dbsearch .o2{color:#1a5fb8; font-weight:700;} #t-dbsearch .o3{color:#b06a00; font-weight:700;} #t-dbsearch .oi{color:var(--mut,#6b7a66);}
+  .dbs-star{color:#0c7c40; font-weight:800;}
+  .dbs-exp>td{background:#f4faf1; padding:10px 12px; text-align:left; white-space:normal;}
+  .dbs-rhead{font-size:13px; font-weight:700; margin-bottom:6px;}
+  .dbs-rhead span{color:var(--mut,#6b7a66); font-weight:600; font-size:12px;}
+  .dbs-hitmark{background:#e3f4dc !important;}
+  .dbs-nullv{color:#c33; font-size:14px; font-weight:800; text-align:center; padding:26px 0;}
+  .dbs-morehist{display:block; margin:10px auto 0; border:1px solid var(--line2,#c4d2be); background:var(--card2,#f6faf4); border-radius:8px; padding:7px 22px; font-size:13px; cursor:pointer; color:var(--ink,#23311f);}
+  .dbs-endnote{text-align:center; font-size:12px; color:var(--mut,#6b7a66); margin-top:10px;}
+  @media(max-width:640px){ .dbs-menus{max-height:300px;} }
+  </style>
+</section>
+
 <section class="page" id="t-aiprop">
   <h2>🤖 AI提案</h2>
   <div class="card">
@@ -3162,7 +3325,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-11 第168弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-11 第170弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -22967,6 +23130,7 @@ var NAV_ITEMS = [
   { t:'t-tenki',    icon:'🌤', name:'天気予報',              sub:'当日開催場の1時間ごと天気＋開催場のコース特徴（JRA公式）' },
   { t:'t-aiprop',   icon:'🤖', name:'AI提案',                sub:'その日の全レースの印・一括取得・再予想・レース情報・妙味馬比較' },
   { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・バックテスト・AI予想の自己学習' },
+  { t:'t-dbsearch',  icon:'🔎', name:'データ検索',           sub:'学習DBを何でも検索(ウマホ風・騎手/馬/父/距離/乗り替わり/回り…・AND条件・集計内訳・CSV)・通信ゼロ' },   /* ★第170弾 */
   { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
   { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
   { t:'t-grade',    icon:'📊', name:'重賞データ分析',          sub:'同名重賞 過去10年の傾向・馬券内共通点・過去データ・血統オカルト' },
@@ -51124,9 +51288,14 @@ function rvOpen(res){
       '<button type="button" class="btn small ghost" id="rvClose">✕ 閉じる</button>' +
       '</div>' +
       '<canvas id="rvCanvas" width="' + RV_CW + '" height="' + RV_CH + '" style="width:100%;display:block;border-radius:8px;background:#eef4ea;cursor:pointer"></canvas>' +
+      /* ★第169弾(Phase 2a): 3D用の別canvas。同一canvasでは getContext('2d')/'webgl' が共存できないため。
+         通常は非表示。「🧊 3D」ボタンで p96(Three.js・遅延読込)が切替える。失敗時は2Dのまま。 */
+      '<canvas id="rvCanvas3d" width="' + RV_CW + '" height="' + RV_CH + '" style="width:100%;display:none;border-radius:8px;background:#bcd9e8;cursor:pointer"></canvas>' +
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">' +
       '<button type="button" class="btn" id="rvRestart" style="font-size:.85rem">⏮ 最初から</button>' +
       '<button type="button" class="btn primary" id="rvPlay" style="font-size:.85rem;min-width:86px">▶ 発走</button>' +
+      /* ★第169弾(Phase 2a): 2D⇔3D切替(オーバーレイ内の小ボタンのみ・新タブ/大パネルなし) */
+      '<button type="button" class="btn small ghost" id="rv3dBtn" style="font-size:.8rem" title="Three.jsで立体的に再生します(初回は数秒読み込み)。読み込みに失敗したときは自動で2Dに戻ります">🧊 3D</button>' +
       '<span style="display:flex;gap:4px" id="rvSpd">' +
       '<button type="button" class="btn small ghost" data-r="0.5">0.5×</button>' +
       '<button type="button" class="btn small ghost on" data-r="1">1×</button>' +
@@ -51144,8 +51313,9 @@ function rvOpen(res){
     document.body.appendChild(ov);
 
     var cv = document.getElementById('rvCanvas');
+    var cv3 = document.getElementById('rvCanvas3d');   /* ★第169弾: 3D用canvas(通常は非表示) */
     rvS = { tl: tl, t: 0, playing: false, rate: 1, view: 'chase', sel: -1,
-            last: 0, raf: 0, shown: false, seeking: false, cam: null };
+            last: 0, raf: 0, shown: false, seeking: false, cam: null, mode3d: false };
     var playBtn = document.getElementById('rvPlay');
 
     function paint(){
@@ -51159,8 +51329,16 @@ function rvOpen(res){
         rvS.cam.y += (target.y - rvS.cam.y) * k;
         rvS.cam.z += (target.z - rvS.cam.z) * k;
       }
-      rvDraw2D(cv, tl, { t: rvS.t, states: states, view: rvS.view, sel: rvS.sel,
-                         cam: rvS.cam, target: target });
+      var stAll = { t: rvS.t, states: states, view: rvS.view, sel: rvS.sel,
+                    cam: rvS.cam, target: target };
+      /* ★第169弾(Phase 2a): 3Dモードはp96(Three.js)に描画を委譲。
+         rv3dPaint が false を返したら(未読込/初期化失敗/描画例外)2Dへフォールバック。 */
+      var drew3d = false;
+      if (rvS.mode3d && typeof rv3dPaint === 'function'){
+        drew3d = rv3dPaint(cv3, tl, stAll);
+        if (!drew3d) rvS.mode3d = false;   /* 以降も2Dで描く(次フレームから分岐しない) */
+      }
+      if (!drew3d) rvDraw2D(cv, tl, stAll);
       document.getElementById('rvTime').textContent =
         Math.floor(rvS.t / 60) + ':' + ('0' + (rvS.t % 60).toFixed(1)).slice(-4) + ' / ' +
         Math.floor(tl.dur / 60) + ':' + ('0' + (tl.dur % 60).toFixed(1)).slice(-4);
@@ -51181,7 +51359,10 @@ function rvOpen(res){
     }
     function tick(ts){
       if (!rvS){ return; }
-      var dt = Math.min(0.05, (ts - (rvS.last || ts)) / 1000);
+      /* ★第169弾: dt上限を0.05→0.25へ緩和。3D(WebGL)は負荷が高くフレーム落ちしたとき
+         旧上限だと再生時計が実時間より遅れてスローモーション化するため。
+         (t→馬位置は決定論のまま・着順・計算は不変。シーク時のジャンプは別経路) */
+      var dt = Math.min(0.25, (ts - (rvS.last || ts)) / 1000);
       if (rvS.playing){ rvS.t = Math.min(tl.dur, rvS.t + dt * rvS.rate); }
       rvS.last = ts;
       paint();
@@ -51210,6 +51391,25 @@ function rvOpen(res){
     document.getElementById('rvViewBtn').addEventListener('click', function(){
       rvS.view = rvS.view === 'chase' ? 'full' : 'chase';
       this.textContent = rvS.view === 'chase' ? '📷 表示: 追従' : '📷 表示: 全体';
+    });
+    /* ★第169弾(Phase 2a): 2D⇔3D切替。three.min.js はここで初めて遅延読み込みされる
+       (通常のアプリ初期表示は重くならない)。失敗時は2Dのままフォールバック。 */
+    var b3 = document.getElementById('rv3dBtn');
+    if (b3) b3.addEventListener('click', function(){
+      if (typeof rv3dToggle !== 'function') return;
+      b3.disabled = true;
+      var ov3 = document.getElementById('rvCanvas3d');
+      ov3.style.background = '#dfe9f0';   /* 読込中の色 */
+      rv3dToggle(function(ok){
+        b3.disabled = false;
+        b3.textContent = (ok && rvS && rvS.mode3d) ? '🗺 2D' : '🧊 3D';
+        if (!ok){
+          ov3.style.display = 'none';
+          var c2 = document.getElementById('rvCanvas');
+          if (c2) c2.style.display = 'block';
+          b3.title = '3D(Three.js)を読み込めませんでした。vendor/three.min.js が配置されているか確認してください。2Dで再生します';
+        }
+      });
     });
     var seek = document.getElementById('rvSeek');
     seek.addEventListener('input', function(){
@@ -51249,6 +51449,7 @@ function rvOpen(res){
     });
     function rvClose(){
       try { cancelAnimationFrame(rvS.raf); } catch(e){}
+      try { if (typeof rv3dStop === 'function') rv3dStop(); } catch(e){}   /* ★第169弾: 3DのGPUリソース解放(冪等) */
       var o = document.getElementById('rvOverlay');
       if (o && o.parentNode) o.parentNode.removeChild(o);
       rvS = null;
@@ -51284,6 +51485,1268 @@ function rvOpen(res){
     });
   } catch(e){}
 })();
+
+/* =====================================================================
+   p96_racevideo3d.js — ★第169弾(Phase 2a): 🎬 レース映像 3D描画基盤
+   ---------------------------------------------------------
+   役割: Three.js(WebGL)でレース映像を立体的に描画する「描画層」。
+   既存の2D描画(p95 rvDraw2D)はフォールバックとしてそのまま維持する。
+
+   【再利用する既存データ・関数(読み取り専用・重複実装ゼロ)】
+     ・rvTimeline / rvStateAt (p95) … タイムラインと時刻tの全馬状態
+     ・rvCoursePts / rvPathAt (p95) … コース中心線と進行距離→座標+内側法線+進行角ang
+     ・rvCamAt (p95) … 2Dカメラ目標(全体/追従/最終直線=先頭争い) → 3Dカメラへ変換
+     ・rvHorseStride / RV_TRACK_HALF / RV_WAKU_COL (p95) … 歩頻・コース幅・枠色
+   このモジュールは上記を【読み取り専用】で使うだけ:
+     計算上の馬の位置・タイムライン・隊列・ゴール順は一切変更しない。
+     (許可されているのは座標変換と表示上の補間のみ)
+
+   【読み込み戦略(要件)】
+     ・three.min.js は index.html に連結せず vendor/three.min.js として同梱。
+     ・「🧊 3D」ボタンを押したときだけ <script src> を動的挿入して遅延読み込み
+       (file:// でも動く UMD 版・r147。CDN不使用・オフライン動作)。
+     ・読み込み失敗(欠損/タイムアウト)→ 2D描画へ安全にフォールバック。
+
+   【ライフサイクル】
+     rv3dLoad(cb) … THREE の遅延読み込み(1回だけ・重複挿入なし)
+     rv3dStart(cv, tl) … シーン初期化(Scene/Renderer/Camera/照明/地面/コース/ラチ/柵/馬)
+     rv3dPaint(cv, tl, st) … 毎フレーム(p95のtickから呼ばれる=単一ループ)。
+                              失敗/未初期化時は false を返し p95 が 2D で描画する。
+     rv3dStop() … rAF停止ではなく(p95が持つ)リソース解放: geometry/material/texture/
+                   renderer.dispose()。連続開閉でもリークしない。
+     rv3dToggle(cb) … 2D⇔3D切替(ボタンから呼ぶ)。
+
+   【2D→3D 座標変換(純粋な座標変換のみ)】
+     2Dコース世界 (x, y) → 3D (x, 0, y)。上=+Y。
+     馬の進行方向: 2Dの ang=atan2(dy,dx) → 3DのY軸回転 rotation.y = -ang
+     カメラ: rvCamAt の {x, y, z} → 注視点=(x, 26, y)・距離=920/z・俯角52°で南(+Z)側から。
+   ===================================================================== */
+
+var RV3D = {
+  loading: false, loadFail: false, _q: [],
+  active: false, renderer: null, scene: null, cam: null,
+  horses: [], sprites: [], geos: [], mats: [], texs: [],
+  cv: null, cv2d: null, wireOn: false
+};
+
+/* ---------- Three.js 遅延読み込み(file://可・CDN不使用・重複挿入なし) ---------- */
+function rv3dLoad(cb){
+  try {
+    if (typeof window === 'undefined' || !window.document) return cb(false);
+    if (window.THREE) return cb(true);
+    if (RV3D.loadFail) return cb(false);
+    if (RV3D.loading){ RV3D._q.push(cb); return; }
+    RV3D.loading = true; RV3D._q = [cb];
+    var done = false;
+    function fin(ok){
+      if (done) return;
+      done = true;
+      RV3D.loading = false;
+      RV3D.loadFail = !ok;
+      var q = RV3D._q; RV3D._q = [];
+      q.forEach(function(f){ try { f(ok); } catch(e){} });
+    }
+    var s = document.createElement('script');
+    s.src = 'vendor/three.min.js';
+    s.async = true;
+    s.onload = function(){ fin(!!window.THREE); };
+    s.onerror = function(){ fin(false); };
+    document.head.appendChild(s);
+    setTimeout(function(){ fin(!!window.THREE); }, 12000);
+  } catch(e){ try { cb(false); } catch(e2){} }
+}
+
+/* ---------- 2D→3D カメラ変換(純関数) ----------
+   rvCamAt(p95)の結果 {x, y, z, mode} を 3D PerspectiveCamera の配置へ写す。
+   z(2Dズーム)が大きいほど寄る: 距離=1000/z(全体 z≈1 → 1000 / 追従 z≈2 → 500)。
+   俯角22°×垂直画角52°: 上端視線が地平線を少し越える=画面上部に空が見える
+   実況カメラ相当のアングル(俯角≥画角/2だと空が一切見えないため)。 */
+function rv3dCamOf(cam2d){
+  if (!cam2d) cam2d = { x: 480, y: 380, z: 1 };
+  var dist = 1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1));
+  var el = 22 * Math.PI / 180;   /* 俯角22°<画角52°/2 → 空と地平線が見える */
+  return { px: cam2d.x,
+           py: dist * Math.sin(el),
+           pz: cam2d.y + dist * Math.cos(el),
+           tx: cam2d.x, ty: 22, tz: cam2d.y,
+           fov: 52 };
+}
+
+/* ---------- 点列ユーティリティ(2Dの幾何をそのまま3Dへ) ---------- */
+function rv3dNormals(pts){
+  /* 各点の「内側」法線(p95 rvPathAt と同一式・turnで向きが決まる) */
+  return pts.map(function(p, i){
+    var j = Math.min(pts.length - 2, Math.max(0, i - 1));
+    var dx = pts[j + 1][0] - pts[j][0], dy = pts[j + 1][1] - pts[j][1];
+    var L = Math.hypot(dx, dy) || 1;
+    return { x: -dy / L, y: dx / L };   /* 後で turn 補正 */
+  });
+}
+function rv3dInnerNormals(pts, turn){
+  return pts.map(function(p, i){
+    var j = Math.min(pts.length - 2, Math.max(0, i - 1));
+    var dx = pts[j + 1][0] - pts[j][0], dy = pts[j + 1][1] - pts[j][1];
+    var L = Math.hypot(dx, dy) || 1;
+    return (turn === 'R') ? { x: -dy / L, y: dx / L } : { x: dy / L, y: -dx / L };
+  });
+}
+
+/* ---------- シーン構築(初期化・終了・再起動で安全に作り直し) ---------- */
+function rv3dStart(cv, tl){
+  try {
+    if (typeof window === 'undefined' || !window.THREE || !cv || !tl) return false;
+    rv3dStop();   /* 念のため既存を破棄(冪等) */
+    var T = window.THREE;
+    var renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));   /* スマホ負荷対策 */
+    renderer.setSize(cv.width, cv.height, false);
+    renderer.setClearColor(0xbcd9e8);
+
+    var scene = new T.Scene();
+    scene.fog = new T.Fog(0xbcd9e8, 1500, 4600);
+
+    var cam = new T.PerspectiveCamera(52, cv.width / cv.height, 1, 9000);
+    var c3 = rv3dCamOf({ x: 480, y: 380, z: 1 });
+    cam.position.set(c3.px, c3.py, c3.pz);
+    cam.lookAt(c3.tx, c3.ty, c3.tz);
+
+    /* 照明: 空/地面の環境光 + 太陽(方向光) */
+    scene.add(new T.HemisphereLight(0xe8f4ff, 0x4a7a35, 0.95));
+    var sun = new T.DirectionalLight(0xfff2d9, 0.85);
+    sun.position.set(400, 700, 200);
+    scene.add(sun);
+
+    var geos = [], mats = [], texs = [];
+    function keep(mesh){ geos.push(mesh.geometry); mats.push(mesh.material); scene.add(mesh); return mesh; }
+
+    /* 地面(芝の緑=2Dと同系) */
+    var gnd = keep(new T.Mesh(
+      new T.PlaneGeometry(7200, 7200),
+      new T.MeshLambertMaterial({ color: tl.surf === 't' ? 0x6d9350 : 0x699150 })));
+    gnd.rotation.x = -Math.PI / 2;
+    gnd.position.set(480, -0.5, 380);
+
+    /* 走路リボン: rvCoursePts の2D中心線 → 幅 TRACK_HALF*2 の帯 */
+    var pts = tl._pts, TH = (typeof RV_TRACK_HALF !== 'undefined') ? RV_TRACK_HALF : 46;
+    var half = TH;
+    var posArr = [], idxArr = [];
+    for (var i = 0; i < pts.length; i++){
+      var t0 = Math.max(0, i - 1), t1 = Math.min(pts.length - 1, i + 1);
+      var ddx = pts[t1][0] - pts[t0][0], ddy = pts[t1][1] - pts[t0][1];
+      var LL = Math.hypot(ddx, ddy) || 1;
+      var lx = -ddy / LL, ly = ddx / LL;   /* 左法線(2D) */
+      posArr.push(pts[i][0] + lx * half, 0.2, pts[i][1] + ly * half);
+      posArr.push(pts[i][0] - lx * half, 0.2, pts[i][1] - ly * half);
+      if (i > 0){
+        var b = i * 2;
+        idxArr.push(b - 2, b - 1, b, b - 1, b + 1, b);
+      }
+    }
+    var rg = new T.BufferGeometry();
+    rg.setAttribute('position', new T.Float32BufferAttribute(posArr, 3));
+    rg.setIndex(idxArr);
+    rg.computeVertexNormals();
+    keep(new T.Mesh(rg, new T.MeshLambertMaterial({
+      color: tl.surf === 't' ? 0x7aa458 : 0xb08a5f, side: T.DoubleSide })));
+
+    /* 内ラチ・外柵(簡易): 中心線±オフセットをチューブで敷く */
+    var inner = rv3dInnerNormals(pts, tl.turn);
+    function fenceTube(off, radius, color, y){
+      var v = [];
+      for (var k = 0; k < pts.length; k += 2){
+        v.push(new T.Vector3(pts[k][0] + inner[k].x * off, y, pts[k][1] + inner[k].y * off));
+      }
+      var curve = new T.CatmullRomCurve3(v, false);
+      var tube = new T.TubeGeometry(curve, Math.max(64, Math.floor(v.length / 2)), radius, 5, false);
+      keep(new T.Mesh(tube, new T.MeshLambertMaterial({ color: color })));
+    }
+    fenceTube(TH - 2, 1.1, 0xf5f7f3, 4.5);   /* 内ラチ(白) */
+    fenceTube(-TH - 5, 0.8, 0xe3e7dd, 5.0);  /* 外柵(白線) */
+
+    /* スタート線(白い薄板)とゴール(柱+バー) */
+    var s0 = rvPathAt(pts, tl.turn, 0, tl._totalPx, tl.D);
+    var startLine = keep(new T.Mesh(
+      new T.BoxGeometry(TH * 2, 0.8, 6),
+      new T.MeshLambertMaterial({ color: 0xfdfdfb })));
+    startLine.position.set(s0.x, 0.6, s0.y);
+    startLine.rotation.y = -s0.ang + Math.PI / 2;
+    var gp = rvPathAt(pts, tl.turn, tl.D, tl._totalPx, tl.D);
+    var gBar = keep(new T.Mesh(
+      new T.BoxGeometry(TH * 2 + 24, 3, 3),
+      new T.MeshLambertMaterial({ color: 0xf5f7f3 })));
+    gBar.position.set(gp.x, 38, gp.y);
+    gBar.rotation.y = -gp.ang + Math.PI / 2;
+    [-1, 1].forEach(function(sd){
+      var pole = keep(new T.Mesh(
+        new T.BoxGeometry(3, 42, 3),
+        new T.MeshLambertMaterial({ color: 0xf5f7f3 })));
+      pole.position.set(gp.x + gp.nx * sd * (TH + 10), 21, gp.y + gp.ny * sd * (TH + 10));
+    });
+
+    /* 馬(簡易ボックス+騎手+番号スプライト。本格モデルはPhase 2c) */
+    var horses = [], sprites = [];
+    tl.horses.forEach(function(h){
+      var grp = new T.Group();
+      var coat = (typeof rvCoatOf === 'function') ? rvCoatOf(h.no) : '#6b4a2f';
+      var body = new T.Mesh(new T.BoxGeometry(30, 10, 10),
+        new T.MeshLambertMaterial({ color: coat }));
+      body.position.y = 8;
+      grp.add(body);
+      var neck = new T.Mesh(new T.BoxGeometry(10, 7, 6),
+        new T.MeshLambertMaterial({ color: coat }));
+      neck.position.set(16, 13, 0);
+      neck.rotation.z = -0.5;
+      grp.add(neck);
+      var jk = new T.Mesh(new T.BoxGeometry(9, 6, 8),
+        new T.MeshLambertMaterial({ color: h.col || '#fff' }));
+      jk.position.set(-1, 15, 0);
+      grp.add(jk);
+      var hel = new T.Mesh(new T.SphereGeometry(2.6, 8, 6),
+        new T.MeshLambertMaterial({ color: 0xf5f7f3 }));
+      hel.position.set(1.5, 19, 0);
+      grp.add(hel);
+      geos.push(body.geometry, neck.geometry, jk.geometry, hel.geometry);
+      mats.push(body.material, neck.material, jk.material, hel.material);
+      /* 番号スプライト(常時・馬の真上) */
+      var cnv = document.createElement('canvas');
+      cnv.width = 64; cnv.height = 64;
+      var cctx = cnv.getContext('2d');
+      cctx.beginPath(); cctx.arc(32, 32, 26, 0, Math.PI * 2);
+      cctx.fillStyle = '#ffffff'; cctx.fill();
+      cctx.lineWidth = 8; cctx.strokeStyle = h.col || '#888'; cctx.stroke();
+      cctx.fillStyle = '#222'; cctx.font = 'bold 32px sans-serif';
+      cctx.textAlign = 'center'; cctx.textBaseline = 'middle';
+      cctx.fillText(String(h.no), 32, 34);
+      var tex = new T.CanvasTexture(cnv);
+      var spr = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false }));
+      spr.scale.set(22, 22, 1);
+      texs.push(tex); mats.push(spr.material);
+      grp.add(spr);
+      scene.add(grp);
+      horses.push({ h: h, grp: grp, spr: spr });
+    });
+
+    RV3D.renderer = renderer; RV3D.scene = scene; RV3D.cam = cam;
+    RV3D.horses = horses; RV3D.geos = geos; RV3D.mats = mats; RV3D.texs = texs;
+    RV3D.active = true; RV3D.cv = cv;
+    return true;
+  } catch(e){
+    try { rv3dStop(); } catch(e2){}
+    return false;
+  }
+}
+
+/* ---------- 毎フレーム描画(p95 の tick/paint から呼ばれる=単一ループ) ----------
+   戻り値: true=3D描画した / false=3Dを描けない(p95が2Dで描く=フォールバック) */
+function rv3dPaint(cv, tl, st){
+  try {
+    if (!RV3D.active || !RV3D.renderer || !RV3D.scene || !window.THREE) return false;
+    var T = window.THREE;
+    var pts = tl._pts, TH = (typeof RV_TRACK_HALF !== 'undefined') ? RV_TRACK_HALF : 46;
+    /* カメラ: p95 の平滑化後カメラ(rvS.cam)→3D配置へ(滑らかに追従) */
+    var c3 = rv3dCamOf(st.cam);
+    RV3D.cam.position.set(c3.px, c3.py, c3.pz);
+    RV3D.cam.lookAt(c3.tx, c3.ty, c3.tz);
+    /* 馬: st.states(=rvStateAt出力・読み取り専用)を3D座標へ変換して配置 */
+    var byNo = {};
+    RV3D.horses.forEach(function(m){ byNo[m.h.no] = m; });
+    st.states.forEach(function(s){
+      var m = byNo[s.no];
+      if (!m) return;
+      var p = rvPathAt(pts, tl.turn, Math.min(s.d, tl.D + 28), tl._totalPx, tl.D);
+      var off = (s.lane - 0.5) * (TH * 2 - 26);
+      var ph = (typeof rvHorseStride === 'function') ? rvHorseStride(s.d, s.no) : s.d * 0.8;
+      m.grp.position.set(p.x + p.nx * off, 2 + Math.abs(Math.sin(ph)) * 1.6, p.y + p.ny * off);
+      m.grp.rotation.y = -p.ang;
+      m.spr.position.set(0, 26, 0);
+      var sel = (st.sel === s.no);
+      m.spr.scale.set(sel ? 30 : 22, sel ? 30 : 22, 1);
+    });
+    RV3D.renderer.render(RV3D.scene, RV3D.cam);
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ---------- 解放(冪等): 閉じたとき・切替時・読込失敗時 ---------- */
+function rv3dStop(){
+  try {
+    RV3D.active = false;
+    if (RV3D.renderer){
+      try { RV3D.renderer.dispose(); } catch(e){}
+      RV3D.renderer = null;
+    }
+    if (RV3D.scene){
+      RV3D.scene.traverse(function(o){
+        try { if (o.geometry) o.geometry.dispose(); } catch(e){}
+        try { if (o.material){ if (Array.isArray(o.material)) o.material.forEach(function(mm){ mm.dispose(); }); else o.material.dispose(); } } catch(e){}
+      });
+      RV3D.scene = null;
+    }
+    RV3D.texs.forEach(function(t){ try { t.dispose(); } catch(e){} });
+    RV3D.texs = [];
+    RV3D.geos = []; RV3D.mats = []; RV3D.horses = []; RV3D.cam = null; RV3D.cv = null;
+  } catch(e){}
+}
+
+/* ---------- 2D⇔3D 切替(p95の🧊ボタンから呼ばれる) ---------- */
+function rv3dToggle(cb){
+  try {
+    var cv = document.getElementById('rvCanvas3d');
+    var cv2d = document.getElementById('rvCanvas');
+    if (!cv || !cv2d || typeof rvS === 'undefined' || !rvS || !rvS.tl){ return cb(false); }
+    if (rvS.mode3d){
+      /* 3D → 2D */
+      rvS.mode3d = false;
+      rv3dStop();
+      cv.style.display = 'none';
+      cv2d.style.display = 'block';
+      return cb(false);
+    }
+    /* 2D → 3D(初回は three.min.js を遅延読み込み) */
+    rv3dLoad(function(ok){
+      try {
+        if (!ok || !rvS){ return cb(false); }
+        var started = rv3dStart(cv, rvS.tl);
+        if (!started){ return cb(false); }
+        rvS.mode3d = true;
+        cv2d.style.display = 'none';
+        cv.style.display = 'block';
+        cb(true);
+      } catch(e){ cb(false); }
+    });
+  } catch(e){ try { cb(false); } catch(e2){} }
+}
+
+/* =====================================================================
+   p97_dbsearch.js — ★第170弾: 🔎 データ検索タブ(学習DB検索・閲覧・第165弾実装)
+   ---------------------------------------------------------
+   やること: 新タブ「🔎 データ検索」で、学習DB(keiba_date_v1)に溜めたレースを
+   ウマホ(umaho.jp)風の「何でも検索」UI で引き出す。
+     検索ボックス → 予測キーワード(よみ対応) → 検索条件タグ(AND) → 「この条件で検索」
+     → サマリ(着度数ドリルダウン) / 一覧(行タップで全着順展開) / 📊内訳ビュー /
+        💾CSV / 🔍条件の保存
+
+   データ(すべて読み取り専用・再実装ゼロ):
+     ・学習DBレース    = diLs()/diGet() (p32)  … {rid, meta:{name,date8,place,dist,m,surface,baba,tenko,grade}, rows[{order,frame,no,name,id,sexAge,weight,jockey,passing,last3,odds,pop,trainer,weightChg}]}
+     ・血統(父/母父)   = rsigPedMap() (p92・gi142の6,000頭マップ)
+     ・回り(右/左/直)  = 場テーブルから機械導出(学習DBの書換ゼロ)
+     ・前走(間隔・乗り替わり・N連続騎乗・距離変化・前走着順) = 学習DB内で
+       対象レース日付より前だけを参照(未来情報ゼロ)
+
+   安全・不変:
+     ・学習DB・state・予測計算(AI印/p91/買い目)への書込ゼロ。
+     ・新規localStorageキーは khl_dbsearch_v1(検索条件の保存)のみ。
+     ・追加取得は一切しない(学習DBにある範囲だけ)。
+   ===================================================================== */
+
+/* ---------- 共通: 正規化(カタカナ→ひらがな・小文字化・空白除去) ---------- */
+function dbsNorm(s){
+  return String(s || '').replace(/[\s\u3000]/g, '')
+    .replace(/[A-Z]/g, function(c){ return c.toLowerCase(); })
+    .replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); });
+}
+/* ---------- 回り導出(場テーブル・JRA10場は固定。新潟芝1000mのみ直線) ---------- */
+var DBS_PLACE_YOMI = {
+  '札幌': 'さっぽろ', '函館': 'はこだて', '福島': 'ふくしま', '新潟': 'にいがた',
+  '東京': 'とうきょう', '中山': 'なかやま', '中京': 'ちゅうきょう', '京都': 'きょうと',
+  '阪神': 'はんしん', '小倉': 'こくら'
+};
+function dbsTurnOf(place, surface, m){
+  var p = String(place || '').replace(/競馬場$/, '');
+  if (p === '新潟' && surface !== 'ダ' && parseInt(m, 10) === 1000) return '直';
+  if (/東京|新潟|中京|福島/.test(p)) return '左';
+  if (/中山|阪神|京都|札幌|函館|小倉/.test(p)) return '右';
+  return '';   /* 地方・不明(学習DBはJRA中央のみだが念のため) */
+}
+/* ---------- クラス判定(レース名+gradeから。表示/検索専用の導出) ---------- */
+function dbsClassKey(rec){
+  var m = (rec && rec.meta) || {};
+  var nm = String(m.name || ''), g = String(m.grade || ''), dist = String(m.dist || '');
+  if (/障害|障/.test(nm + dist + g)) return '障害';
+  if (/(?:^|[^0-9])(?:G1|GI)(?![I0-9])/.test(g + nm)) return 'G1';
+  if (/(?:^|[^0-9])(?:G2|GII)(?![I0-9])/.test(g + nm)) return 'G2';
+  if (/(?:^|[^0-9])(?:G3|GIII)(?![I0-9])/.test(g + nm)) return 'G3';
+  if (/新馬/.test(nm)) return '新馬';
+  if (/未勝利/.test(nm)) return '未勝利';
+  if (/1勝|500万下|500万/.test(nm)) return '1勝クラス';
+  if (/2勝|1000万下|1000万/.test(nm)) return '2勝クラス';
+  if (/3勝|1600万下|1600万/.test(nm)) return '3勝クラス';
+  if (/オープン|ステークス|OP|ジュニアカップ/.test(nm + g)) return 'オープン';
+  return '';
+}
+/* ---------- 通過順から脚質/4角位置帯(表示・検索専用の導出) ---------- */
+function dbsStyleOf(row, n){
+  var ps = String((row && row.passing) || '').split('-').filter(Boolean).map(Number).filter(function(x){ return isFinite(x); });
+  if (!ps.length || !n) return '';
+  var r = ps[0] / n;
+  if (r <= 0.25) return '逃げ';
+  if (r <= 0.50) return '先行';
+  if (r <= 0.75) return '差し';
+  return '追込';
+}
+function dbsPos4Of(row, n){
+  var ps = String((row && row.passing) || '').split('-').filter(Boolean).map(Number).filter(function(x){ return isFinite(x); });
+  if (!ps.length || !n) return '';
+  var r = ps[ps.length - 1] / n;
+  if (r <= 0.2) return '先頭団';
+  if (r <= 0.4) return '好位';
+  if (r <= 0.6) return '中団';
+  if (r <= 0.8) return '後方';
+  return '最後方';
+}
+function dbsDistM(rec){
+  var m = (rec && rec.meta) || {};
+  return parseInt(m.m, 10) || parseInt(String(m.dist || '').replace(/[^0-9]/g, ''), 10) || 0;
+}
+function dbsSurfOf(rec){
+  var m = (rec && rec.meta) || {};
+  if (m.surface === 'ダ' || /ダ/.test(String(m.dist || ''))) return 'ダ';
+  if (m.surface === '障' || /障/.test(String(m.dist || '') + String(m.name || ''))) return '障';
+  return '芝';
+}
+function dbsPlaceShort(rec){
+  return String(((rec && rec.meta) || {}).place || '').replace(/競馬場$/, '');
+}
+function dbsWakuNum(row){
+  var f = parseInt(row && row.frame, 10);
+  return isFinite(f) && f > 0 ? f : 0;   /* 欠損=0(枠条件にはマッチしない) */
+}
+function dbsPopNum(row){
+  var p = parseInt(row && row.pop, 10);
+  return isFinite(p) && p > 0 ? p : 0;
+}
+function dbsOddsNum(row){
+  var o = parseFloat(row && row.odds);
+  return isFinite(o) && o > 0 ? o : 0;
+}
+
+/* ================= データ層(学習DBから読み取り専用で索引構築) ================= */
+var DBS_TODAY = '';   /* テスト用: 'YYYYMMDD' を入れると期間判定の基準日を固定 */
+function dbsToday(){
+  if (DBS_TODAY) return DBS_TODAY;
+  var d = new Date();
+  return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+}
+var _dbsData = null, _dbsDataVer = -1;
+function dbsData(force){
+  var ver = (typeof diVer !== 'undefined') ? diVer : 0;
+  if (!force && _dbsData && _dbsDataVer === ver) return _dbsData;
+  var db = (typeof diLs === 'function') ? diLs() : { races: {} };
+  var races = [];
+  Object.keys(db.races || {}).forEach(function(rid){
+    var rec = db.races[rid];
+    if (!rec || !rec.meta || !String(rec.meta.date8 || '').match(/^\d{8}$/)) return;
+    if (!rec.rows || !rec.rows.length) return;
+    /* 学習DBはJRA中央の結果のみ(NARは取込経路が別・このDBには入らない) */
+    races.push(rec);
+  });
+  races.sort(function(a, b){
+    return String(a.meta.date8).localeCompare(String(b.meta.date8)) ||
+           String(a.rid).localeCompare(String(b.rid));
+  });
+  /* 馬ID → 日付昇順の出走リスト(前走参照用・O(1)ポインタ) */
+  var horses = {}, pos = {};
+  races.forEach(function(rec){
+    (rec.rows || []).forEach(function(row){
+      var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
+      var list = horses[key] || (horses[key] = []);
+      list.push({ d8: String(rec.meta.date8), rid: rec.rid, row: row, rec: rec });
+      pos[key + '\x01' + rec.rid] = list.length - 1;
+    });
+  });
+  var ped = null;
+  try { ped = (typeof rsigPedMap === 'function') ? rsigPedMap() : null; } catch(e){ ped = null; }
+  _dbsData = { races: races, horses: horses, pos: pos, ped: ped, n: races.length,
+               ver: ver, today: dbsToday() };
+  _dbsDataVer = ver;
+  return _dbsData;
+}
+/* 前走(対象レースより前だけ=未来情報ゼロ)。無ければ null */
+function dbsPrevOf(D, rec, row){
+  var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
+  var list = D.horses[key];
+  if (!list) return null;
+  var d8 = String(rec.meta.date8);
+  var p = D.pos[key + '\x01' + rec.rid];
+  if (p == null) return null;
+  for (var i = p - 1; i >= 0; i--){
+    if (list[i].d8 < d8) return list[i];   /* 同日の別レースは無い前提だが厳密に「前」だけ */
+  }
+  return null;
+}
+/* N連続騎乗: 現レースを含め直近から同じ騎手が何連続か */
+function dbsTsuzuki(D, rec, row){
+  var key = (row && row.id) ? String(row.id) : ('n' + String((row && row.name) || ''));
+  var list = D.horses[key];
+  if (!list) return 1;
+  var p = D.pos[key + '\x01' + rec.rid];
+  if (p == null) return 1;
+  var cnt = 1;
+  for (var i = p - 1; i >= 0; i--){
+    if (String(list[i].row.jockey || '') === String(row.jockey || '') && list[i].d8 < String(rec.meta.date8)) cnt++;
+    else break;
+  }
+  return cnt;
+}
+function dbsBloodOf(D, row){
+  if (!D.ped || !row || !row.id) return null;
+  return D.ped[String(row.id)] || null;
+}
+
+/* ================= タグ条件判定(AND) ================= */
+/* t = {cat, v, label}。rec/row は学習DBレコード、rf はレース単位の導出値 */
+function dbsTagMatch(D, rec, row, rf, t){
+  var v = t.v;
+  switch (t.cat){
+    case 'course': return rf.surf === v;
+    case 'dist': return rf.m === +v;
+    case 'distl': return rf.m > 0 && rf.m <= +v;
+    case 'distm': return rf.m >= +v;
+    case 'ord':
+      if (v === '13') return row.order <= 3;
+      if (v === '15') return row.order <= 5;
+      if (v === '6') return row.order >= 6;
+      return row.order === +v;
+    case 'pop': return dbsPopNum(row) === +v;
+    case 'popl': var pp = dbsPopNum(row); return pp > 0 && pp <= +v;
+    case 'popm': return dbsPopNum(row) >= +v;
+    case 'stall': var fw = dbsWakuNum(row); return fw > 0 && fw <= +v;
+    case 'waku': var fw2 = dbsWakuNum(row); return fw2 > 0 && (v === 'in' ? fw2 <= 4 : fw2 >= 5);
+    case 'place': return rf.place === v;
+    case 'class': return rf.cls === v;
+    case 'raceName': return rf.name.indexOf(String(v)) >= 0;
+    case 'tenki': return rf.tenko === v;
+    case 'baba': return rf.baba === v;
+    case 'maw': return rf.turn === v;
+    case 'style': return dbsStyleOf(row, rf.n) === v;
+    case 'pos4': return dbsPos4Of(row, rf.n) === v;
+    case 'fast3':
+      if (!String(row.last3 || '')) return false;
+      var l3 = parseFloat(row.last3);
+      if (!isFinite(l3)) return false;
+      return rf.fast3 != null && Math.abs(l3 - rf.fast3) < 1e-9;
+    case 'jockey': return String(row.jockey || '') === String(v);
+    case 'trainer': return String(row.trainer || '') === String(v);
+    case 'horse': return String(row.name || '') === String(v);
+    case 'sire': case 'msire': {
+      var b = dbsBloodOf(D, row);
+      if (!b) return !!DBS_BLOOD_UNK;   /* 血統不明: 既定=除外・トグルで含める */
+      var got = (t.cat === 'sire') ? b.sire : b.msire;
+      return String(got || '').indexOf(String(v)) >= 0;
+    }
+    case 'nor': {
+      var pv = dbsPrevOf(D, rec, row);
+      if (!pv) return false;
+      return (v === 'on') ? (String(pv.row.jockey || '') !== String(row.jockey || ''))
+                          : (String(pv.row.jockey || '') === String(row.jockey || ''));
+    }
+    case 'prevjoy': {
+      var pv2 = dbsPrevOf(D, rec, row);
+      if (!pv2) return false;
+      return String(pv2.row.jockey || '') === String(v) && String(row.jockey || '') !== String(v);
+    }
+    case 'tsuzuki': return dbsTsuzuki(D, rec, row) >= +v;
+    case 'ren': {   /* 連闘(中0週=前走から6日以内) */
+      var pv3 = dbsPrevOf(D, rec, row);
+      if (!pv3) return false;
+      var days = dbsDays(pv3.d8, rf.d8);
+      return days >= 0 && days <= 6;
+    }
+    case 'yasumi': {   /* 休み明け(中10週以上=70日+) */
+      var pv4 = dbsPrevOf(D, rec, row);
+      if (!pv4) return false;
+      return dbsDays(pv4.d8, rf.d8) >= 70;
+    }
+    case 'nagayasumi': {   /* 長期休み明け(半年以上=180日+) */
+      var pv5 = dbsPrevOf(D, rec, row);
+      if (!pv5) return false;
+      return dbsDays(pv5.d8, rf.d8) >= 180;
+    }
+    case 'distchg': {   /* 前走からの距離変化(±200m未満=同距離) */
+      var pv6 = dbsPrevOf(D, rec, row);
+      if (!pv6) return false;
+      var pm = dbsDistM(pv6.rec), dm = rf.m - pm;
+      if (v === 'ext') return dm >= 200;
+      if (v === 'cut') return dm <= -200;
+      return Math.abs(dm) < 200;
+    }
+    case 'prevord': {   /* 前走着順帯 */
+      var pv7 = dbsPrevOf(D, rec, row);
+      if (!pv7) return false;
+      var po = parseInt(pv7.row.order, 10) || 99;
+      if (v === '1') return po === 1;
+      if (v === '13') return po <= 3;
+      return po >= 6;
+    }
+    case 'past': {
+      var y = +v, base = String(+rf.today.slice(0, 4) - y) + rf.today.slice(4);
+      return rf.d8 >= base;
+    }
+    case 'year': return rf.d8.slice(0, 4) === String(v);
+    case 'ymore': return rf.d8.slice(0, 4) >= String(v);
+    case 'yless': return rf.d8.slice(0, 4) <= String(v);
+  }
+  return true;
+}
+function dbsDays(d8a, d8b){
+  var a = new Date(+d8a.slice(0, 4), +d8a.slice(4, 6) - 1, +d8a.slice(6, 8));
+  var b = new Date(+d8b.slice(0, 4), +d8b.slice(4, 6) - 1, +d8b.slice(6, 8));
+  return Math.round((b - a) / 86400000);
+}
+
+/* ================= 検索実行(純関数) ================= */
+/* tags=[{cat,v,label}] → {hits:[{rec,row,rf,prev}], races:件数} */
+var DBS_BLOOD_UNK = false;
+function dbsRun(D, tags){
+  var hits = [], raceSet = {};
+  var prevCats = { nor:1, prevjoy:1, ren:1, yasumi:1, nagayasumi:1, distchg:1, prevord:1 };
+  var needPrev = tags.some(function(t){ return prevCats[t.cat]; });
+  D.races.forEach(function(rec){
+    var m = rec.meta;
+    var rows = rec.rows || [];
+    var fast3 = null;
+    tags.forEach(function(t){
+      if (t.cat !== 'fast3') return;
+      rows.forEach(function(r){
+        var l3 = parseFloat(r.last3);
+        if (isFinite(l3) && (fast3 == null || l3 < fast3)) fast3 = l3;
+      });
+    });
+    var rf = {
+      d8: String(m.date8 || ''), place: dbsPlaceShort(rec), name: String(m.name || ''),
+      m: dbsDistM(rec), surf: dbsSurfOf(rec), baba: m.baba || '', tenko: m.tenko || '',
+      turn: dbsTurnOf(m.place, m.surface, dbsDistM(rec)), cls: dbsClassKey(rec),
+      month: parseInt(String(m.date8 || '').slice(4, 6), 10) || 0,
+      n: rows.length, fast3: fast3, today: D.today
+    };
+    rows.forEach(function(row){
+      if (!row || !row.order) return;
+      for (var i = 0; i < tags.length; i++){
+        if (!dbsTagMatch(D, rec, row, rf, tags[i])) return;
+      }
+      hits.push({ rec: rec, row: row, rf: rf, prev: needPrev ? dbsPrevOf(D, rec, row) : null, tsuzuki: 0 });
+      raceSet[rec.rid] = 1;
+    });
+  });
+  return { hits: hits, nRaces: Object.keys(raceSet).length };
+}
+
+/* ================= 集計(純関数) ================= */
+function dbsSummary(hits){
+  var c = [0, 0, 0, 0], pay = 0, odN = 0, odS = 0, popS = 0, popN = 0;
+  hits.forEach(function(h){
+    var o = parseInt(h.row.order, 10) || 99;
+    c[(o <= 3) ? o - 1 : 3]++;
+    if (o === 1){ var od = dbsOddsNum(h.row); if (od){ pay += od; odN++; } }
+    var od2 = dbsOddsNum(h.row); if (od2){ odS += od2; odN = odN; }
+    var p2 = dbsPopNum(h.row); if (p2){ popS += p2; popN++; }
+  });
+  var n = hits.length;
+  return {
+    n: n, c: c,
+    win: n ? c[0] / n : 0, place3: n ? (c[0] + c[1] + c[2]) / n : 0, top5: 0,
+    ret: n ? pay / n : 0,
+    avgPop: popN ? popS / popN : null, avgOdds: odN ? odS / odN : null
+  };
+}
+/* 内訳軸(改訂3): 枠/馬番帯/人気帯/騎手/調教師/競馬場/距離帯/月/脚質/回り/斤量帯/父 */
+function dbsAxisValue(h, axis, D){
+  var r = h.row, rf = h.rf;
+  switch (axis){
+    case 'waku': var w = dbsWakuNum(r); return w ? w + '枠' : '—';
+    case 'noband': var no = parseInt(r.no, 10); return isFinite(no) ? (no <= 4 ? '1-4番' : no <= 8 ? '5-8番' : no <= 12 ? '9-12番' : '13番-') : '—';
+    case 'popband': var p = dbsPopNum(r); return p ? (p === 1 ? '1番人気' : p <= 3 ? '2-3番人気' : p <= 6 ? '4-6番人気' : p <= 10 ? '7-10番人気' : '11番人気-') : '—';
+    case 'jockey': return String(r.jockey || '—');
+    case 'trainer': return String(r.trainer || '—');
+    case 'place': return rf.place || '—';
+    case 'distband': return rf.m ? (rf.m <= 1200 ? '〜1200m' : rf.m <= 1600 ? '1201-1600m' : rf.m <= 2000 ? '1601-2000m' : rf.m <= 2400 ? '2001-2400m' : '2401m-') : '—';
+    case 'month': return rf.month ? rf.month + '月' : '—';
+    case 'style': return dbsStyleOf(r, rf.n) || '—';
+    case 'turn': return rf.turn || '—';
+    case 'weight': var w2 = parseFloat(r.weight); return isFinite(w2) ? (w2 < 52 ? '〜51kg' : w2 < 55 ? '52-54kg' : w2 < 58 ? '55-57kg' : '58kg-') : '—';
+    case 'sire': var b = dbsBloodOf(D || dbsData(), r); return (b && b.sire) ? b.sire : '血統不明';
+  }
+  return '—';
+}
+var DBS_AXES = [
+  ['waku', '枠'], ['noband', '馬番帯'], ['popband', '人気帯'], ['jockey', '騎手'],
+  ['trainer', '調教師'], ['place', '競馬場'], ['distband', '距離帯'], ['month', '月'],
+  ['style', '脚質'], ['turn', '回り(右/左)'], ['weight', '斤量帯'], ['sire', '父']
+];
+function dbsGroupBy(hits, axis, D){
+  var g = {};
+  hits.forEach(function(h){
+    var k = dbsAxisValue(h, axis, D);
+    (g[k] || (g[k] = { key: k, n: 0, c: [0, 0, 0, 0], pay: 0, popS: 0, popN: 0 })).n++;
+    var o = parseInt(h.row.order, 10) || 99;
+    g[k].c[(o <= 3) ? o - 1 : 3]++;
+    if (o === 1){ var od = dbsOddsNum(h.row); if (od) g[k].pay += od; }
+    var p2 = dbsPopNum(h.row); if (p2){ g[k].popS += p2; g[k].popN++; }
+  });
+  return Object.keys(g).map(function(k){ return g[k]; })
+    .sort(function(a, b){ return b.n - a.n || String(a.key).localeCompare(String(b.key), 'ja'); });
+}
+
+/* ================= 候補メニュー(学習DBの中身から自動生成) ================= */
+function dbsIt(cat, v, label, k){ return { cat: cat, v: v, label: label, k: (k ? k + ' ' : '') + label }; }
+function dbsMenus(D){
+  var joy = {}, tr = {}, hors = {}, sire = {}, msire = {}, places = {}, dists = {}, names = {}, years = {};
+  D.races.forEach(function(rec){
+    var rf = { place: dbsPlaceShort(rec) };
+    if (rf.place) places[rf.place] = (places[rf.place] || 0) + 1;
+    var dm = dbsDistM(rec);
+    if (dm) dists[dm] = (dists[dm] || 0) + 1;
+    var nm = String(rec.meta.name || '');
+    if (nm) names[nm] = (names[nm] || 0) + 1;
+    years[String(rec.meta.date8 || '').slice(0, 4)] = 1;
+    (rec.rows || []).forEach(function(row){
+      if (row.jockey) joy[row.jockey] = (joy[row.jockey] || 0) + 1;
+      if (row.trainer) tr[row.trainer] = (tr[row.trainer] || 0) + 1;
+      if (row.name) hors[row.name] = (hors[row.name] || 0) + 1;
+      var b = dbsBloodOf(D, row);
+      if (b && b.sire) sire[b.sire] = (sire[b.sire] || 0) + 1;
+      if (b && b.msire) msire[b.msire] = (msire[b.msire] || 0) + 1;
+    });
+  });
+  function topF(obj, lim){
+    return Object.keys(obj).sort(function(a, b){ return obj[b] - obj[a] || a.localeCompare(b, 'ja'); }).slice(0, lim);
+  }
+  var M = [];
+  /* ① 人気の検索ワード(代表条件) */
+  M.push({ title: '人気の検索ワード', items: [
+    dbsIt('course', '芝', '芝', 'しば'), dbsIt('course', 'ダ', 'ダート', 'だーと'),
+    dbsIt('dist', '1600', '1600m', 'せんろっぴゃく'), dbsIt('ord', '1', '1着', 'いっちゃく'),
+    dbsIt('pop', '1', '1番人気', 'いちばんにんき'),
+    dbsIt('place', '東京', '東京', 'とうきょう'), dbsIt('place', '中山', '中山', 'なかやま'),
+    dbsIt('nor', 'on', '乗り替わり', 'のりかわり')
+  ]});
+  /* ② 条件で絞り込む(固定の条件用語+実データの場/距離) */
+  var c2 = [
+    dbsIt('course', '芝', '芝', 'しば しゃ'), dbsIt('course', 'ダ', 'ダート', 'だーと'),
+    dbsIt('ord', '1', '1着', 'いっちゃく'), dbsIt('ord', '2', '2着', 'にちゃく'), dbsIt('ord', '3', '3着', 'さんちゃく'),
+    dbsIt('ord', '13', '馬券圏内', 'ばけんけんない うまけんない'), dbsIt('ord', '15', '掲示板', 'けいじばん'), dbsIt('ord', '6', '着外', 'ちゃくがい'),
+    dbsIt('pop', '1', '1番人気', 'いちばんにんき'), dbsIt('pop', '2', '2番人気', 'にばんにんき'), dbsIt('pop', '3', '3番人気', 'さんばんにんき'),
+    dbsIt('popl', '5', '5番人気以内', 'ごばんにんきいない'), dbsIt('popm', '10', '二桁人気', 'にけたにんき'),
+    dbsIt('stall', '2', '2枠以内', 'にかわくいない'), dbsIt('stall', '4', '4枠以内', 'よんわくいない'),
+    dbsIt('waku', 'in', '内枠(1-4枠)', 'うちわく'), dbsIt('waku', 'out', '外枠(5-8枠)', 'そとわく'),
+    dbsIt('maw', '右', '右回り', 'みぎまわり'), dbsIt('maw', '左', '左回り', 'ひだりまわり'), dbsIt('maw', '直', '直線(新潟1000m)', 'ちょくせん'),
+    dbsIt('style', '逃げ', '逃げ', 'にげ'), dbsIt('style', '先行', '先行', 'せんこう'), dbsIt('style', '差し', '差し', 'さし'), dbsIt('style', '追込', '追込', 'おいこみ'),
+    dbsIt('pos4', '先頭団', '4角先頭団', 'よんかくせんとうだん'), dbsIt('pos4', '好位', '4角好位', 'よんかくこうい'), dbsIt('pos4', '中団', '4角中団', 'よんかくちゅうだん'), dbsIt('pos4', '後方', '4角後方', 'よんかくこうほう'),
+    dbsIt('fast3', '1', 'そのレースで上3F最速', 'うえさんえふさいそく'),
+    dbsIt('nor', 'on', '乗り替わり', 'のりかわり'), dbsIt('nor', 'keep', '継続騎乗', 'けいぞくきじょう'),
+    dbsIt('tsuzuki', '2', '2連続以上騎乗', 'にれんぞくいじょうきじょう'), dbsIt('tsuzuki', '3', '3連続以上騎乗', 'さんれんぞくいじょうきじょう'),
+    dbsIt('ren', '1', '連闘(中0週)', 'れんとう'), dbsIt('yasumi', '1', '休み明け(中10週+)', 'やすみあけ'),
+    dbsIt('nagayasumi', '1', '長期休み明け(半年+)', 'ちょうきやすみあけ'),
+    dbsIt('distchg', 'ext', '距離延長(前走+200m)', 'きょりえんちょう'), dbsIt('distchg', 'cut', '距離短縮(前走-200m)', 'きょりたんしゅく'), dbsIt('distchg', 'same', '同距離(前走±200m内)', 'どうきょり'),
+    dbsIt('prevord', '1', '前走1着', 'ぜんそういっちゃく'), dbsIt('prevord', '13', '前走馬券内', 'ぜんそううまけんない'), dbsIt('prevord', '6', '前走掲示板外', 'ぜんそうけいじばんがい'),
+    dbsIt('tenki', '晴', '晴', 'はれ'), dbsIt('tenki', '曇', '曇', 'くもり'), dbsIt('tenki', '雨', '雨', 'あめ'),
+    dbsIt('baba', '良', '良', 'りょう'), dbsIt('baba', '稍重', '稍重', 'しょうじゅう'), dbsIt('baba', '重', '重', 'おも'), dbsIt('baba', '不良', '不良', 'ふりょう'),
+    dbsIt('class', '新馬', '新馬', 'しんば'), dbsIt('class', '未勝利', '未勝利', 'みしょうり'),
+    dbsIt('class', '1勝クラス', '1勝クラス', 'いっしょうくらす'), dbsIt('class', '2勝クラス', '2勝クラス', 'にしょうくらす'),
+    dbsIt('class', '3勝クラス', '3勝クラス', 'さんしょうくらす'), dbsIt('class', 'オープン', 'オープン', 'おーぷん'),
+    dbsIt('class', 'G1', 'G1', 'じーいち'), dbsIt('class', 'G2', 'G2', 'じーに'), dbsIt('class', 'G3', 'G3', 'じーさん'),
+    dbsIt('class', '障害', '障害', 'しょうがい')
+  ];
+  topF(places, 10).forEach(function(p){ c2.push(dbsIt('place', p, p, DBS_PLACE_YOMI[p] || '')); });
+  topF(dists, 12).forEach(function(dm){ c2.push(dbsIt('dist', String(dm), dm + 'm', dm <= 3000 ? 'せん' : '')); });
+  M.push({ title: '条件で絞り込む', items: c2, short: 16 });
+  /* ③ 騎手で絞り込む(乗り替わり元も) */
+  var j3 = [];
+  topF(joy, 24).forEach(function(j){
+    j3.push(dbsIt('jockey', j, j));
+    j3.push(dbsIt('prevjoy', j, j + 'からの乗り替わり'));
+  });
+  M.push({ title: '騎手で絞り込む', items: j3, short: 8 });
+  /* ④ 馬で絞り込む(産駒+母父+馬名) */
+  var h4 = topF(sire, 12).map(function(s){ return dbsIt('sire', s, s + '産駒', 'さんこ'); });
+  topF(msire, 8).forEach(function(s){ h4.push(dbsIt('msire', s, '母父' + s, 'ぼおぶ')); });
+  topF(hors, 60).forEach(function(n){ h4.push(dbsIt('horse', n, n)); });
+  M.push({ title: '馬で絞り込む', items: h4, short: 10 });
+  /* ⑤ 調教師で絞り込む */
+  M.push({ title: '調教師で絞り込む', items: topF(tr, 24).map(function(t){ return dbsIt('trainer', t, t); }), short: 6 });
+  /* ⑥ レース名で絞り込む(改訂2) */
+  M.push({ title: 'レース名で絞り込む', items: topF(names, 40).map(function(n){ return dbsIt('raceName', n, n); }), short: 8 });
+  /* ⑦ 期間 */
+  var y7 = [
+    dbsIt('past', '1', '過去1年', 'かこいちねん'), dbsIt('past', '2', '過去2年', 'かこにねん'), dbsIt('past', '3', '過去3年', 'かこさんねん'),
+    dbsIt('past', '5', '過去5年', 'かこごねん')
+  ];
+  Object.keys(years).sort().reverse().forEach(function(y){ y7.push(dbsIt('year', y, y + '年', 'ねん')); });
+  var ys = Object.keys(years).sort();
+  if (ys.length){ y7.push(dbsIt('ymore', ys[0], ys[0] + '年以降', 'いこう')); y7.push(dbsIt('yless', ys[ys.length - 1], ys[ys.length - 1] + '年以前', 'いぜん')); }
+  M.push({ title: '期間', items: y7, short: 6 });
+  return M;
+}
+
+/* ================= UI状態 ================= */
+var dbsTags = [];        /* [{cat,v,label}] */
+var dbsSearched = false;
+var dbsHits = [];        /* 最後の検索結果 */
+var dbsNRaces = 0;
+var dbsPlaceFilter = null;
+var dbsOpenRace = '';
+var dbsViewLimit = 20;
+var dbsViewMode = 'list';   /* 'list' | 'group' */
+var dbsAxis = 'waku';
+var dbsPredList = [];
+var dbsSecOpen = {};
+var dbsWired = false;
+
+function dbsIsAdded(item){ return dbsTags.some(function(t){ return t.cat === item.cat && String(t.v) === String(item.v); }); }
+function dbsHasBloodTag(){ return dbsTags.some(function(t){ return t.cat === 'sire' || t.cat === 'msire'; }); }
+
+/* ---------- 描画: タグ ---------- */
+function dbsRenderTags(){
+  var el = document.getElementById('dbsTags');
+  if (!el) return;
+  var h = dbsTags.map(function(t, i){
+    return '<span class="dbs-tag">' + esc(t.label) +
+      '<button type="button" data-dbs-rm="' + i + '" aria-label="条件を削除">×</button></span>';
+  }).join('');
+  var note = document.getElementById('dbsTagNote');
+  if (note) note.textContent = dbsTags.length ? '' : 'まだ条件なし — 下の候補をタップするか、検索ボックスに入力してください';
+  var bloodRow = document.getElementById('dbsBloodRow');
+  if (bloodRow){
+    bloodRow.style.display = dbsHasBloodTag() ? 'flex' : 'none';
+    var chk = document.getElementById('dbsBloodUnk');
+    if (chk) chk.checked = !!DBS_BLOOD_UNK;
+  }
+  el.innerHTML = h;
+}
+/* ---------- 描画: 候補メニュー ---------- */
+function dbsRenderMenus(){
+  var el = document.getElementById('dbsMenus');
+  if (!el) return;
+  var D = dbsData();
+  var M = dbsMenus(D);
+  var h = '';
+  M.forEach(function(sec, si){
+    var shown = sec.short || sec.items.length;
+    var expanded = !!dbsSecOpen[si];
+    var items = expanded ? sec.items : sec.items.slice(0, shown);
+    h += '<div class="dbs-menu"><h4>' + esc(sec.title) + '</h4><div class="dbs-pills">';
+    items.forEach(function(item, ii){
+      if (dbsIsAdded(item)) return;
+      h += '<button type="button" class="dbs-pill" data-dbs-pick="' + si + ':' + ii + '">' + esc(item.label) + '</button>';
+    });
+    if (sec.items.length > shown){
+      h += '<button type="button" class="dbs-morebtn" data-dbs-sec="' + si + '">' + (expanded ? '▲ 閉じる' : '▼ もっと見る') + '</button>';
+    }
+    h += '</div></div>';
+  });
+  el.innerHTML = h;
+  el.style.display = '';
+  var pred = document.getElementById('dbsPredict');
+  if (pred){ pred.style.display = 'none'; pred.innerHTML = ''; }
+}
+/* ---------- 予測キーワード ---------- */
+function dbsOnInput(){
+  var q = dbsNorm((document.getElementById('dbsQ') || {}).value || '');
+  var menus = document.getElementById('dbsMenus'), pred = document.getElementById('dbsPredict');
+  if (!menus || !pred) return;
+  if (!q){ dbsRenderMenus(); return; }
+  var D = dbsData();
+  var M = dbsMenus(D);
+  var starts = [], contains = [];
+  M.forEach(function(sec){
+    sec.items.forEach(function(item){
+      if (dbsIsAdded(item)) return;
+      var k = dbsNorm(item.k);
+      if (k.indexOf(q) === 0) starts.push({ item: item, sec: sec.title });
+      else if (k.indexOf(q) >= 0) contains.push({ item: item, sec: sec.title });
+    });
+  });
+  var list = starts.concat(contains).slice(0, 12);
+  var h = '';
+  list.forEach(function(e){
+    var lab = e.item.label;
+    var pos = dbsNorm(lab).indexOf(q);
+    if (pos >= 0) lab = esc(lab.slice(0, pos)) + '<b>' + esc(lab.slice(pos, pos + q.length)) + '</b>' + esc(lab.slice(pos + q.length));
+    else lab = esc(lab);
+    h += '<button type="button" class="dbs-pitem" data-dbs-pred="' + esc(e.item.cat) + '\x01' + esc(String(e.item.v)) + '">' +
+         '<span class="lab">' + lab + '</span><span class="sec">' + esc(e.sec) + '</span></button>';
+  });
+  h += '<div class="dbs-pnote">' + (list.length ? list.length + '件の予測キーワード — Enter=最初のキーワードを採用' : '該当する予測キーワードがありません(部分一致で馬名などを直接探せます)') + '</div>';
+  dbsPredList = list;
+  menus.style.display = 'none';
+  pred.style.display = 'block';
+  pred.innerHTML = h;
+}
+function dbsClrInput(){
+  var q = document.getElementById('dbsQ');
+  if (q) q.value = '';
+  dbsOnInput();
+}
+function dbsOnKey(e){
+  if (!e) return;
+  if (e.key === 'Enter'){
+    var q = dbsNorm((document.getElementById('dbsQ') || {}).value || '');
+    if (q && dbsPredList.length){ dbsPickPred(0); return; }
+    if (!q) dbsDoSearch();
+    return;
+  }
+  if (e.key === 'Escape'){ dbsClrInput(); return; }
+  if (e.key === 'Backspace'){
+    var qe = document.getElementById('dbsQ');
+    if (qe && !qe.value && dbsTags.length) dbsRemoveTag(dbsTags.length - 1);
+  }
+}
+/* ---------- タグ操作 ---------- */
+function dbsAddTag(item){
+  if (dbsIsAdded(item)) return;
+  dbsTags.push({ cat: item.cat, v: item.v, label: item.label });
+  dbsRenderTags(); dbsRenderMenus();
+}
+function dbsRemoveTag(i){ dbsTags.splice(i, 1); dbsRenderTags(); dbsRenderMenus(); }
+function dbsResetAll(){
+  dbsTags = []; dbsPlaceFilter = null; dbsOpenRace = ''; dbsSearched = false; dbsViewLimit = 20;
+  dbsClrInput(); dbsRenderTags(); dbsRenderMenus(); dbsRenderResult();
+}
+function dbsPickPred(i){
+  if (!dbsPredList[i]) return;
+  dbsAddTag(dbsPredList[i].item);
+  dbsClrInput();
+}
+function dbsToggleHints(){
+  var el = document.getElementById('dbsHints');
+  if (el) el.classList.toggle('open');
+}
+
+/* ---------- 検索実行 ---------- */
+function dbsDoSearch(){
+  var D = dbsData(true);   /* 検索ボタン押下時に学習DBを引き直す(取込後の変化に追従) */
+  var r = dbsRun(D, dbsTags);
+  dbsSearched = true; dbsHits = r.hits; dbsNRaces = r.nRaces;
+  dbsPlaceFilter = null; dbsOpenRace = ''; dbsViewLimit = 20;
+  dbsRenderResult();
+}
+function dbsMoreRows(){ dbsViewLimit += 20; dbsRenderResult(); }
+function dbsTapPlace(p){ dbsPlaceFilter = (dbsPlaceFilter === p) ? null : p; dbsRenderResult(); }
+function dbsToggleRace(rid){ dbsOpenRace = (dbsOpenRace === String(rid)) ? '' : String(rid); dbsRenderResult(); }
+function dbsOrdCls(o){ return o === 1 ? 'o1' : (o === 2 ? 'o2' : (o === 3 ? 'o3' : 'oi')); }
+function dbsPrevWeeks(h){
+  if (!h.prev) return null;
+  var days = dbsDays(h.prev.d8, h.rf.d8);
+  return days >= 0 ? Math.floor(days / 7) + '週(' + days + '日)' : null;
+}
+
+/* ---------- 結果描画 ---------- */
+function dbsRenderResult(){
+  var sumbox = document.getElementById('dbsSumBox'), dochi = document.getElementById('dbsDochi'),
+      komoku = document.getElementById('dbsKomoku'), list = document.getElementById('dbsList'),
+      morebtn = document.getElementById('dbsMoreBtn'), endnote = document.getElementById('dbsEndNote'),
+      vmBtns = document.getElementById('dbsViewMode'), grp = document.getElementById('dbsGroup'),
+      grpCtl = document.getElementById('dbsGroupCtl');
+  if (!sumbox) return;
+  if (!dbsSearched){
+    sumbox.innerHTML = '<div class="dbs-nullv">まだ検索していません — 条件を選んで「🔍 この条件で検索」</div>';
+    dochi.style.display = 'none'; komoku.style.display = 'none';
+    list.innerHTML = ''; morebtn.style.display = 'none'; endnote.style.display = 'none';
+    if (vmBtns) vmBtns.style.display = 'none';
+    if (grp) grp.style.display = 'none';
+    if (grpCtl) grpCtl.style.display = 'none';
+    return;
+  }
+  var s = dbsSummary(dbsHits);
+  if (!s.n){
+    sumbox.innerHTML = '<div class="dbs-nullv">該当なし — 条件を減らすか変えてください</div>';
+    dochi.style.display = 'none'; komoku.style.display = 'none';
+    list.innerHTML = ''; morebtn.style.display = 'none'; endnote.style.display = 'none';
+    if (vmBtns) vmBtns.style.display = 'none';
+    if (grp) grp.style.display = 'none';
+    if (grpCtl) grpCtl.style.display = 'none';
+    return;
+  }
+  sumbox.innerHTML = '<div class="dbs-sumline">' +
+    '<div><span class="dbs-sumnum">' + s.n + '</span><span class="dbs-sumlab">該当馬</span></div>' +
+    '<div><span class="dbs-sumnum">' + dbsNRaces + '</span><span class="dbs-sumlab">レース</span></div></div>';
+  dochi.style.display = 'flex';
+  document.getElementById('dbsTks').innerHTML =
+    '<button type="button" class="dbs-tk dbs-tk1' + (dbsPlaceFilter === 1 ? ' on' : '') + '" data-dbs-tk="1">' + s.c[0] + '</button><span class="dbs-dash">-</span>' +
+    '<button type="button" class="dbs-tk dbs-tk2' + (dbsPlaceFilter === 2 ? ' on' : '') + '" data-dbs-tk="2">' + s.c[1] + '</button><span class="dbs-dash">-</span>' +
+    '<button type="button" class="dbs-tk dbs-tk3' + (dbsPlaceFilter === 3 ? ' on' : '') + '" data-dbs-tk="3">' + s.c[2] + '</button><span class="dbs-dash">-</span>' +
+    '<button type="button" class="dbs-tk dbs-tk4' + (dbsPlaceFilter === 4 ? ' on' : '') + '" data-dbs-tk="4">' + s.c[3] + '</button>';
+  komoku.style.display = 'flex';
+  komoku.innerHTML =
+    '<div>勝率 <b>' + (s.win * 100).toFixed(1) + '%</b></div>' +
+    '<div>馬券内率 <b>' + (s.place3 * 100).toFixed(1) + '%</b></div>' +
+    '<div>単勝回収率 <b style="color:' + (s.ret * 100 >= 100 ? 'var(--ok-ink,#0c7c40)' : 'var(--err-ink,#d64545)') + '">' + (s.ret * 100).toFixed(0) + '%</b></div>' +
+    '<div>平均人気 <b>' + (s.avgPop != null ? s.avgPop.toFixed(1) : '—') + '</b></div>' +
+    '<div>平均単勝 <b>' + (s.avgOdds != null ? s.avgOdds.toFixed(1) : '—') + '</b></div>';
+  if (vmBtns) vmBtns.style.display = 'flex';
+
+  /* 表示モード: 一覧 / 内訳 */
+  if (dbsViewMode === 'group'){
+    list.innerHTML = ''; morebtn.style.display = 'none'; endnote.style.display = 'none';
+    if (grpCtl) grpCtl.style.display = 'flex';
+    grp.style.display = 'block';
+    var D = dbsData();
+    var rows = dbsGroupBy(dbsHits, dbsAxis, D);
+    var gh = '<div class="tblwrap"><table class="tbl"><thead><tr><th class="l">' + esc(dbsAxisLabel(dbsAxis)) + '</th><th>件数</th><th>1着</th><th>2着</th><th>3着</th><th>着外</th><th>勝率</th><th>馬券内率</th><th>単回収</th><th>平均人気</th></tr></thead><tbody>';
+    rows.forEach(function(g){
+      var thin = g.n < 5 ? ' style="opacity:.55"' : '';
+      gh += '<tr' + thin + '><td class="l"><b>' + esc(g.key) + '</b></td><td>' + g.n + '</td>' +
+        '<td class="o1">' + g.c[0] + '</td><td class="o2">' + g.c[1] + '</td><td class="o3">' + g.c[2] + '</td><td class="muted">' + g.c[3] + '</td>' +
+        '<td>' + (g.n ? (g.c[0] / g.n * 100).toFixed(1) : '0.0') + '%</td>' +
+        '<td>' + (g.n ? ((g.c[0] + g.c[1] + g.c[2]) / g.n * 100).toFixed(1) : '0.0') + '%</td>' +
+        '<td>' + (g.n ? (g.pay / g.n * 100).toFixed(0) : '0') + '%</td>' +
+        '<td>' + (g.popN ? (g.popS / g.popN).toFixed(1) : '—') + '</td></tr>';
+    });
+    gh += '</tbody></table></div><div class="small muted" style="margin-top:4px">※薄い行は件数5件未満(参考程度)。集計は純粋な着度数のみ(閾値調整なし)。</div>';
+    grp.innerHTML = gh;
+    return;
+  }
+  if (grp) grp.style.display = 'none';
+  if (grpCtl) grpCtl.style.display = 'none';
+
+  /* ドリルダウン(着度数タップ) */
+  var view = dbsHits.filter(function(h){
+    if (dbsPlaceFilter === null) return true;
+    var o = parseInt(h.row.order, 10) || 99;
+    if (dbsPlaceFilter === 4) return o > 3;
+    return o === dbsPlaceFilter;
+  });
+  var keyset = {};
+  view.forEach(function(h){ keyset[h.rec.rid + '\x01' + h.row.name] = 1; });
+
+  var html = '<thead><tr><th></th><th>着順</th><th>日付</th><th>場R</th><th class="l">レース</th><th>距離</th><th>回り</th><th class="l">馬名</th><th>性齢</th><th>斤量</th><th class="l">騎手</th><th>人気</th><th>単勝</th><th>通過</th><th>上3F</th><th>前走間隔</th><th>乗替</th></tr></thead><tbody>';
+  var shown = view.slice(0, dbsViewLimit);
+  shown.forEach(function(h){
+    var rc = h.rec, row = h.row, rf = h.rf;
+    var pv = h.prev;
+    var changed = pv ? (String(pv.row.jockey || '') !== String(row.jockey || '')) : false;
+    var pw = dbsPrevWeeks(h);
+    html += '<tr class="dbs-hrow' + (dbsOpenRace === String(rc.rid) ? ' open' : '') + '" data-dbs-race="' + esc(String(rc.rid)) + '">' +
+      '<td class="chev">' + (dbsOpenRace === String(rc.rid) ? '▾' : '▸') + '</td>' +
+      '<td class="' + dbsOrdCls(parseInt(row.order, 10) || 99) + '">' + (row.order || '') + '</td>' +
+      '<td>' + esc(rf.d8.slice(0, 4) + '/' + rf.d8.slice(4, 6) + '/' + rf.d8.slice(6, 8)) + '</td>' +
+      '<td>' + esc(rf.place) + esc(String((rc.meta || {}).rnum || '')) + 'R</td>' +
+      '<td class="l">' + esc(dbsShortName(rf.name)) + '</td>' +
+      '<td>' + esc((dbsSurfOf(rc) === 'ダ' ? 'ダ' : dbsSurfOf(rc)) + rf.m) + '</td>' +
+      '<td>' + (rf.turn || '—') + '</td>' +
+      '<td class="l"><b>' + esc(row.name || '') + '</b></td>' +
+      '<td>' + esc(row.sexAge || '—') + '</td>' +
+      '<td>' + esc(row.weight || '—') + '</td>' +
+      '<td class="l">' + esc(row.jockey || '') + '</td>' +
+      '<td>' + (row.pop || '—') + '</td>' +
+      '<td>' + (row.odds || '—') + '</td>' +
+      '<td>' + esc(row.passing || '—') + '</td>' +
+      '<td>' + esc(row.last3 || '—') + '</td>' +
+      '<td>' + (pw || '—') + '</td>' +
+      '<td>' + (changed ? '<span style="color:var(--warn,#e08a1e);font-weight:700">▲</span>' : '') + '</td></tr>';
+    if (dbsOpenRace === String(rc.rid)) html += '<tr class="dbs-exp"><td colspan="17">' + dbsRaceDetail(rc, keyset) + '</td></tr>';
+  });
+  if (!view.length) html += '<tr><td colspan="17" style="padding:18px;color:var(--mut,#6b7a66)">この着順の該当はありません(数字をもう一度タップで解除)</td></tr>';
+  list.innerHTML = html + '</tbody>';
+  morebtn.style.display = (view.length > dbsViewLimit) ? 'block' : 'none';
+  endnote.style.display = (view.length && view.length <= dbsViewLimit) ? 'block' : 'none';
+}
+function dbsAxisLabel(axis){
+  for (var i = 0; i < DBS_AXES.length; i++) if (DBS_AXES[i][0] === axis) return DBS_AXES[i][1];
+  return axis;
+}
+function dbsShortName(nm){
+  nm = String(nm || '');
+  return nm.length > 14 ? nm.slice(0, 13) + '…' : nm;
+}
+function dbsRaceDetail(rc, keyset){
+  var D = dbsData();
+  var m = rc.meta || {};
+  var h = '<div class="dbs-rhead">' + esc(m.date8 ? m.date8.slice(0, 4) + '/' + m.date8.slice(4, 6) + '/' + m.date8.slice(6, 8) : '') + ' ' +
+    esc(dbsPlaceShort(rc)) + esc(String(m.rnum || '')) + 'R ' + esc(m.name || '') +
+    ' <span>' + esc(String(m.dist || '')) + '・' + esc(m.tenko || '—') + '/' + esc(m.baba || '—') + '・' +
+    (dbsTurnOf(m.place, m.surface, dbsDistM(rc)) === '直' ? '直線' : dbsTurnOf(m.place, m.surface, dbsDistM(rc)) + '回り') +
+    ' — 全着順(★=現在の検索条件に該当)</span></div>';
+  h += '<div class="tblwrap"><table class="tbl"><thead><tr><th>着順</th><th>枠</th><th>馬番</th><th class="l">馬名</th><th>性齢</th><th>斤量</th><th class="l">騎手</th><th>人気</th><th>単勝</th><th>通過</th><th>上3F</th><th class="l">調教師</th><th>父</th><th>母父</th></tr></thead><tbody>';
+  (rc.rows || []).forEach(function(row){
+    var hit = !!keyset[rc.rid + '\x01' + row.name];
+    var pv = dbsPrevOf(D, rc, row);
+    var b = dbsBloodOf(D, row);
+    h += '<tr class="' + (hit ? 'dbs-hitmark' : '') + '">' +
+      '<td class="' + dbsOrdCls(parseInt(row.order, 10) || 99) + '">' + (row.order || '') + '</td>' +
+      '<td>' + (row.frame || '—') + '</td><td>' + (row.no || '—') + '</td>' +
+      '<td class="l">' + (hit ? '<span class="dbs-star">★</span> ' : '') + esc(row.name || '') + '</td>' +
+      '<td>' + esc(row.sexAge || '—') + '</td><td>' + esc(row.weight || '—') + '</td>' +
+      '<td class="l">' + esc(row.jockey || '') + '</td>' +
+      '<td>' + (row.pop || '—') + '</td><td>' + (row.odds || '—') + '</td>' +
+      '<td>' + esc(row.passing || '—') + '</td><td>' + esc(row.last3 || '—') + '</td>' +
+      '<td class="l">' + esc(row.trainer || '—') + '</td>' +
+      '<td>' + esc((b && b.sire) || '—') + '</td><td>' + esc((b && b.msire) || '—') + '</td>' +
+      '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+/* ================= 💾 CSV出力 ================= */
+function dbsCsv(){
+  var cols = ['日付', '場', 'R', 'レース名', '面', '距離m', '回り', '着順', '枠', '馬番', '馬名', '性齢', '斤量', '騎手', '人気', '単勝', '通過', '上3F', '調教師', '前走間隔日'];
+  function q(v){
+    v = String(v == null ? '' : v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  var lines = [cols.join(',')];
+  var view = dbsHits.filter(function(h){
+    if (dbsPlaceFilter === null) return true;
+    var o = parseInt(h.row.order, 10) || 99;
+    return (dbsPlaceFilter === 4) ? o > 3 : o === dbsPlaceFilter;
+  });
+  view.forEach(function(h){
+    var m = h.rec.meta || {};
+    var pv = h.prev;
+    lines.push([
+      m.date8, dbsPlaceShort(h.rec), m.rnum, m.name, dbsSurfOf(h.rec), h.rf.m,
+      h.rf.turn, h.row.order, h.row.frame || '', h.row.no || '', h.row.name,
+      h.row.sexAge || '', h.row.weight || '', h.row.jockey || '', h.row.pop || '',
+      h.row.odds || '', h.row.passing || '', h.row.last3 || '', h.row.trainer || '',
+      pv ? dbsDays(pv.d8, h.rf.d8) : ''
+    ].map(q).join(','));
+  });
+  return '\ufeff' + lines.join('\r\n');
+}
+function dbsCsvSave(){
+  try {
+    var csv = dbsCsv();
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'dbsearch_' + dbsToday() + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 800);
+  } catch(e){
+    try { dbsMsg('⚠ CSV保存に失敗: ' + esc(String(e && e.message || e))); } catch(e2){}
+  }
+}
+
+/* ================= 🔍 検索条件の保存(khl_dbsearch_v1) ================= */
+var DBS_COND_KEY = 'khl_dbsearch_v1';
+function dbsCondAll(){
+  try { return JSON.parse(localStorage.getItem(DBS_COND_KEY) || '{}') || {}; } catch(e){ return {}; }
+}
+function dbsCondSave(name){
+  try {
+    if (!name){ dbsMsg('保存する名前を入力してください'); return; }
+    var all = dbsCondAll();
+    all[name] = dbsTags;
+    safeSetItem(DBS_COND_KEY, JSON.stringify(all));
+    dbsCondRender();
+    dbsMsg('💾 「' + esc(name) + '」を保存しました');
+  } catch(e){ dbsMsg('⚠ 保存に失敗: ' + esc(String(e && e.message || e))); }
+}
+function dbsCondLoad(name){
+  var all = dbsCondAll();
+  var t = all[name];
+  if (!t){ dbsMsg('⚠ 「' + esc(name) + '」は見つかりません'); return; }
+  dbsTags = t.map(function(x){ return { cat: x.cat, v: x.v, label: x.label }; });
+  dbsRenderTags(); dbsRenderMenus();
+  dbsMsg('🔍 「' + esc(name) + '」を読み込みました — 「この条件で検索」を押してください');
+}
+function dbsCondDel(name){
+  try {
+    var all = dbsCondAll();
+    delete all[name];
+    safeSetItem(DBS_COND_KEY, JSON.stringify(all));
+    dbsCondRender();
+  } catch(e){}
+}
+function dbsCondRender(){
+  var sel = document.getElementById('dbsCondSel');
+  if (!sel) return;
+  var all = dbsCondAll();
+  var names = Object.keys(all).sort();
+  sel.innerHTML = names.length
+    ? names.map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('')
+    : '<option value="">(保存済みなし)</option>';
+}
+function dbsMsg(msg){
+  var el = document.getElementById('dbsMsg');
+  if (el) el.innerHTML = msg || '';
+}
+
+/* ================= タブ初期化・配線(1回だけ) ================= */
+function dbsOnTab(){
+  var body = document.getElementById('t-dbsearch');
+  if (!body) return;
+  if (!dbsWired){
+    dbsWired = true;
+    body.addEventListener('click', function(ev){
+      var t = ev.target;
+      while (t && t !== body){
+        var ds = t.dataset || {};
+        if (ds.dbsPick !== undefined){
+          var pr = String(ds.dbsPick).split(':');
+          var D = dbsData();
+          var M = dbsMenus(D);
+          var sec = M[+pr[0]];
+          if (sec){
+            var expanded = !!dbsSecOpen[+pr[0]];
+            var shown = sec.short || sec.items.length;
+            var items = expanded ? sec.items : sec.items.slice(0, shown);
+            if (items[+pr[1]]) dbsAddTag(items[+pr[1]]);
+          }
+          return;
+        }
+        if (ds.dbsPred !== undefined){
+          var pv = String(ds.dbsPred).split('\x01');
+          for (var i = 0; i < dbsPredList.length; i++){
+            if (String(dbsPredList[i].item.v) === pv[1] && dbsPredList[i].item.cat === pv[0]){ dbsAddTag(dbsPredList[i].item); break; }
+          }
+          dbsClrInput();
+          return;
+        }
+        if (ds.dbsRm !== undefined){ dbsRemoveTag(+ds.dbsRm); return; }
+        if (t.id === 'dbsClr'){ dbsClrInput(); return; }   /* ⌫=入力だけ消す(タグは残す) */
+        if (ds.dbsSec !== undefined){ dbsSecOpen[+ds.dbsSec] = !dbsSecOpen[+ds.dbsSec]; dbsRenderMenus(); return; }
+        if (ds.dbsTk !== undefined){ dbsTapPlace(+ds.dbsTk); return; }
+        if (ds.dbsRace !== undefined){ dbsToggleRace(ds.dbsRace); return; }
+        if (ds.dbsAct === 'go'){ dbsDoSearch(); return; }
+        if (ds.dbsAct === 'reset'){ dbsResetAll(); return; }
+        if (ds.dbsAct === 'more'){ dbsMoreRows(); return; }
+        if (ds.dbsAct === 'csv'){ dbsCsvSave(); return; }
+        if (ds.dbsAct === 'hint'){ dbsToggleHints(); return; }
+        if (ds.dbsAct === 'condsave'){ dbsCondSave((document.getElementById('dbsCondName') || {}).value || ''); return; }
+        if (ds.dbsAct === 'condload'){ dbsCondLoad((document.getElementById('dbsCondSel') || {}).value || ''); return; }
+        if (ds.dbsAct === 'conddel'){ dbsCondDel((document.getElementById('dbsCondSel') || {}).value || ''); return; }
+        if (ds.dbsAct === 'bloodunk'){
+          DBS_BLOOD_UNK = !!(t.checked);
+          return;
+        }
+        t = t.parentElement;
+      }
+    });
+    var q = document.getElementById('dbsQ');
+    if (q){
+      q.addEventListener('input', dbsOnInput);
+      q.addEventListener('keydown', dbsOnKey);
+    }
+    var ax = document.getElementById('dbsAxisSel');
+    if (ax) ax.addEventListener('change', function(){ dbsAxis = ax.value; if (dbsViewMode === 'group') dbsRenderResult(); });
+    var vm = document.getElementById('dbsViewMode');
+    if (vm){
+      vm.addEventListener('click', function(ev){
+        var t2 = ev.target;
+        while (t2 && t2 !== vm){
+          if (t2.dataset && t2.dataset.dbsVm){
+            dbsViewMode = t2.dataset.dbsVm;
+            Array.prototype.forEach.call(vm.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.dataset.dbsVm === dbsViewMode); });
+            dbsRenderResult();
+            return;
+          }
+          t2 = t2.parentElement;
+        }
+      });
+    }
+  }
+  /* タブを開くたび: 学習DBを引き直して候補を再生成(取込後の変化に追従) */
+  try { dbsData(true); } catch(e){}
+  var stat = document.getElementById('dbsStat');
+  if (stat){
+    var D = dbsData();
+    stat.innerHTML = '📦 学習DB <b>' + D.n + '</b> レース(通信ゼロ・追加取得はしません)' +
+      (D.ped ? '' : '・<span style="color:var(--warn,#e08a1e)">血統マップ未読み込み(父/母父検索はできません)</span>');
+  }
+  dbsRenderTags(); dbsRenderMenus(); dbsCondRender(); dbsRenderResult();
+}
 
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
@@ -51358,6 +52821,8 @@ function goTab(id){
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブを開いたら登録簿・キャッシュの状況を更新 */
   if (id === 't-database' && typeof jockeyDbOnShow === 'function'){ try { jockeyDbOnShow(); } catch(e){} }
+  /* ★第170弾: 🔎データ検索タブを開いたら学習DBを引き直して候補を再生成 */
+  if (id === 't-dbsearch' && typeof dbsOnTab === 'function'){ try { dbsOnTab(); } catch(e){} }
   if (id === 't-aiprop' && typeof aiProposalRender === 'function'){ try { aiProposalRender(); } catch(e){} }
   /* ★第115弾: 💰仮想資金タブは削除（フックも撤去・p77_vbank.jsのJSは残存） */
   if (id === 't-overseas' && typeof ovRender === 'function'){ try { ovRender(); } catch(e){} }
@@ -51656,6 +53121,5 @@ function boot(){
 boot();
 
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a48ced157b43d3e5',t:'MTc5MTcxMTg2NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
