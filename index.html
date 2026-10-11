@@ -2032,7 +2032,9 @@ html[data-theme="light"] .page-top-hero{
       ・一覧に見当たらない場合も、とりあえず入力してみましょう。予測キーワードが出てきます。<br>
       ・予測キーワードが出ている状態でエンターを押せば、最初のキーワードが採用されます。<br>
       ・「1600m」と入力したい場合、「せんろっぴゃく」のようにひらがなで打てば予測キーワードに出てきます。<br>
-      ・候補は学習DBの中身から自動生成しています(保存済みのレースに無い騎手・馬名は出ません)。
+      ・候補は学習DBの中身から自動生成しています(保存済みのレースに無い騎手・馬名は出ません)。<br>
+      ・レース名・騎手・調教師・馬・産駒は、入力するとそのまま予測に出ます(下の候補メニューに表示されていなくても検索できます)。
+      ・予測に出ない言葉(馬名の一部など)でも、そのまま Enter を押すと「その言葉を含む」フリーワード検索になります(例: 「有馬」「インパクト」)。
     </div>
 
     <div class="dbs-added">
@@ -2159,6 +2161,10 @@ html[data-theme="light"] .page-top-hero{
   .dbs-nullv{color:#c33; font-size:14px; font-weight:800; text-align:center; padding:26px 0;}
   .dbs-morehist{display:block; margin:10px auto 0; border:1px solid var(--line2,#c4d2be); background:var(--card2,#f6faf4); border-radius:8px; padding:7px 22px; font-size:13px; cursor:pointer; color:var(--ink,#23311f);}
   .dbs-endnote{text-align:center; font-size:12px; color:var(--mut,#6b7a66); margin-top:10px;}
+  .dbs-brk{margin-top:10px; padding:10px; background:#fff6f6; border:1px solid #eed6d6; border-radius:10px; font-size:12px;}
+  .dbs-brk .cap{color:#a33; font-weight:700;}
+  .dbs-brk .dbs-tag{background:#fdeeee; border-color:#d69999; color:#8a2222;}
+  .dbs-brk .dbs-tag.dbs-zero{background:#3a3f39; border-color:#3a3f39; color:#ffe9e9; opacity:.9;}
   @media(max-width:640px){ .dbs-menus{max-height:300px;} }
   </style>
 </section>
@@ -51846,6 +51852,69 @@ function dbsNorm(s){
     .replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); });
 }
 /* ---------- 回り導出(場テーブル・JRA10場は固定。新潟芝1000mのみ直線) ---------- */
+/* ★第170弾追記2: 騎手のよみ(検索ボックスのカナ入力対応用・主要JRA騎手のみ。
+   学習DBに出てくる騎手のうちこの表に無い人は漢字の一部入力(例:「川」)で探せます)。 */
+var DBS_JOY_YOMI = {
+  '川田将雅': 'かわだまさや', '武豊': 'たけゆたか', '戸崎圭太': 'とさきけいた', '福永祐一': 'ふくながゆういち',
+  '浜中俊': 'はまなかしゅん', '岩田康誠': 'いわたこうせい', '岩田望来': 'いわたもらき', '川須栄彦': 'かわすえりひこ',
+  '藤岡佑介': 'ふじおかゆうすけ', '藤岡康太': 'ふじおかこうた', '吉田隼人': 'よしだはやと', '和田竜二': 'わだりゅうじ',
+  '松山弘平': 'まつやまこうへい', '藤井勘一郎': 'ふじいかんいちろう', '横山武史': 'よこやまたけし',
+  '横山和生': 'よこやまかずき', '横山典弘': 'よこやまのりひろ', '横山琉我': 'よこやまりゅうが',
+  '北村友一': 'きたむらともかず', '北村宏司': 'きたむらこうじ', '富田暁': 'とみださとる', '松若風馬': 'まつわかふうま',
+  '酒井学': 'さかいまなぶ', '幸英明': 'こうひであき', '太宰啓介': 'だざわけいすけ', '国分優作': 'こくぶゆうさく',
+  '国分恭介': 'こくぶきょうすけ', '柴山雄一': 'しばやまゆういち', '津村明秀': 'つむらあきひで',
+  '丹内祐次': 'たんうちゆうじ', '石橋脩': 'いしばしおさむ', '石川裕紀人': 'いしかわゆきと',
+  '木幡初也': 'こわたはつや', '木幡巧也': 'こわたくや', '野中悠太郎': 'のなかゆうたろう',
+  '菅原明良': 'すがわらあきら', '坂井瑠星': 'さかいるりせ', '西村淳也': 'にしむらじゅんや',
+  '森裕太朗': 'もりゆうたろう', '角田大河': 'つのだたいが', '角田晃一': 'つのだこういち',
+  '小林凌太': 'こばやしりょうた', '小崎綾也': 'こさきりょうや', '古川吉洋': 'ふるかわよしひろ',
+  '秋山真一郎': 'あきやましんいちろう', '鮫島克駿': 'さめじまかつとし', '鮫島良太': 'さめじまりょうた',
+  '四位洋文': 'よしいひろふみ', '吉村智洋': 'よしむらともひろ', '大野拓弥': 'おおのたくみ',
+  '丸田恭介': 'まるたきょうすけ', '丸山元気': 'まるやまげんき', '柴田大知': 'しばただいち',
+  '柴田善臣': 'しばたよしおみ', '杉原誠人': 'すぎはらまさと', '荻野極': 'おぎのきわみ', '荻野琢真': 'おぎのたくま',
+  '松岡正海': 'まつおかまさみ', '吉田豊': 'よしだゆたか', '石神深一': 'いしがみしんいち',
+  '黛弘人': 'まゆずみひろと', '田辺裕信': 'たなべひろのぶ', '田中勝春': 'たなかかつはる',
+  '三浦皇成': 'みうらこうせい', '内田博幸': 'うちだひろゆき', '池添謙一': 'いけぞえけんいち',
+  '武幸四郎': 'たけこうしろう', '武英智': 'たけひでとも', '藤田菜七子': 'ふじたななこ',
+  '古川奈穂': 'ふるかわなほ', '永島まなみ': 'ながしままなみ', '宮崎北斗': 'みやざきほくと',
+  '原優介': 'はらゆうすけ', '東妻純平': 'あづまじゅんぺい', '菊田一郎': 'きくたいちろう',
+  '佐々木大輔': 'ささきだいすけ', '今村聖奈': 'いまむらせいな', '河原田菜々子': 'かわらだななこ',
+  '永野猛郁': 'ながのたけふみ', '小林久晃': 'こばやしひさあき', '泉谷楓馬': 'いずみたにふうま',
+  '佐藤翔馬': 'さとうしょうま', '土田真翔': 'つちだしんしょう', '団野大成': 'だんのたいせい',
+  '藤原良一': 'ふじわらりょういち', '嘉藤貴行': 'かとうたかゆき', '勝浦正樹': 'かつうらまさき',
+  '藤懸貴志': 'ふじかけたかし', '佐藤友則': 'さとうとものり', '中井裕二': 'なかいゆうじ',
+  '草野太郎': 'くさのたろう', '小坂忠士': 'こさかただし', '植野貴也': 'うえのたかや',
+  '井上敏樹': 'いのうえとしき', '岡部誠': 'おかべまこと', '水口優也': 'みずぐちゆうや',
+  '伴啓太': 'ばんけいた', '森一馬': 'もりかずま', '長岡禎仁': 'ながおかよしひと'
+};
+function dbsJoyYomi(j){ return DBS_JOY_YOMI[String(j || '')] || ''; }
+/* ★追記3: レース名の読み(語彙ベースの簡易辞書)。JRAのレース名は[固有名]+[記念/賞/杯/大賞典/ステークス]
+   の組合せが大半なので、出てくる語の読みをつなげて検索キーにします(計算には一切使わない・誤読があっても
+   検索ヒット性にのみ影響)。辞書に無い語はそのまま(漢字の一部入力で引けます)。 */
+var DBS_RACE_YOMI = {
+  '天皇':'てんのう', '優駿':'ゆうしゅん', '牝馬':'ひんば', '菊花':'きっか', '桜花':'おうか', '秋華':'しゅうか', '皐月':'さつき',
+  '有馬':'ありま', '宝塚':'たからづか', '安田':'やだ', '金鯱':'きんこ', '目黒':'めぐろ', '鳴尾':'なるお', '弥生':'やよい', '青葉':'あおば',
+  '京成':'けいせい', '京王':'けいおう', '毎日':'まいにち', '大阪':'おおさか', '神戸':'こうべ', '新聞':'しんぶん', '王冠':'おうかん',
+  '共同通信':'きょうどうつうしん', '共和国':'きょうわこく', '日本':'にほん', '大障害':'だいしょうがい', '障害':'しょうがい',
+  '天山':'てんざん', '京都':'きょうと', '中山':'なかやま', '阪神':'はんしん', '東京':'とうきょう', '新潟':'にいがた',
+  '中京':'ちゅうきょう', '小倉':'こくら', '福島':'ふくしま', '札幌':'さっぽろ', '函館':'はこだて',
+  '記念':'きねん', '大賞典':'だいしょうてん', '賞':'しょう', '杯':'はい', '特別':'とくべつ', '富士':'ふじ', '都大路':'みやこおおじ'
+};
+var _dbsRyKeys = null;
+function dbsRaceYomi(nm){
+  nm = String(nm || '');
+  if (!_dbsRyKeys) _dbsRyKeys = Object.keys(DBS_RACE_YOMI).sort(function(a, b){ return b.length - a.length; });
+  var out = '', i = 0;
+  while (i < nm.length){
+    var hit = null;
+    for (var j = 0; j < _dbsRyKeys.length; j++){
+      if (nm.indexOf(_dbsRyKeys[j], i) === i){ hit = _dbsRyKeys[j]; break; }
+    }
+    if (hit){ out += DBS_RACE_YOMI[hit]; i += hit.length; }
+    else i++;
+  }
+  return out;
+}
 var DBS_PLACE_YOMI = {
   '札幌': 'さっぽろ', '函館': 'はこだて', '福島': 'ふくしま', '新潟': 'にいがた',
   '東京': 'とうきょう', '中山': 'なかやま', '中京': 'ちゅうきょう', '京都': 'きょうと',
@@ -52030,6 +52099,18 @@ function dbsTagMatch(D, rec, row, rf, t){
     case 'stall': var fw = dbsWakuNum(row); return fw > 0 && fw <= +v;
     case 'waku': var fw2 = dbsWakuNum(row); return fw2 > 0 && (v === 'in' ? fw2 <= 4 : fw2 >= 5);
     case 'place': return rf.place === v;
+    case 'grade':   /* ★追記2: 重賞一括(G1〜G3いずれか) */
+      return (v === 'all') ? (rf.cls === 'G1' || rf.cls === 'G2' || rf.cls === 'G3') : rf.cls === v;
+    case 'text': {   /* ★追記2: フリーワード(馬名/騎手/調教師/レース名/場/父/母父+騎手よみ の部分一致) */
+      var qq = dbsNorm(String(v));
+      if (!qq) return true;
+      var hay = dbsNorm([row.name || '', row.jockey || '', row.trainer || '', rf.name || '', rf.place || ''].join('\x01'));
+      var jy = dbsJoyYomi(row.jockey); if (jy) hay += '\x01' + dbsNorm(jy);
+      var ry = dbsRaceYomi(rf.name); if (ry) hay += '\x01' + dbsNorm(ry);   /* ★追記3: レース名の読み(ありま→有馬記念) */
+      var b0 = dbsBloodOf(D, row);
+      if (b0) hay += '\x01' + dbsNorm(b0.sire || '') + '\x01' + dbsNorm(b0.msire || '');
+      return hay.indexOf(qq) >= 0;
+    }
     case 'class': return rf.cls === v;
     case 'raceName': return rf.name.indexOf(String(v)) >= 0;
     case 'tenki': return rf.tenko === v;
@@ -52110,6 +52191,23 @@ function dbsDays(d8a, d8b){
   var a = new Date(+d8a.slice(0, 4), +d8a.slice(4, 6) - 1, +d8a.slice(6, 8));
   var b = new Date(+d8b.slice(0, 4), +d8b.slice(4, 6) - 1, +d8b.slice(6, 8));
   return Math.round((b - a) / 86400000);
+}
+
+/* ★追記2: 各タグを【単独で】かけたときの該当数(該当なし時にどの条件で消えたかの内訳用) */
+function dbsTagCounts(D, tags){
+  return tags.map(function(t){
+    var n = 0;
+    D.races.forEach(function(rec){
+      var m = rec.meta || {};
+      var rows = rec.rows || [];
+      var rf = { d8: /^\d{8}$/.test(String(m.date8 || '')) ? String(m.date8) : '', place: dbsPlaceShort(rec),
+                 name: String(m.name || ''), m: dbsDistM(rec), surf: dbsSurfOf(rec), baba: m.baba || '',
+                 tenko: m.tenko || '', turn: dbsTurnOf(m.place, m.surface, dbsDistM(rec)), cls: dbsClassKey(rec),
+                 month: parseInt(String(m.date8 || '').slice(4, 6), 10) || 0, n: rows.length, fast3: null, today: D.today };
+      rows.forEach(function(row){ if (dbsTagMatch(D, rec, row, rf, t)) n++; });
+    });
+    return { tag: t, n: n };
+  });
 }
 
 /* ================= 検索実行(純関数) ================= */
@@ -52274,12 +52372,13 @@ function dbsMenus(D){
   ];
   topF(places, 10).forEach(function(p){ c2.push(dbsIt('place', p, p, DBS_PLACE_YOMI[p] || '')); });
   topF(dists, 12).forEach(function(dm){ c2.push(dbsIt('dist', String(dm), dm + 'm', dm <= 3000 ? 'せん' : '')); });
-  M.push({ title: '条件で絞り込む', items: c2, short: 16 });
-  /* ③ 騎手で絞り込む(乗り替わり元も) */
+  M.push({ title: '条件で絞り込む', items: c2, short: 28 });   /* ★追記2: 16→28(場・距離のピルが初期状態でも見えるように) */
+  /* ③ 騎手で絞り込む(乗り替わり元も・★追記2: 主要騎手はカナよみでも出る) */
   var j3 = [];
   topF(joy, 24).forEach(function(j){
-    j3.push(dbsIt('jockey', j, j));
-    j3.push(dbsIt('prevjoy', j, j + 'からの乗り替わり'));
+    var ym = dbsJoyYomi(j);
+    j3.push(dbsIt('jockey', j, j, ym));
+    j3.push(dbsIt('prevjoy', j, j + 'からの乗り替わり', ym ? ym + 'からののりかわり' : ''));
   });
   M.push({ title: '騎手で絞り込む', items: j3, short: 8 });
   /* ④ 馬で絞り込む(産駒+母父+馬名) */
@@ -52289,8 +52388,35 @@ function dbsMenus(D){
   M.push({ title: '馬で絞り込む', items: h4, short: 10 });
   /* ⑤ 調教師で絞り込む */
   M.push({ title: '調教師で絞り込む', items: topF(tr, 24).map(function(t){ return dbsIt('trainer', t, t); }), short: 6 });
-  /* ⑥ レース名で絞り込む(改訂2) */
-  M.push({ title: 'レース名で絞り込む', items: topF(names, 40).map(function(n){ return dbsIt('raceName', n, n); }), short: 8 });
+  /* ⑥ 重賞で絞り込む(★追記2: G1〜G3のレース名を専用セクションに。学習DBにあるものだけ) */
+  var grd = {};
+  D.races.forEach(function(rec){
+    var cls = dbsClassKey(rec);
+    if (cls !== 'G1' && cls !== 'G2' && cls !== 'G3') return;
+    var nm = String((rec.meta || {}).name || ''); if (!nm) return;
+    var e = grd[nm] || (grd[nm] = { g: cls, n: 0 });
+    e.n += (rec.rows || []).length;
+    var rank = { G1: 0, G2: 1, G3: 2 };
+    if (rank[cls] < rank[e.g]) e.g = cls;
+  });
+  var g8 = [ dbsIt('grade', 'all', '重賞(G1〜G3)', 'ちょうしょう じゅうしょう') ];
+  Object.keys(grd).sort(function(a, b){
+    var rank = { G1: 0, G2: 1, G3: 2 };
+    return rank[grd[a].g] - rank[grd[b].g] || grd[b].n - grd[a].n || a.localeCompare(b, 'ja');
+  }).slice(0, 30).forEach(function(nm){
+    var lab = /\(G[123]\)/.test(nm) ? nm : nm + '(' + grd[nm].g + ')';
+    g8.push(dbsIt('raceName', nm, lab, dbsRaceYomi(nm)));   /* ★追記3: カナでも引けるように読みを付ける */
+  });
+  M.push({ title: '重賞で絞り込む', items: g8, short: 10 });
+  /* ⑦ レース名で絞り込む(改訂2・重賞は上の専用セクションへ分離) */
+  var plainNames = {};
+  D.races.forEach(function(rec){
+    var cls = dbsClassKey(rec);
+    if (cls === 'G1' || cls === 'G2' || cls === 'G3') return;
+    var nm = String((rec.meta || {}).name || '');
+    if (nm) plainNames[nm] = (plainNames[nm] || 0) + 1;
+  });
+  M.push({ title: 'レース名で絞り込む', items: topF(plainNames, 120).map(function(n){ return dbsIt('raceName', n, n, dbsRaceYomi(n)); }), short: 8 });   /* ★追記3: 40→120+読み付き(全レース名は入力予測でも出る) */
   /* ⑦ 期間 */
   var y7 = [
     dbsIt('past', '1', '過去1年', 'かこいちねん'), dbsIt('past', '2', '過去2年', 'かこにねん'), dbsIt('past', '3', '過去3年', 'かこさんねん'),
@@ -52302,6 +52428,60 @@ function dbsMenus(D){
   M.push({ title: '期間', items: y7, short: 6 });
   _dbsMenuCache = { D: D, M: M };
   return M;
+}
+
+/* ★追記3: 予測キーワードの検索対象を【メニュー表示上限を超えて】拡張。
+   メニューのピル表示はtop-Nのまま(画面がゴチャつかないように)・入力予測だけ全範囲:
+   レース名=全件 / 騎手・調教師=全件 / 馬=出走数上位3000 / 父・母父=出現全件。
+   (それ以外の1走だけの馬などはフリーワード検索(Enter)で引っかかる) */
+var _dbsPredPool = null;
+function dbsPredPool(D){
+  if (_dbsPredPool && _dbsPredPool.D === D) return _dbsPredPool.list;
+  var list = [], seen = {};
+  function push(it, sec){ list.push({ item: it, sec: sec }); seen[it.cat + '\x01' + String(it.v)] = 1; }
+  dbsMenus(D).forEach(function(sec){
+    sec.items.forEach(function(it){ push(it, sec.title); });
+  });
+  var joy = {}, tr = {}, hors = {}, sire = {}, msire = {}, names = {};
+  D.races.forEach(function(rec){
+    var nm = String((rec.meta || {}).name || '');
+    if (nm) names[nm] = (names[nm] || 0) + 1;
+    (rec.rows || []).forEach(function(row){
+      if (row.jockey) joy[row.jockey] = (joy[row.jockey] || 0) + 1;
+      if (row.trainer) tr[row.trainer] = (tr[row.trainer] || 0) + 1;
+      if (row.name) hors[row.name] = (hors[row.name] || 0) + 1;
+      var b = dbsBloodOf(D, row);
+      if (b && b.sire) sire[b.sire] = (sire[b.sire] || 0) + 1;
+      if (b && b.msire) msire[b.msire] = (msire[b.msire] || 0) + 1;
+    });
+  });
+  function byFreq(o){ return Object.keys(o).sort(function(a, b){ return o[b] - o[a] || a.localeCompare(b, 'ja'); }); }
+  byFreq(names).forEach(function(n){ if (!seen['raceName\x01' + n]) push(dbsIt('raceName', n, n, dbsRaceYomi(n)), 'レース名'); });
+  byFreq(joy).forEach(function(j){
+    var ym = dbsJoyYomi(j);
+    if (!seen['jockey\x01' + j]) push(dbsIt('jockey', j, j, ym), '騎手');
+    if (!seen['prevjoy\x01' + j]) push(dbsIt('prevjoy', j, j + 'からの乗り替わり', ym ? ym + 'からののりかわり' : ''), '騎手');
+  });
+  byFreq(tr).forEach(function(t){ if (!seen['trainer\x01' + t]) push(dbsIt('trainer', t, t), '調教師'); });
+  byFreq(hors).slice(0, 3000).forEach(function(h){ if (!seen['horse\x01' + h]) push(dbsIt('horse', h, h), '馬'); });
+  byFreq(sire).forEach(function(x){ if (!seen['sire\x01' + x]) push(dbsIt('sire', x, x + '産駒', 'さんこ'), '父'); });
+  byFreq(msire).forEach(function(x){ if (!seen['msire\x01' + x]) push(dbsIt('msire', x, '母父' + x, 'ぼおぶ'), '母父'); });
+  _dbsPredPool = { D: D, list: list };
+  return list;
+}
+/* 予測検索(純関数): 前方一致優先→包含・最大12件 */
+function dbsPredSearch(D, q){
+  var pool = dbsPredPool(D);
+  var starts = [], contains = [];
+  for (var i = 0; i < pool.length; i++){
+    var e = pool[i];
+    if (dbsIsAdded(e.item)) continue;
+    var k = e.item.nk || dbsNorm(e.item.k);
+    if (k.indexOf(q) === 0) starts.push(e);
+    else if (k.indexOf(q) >= 0) contains.push(e);
+    if (starts.length >= 12) break;
+  }
+  return starts.concat(contains).slice(0, 12);
 }
 
 /* ================= UI状態 ================= */
@@ -52405,17 +52585,7 @@ function dbsOnInputNow(){
     dbsPredList = [];
     return;
   }
-  var M = dbsMenus(D);
-  var starts = [], contains = [];
-  M.forEach(function(sec){
-    sec.items.forEach(function(item){
-      if (dbsIsAdded(item)) return;
-      var k = item.nk || dbsNorm(item.k);
-      if (k.indexOf(q) === 0) starts.push({ item: item, sec: sec.title });
-      else if (k.indexOf(q) >= 0) contains.push({ item: item, sec: sec.title });
-    });
-  });
-  var list = starts.concat(contains).slice(0, 12);
+  var list = dbsPredSearch(D, q);   /* ★追記3: 予測はメニュー表示上限を超えた全範囲から */
   var h = '';
   list.forEach(function(e){
     var lab = e.item.label;
@@ -52425,7 +52595,7 @@ function dbsOnInputNow(){
     h += '<button type="button" class="dbs-pitem" data-dbs-pred="' + esc(e.item.cat) + '\x01' + esc(String(e.item.v)) + '">' +
          '<span class="lab">' + lab + '</span><span class="sec">' + esc(e.sec) + '</span></button>';
   });
-  h += '<div class="dbs-pnote">' + (list.length ? list.length + '件の予測キーワード — Enter=最初のキーワードを採用' : '該当する予測キーワードがありません(部分一致で馬名などを直接探せます)') + '</div>';
+  h += '<div class="dbs-pnote">' + (list.length ? list.length + '件の予測キーワード — Enter=最初のキーワードを採用' : '該当する予測キーワードがありません — このまま Enter を押すと「' + esc(String((document.getElementById('dbsQ') || {}).value || '')).slice(0, 12) + '」を含む馬・レースをフリーワード検索します') + '</div>';
   dbsPredList = list;
   menus.style.display = 'none';
   pred.style.display = 'block';
@@ -52440,9 +52610,21 @@ function dbsClrInput(){
 function dbsOnKey(e){
   if (!e) return;
   if (e.key === 'Enter'){
-    var q = dbsNorm((document.getElementById('dbsQ') || {}).value || '');
+    /* ★追記2: Enterではデバウンスを即時に確定させて最新の予測で判断する */
+    clearTimeout(_dbsInpT);
+    try { dbsOnInputNow(); } catch(e2){}
+    var raw = String((document.getElementById('dbsQ') || {}).value || '').trim();
+    var q = dbsNorm(raw);
     if (q && dbsPredList.length){ dbsPickPred(0); return; }
-    if (!q) dbsDoSearch();
+    if (q){
+      /* ★追記2: 予測に出ない言葉でも Enter で【フリーワード検索】として受け付ける
+         (馬名/騎手/調教師/レース名/場/父/母父の部分一致のタグを追加して検索実行) */
+      dbsAddTag({ cat: 'text', v: raw, label: '「' + raw + '」を含む' });
+      dbsClrInput();
+      dbsDoSearch();
+      return;
+    }
+    dbsDoSearch();
     return;
   }
   if (e.key === 'Escape'){ dbsClrInput(); return; }
@@ -52457,7 +52639,12 @@ function dbsAddTag(item){
   dbsTags.push({ cat: item.cat, v: item.v, label: item.label });
   dbsRenderTags(); dbsRenderMenus();
 }
-function dbsRemoveTag(i){ dbsTags.splice(i, 1); dbsRenderTags(); dbsRenderMenus(); }
+function dbsRemoveTag(i){
+  dbsTags.splice(i, 1);
+  dbsRenderTags(); dbsRenderMenus();
+  /* ★追記2: 一度検索した後なら、条件を外したら自動で引き直す(該当なし内訳のチップで外すとすぐ反映) */
+  if (dbsSearched) dbsDoSearch();
+}
 function dbsResetAll(){
   dbsTags = []; dbsPlaceFilter = null; dbsOpenRace = ''; dbsSearched = false; dbsViewLimit = 20;
   dbsClrInput(); dbsRenderTags(); dbsRenderMenus(); dbsRenderResult();
@@ -52513,7 +52700,20 @@ function dbsRenderResult(){
   }
   var s = dbsSummary(dbsHits);
   if (!s.n){
-    sumbox.innerHTML = '<div class="dbs-nullv">該当なし — 条件を減らすか変えてください</div>';
+    /* ★追記2: どの条件で該当が消えたか内訳を表示(タグ単独の該当数・タップでその条件を外せる) */
+    var brk = '';
+    try {
+      var tcs = dbsTagCounts(dbsData(), dbsTags);
+      if (tcs.length){
+        brk = '<div class="dbs-brk"><span class="cap">条件をそれぞれ単独でかけた場合:</span><div class="dbs-tagrow" style="margin-top:6px">';
+        tcs.forEach(function(tc, i){
+          brk += '<span class="dbs-tag' + (tc.n ? '' : ' dbs-zero') + '" data-dbs-rm="' + i + '" title="タップでこの条件を外す" style="cursor:pointer">' +
+                 esc(tc.tag.label) + ' <b style="margin-left:5px">' + tc.n + '</b>件 ✕</span>';
+        });
+        brk += '</div><div class="small muted" style="margin-top:6px">0件の条件が組み合わせの原因です。数字の付いた条件をタップすると外せます。</div></div>';
+      }
+    } catch(e){}
+    sumbox.innerHTML = '<div class="dbs-nullv">該当なし — 条件を減らすか変えてください</div>' + brk;
     dochi.style.display = 'none'; komoku.style.display = 'none';
     list.innerHTML = ''; morebtn.style.display = 'none'; endnote.style.display = 'none';
     if (vmBtns) vmBtns.style.display = 'none';
@@ -52833,6 +53033,8 @@ function dbsOnTab(){
   var stat = document.getElementById('dbsStat');
   if (stat) stat.innerHTML = dbsStatHtml(dbsData());
   dbsRenderTags(); dbsRenderMenus(); dbsCondRender(); dbsRenderResult();
+  /* ★追記3: 予測プールを遅延プリビルド(最初の入力でワンテン遅れるのを防ぐ・非同期なので表示を塞がない) */
+  try { setTimeout(function(){ try { dbsPredPool(dbsData()); } catch(e){} }, 400); } catch(e){}
 }
 function dbsStatHtml(D){
   if (!D.n) return '📦 学習DB <b>0</b> レース(空)';
