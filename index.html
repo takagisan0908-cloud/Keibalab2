@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-18 第289弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-20 第274弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -3425,7 +3425,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-18 第289弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-20 第274弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -21528,6 +21528,8 @@ function diRaceSort(db){
 /* 指定ridを localStorage キー・旧形式・IndexedDB・メモリから削除 */
 function diRemoveRace(rid){
   diVer++;   /* ★第82弾: 削除も書き込み世代を進める */
+  try { if (typeof klInvalidateDbCache === 'function') klInvalidateDbCache(); } catch(e){}   /* ★第274弾: 学習統計キャッシュ(klDbCache/khl_jdb_stats)も無効化 */
+
   diLsDrop();   // 旧索引(DI_LS)側も書き換えるので必ず捨てる
   diLsDel(rid);
   var leg = diLegacy();
@@ -21645,6 +21647,8 @@ function diSet(rid, rec){
      OFF可・失敗しても静か（学習DB取込の日付指定・年指定・結果メモ・📦復元の全経路がここを通る） */
   try { if (typeof giBabaAuto === 'function') giBabaAuto(rec && rec.meta && rec.meta.date8); } catch(e){}
   diVer++;   /* ★第82弾: 書き込み世代を進める（hfCollectRaces/pbDayStats のキャッシュ無効化） */
+  try { if (typeof klInvalidateDbCache === 'function') klInvalidateDbCache(); } catch(e){}   /* ★第274弾: 学習統計キャッシュ(klDbCache/khl_jdb_stats)も無効化 */
+
   // 満杯になったら「一番古いデータから上書き」：容量不足時は古い順に自動削除して保存する
   if (diMode === 'idb' && diMem){
     diMem[rid] = rec;
@@ -21662,6 +21666,8 @@ function diSet(rid, rec){
 function diSave(o){ return diStorageOK(); }
 function diRemoveAll(){
   diVer++;   /* ★第82弾: 全消去も書き込み世代を進める */
+  try { if (typeof klInvalidateDbCache === 'function') klInvalidateDbCache(); } catch(e){}   /* ★第274弾: 学習統計キャッシュ(klDbCache/khl_jdb_stats)も無効化 */
+
   diMem = null; diAt = 0; diBytesDirty = true; diLsDrop();
   if (diDb){ try { diIdbClear(); } catch(e){} }
   diLsClear();
@@ -39690,6 +39696,16 @@ function klStatsOf(kind, name){
   return (name != null && map && map[name]) ? map[name] : null;
 }
 function klRefreshFromDb(){ return klBuildFromDb(); }
+/* ★第274弾: 学習DBの変更(追加・上書き・削除)後のキャッシュ無効化。
+   以前は diSaveOne 等の取込後も klDbCache(と永続 khl_jdb_stats)が古いDBのままで、
+   複勝率などの学習統計が古い値を表示していた(100%再現・sr平均4.6ptズレ・第272弾調査で発見)。
+   メモリ+永続の両方を消すだけで、再構築はしない(次回 klStatsOf 呼び出し時に遅延再構築=
+   klBuildFromDb が n>0 なら再永続化)。一括取込の途中に毎回再構築して重くしないため。
+   呼び出し元 = p32 の diSet / diRemoveRace / diRemoveAll(diVer++ の直後・typeof ガード付き)。 */
+function klInvalidateDbCache(){
+  klDbCache = null;
+  try { if (typeof localStorage !== 'undefined') localStorage.removeItem('khl_jdb_stats'); } catch(e){}
+}
 
 /* ============================================================
    p64_jockeyui.js — ★2026-09-13 第25弾②: 🏇 騎手・調教師DB タブのUI
@@ -50995,7 +51011,94 @@ var RV_STAGES = ['発走', '1角', '向正面', '3角', '4角', 'ゴール'];
 /* ステージの進行距離率（コース長に対する）と、フィールド平均到達時刻率。
    時刻率を距離率より少し大きめに置くことで「直線で加速する」流れになる（表示用の定数）。 */
 var RV_DIST_F = [0, 0.16, 0.33, 0.43, 0.63, 1.0];
-var RV_TIME_F = [0, 0.168, 0.345, 0.448, 0.655, 1.0];
+var RV_TIME_F = [0, 0.168, 0.345, 0.448, 0.655, 1.0];  /* 旧来の固定時刻率（B2形状テーブル未適用時のフォールバック） */
+/* ★第273弾(B2): 距離帯×芝ダ別の正規化速度形状 v(u)/v̄（u=距離率・20bin=5%刻み・bin中心値）。
+   出典: netkeiba 2026年レース結果の200mラップ実測（dev/p273_laps.py抽出→dev/p273_vshape.py集計・
+   良馬場のみ・n=採用レース数）。値は「そのレース平均速度=1」に対する比なので絶対タイムは変えない
+   （絶対タイムはB1=tlBaseSec体系）。n<100や値域外のグループは不採用=RV_TIME_Fフォールバック。
+   ※部分DB（2026年・291開催日=1,985レース・良馬場）による試作値。実機DBでの本生成も
+   dev/p273_laps.py → dev/p273_vshape.py の2本を再実行してこの表を差し替えるだけ。 */
+var RV_VSHAPE = {
+  't|S': { n: 205, v: [0.9426,0.9426,0.9426,1.0221,1.0730,1.0730,1.0588,1.0305,1.0272,1.0272,0.9997,0.9997,0.9980,0.9935,0.9913,0.9913,0.9815,0.9684,0.9684,0.9684] },
+  't|M': { n: 345, v: [0.9307,0.9355,0.9799,1.0543,1.0529,1.0184,1.0054,0.9968,0.9847,0.9795,0.9812,0.9838,0.9954,1.0045,1.0099,1.0300,1.0300,1.0155,1.0058,1.0058] },
+  't|L': { n: 437, v: [0.9429,0.9429,1.0482,1.0591,0.9988,0.9882,0.9755,0.9691,0.9735,0.9739,0.9793,0.9859,0.9957,1.0047,1.0206,1.0245,1.0372,1.0354,1.0223,1.0223] },
+  't|X': { n: 140, v: [0.9415,0.9843,1.0647,1.0278,1.0006,0.9740,0.9709,0.9685,0.9635,0.9649,0.9684,0.9785,0.9898,1.0037,1.0138,1.0321,1.0418,1.0521,1.0339,1.0249] },
+  'd|S': { n: 194, v: [0.9710,0.9769,0.9836,1.0412,1.0919,1.0905,1.0728,1.0364,1.0212,1.0212,0.9869,0.9863,0.9797,0.9776,0.9769,0.9769,0.9646,0.9481,0.9481,0.9481] },
+  'd|M': { n: 325, v: [0.9475,1.0190,1.0504,1.0889,1.0731,1.0486,1.0035,1.0003,0.9922,0.9828,0.9822,0.9837,0.9833,0.9788,0.9834,0.9868,0.9855,0.9732,0.9684,0.9684] },
+  'd|L': { n: 328, v: [0.9756,1.0114,1.0859,1.0960,1.0323,0.9736,0.9667,0.9705,0.9740,0.9867,0.9878,0.9908,0.9920,0.9910,0.9909,0.9951,1.0024,1.0003,0.9886,0.9884] },
+  'd|X': { n: 11, v: [0.9876,1.0108,1.0573,1.0049,0.9786,0.9984,0.9994,1.0015,0.9790,0.9677,0.9788,0.9957,1.0296,1.0292,1.0290,1.0070,1.0030,0.9950,0.9780,0.9694] }
+};
+/* 距離帯: S=短距離(〜1300) / M=マイル(1400-1700) / L=中距離(1800-2100) / X=長距離(2200〜) */
+function rvShapeBand(D){ return D <= 1300 ? 'S' : (D <= 1700 ? 'M' : (D <= 2100 ? 'L' : 'X')); }
+/* 形状配列を返す（採用条件: 20要素・n>=100・全値0.3〜3.0）。なければnull=RV_TIME_Fフォールバック */
+function rvShapeOf(surf, D){
+  var g = RV_VSHAPE[(surf === 'd' ? 'd' : 't') + '|' + rvShapeBand(D)];
+  if (!g || !g.v || g.v.length !== 20 || !(g.n >= 100)) return null;
+  for (var i = 0; i < 20; i++){ if (!(g.v[i] > 0.3 && g.v[i] < 3)) return null; }
+  return g.v;
+}
+/* bin中心 (k+0.5)/20 の線形補間で v(u)（両端クランプ） */
+function rvShapeV(shape, u){
+  var x = Math.max(0, Math.min(1, u)) * 20 - 0.5;
+  var i = Math.max(0, Math.min(18, Math.floor(x))), fr = Math.max(0, Math.min(1, x - i));
+  return shape[i] + (shape[i + 1] - shape[i]) * fr;
+}
+/* T(u)=∫du/v(u) の数値積分（400等分・乱数/実時間なし=完全決定的）→distF各地点の正規化時刻率。
+   shape=nullなら旧RV_TIME_Fをそのまま返す（既存挙動の完全保存）。 */
+function rvTimeFracs(shape, distF){
+  if (!shape) return RV_TIME_F;
+  var N = 400, cum = [0], acc = 0, i;
+  for (i = 0; i < N; i++){
+    acc += (1 / N) / Math.max(0.3, rvShapeV(shape, (i + 0.5) / N));
+    cum.push(acc);
+  }
+  function Tu(u){
+    var x = Math.max(0, Math.min(1, u)) * N;
+    var j = Math.min(N - 1, Math.floor(x)), fr = x - j;
+    return cum[j] + (cum[j + 1] - cum[j]) * fr;
+  }
+  var T1 = Tu(1) || 1;
+  var out = [];
+  for (i = 0; i < distF.length; i++){
+    out.push(i === 0 ? 0 : (i === distF.length - 1 ? 1 : Tu(distF[i]) / T1));
+  }
+  return out;
+}
+/* ★第273弾(B3): 実形状コース（RV_COURSE_REAL）のsectionsから実コーナー位置を導出した
+   ステージ距離率[発走,1角,向正面,3角,4角,ゴール]。汎用オーバル/未登録=null（=RV_DIST_F維持）。
+   導出規則: 弧セクションを通過順に並べ、
+   k>=4→ 1角=弧1入口・向正面=(弧2出口+弧3入口)/2・3角=弧3入口・4角=弧4出口
+   k==3→ 1角=弧1入口・向正面=(弧1出口+弧2入口)/2・3角=弧2入口・4角=弧3出口
+   k==2（ワンターン系: 東京芝1600等）→ 3角=弧1入口・4角=弧2出口・1角=3角距離の45%・向正面=75%。
+   単調性（各間隔>0.03）と4角<=0.96を満たさない場合はnull（フォールバック）。 */
+function rvStageDistF(place, surf, D){
+  try {
+    var key = String(place || '').replace(/競馬場$/, '') + '|' + (surf === 'd' ? 'd' : 't') + '|' + parseInt(D, 10);
+    var d0 = RV_COURSE_REAL[key];
+    if (!d0 || !d0.sections) return null;
+    var cum = 0, arcs = [];
+    d0.sections.forEach(function(sec){
+      if (sec[0] === 'st'){ cum += sec[1]; }
+      else {
+        var len = sec[1] * Math.PI / 180 * sec[2];
+        arcs.push({ s: cum, e: cum + len });
+        cum += len;
+      }
+    });
+    /* ★第273弾(C): ゲートが1角の直前/内部にあるコース(東京芝2000=1角奥ポケット・京都外1600等)は
+       先頭の部分弧が全距離の3%未満=「スタート時点で既に旋回中」とみなしチェックポイントから除外する。
+       これにより f[1] は常に実在の(部分でない)最初のコーナー位置を指す。 */
+    if (arcs.length >= 2 && arcs[0].s / D < 0.03) arcs.shift();
+    var k = arcs.length, f = null;
+    if (k >= 4) f = [0, arcs[0].s / D, (arcs[1].e + arcs[2].s) / 2 / D, arcs[2].s / D, arcs[3].e / D, 1];
+    else if (k === 3) f = [0, arcs[0].s / D, (arcs[0].e + arcs[1].s) / 2 / D, arcs[1].s / D, arcs[2].e / D, 1];
+    else if (k === 2) f = [0, arcs[0].s * 0.45 / D, arcs[0].s * 0.75 / D, arcs[0].s / D, arcs[1].e / D, 1];
+    if (!f) return null;
+    for (var i = 1; i <= 4; i++) if (!(f[i] > f[i - 1] + 0.03)) return null;
+    if (!(f[4] <= 0.96)) return null;
+    return f;
+  } catch(e){ return null; }
+}
 /* ステージ毎の隊列間隔（m/頭）。後半になるほど馬群が縦長に開く。 */
 var RV_SP = [0, 1.5, 1.7, 1.9, 2.2, 0];
 
@@ -51044,7 +51147,7 @@ function rvSmooth(x){ return x * x * (3 - 2 * x); }
 
 /* ---------- 競馬場 → 回り（表示専用の固定テーブル。JRA10場はコース固定） ---------- */
 function rvTurnOf(place){
-  var p = String(place == null ? '' : place).replace(/[\s　]/g, '').replace(/競馬場$/, '');
+  var p = String(place || '').replace(/競馬場$/, '');
   if (/中山|阪神|京都|札幌|函館|小倉/.test(p)) return 'R';   /* 右回り */
   if (/東京|新潟|中京|福島/.test(p)) return 'L';              /* 左回り */
   return 'L';
@@ -51090,8 +51193,48 @@ function rvTimeline(res){
     var sm = rvSmooth(nd);
     var vRun = 16.5 * (surf === 'd' ? 0.98 : 1.0);
     var kDist = 1 + 0.015 * sm;
-    var winSec = (D / vRun * kDist + 1.2) * (1 + (0.5 - ps) * 0.03);
+    /* ★第273弾(B1): 勝ちタイム=製品内蔵の基準時計体系を優先(p47 tlBaseSec:
+       🎓学習DBの「距離×クラス×競馬場×年」→ 静的PAR_TIME(p13)+クラス補正(p47 tlParOff))。
+       取得失敗(障害・未ロード)や外れ値(PAR_TIME良馬場比±18%超)のときだけ旧S-4式
+       (D/vRun*kDist+1.2)へフォールバックする。馬場差はp13 nkParSecの既存テーブル
+       (稍重+1.4/重+3.0/不良+5.0秒)をrBabaコード(fast/good/yield/soft/dirt_fast/
+       dirt_seal)と日本語表記の正規化を経て加算(フォールバック時にも加算=一貫)。
+       ペース項(1+(0.5-ps)*0.03)・gap式・finT式は不変=着順(res.order)も不変。
+       ※表示専用(p47/p13は読み取りのみ・予想/学習DB/保存データへの書込なし)。 */
+    var baseSec = D / vRun * kDist + 1.2;
+    try {
+      if (typeof tlBaseSec === 'function' && !distAssumed && D >= 800){
+        var surfJp = (surf === 'd' ? 'ダート' : '芝');
+        var rnameB = String(meta.name || '');
+        var gradeB = String(meta.grade || '').toUpperCase();
+        var gRoman = ({ 'G1': 'GI', 'G2': 'GII', 'G3': 'GIII', 'オープン': 'OP' })[gradeB] || gradeB;
+        if (['GI', 'GII', 'GIII', 'L', 'OP', 'LISTED'].indexOf(gRoman) >= 0 &&
+            rnameB.indexOf('(' + gRoman + ')') < 0 && rnameB.indexOf('（' + gRoman + '）') < 0) rnameB += '(' + gRoman + ')';
+        var clsB = String(meta.grade || '');
+        if (clsB && rnameB.indexOf(clsB) < 0 && ['新馬', '未勝利', '1勝クラス', '2勝クラス', '3勝クラス'].indexOf(clsB) >= 0) rnameB += clsB;
+        var bs = tlBaseSec(surfJp, D, rnameB, meta.place);
+        var parRef = (typeof nkParSec === 'function') ? nkParSec(surfJp, D, '良') : null;
+        if (bs != null && isFinite(bs) && bs > 30 && (parRef == null || Math.abs(bs - parRef) <= parRef * 0.18)) baseSec = bs;
+      }
+    } catch(e){}
+    var babaCode = String(meta.baba || '').trim();
+    var babaJp = ({ fast: '良', good: '稍重', yield: '重', soft: '不良', dirt_fast: '良', dirt_seal: '重' })[babaCode] || babaCode;
+    if (typeof bbNormBaba === 'function'){ try { babaJp = bbNormBaba(babaJp) || babaJp; } catch(e){} }
+    if (babaJp !== '良' && babaJp !== '稍重' && babaJp !== '重' && babaJp !== '不良'){
+      var bmB = String(meta.baba || '').match(/(不良|稍重|重|良)/);   /* 「芝・重」等の複合表記から抽出 */
+      if (bmB) babaJp = bmB[1];
+    }
+    var babaAdj = ({ '稍重': 1.4, '重': 3.0, '不良': 5.0 })[babaJp] || 0;
+    var winSec = (baseSec + babaAdj) * (1 + (0.5 - ps) * 0.03);
     var gap = Math.min(0.5, Math.max(0.18, winSec * 0.0035));  /* 着差(秒)の表示用間隔 */
+    /* ★第273弾(B3+B2): 実形状コースは実コーナー由来の距離率、速度形状テーブルがあれば
+       それを積分した時刻率を使う（どちらも無ければRV_DIST_F/RV_TIME_F=旧挙動そのまま）。 */
+    var distF = null;
+    try { distF = rvStageDistF(meta.place, surf, D); } catch(e){}
+    if (!distF) distF = RV_DIST_F;
+    var shapeV = null;
+    try { shapeV = rvShapeOf(surf, D); } catch(e){}
+    var tf = rvTimeFracs(shapeV, distF);
     /* ★第189弾(Phase S-3): 距離・馬場別の走行特性(演出用の仮想パラメータ・決定論)。
        係数は既存RV_LAPFの意味を距離・馬場で変調するだけ=新たな脚質分類も
        速度の一律補正も行わない。
@@ -51138,7 +51281,7 @@ function rvTimeline(res){
           lane = n > 1 ? 0.08 + ((no - 1) / (n - 1)) * 0.76 : 0.2;
         } else {
           var q = p.qs[s] + (no / (n + 1)) * 0.25;   /* 同q内の並びを馬番で決定論的に崩す(0.25<1なのでqの大小は保存) */
-          d = D * RV_DIST_F[s] - Math.min(45, (q - 1)) * RV_SP[s];
+          d = D * distF[s] - Math.min(45, (q - 1)) * RV_SP[s];
           /* ★第187弾(S-2): 脚質×ペースの走行オフセットを距離へ加算(設計はRV_LAPFのコメント参照) */
           var pv = (ps - 0.5) * 2;   /* -1(スロー)..+1(ハイ) */
           var fwd = (p.sc === 'E') ? 1 : (p.sc === 'S') ? 0.5 : (p.sc === 'K') ? -0.5 : -1;
@@ -51165,7 +51308,7 @@ function rvTimeline(res){
           var laneBase = 0.07 + Math.min(1, (p.qs[s] - 1) / Math.max(1, maxQ - 1)) * 0.60;
           lane = Math.min(0.92, Math.max(0.05, laneBase + spread));
         }
-        cps.push({ t: winSec * RV_TIME_F[s], d: Math.max(0, d), lane: lane });
+        cps.push({ t: winSec * tf[s], d: Math.max(0, d), lane: lane });
       }
       /* ゴール: 時刻 = winSec + (着順-1)*gap → ゴール通過順は res.order と厳密一致 */
       var finT = winSec + (fr - 1) * gap;
@@ -51201,6 +51344,7 @@ function rvTimeline(res){
     });
     var lastFin = 0; horses.forEach(function(h){ if (h.finT > lastFin) lastFin = h.finT; });
     return { ok: true, D: D, distAssumed: distAssumed, surf: surf, turn: turn,
+             stageF: distF, tf: tf, shapeUsed: !!shapeV,
              place: String(meta.place || ''), raceName: String(meta.name || ''),
              paceLabel: pace.label || '', ps: ps, winSec: winSec,
              horses: horses, n: n, dur: lastFin + 3.0 };
@@ -51288,7 +51432,13 @@ function rvStateAt(tl, t){
            完全一致=ゴール通過前後で速度が連続になる。従来は時定数4s固定のため初速がA/4に
            瞬間的に落ちる速度不連続(-8m/s前後)があった。漸近距離A(=着順順・順序保存)と
            finT・着順は不変。tauはAとvt5のみから導出=新規パラメータなし。 */
-      var A = Math.max(8, 30 - (h.fr - 1) * 0.9);
+      /* ★第273弾(A): 漸近距離Aを着順差4.2m/頭へ拡大(旧0.9m/頭)。表示スケールでは
+         馬体=34px≈29mのため旧スプレッド(13.5m)はゴール後の16頭が1点に収束し、
+         rvDeCollideが100px超の横押しで馬を走路外へ出していた(実測)。新スプレッドは18頭でも隣接4.0m差=68m
+         (fr18で下限12mにちょうど着地=飽和しない)でランオフ(RV_RUNOFF_M=95m)内に収まり、
+         ゴール後の減速が着順順の前進として
+         描かれる(実競馬の引き上げ同様)。tau=A/vt5 の式は不変=ゴール通過時の速度連続も不変。 */
+      var A = Math.max(12, 80 - (h.fr - 1) * 4.0);
       var tau = A / Math.max(1, h.vt ? h.vt[5] : A / 4);
       d = tl.D + A * (1 - Math.exp(-(t - cps[5].t) / tau));
       lane = cps[5].lane;
@@ -51404,7 +51554,7 @@ function rvStateAt(tl, t){
       if (f3){
         v3 = (tl.D + (h3.vt ? h3.vt[5] : 14) * (t - h3.finT)) * pxm3;  /* 仮想距離(パス2と同一) */
         /* ゴール後の速度(指数減速・S-2.1と同一式): フェード窓のスケール用 */
-        var A3 = Math.max(8, 30 - (h3.fr - 1) * 0.9);
+        var A3 = Math.max(12, 80 - (h3.fr - 1) * 4.0);   /* ★第273弾(A): pass1と同一式 */
         var tau3 = A3 / Math.max(1, h3.vt ? h3.vt[5] : A3 / 4);
         vel3i = A3 / tau3 * Math.exp(-(t - h3.finT) / tau3) * pxm3;
       } else {
@@ -51572,35 +51722,33 @@ function rvCoursePts(turn){
     line(x1, yT, x0, yT);
     arc(x0, cy, -PI / 2, -PI * 1.5);
   }
-  /* 第285弾: 直線は約1px刻み、円弧は約4px刻みだった元点列を等距離化する。
-     rvPathAtは進行距離の比率を点列インデックスへ写像するため、点密度が不均一だと
-     直線で馬が進みすぎ、コーナーで進みが遅れる。中心線の形は変えず距離対応だけ整える。 */
-  return rvResampleCoursePts(pts, 1321);
-}
-/* 折れ線を弧長ベースで等距離サンプリングする純関数。始点・終点は必ず保持する。 */
-function rvResampleCoursePts(raw, count){
-  if (!raw || raw.length < 2) return raw || [];
-  count = Math.max(2, Math.floor(count || raw.length));
-  var cum = [0];
-  for (var i = 1; i < raw.length; i++){
-    cum.push(cum[i - 1] + Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]));
-  }
-  var total = cum[cum.length - 1];
-  if (!(total > 0)) return Array.from({ length: count }, function(){ return [raw[0][0], raw[0][1]]; });
-  var out = [], j = 0;
-  for (var k = 0; k < count; k++){
-    var target = total * k / (count - 1);
-    while (j < cum.length - 2 && cum[j + 1] < target) j++;
-    var seg = cum[j + 1] - cum[j] || 1;
-    var u = (target - cum[j]) / seg;
-    out.push([raw[j][0] + (raw[j + 1][0] - raw[j][0]) * u,
-              raw[j][1] + (raw[j + 1][1] - raw[j][1]) * u]);
-  }
-  return out;
+  return pts;
 }
 /* 進行距離m → 中心線上の座標と「内側」法線。turnで内側の向きが決まる。
    ang=進行方向(ラジアン・馬の向きとコーナーの回転に使う)。 */
 function rvPathAt(pts, turn, m, totalPx, D){
+  /* ★第273弾(A): ゴール後(m>D)=最終セグメント方向への直線延長(ランオフ)。
+     従来は totalPx でクランプしていたためゴール後の全馬がゴール地点の1点に収束し、
+     描画側の rvDeCollide が重なり解消の押し出しで走路外(実測最大103px)へ馬を
+     出していた。延長によりゴール後の漸近距離A(着順順)が進路上の実際の前進として
+     表れる。実コース(東京芝1600=最終直線)でも汎用オーバル(ゴール=始点の閉ループ=
+     接線方向がそのまま周回継続)でも連続=テレポートなし。位置・法線・angの式は
+     本体と同一スケール(ext=(m-D)*totalPx/D)。 */
+  if (m > D && pts && pts.length > 1){
+    var n1 = pts.length - 1, k1 = n1 - 1, dx1 = 0, dy1 = 0, L1 = 0;
+    while (k1 >= 0){
+      dx1 = pts[n1][0] - pts[k1][0]; dy1 = pts[n1][1] - pts[k1][1];
+      L1 = Math.hypot(dx1, dy1);
+      if (L1 > 1e-6) break;
+      k1--;
+    }
+    if (L1 > 1e-6){
+      var ux1 = dx1 / L1, uy1 = dy1 / L1, ext1 = (m - D) * (totalPx / Math.max(1, D));
+      return { x: pts[n1][0] + ux1 * ext1, y: pts[n1][1] + uy1 * ext1,
+               nx: (turn === 'R') ? -uy1 : uy1, ny: (turn === 'R') ? ux1 : -ux1,
+               ang: Math.atan2(uy1, ux1) };
+    }
+  }
   var px = Math.max(0, Math.min(totalPx - 0.001, m / D * totalPx));
   var fi = px / totalPx * (pts.length - 1);
   var i = Math.min(pts.length - 2, Math.floor(fi)), u = fi - i;
@@ -51631,81 +51779,69 @@ function rvPathAt(pts, turn, m, totalPx, D){
    ・高低差(府の坂2.7m)・A〜Dコース幅の違いは未対応(平坦・代表幅)。
    ========================================================= */
 var RV_COURSE_REAL = {
-  '東京|t|1400': {
-    turn: 'L', surf: 't', dist: 1400,
-    sections: [
-      ['st', 342.1531387], /* 向正面スタート→3角。厳密距離は公開資料にないため推定 */
-      ['arc', 90, 155, '3角'], /* 3角(半径推定) */
-      ['st', 45],          /* 3〜4角間(推定) */
-      ['arc', 90, 155, '4角'], /* 4角(半径推定) */
-      ['st', 525.9]        /* 最終直線525.9m=JRA公式 */
-    ],
-    src: 'JRA公式: 最終直線525.9m・芝1400mは向正面中ほど発走。JRA-VANも向正面スタートを記載。スタート→3角距離・曲率・接続区間は距離整合のための模式推定。'
-  },
   '東京|t|1600': {
     turn: 'L', surf: 't', dist: 1600,
     sections: [
       ['st', 542.0],        /* 向正面(スタート→3角) JRA-VAN */
-      ['arc', 90, 155, '3角'], /* 3角(推定R155) */
+      ['arc', 90, 155],     /* 3角(推定R155) */
       ['st', 45],           /* 複合カーブ間の短い直線(推定) */
-      ['arc', 90, 155, '4角'], /* 4角(推定R155) */
+      ['arc', 90, 155],     /* 4角(推定R155) */
       ['st', 525.9]         /* 最終直線 JRA公式 */
     ],
     src: '直線525.9m=JRA公式/スタート→3角542m=JRA-VAN(Aコース時)/R155m・中間45m=推定'
   },
-  '東京|t|1800': {
-    turn: 'L', surf: 't', dist: 1800,
-    sections: [
-      ['st', 150.0],        /* ポケット→向正面合流まで約150m=JRA-VAN */
-      ['arc', 45, 80, '2角'], /* 2角を斜めに横切る形状の模式近似(半径推定) */
-      ['st', 537.1681469],  /* 合流後〜3角手前。開始から3角まで約750mに合わせた推定 */
-      ['arc', 90, 155, '3角'], /* 3角(半径推定) */
-      ['st', 37.1681469],   /* 3〜4角間の接続区間(推定) */
-      ['arc', 90, 155, '4角'], /* 4角(半径推定) */
-      ['st', 525.9]         /* 最終直線525.9m=JRA公式 */
-    ],
-    src: '最終直線525.9m=JRA公式/JRA-VAN: ポケット発走・合流まで約150m・3角まで約750m。曲率と接続区間は模式推定。'
-  },
-  '東京|t|2000': {
-    turn: 'L', surf: 't', dist: 2000,
-    sections: [
-      ['st', 100.0],        /* 1・2角奥ポケット発走後、約100mで左へ曲がる=JRA-VAN */
-      ['arc', 45, 80, '2角'], /* 2角の大きなカーブの模式近似(半径推定) */
-      ['st', 787.1531350],  /* 向正面。距離総計を合わせた推定区間 */
-      ['arc', 90, 155, '3角'], /* 3角(半径推定) */
-      ['st', 37.1681469],   /* 3〜4角間の接続区間(推定) */
-      ['arc', 90, 155, '4角'], /* 4角(半径推定) */
-      ['st', 525.9]         /* 最終直線525.9m=JRA公式 */
-    ],
-    src: 'JRA公式: 最終直線525.9m。JRA-VAN: 1・2角奥ポケット発走・約100mで左カーブ・向正面・3〜4角・最終直線。カーブ半径と接続区間は模式推定。'
-  },
-  '東京|t|2400': {
-    turn: 'L', surf: 't', dist: 2400,
-    sections: [
-      ['st', 350.0],       /* スタート→1角約350m=JRA-VAN(Aコース時) */
-      ['arc', 90, 155, '1角'], /* 1角(半径推定) */
-      ['st', 50.1031350],  /* 1〜2角間(模式推定) */
-      ['arc', 90, 155, '2角'], /* 2角(半径推定) */
-      ['st', 450.0],       /* 向正面約450m=JRA-VAN */
-      ['arc', 90, 155, '3角'], /* 3角(半径推定) */
-      ['st', 50.1031350],  /* 3〜4角間(模式推定) */
-      ['arc', 90, 155, '4角'], /* 4角(半径推定) */
-      ['st', 525.9]        /* 最終直線525.9m=JRA公式 */
-    ],
-    src: '最終直線525.9m=JRA公式。JRA-VAN: スタート→1角約350m・向正面約450m(Aコース時)。コーナー半径と角間の接続区間は模式推定。'
-  }
+  /* ★第273弾(C): JRA公式コースデータ拡充(36コース追加)・閉包ソルバ版。
+     公式値=一周距離/直線距離/発走距離(JRA競馬場コース紹介)・スタート→コーナー距離(JRA-VAN/haizara)。
+     各場の一周ループは「変位閉包(dx=dy=0)+一周=公式値+コーナー→ゴール系アンカー」の連立方程を
+     Newton法で数値求解(=一周系は必ず幾何的に閉じ、2周系も同一ループの周回として整合)。
+     弧の角度/半径・中間直線の内訳は推定値(閉包を満たす解・各src欄に明記)。
+     内外回り・2周系(中山2500/京都3000・3200/阪神3000=ゴール前を1回通過)は距離別に別エントリ。
+     検算: 全エントリ セクション合計=距離(±0.6m以内・rvRealCourseが±2m超を自動拒否)+
+           アンカー整合(スタート→コーナー+コーナー→ゴール+k×一周=距離)を生成時にassert。
+     生成/検算スクリプト: dev/p273_courses_v2.py(調査値の出典コメント付き・v1=dev/p273_courses.pyは閉包未対応の旧版)。 */
+  '東京|t|1400':{turn:'L',surf:'t',dist:1400,sections:[['st',342.1],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'直線525.9・一周2083.1=JRA公式/3角→ゴール1057.9=JRA-VAN系(既存1600=542+1058)/スタート→3角342.1=同系導出/1-2角間102.7=JRA-VAN(1角奥ポケット→2角)/向正面・1角2角R=閉包方程式で求解(推定)'},
+  '東京|t|2000':{turn:'L',surf:'t',dist:2000,sections:[['arc',34,79.7],['st',55.4],['arc',110,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',526]],src:'1角奥ポケット→2角102.7m=JRA-VAN(1角弧残り+1-2角間=102.7・1角弧+角間=152.7=2400の350m系と整合)/直線525.9・一周2083.1=JRA公式/向正面・弧R=閉包方程式で求解(推定)'},
+  '東京|t|2300':{turn:'L',surf:'t',dist:2300,sections:[['st',250],['arc',70,79.7],['st',55.4],['arc',110,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'スタンド前スタート→1角250.0=一周2083.1(JRA公式)と2400のJRA-VAN値(350)から導出/ループ形状=閉包方程式で求解(弧R・向正面=推定)'},
+  '東京|t|2400':{turn:'L',surf:'t',dist:2400,sections:[['st',350],['arc',70,79.7],['st',55.4],['arc',110,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'スタート→1角約350m(Aコース)=JRA-VAN公式/一周2083.1・直線525.9=JRA公式/ループ形状=閉包方程式で求解(弧R・向正面=推定)'},
+  '東京|t|2500':{turn:'L',surf:'t',dist:2500,sections:[['st',450],['arc',70,79.7],['st',55.4],['arc',110,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'スタート→1角450.0=導出(目黒記念=正面直線スタート・一周2083.1基準)/ループ形状=閉包方程式で求解(弧R・向正面=推定)'},
+  '東京|t|2600':{turn:'L',surf:'t',dist:2600,sections:[['st',550],['arc',70,79.7],['st',55.4],['arc',110,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'スタート→1角550.0=導出(一周2083.1+G1=33.1基準)/ループ形状=閉包方程式で求解(弧R・向正面=推定)'},
+  '東京|d|1200':{turn:'L',surf:'d',dist:1200,sections:[['st',270],['arc',90,83.5],['st',166],['arc',90,83.5],['st',501.7]],src:'スタート→3角270.0=haizara/3角→ゴール930=1200と1400(470.0)の双方で一致/直線501.6・一周1899=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '東京|d|1400':{turn:'L',surf:'d',dist:1400,sections:[['arc',12.4,58.2],['st',457.4],['arc',90,83.5],['st',166],['arc',90,83.5],['st',501.7]],src:'スタート→3角470.0=haizara/3角→ゴール930(1200と一致)/直線501.6・一周1899=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '東京|d|2100':{turn:'L',surf:'d',dist:2100,sections:[['st',279.6],['arc',120,58.2],['st',250],['arc',60,58.2],['st',457.4],['arc',90,83.5],['st',166],['arc',90,83.5],['st',501.8]],src:'スタート→1角279.6=haizara/一周1899・直線501.6=JRA公式/G1d=78.6=導出/ループ形状=閉包方程式で求解(推定)'},
+  '中山|t|1800':{turn:'R',surf:'t',dist:1800,sections:[['st',204.9],['arc',120,128.9],['st',26.6],['arc',70,128.9],['st',500.1],['arc',100,50.2],['arc',70,199.2],['st',310]],src:'スタート→1角204.9=haizara/一周内1667.1・直線310=JRA公式/G1=72.0=t2000(404.9)と一致/ループ形状=閉包方程式で求解(弧R・直線内訳=推定)'},
+  '中山|t|2000':{turn:'R',surf:'t',dist:2000,sections:[['arc',6.6,199.2],['st',382],['arc',120,128.9],['st',26.6],['arc',70,128.9],['st',500],['arc',100,50.2],['arc',70,199.2],['st',310]],src:'スタート→1角404.9=haizara(1角奥ポケット)/1角→ゴール1595.1=一周1667.1−G1=72.0/直線310・一周内1667.1=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '中山|t|2500':{turn:'R',surf:'t',dist:2500,sections:[['st',192],['arc',100,50.2],['arc',70,199.2],['st',382],['arc',120,128.9],['st',26.6],['arc',70,128.9],['st',500],['arc',100,50.2],['arc',70,199.2],['st',310]],src:'有馬記念:外回りポケット→3角192.0=haizara/2周系(192.0+3角→ゴール640.9+一周1667.1=2500.0で検算一致)/直線310・一周内=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '中山|d|1800':{turn:'R',surf:'d',dist:1800,sections:[['st',375.1],['arc',110,55.6],['st',180],['arc',70,55.6],['st',321.8],['arc',90,140.2],['arc',90,140.2],['st',308]],src:'スタート→1角375.03=haizara/一周1493・直線308=JRA公式/G1d=68.0=導出/ループ形状=閉包方程式で求解(弧R・直線内訳=推定)'},
+  '京都|t|1200':{turn:'R',surf:'t',dist:1200,sections:[['st',316.2],['arc',85,210.2],['arc',95,146.9],['st',328.4]],src:'内回り:スタート→3角316.2=haizara/3角→ゴール内883.8=t1600内(716.2)と一致/一周内1782.8・直線328.4=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|1400':{turn:'R',surf:'t',dist:1400,sections:[['st',511.8],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'外回り:スタート→3角511.7=haizara/3角→ゴール外888.3=t1600外(711.7)・t1800外(911.7)・t3000(217.4+1周)と一致/一周外1894.3・直線403.7=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|1600':{turn:'R',surf:'t',dist:1600,sections:[['arc',49.2,72.4],['st',649.6],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'外回り:スタート→3角711.7=haizara/3角→ゴール外888.3(4コースで一致)/一周外1894.3・直線403.7=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|1800':{turn:'R',surf:'t',dist:1800,sections:[['arc',82.9,72.4],['st',50],['arc',85,72.4],['st',649.6],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'外回り:スタート→3角911.7=haizara/3角→ゴール外888.3(4コースで一致)/一周外1894.3・直線403.7=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|2000':{turn:'R',surf:'t',dist:2000,sections:[['st',308.7],['arc',90,77.1],['st',200],['arc',90,77.1],['st',365.3],['arc',85,210.2],['arc',95,146.9],['st',328.4]],src:'内回り:スタート→1角308.7=haizara/1角→ゴール内1691.3=一周内1782.8−G1=91.5(内外でG1一致=検算OK)/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|2200':{turn:'R',surf:'t',dist:2200,sections:[['st',397.3],['arc',85,72.4],['st',50],['arc',85,72.4],['st',649.7],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'外回り:スタート→1角397.3=haizara/1角→ゴール外1802.7=一周外1894.3−G1=91.6/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|2400':{turn:'R',surf:'t',dist:2400,sections:[['arc',28.2,207.4],['st',495.3],['arc',85,72.4],['st',50],['arc',85,72.4],['st',649.6],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'外回り:スタート→1角597.3=haizara/1角→ゴール外1802.7(JRA公式+導出)/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|3000':{turn:'R',surf:'t',dist:3000,sections:[['st',217.4],['arc',85,70.4],['arc',105,207.4],['st',495.3],['arc',85,72.4],['st',50],['arc',85,72.4],['st',649.7],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'菊花賞:外回り2周系。スタート→3角217.4=haizara/217.4+3角→ゴール888.3+一周1894.3=3000.0で検算一致/ループ形状=閉包方程式で求解(推定)'},
+  '京都|t|3200':{turn:'R',surf:'t',dist:3200,sections:[['st',417.4],['arc',85,70.4],['arc',105,207.4],['st',495.3],['arc',85,72.4],['st',50],['arc',85,72.4],['st',649.7],['arc',85,70.4],['arc',105,207.4],['st',403.7]],src:'天皇賞春:外回り2周系。スタート→3角417.4=haizara/417.4+888.3+1894.3=3200.0で検算一致/ループ形状=閉包方程式で求解(推定)'},
+  '中京|t|1200':{turn:'L',surf:'t',dist:1200,sections:[['st',486.7],['arc',90,129.9],['arc',90,61.6],['st',412.5]],src:'スタート→3角486.7=haizara/3角→ゴール713.3=t2000(1角486.7)系と整合/一周1705.9(JRA公式)・直線412.5(JRA馬場概要)/ループ形状=閉包方程式で求解(推定)'},
+  '中京|t|2000':{turn:'L',surf:'t',dist:2000,sections:[['st',486.7],['arc',90,57.2],['st',80],['arc',90,57.2],['st',540.3],['arc',90,129.9],['arc',90,61.6],['st',412.5]],src:'スタート→1角486.7=haizara/1角→ゴール1513.3=一周1705.9−G1=192.6/ループ形状=閉包方程式で求解(弧R・直線内訳=推定)'},
+  '阪神|t|1200':{turn:'R',surf:'t',dist:1200,sections:[['st',242.6],['arc',100,127.2],['arc',100,217.1],['st',356.5]],src:'内回り:スタート→3角242.6=haizara/3角→ゴール内957.4=t1400内(442.6)と一致/一周内1689・直線356.5=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|1400':{turn:'R',surf:'t',dist:1400,sections:[['st',442.6],['arc',100,127.2],['arc',100,217.1],['st',356.5]],src:'内回り:スタート→3角442.6=haizara/3角→ゴール内957.4(一致)/一周内1689・直線356.5=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|1600':{turn:'R',surf:'t',dist:1600,sections:[['st',68],['arc',90,72.8],['st',387.5],['arc',100,210.5],['arc',60,180.6],['st',473.6]],src:'外回り:スタート→2角曲がり切り182.4+2角→ゴール外1417.6=1600.0で厳密一致(haizara)/一周外2089・直線473.6=JRA公式/向正面387.5=1417.6−(3角+4角+直線)で確定/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|2000':{turn:'R',surf:'t',dist:2000,sections:[['st',325.3],['arc',80,53.4],['st',80],['arc',80,53.4],['st',488.2],['arc',100,127.2],['arc',100,217.1],['st',356.5]],src:'内回り:スタート→1角325.3=haizara/1角→ゴール内1674.7=一周内1689−G1=14.3(t2400外=JRA-VAN「2000と同じスタート」と整合)/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|2200':{turn:'R',surf:'t',dist:2200,sections:[['arc',40.8,217.1],['st',370.8],['arc',80,53.4],['st',80],['arc',80,53.4],['st',488.1],['arc',100,127.2],['arc',100,217.1],['st',356.5]],src:'内回り:スタート→1角525.3=haizara/1角→ゴール内1674.7(JRA公式+導出)/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|2400':{turn:'R',surf:'t',dist:2400,sections:[['st',325.3],['arc',110,61],['st',425.5],['arc',90,72.8],['st',387.5],['arc',100,210.5],['arc',60,180.6],['st',473.7]],src:'外回り:スタート=t2000内と同じ(正面スタンド前)=JRA-VAN/1角→ゴール外2074.7=一周外2089−G1=14.3/向正面387.5=2角→ゴール1417.6から確定/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|t|3000':{turn:'R',surf:'t',dist:3000,sections:[['st',353.6],['arc',100,127.2],['arc',100,217.1],['st',370.8],['arc',80,53.4],['st',80],['arc',80,53.4],['st',488.1],['arc',100,127.2],['arc',100,217.1],['st',356.5]],src:'内回り2周系:353.6+3角→ゴール内957.4+一周1689=3000.0(haizara 348.3を一周1689基準に+5.3調整)/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|d|1200':{turn:'R',surf:'d',dist:1200,sections:[['st',342.2],['arc',100,113.1],['arc',100,176.3],['st',352.7]],src:'スタート→3角342.2=haizara/3角→ゴール857.8=d1400(542.2)と一致/一周1517.6・直線352.7=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|d|1400':{turn:'R',surf:'d',dist:1400,sections:[['st',9.4],['arc',80,54.6],['st',456.6],['arc',100,113.1],['arc',100,176.3],['st',352.7]],src:'スタート→3角542.2=haizara/3角→ゴール857.8(一致)/一周1517.6・直線352.7=JRA公式/ループ形状=閉包方程式で求解(推定)'},
+  '阪神|d|1800':{turn:'R',surf:'d',dist:1800,sections:[['st',303.2],['arc',80,54.6],['st',30],['arc',80,54.6],['st',456.5],['arc',100,113.1],['arc',100,176.3],['st',352.7]],src:'スタート→1角303.2=haizara/1角→ゴール1496.8=一周1517.6−G1d=20.8/ループ形状=閉包方程式で求解(弧R・直線内訳=推定)'},
+  '東京|t|1800':{turn:'L',surf:'t',dist:1800,sections:[['st',91.9],['arc',53,190.1],['st',474.3],['arc',90,155],['st',45.1],['arc',90,155],['st',525.9]],src:'2角出口ポケット:前置=st91.9+arc53°(R=190.1=2角と同曲率・推定)/曲がり切り≈175.9m(haizara187.8は弧長の目安)/直線525.9・一周2083.1=JRA公式/ループ形状=閉包方程式で求解'},
+  '東京|d|1600':{turn:'L',surf:'d',dist:1600,sections:[['st',90],['arc',60,100],['arc',17.6,58.2],['st',457.4],['arc',90,83.5],['st',166],['arc',90,83.5],['st',501.7]],src:'芝スタート(JRA公式)/スタート→最初の角194.6・芝約100m=haizara/前置=st90+arc60°(R100)推定/スタート→3角670.0=930系導出/直線501.6・一周1899=JRA公式/ループ形状=閉包方程式で求解'},
+
 };
 function rvRealCourse(place, surf, dist){
-  /* 場所・芝ダ・距離が実形状データと厳密一致した場合だけ実形状を返す。
-     不明な馬場・不正距離・未知の競馬場は null(汎用rvCoursePtsへフォールバック)。 */
+  /* 場所・芝ダ・距離が実形状データと一致したら等距離リサンプル済み点列を返す。
+     一致しなければ null(呼び出し側は汎用rvCoursePtsへフォールバック)。 */
   try {
-    var p = String(place == null ? '' : place).replace(/[\s　]/g, '').replace(/競馬場$/, '');
-    if (!p || (surf !== 't' && surf !== 'd')) return null;
-    var ds = String(dist == null ? '' : dist).trim();
-    if (!/^[0-9]+$/.test(ds)) return null;
-    var dn = Number(ds);
-    if (!isFinite(dn) || dn < 800 || dn > 5000) return null;
-    var key = p + '|' + surf + '|' + dn;
+    var key = String(place || '').replace(/競馬場$/, '') + '|' + (surf === 'd' ? 'd' : 't') + '|' + parseInt(dist, 10);
     var d = RV_COURSE_REAL[key];
     if (!d) return null;
     var PI = Math.PI, x = 0, y = 0, th = PI;   /* スタート=向正面・進行方向は-x(左回り) */
@@ -51717,8 +51853,9 @@ function rvRealCourse(place, surf, dist){
         raw.push([x, y]); lens.push(L);
       } else {
         var deg = sec[1] * PI / 180, R = sec[2], n = Math.max(8, Math.round(sec[1] / 5));
+        var sgn = (d.turn === 'R') ? 1 : -1;   /* ★第273弾(C): 右回りコース(中山/京都/阪神)=逆向きに曲がる */
         for (var i = 1; i <= n; i++){
-          th -= deg / n;   /* 左回り=canvas座標(y下向き)ではheading減少が左折 */
+          th += sgn * deg / n;   /* 左回り=canvas座標(y下向き)ではheading減少が左折・右回りは増加 */
           x += Math.cos(th) * (R * deg / n); y += Math.sin(th) * (R * deg / n);
           raw.push([x, y]);
         }
@@ -51741,11 +51878,10 @@ function rvRealCourse(place, surf, dist){
       pts.push([raw[j][0] + (raw[j + 1][0] - raw[j][0]) * u,
                 raw[j][1] + (raw[j + 1][1] - raw[j][1]) * u]);
     }
-    /* 一様スケール。通常は全長→1880px、縦横が表示枠を超えるコースは枠内優先で縮小。
-       進行距離↔点列は等距離リサンプル済みなので、表示スケール変更はレース状態に影響しない。 */
+    /* 一様スケール(全長→1880px)+キャンバス内へ平行移動(回転なし=北が上) */
+    var sc = 1880 / cum[cum.length - 1];
     var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
     pts.forEach(function(p){ minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
-    var sc = Math.min(1880 / cum[cum.length - 1], 880 / Math.max(1, maxX - minX), 560 / Math.max(1, maxY - minY));
     var ox = 480 - (minX + maxX) / 2 * sc, oy = 320 - (minY + maxY) / 2 * sc;
     pts = pts.map(function(p){ return [p[0] * sc + ox, p[1] * sc + oy]; });
     return { pts: pts, turn: d.turn, totalPx: 1880, meta: d };
@@ -51773,6 +51909,77 @@ function rvDeCollide(chips, minD, cap){
         }
       }
     }
+  }
+  return chips;
+}
+
+/* ================= ★第273弾(A): 走路境界クランプとランオフ(描画用の純関数) =================
+   背景(実測診断 dev/p273_overflow_diag.py): レーン自体は[0.05,0.92]クランプで走路内
+   (最大±29.7px<TH=46)だが、描画側の rvDeCollide は8反復×ペア毎cap12pxが累積し
+   (理論上限96px/ペア・複数ペアで加算)、押し出し後に走路内へ戻す処理が無かった。
+   合成16頭・東京芝1600mの実測で全6,816馬フレームの16.9%が馬体半幅込みで走路外、
+   最悪はゴール後の+90.8px(内馬場側へ完全脱輪)だった。
+   対策はこの2つ(どちらも表示のみ・走行データ/着順/決定論は無変更):
+     ①rvClampChipsToTrack … deCollide押し出し後の横成分を±(TH-RV_EDGE_HW)へ再クランプ。
+       進行方向成分はそのまま残す(=ワープなし・ゴール位置は実距離のまま)。
+     ②ランオフ描画延長(rvRunoffDir) … ゴール後の減速域にも走路リボン/柵を描く。
+       馬の位置は rvPathAt のゴール後延長(同一スケール)が既に担う。閉ループ(汎用オーバル)
+       では延長を描くとスタート直線と同一位置の柵が二重に重なる(3DでZファイティング)
+       ため描画延長はしない(rvPathAtの位置延長は閉ループでも幾何的に正しい=周回継続)。 */
+var RV_EDGE_HW = 8;    /* 馬体の表示半幅+マージン(px)。横クランプ限界=TH-RV_EDGE_HW=38px → 馬体端≤44.5px<TH=46px */
+var RV_RUNOFF_M = 95;  /* ゴール後の描画延長(m)。漸近距離Aの最大78m+押し出しマージンを覆う */
+var RV_POST_GOAL_M = 95; /* ゴール後の表示位置クランプ(m・旧D+28)。A最大78m+余裕=ランオフ内に収まる */
+function rvRunoffDir(pts, totalPx, D){
+  /* 最終セグメントの単位方向と延長長px。閉ループ(始点≒終点)や退化時は null=延長しない */
+  try {
+    if (!pts || pts.length < 2) return null;
+    var a = pts[0], b = pts[pts.length - 1];
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) <= 4) return null;
+    var n1 = pts.length - 1, k1 = n1 - 1, dx = 0, dy = 0, L = 0;
+    while (k1 >= 0){
+      dx = pts[n1][0] - pts[k1][0]; dy = pts[n1][1] - pts[k1][1];
+      L = Math.hypot(dx, dy);
+      if (L > 1e-6) break;
+      k1--;
+    }
+    if (L <= 1e-6) return null;
+    return { ux: dx / L, uy: dy / L, lenPx: RV_RUNOFF_M * (totalPx || 1880) / Math.max(1, D || 1) };
+  } catch(e){ return null; }
+}
+function rvRunoffPts(pts, totalPx, D, step){
+  /* 描画用の点列延長(2D背景/3Dリボン共通)。閉ループ時は元の配列のコピーなし=そのまま返す */
+  var rd = rvRunoffDir(pts, totalPx, D);
+  if (!rd) return pts;
+  var out = pts.slice(), b = pts[pts.length - 1], st = Math.max(1, step || 4);
+  for (var q = st; q < rd.lenPx; q += st) out.push([b[0] + rd.ux * q, b[1] + rd.uy * q]);
+  out.push([b[0] + rd.ux * rd.lenPx, b[1] + rd.uy * rd.lenPx]);
+  return out;
+}
+function rvClampChipsToTrack(chips, pts, turn, totalPx, D, TH){
+  /* deCollide押し出し後の表示座標を走路内へ再クランプ。
+     横成分=±(TH-RV_EDGE_HW)。進行方向成分は実コース(開経路)だけランオフ末端で制限する
+     (閉ループの汎用オーバルはゴール後も走路が周回として物理的に続くため無制限)。
+     中心線上の基準点はチップ構築(rvDraw2D/rv3dPaint)と完全同一式=ずれない。 */
+  var LIM = Math.max(6, TH - RV_EDGE_HW);
+  var rd = rvRunoffDir(pts, totalPx, D);
+  var TANMAX = rd ? (rd.lenPx + 4) : Infinity;
+  for (var i = 0; i < chips.length; i++){
+    var c = chips[i], s = c && c.s;
+    if (!s) continue;
+    var mm = Math.min(s.d + (s.ro || 0), D + RV_POST_GOAL_M);
+    var p = rvPathAt(pts, turn, mm, totalPx, D);
+    var dx = c.x - p.x, dy = c.y - p.y;
+    var lat = dx * p.nx + dy * p.ny;
+    var tx = Math.cos(p.ang), ty = Math.sin(p.ang);
+    var tan = dx * tx + dy * ty;
+    var lat2 = Math.max(-LIM, Math.min(LIM, lat));
+    /* 接線は実コースだけ上下限あり: 上=ランオフ末端、下=スタート線(発走直後の押し出しで
+       ゲート後方=走路の外へ出ない)。閉ループは周回がつながっているため無制限。 */
+    var tanMin = rd ? (-mm / Math.max(1, D) * totalPx) : -Infinity;
+    var tan2 = Math.max(tanMin, Math.min(TANMAX, tan));
+    if (lat2 === lat && tan2 === tan) continue;
+    c.x = p.x + tx * tan2 + p.nx * lat2;
+    c.y = p.y + ty * tan2 + p.ny * lat2;
   }
   return chips;
 }
@@ -51805,11 +52012,11 @@ function rvCamAt(tl, states, view){
   if (view !== 'chase') return { x: 480, y: 380, z: Math.min(W / 980, H / 620), mode: 'full' };
   var live = states.slice().sort(function(a, b){ return b.d - a.d; });
   var lead = live[0];
-  if (lead.d >= tl.D * RV_DIST_F[4] - 12){
+  if (lead.d >= tl.D * (tl.stageF || RV_DIST_F)[4] - 12){
     /* 最終直線(4角通過後): 1〜3着を画面に収める(先行争いが見える) */
     var top = live.slice(0, Math.min(3, live.length)), xs = [], ys = [];
     top.forEach(function(s){
-      var p = rvPathAt(tl._pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + 20), tl._totalPx, tl.D);
+      var p = rvPathAt(tl._pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
       var off = (s.lane - 0.5) * (RV_TRACK_HALF * 2 - 26);
       xs.push(p.x + p.nx * off); ys.push(p.y + p.ny * off);
     });
@@ -51826,10 +52033,10 @@ function rvCamAt(tl, states, view){
   var mp = rvPathAt(tl._pts, tl.turn, Math.min(mid.d + (mid.ro || 0), tl.D - 1), tl._totalPx, tl.D);
   /* ★第211弾: 3〜4角=馬群全体の広がりが収まる構図(差しの進出・馬群の縦長が見える)。
      bboxから必要ズームを算出(1.42〜2.0にクランプ=過剰ズームアウト防止) */
-  if (lead.d >= tl.D * RV_DIST_F[3] && lead.d < tl.D * RV_DIST_F[4]){
+  if (lead.d >= tl.D * (tl.stageF || RV_DIST_F)[3] && lead.d < tl.D * (tl.stageF || RV_DIST_F)[4]){
     var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
     live.forEach(function(s2){
-      var p2 = rvPathAt(tl._pts, tl.turn, Math.min(s2.d + (s2.ro || 0), tl.D + 28), tl._totalPx, tl.D);
+      var p2 = rvPathAt(tl._pts, tl.turn, Math.min(s2.d + (s2.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
       var off2 = (s2.lane - 0.5) * (RV_TRACK_HALF * 2 - 26);
       var x2 = p2.x + p2.nx * off2, y2 = p2.y + p2.ny * off2;
       minX = Math.min(minX, x2); maxX = Math.max(maxX, x2);
@@ -51843,71 +52050,30 @@ function rvCamAt(tl, states, view){
 }
 
 /* ---------- コース背景(オフスクリーンに1回だけ描く・決定論) ---------- */
-/* コーナー標識の距離位置を返す純関数。実コースはsectionsのarcメタデータを優先。
-   セクション長や曲率が推定値の場合、標識位置もその推定に基づく表示上の近似となる。 */
-function rvCornerMarkers(tl){
-  if (tl && tl._courseReal && Array.isArray(tl._courseReal.sections)){
-    var marks = [], d = 0;
-    tl._courseReal.sections.forEach(function(sec){
-      var len = sec[0] === 'arc' ? (Number(sec[1]) * Math.PI / 180 * Number(sec[2])) : Number(sec[1]);
-      if (sec[0] === 'arc' && sec[3]) marks.push({ label: String(sec[3]), m: d + len / 2 });
-      if (isFinite(len) && len > 0) d += len;
-    });
-    if (marks.length) return marks;
-  }
-  /* 汎用模式オーバルには実際の四隅データがないため、以前の参考位置を維持。 */
-  return [
-    { label: '1角', m: tl.D * RV_DIST_F[1] },
-    { label: '向正面', m: tl.D * RV_DIST_F[2] },
-    { label: '3角', m: tl.D * RV_DIST_F[3] },
-    { label: '4角', m: tl.D * RV_DIST_F[4] }
-  ];
-}
-
-/* 残り距離標識を進行距離へ変換する純関数。
-   実コースでは標識位置がどのセクションに落ちるかも返し、描画と回帰検査で共有する。
-   section情報は表示上の監査用であり、レース進行/HUDの距離計算には使わない。 */
-function rvDistanceMarkers(tl){
-  if (!tl || !isFinite(Number(tl.D)) || Number(tl.D) <= 0) return [];
-  var D = Number(tl.D), specs = [[800, '残り800'], [400, '残り400']];
-  return specs.filter(function(mk){ return mk[0] <= D - 60; }).map(function(mk){
-    var m = D - mk[0], sectionIndex = null, sectionType = 'schematic', sectionLabel = null;
-    var real = tl._courseReal, sections = real && Array.isArray(real.sections) ? real.sections : null;
-    if (sections){
-      var cursor = 0;
-      for (var i = 0; i < sections.length; i++){
-        var sec = sections[i];
-        var len = sec[0] === 'arc' ? Number(sec[1]) * Math.PI / 180 * Number(sec[2]) : Number(sec[1]);
-        if (isFinite(len) && len > 0 && m >= cursor - 1e-8 && m <= cursor + len + 1e-8){
-          sectionIndex = i; sectionType = sec[0]; sectionLabel = sec[3] || null; break;
-        }
-        if (isFinite(len) && len > 0) cursor += len;
-      }
-    }
-    return { remaining: mk[0], label: mk[1], m: m, sectionIndex: sectionIndex,
-             sectionType: sectionType, sectionLabel: sectionLabel };
-  });
-}
-
 function rvDrawBG(tl){
   var cv = document.createElement('canvas');
   cv.width = RV_CW; cv.height = RV_CH;
   var g = cv.getContext('2d');
   var pts = tl._pts, totalPx = tl._totalPx, turn = tl.turn, TH = RV_TRACK_HALF;
   var turf = tl.surf === 't';
+  /* ★第273弾(A): 描画用=ゴール後ランオフ延長済みの点列(閉ループの汎用コースでは pts と同一)。
+     走路の帯・縞・ラチ・外柵はゴール後も実際の減速域まで続く=馬が走路の外を走って見えない。
+     at()(スタート線・ゴール・標識)は進行距離m→位置の写像なので元の pts のまま使う。 */
+  var ptsE = rvRunoffPts(pts, totalPx, tl.D, 4);
   /* 中心線の法線(内側)を座標から1つ作る */
-  function normAt(i){
-    var j = Math.min(pts.length - 2, Math.max(0, i));
-    var dx = pts[j + 1][0] - pts[j][0], dy = pts[j + 1][1] - pts[j][1], L = Math.hypot(dx, dy) || 1;
+  function normAt(i, arr){
+    var P = arr || pts;
+    var j = Math.min(P.length - 2, Math.max(0, i));
+    var dx = P[j + 1][0] - P[j][0], dy = P[j + 1][1] - P[j][1], L = Math.hypot(dx, dy) || 1;
     return (turn === 'R') ? { x: -dy / L, y: dx / L } : { x: dy / L, y: -dx / L };
   }
   function edgePath(side, shrink){
     g.beginPath();
-    var n2 = normAt(0);
-    g.moveTo(pts[0][0] + n2.x * side * (TH - (shrink || 0)), pts[0][1] + n2.y * side * (TH - (shrink || 0)));
-    for (var i = 1; i < pts.length; i++){
-      var n3 = normAt(i);
-      g.lineTo(pts[i][0] + n3.x * side * (TH - (shrink || 0)), pts[i][1] + n3.y * side * (TH - (shrink || 0)));
+    var n2 = normAt(0, ptsE);
+    g.moveTo(ptsE[0][0] + n2.x * side * (TH - (shrink || 0)), ptsE[0][1] + n2.y * side * (TH - (shrink || 0)));
+    for (var i = 1; i < ptsE.length; i++){
+      var n3 = normAt(i, ptsE);
+      g.lineTo(ptsE[i][0] + n3.x * side * (TH - (shrink || 0)), ptsE[i][1] + n3.y * side * (TH - (shrink || 0)));
     }
   }
   /* 1) 外周の大地(芝) */
@@ -51932,23 +52098,23 @@ function rvDrawBG(tl){
   g.strokeStyle = turf ? '#7aa458' : '#b08a5f';
   g.lineWidth = TH * 2;
   g.beginPath();
-  pts.forEach(function(p, i){ if (i === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); });
+  ptsE.forEach(function(p, i){ if (i === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); });
   g.stroke();
   if (turf){
     /* 刈り込み縞: 46px毎に濃淡を交互に(実映像の芝の縞) */
     var acc = 0, seg = [];
     g.lineCap = 'butt';
-    for (var si = 1; si < pts.length; si++){
-      var dseg = Math.hypot(pts[si][0] - pts[si - 1][0], pts[si][1] - pts[si - 1][1]);
+    for (var si = 1; si < ptsE.length; si++){
+      var dseg = Math.hypot(ptsE[si][0] - ptsE[si - 1][0], ptsE[si][1] - ptsE[si - 1][1]);
       acc += dseg; seg.push(si);
       if (acc >= 46){
         if ((seg.length % 2) === 0){
           g.strokeStyle = 'rgba(70,110,45,.16)';
           g.lineWidth = TH * 2;
           g.beginPath();
-          g.moveTo(pts[seg[0] - 1][0], pts[seg[0] - 1][1]);
-          for (var k2 = 1; k2 < seg.length; k2++) g.lineTo(pts[seg[k2]][0], pts[seg[k2]][1]);
-          g.lineTo(pts[si][0], pts[si][1]);
+          g.moveTo(ptsE[seg[0] - 1][0], ptsE[seg[0] - 1][1]);
+          for (var k2 = 1; k2 < seg.length; k2++) g.lineTo(ptsE[seg[k2]][0], ptsE[seg[k2]][1]);
+          g.lineTo(ptsE[si][0], ptsE[si][1]);
           g.stroke();
         }
         acc = 0; seg = [];
@@ -51956,12 +52122,12 @@ function rvDrawBG(tl){
     }
   } else {
     /* ダートの目地: 帯の上に決定論的な点を散らす */
-    for (var di = 0; di < pts.length; di += 3){
-      var dn = normAt(di);
+    for (var di = 0; di < ptsE.length; di += 3){
+      var dn = normAt(di, ptsE);
       for (var dj = 0; dj < 5; dj++){
         var off = (rvHash(di, dj + 40) - 0.5) * (TH * 2 - 6);
         g.fillStyle = rvHash(di, dj + 90) < 0.5 ? 'rgba(120,90,58,.35)' : 'rgba(210,175,130,.30)';
-        g.fillRect(pts[di][0] + dn.x * off, pts[di][1] + dn.y * off, 2.2, 2.2);
+        g.fillRect(ptsE[di][0] + dn.x * off, ptsE[di][1] + dn.y * off, 2.2, 2.2);
       }
     }
   }
@@ -51973,12 +52139,12 @@ function rvDrawBG(tl){
   /* 5) 外柵(白線+支柱) */
   edgePath(1, 1.5);
   g.strokeStyle = '#f5f7f3'; g.lineWidth = 2.5; g.stroke();
-  for (var fi = 0; fi < pts.length; fi += 8){
-    var fn = normAt(fi);
+  for (var fi = 0; fi < ptsE.length; fi += 8){
+    var fn = normAt(fi, ptsE);
     g.strokeStyle = '#d9ddd2'; g.lineWidth = 2;
     g.beginPath();
-    g.moveTo(pts[fi][0] + fn.x * (TH - 2), pts[fi][1] + fn.y * (TH - 2));
-    g.lineTo(pts[fi][0] + fn.x * (TH + 9), pts[fi][1] + fn.y * (TH + 9));
+    g.moveTo(ptsE[fi][0] + fn.x * (TH - 2), ptsE[fi][1] + fn.y * (TH - 2));
+    g.lineTo(ptsE[fi][0] + fn.x * (TH + 9), ptsE[fi][1] + fn.y * (TH + 9));
     g.stroke();
   }
   /* 6) スタート線・ゴール(白黒チェッカー)・残り距離の標識 */
@@ -52007,9 +52173,10 @@ function rvDrawBG(tl){
   g.moveTo(gp.x + gp.nx * (TH + 12), gp.y + gp.ny * (TH + 12));
   g.lineTo(gp.x + gp.nx * (TH + 12) - gdx * 34, gp.y + gp.ny * (TH + 12) - gdy * 34);
   g.stroke();
-  /* 残り800m/400mの標識ポール(コース内側)。位置計算はrvDistanceMarkersに集約。 */
-  rvDistanceMarkers(tl).forEach(function(mk){
-    var mp = at(mk.m);
+  /* 残り800m/400mの標識ポール(コース内側) */
+  [[800, '残り800'], [400, '残り400']].forEach(function(mk){
+    if (mk[0] > tl.D - 60) return;
+    var mp = at(tl.D - mk[0]);
     g.strokeStyle = '#f5f7f3'; g.lineWidth = 2.5;
     g.beginPath();
     g.moveTo(mp.x + mp.nx * -(TH - 2), mp.y + mp.ny * -(TH - 2));
@@ -52017,18 +52184,17 @@ function rvDrawBG(tl){
     g.stroke();
     g.fillStyle = 'rgba(17,19,13,.75)';
     g.font = 'bold 11px sans-serif'; g.textAlign = 'center';
-    g.fillText(mk.label, mp.x + mp.nx * -(TH + 40), mp.y + mp.ny * -(TH + 40) + 4);
+    g.fillText(mk[1], mp.x + mp.nx * -(TH + 40), mp.y + mp.ny * -(TH + 40) + 4);
     g.textAlign = 'left';
   });
-  /* 7) コーナー標識(小さく外側へ)。実形状はセクション定義の角番号を使い、
-     推定コーナーの区間中央へ置く。模式オーバルだけは従来の概略位置を維持する。 */
-  rvCornerMarkers(tl).forEach(function(mark){
-    var cp = at(mark.m);
-    g.fillStyle = 'rgba(255,255,255,.72)';
+  /* 7) コーナー標識(小さく外側へ) */
+  for (var s4 = 1; s4 <= 4; s4++){
+    var cp = at(tl.D * (tl.stageF || RV_DIST_F)[s4]);
+    g.fillStyle = 'rgba(255,255,255,.55)';
     g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
-    g.fillText(mark.label, cp.x + cp.nx * (TH + 22), cp.y + cp.ny * (TH + 22) + 4);
+    g.fillText(RV_STAGES[s4], cp.x + cp.nx * (TH + 22), cp.y + cp.ny * (TH + 22) + 4);
     g.textAlign = 'left';
-  });
+  }
   return cv;
 }
 
@@ -52184,12 +52350,15 @@ function rvDraw2D(cv, tl, st){
 
   /* 馬: 位置→重なり補正(rvDeCollide=表示用)→内側から描画(選択馬は最後・手前) */
   var chips = st.states.map(function(s3){
-    var p = rvPathAt(pts, tl.turn, Math.min(s3.d + (s3.ro || 0), tl.D + 28), totalPx, tl.D);
+    var p = rvPathAt(pts, tl.turn, Math.min(s3.d + (s3.ro || 0), tl.D + RV_POST_GOAL_M), totalPx, tl.D);
     return { s: s3, ang: p.ang,
              x: p.x + p.nx * (s3.lane - 0.5) * (RV_TRACK_HALF * 2 - 26),
              y: p.y + p.ny * (s3.lane - 0.5) * (RV_TRACK_HALF * 2 - 26) };
   });
   rvDeCollide(chips, 26, 12);
+  /* ★第273弾(A): 押し出し後の走路内再クランプ(横成分のみ・進行方向は保持)。
+     deCollideの反復累積(8反復×cap12px)が走路外へ馬を出していた実測不具合の遮断。 */
+  rvClampChipsToTrack(chips, pts, tl.turn, totalPx, tl.D, RV_TRACK_HALF);
   chips.sort(function(a, b){ return a.s.lane - b.s.lane; });
   var selChip = null;
   chips.forEach(function(c){
@@ -52462,14 +52631,6 @@ function rvOpen(res){
     var turnTxt = tl.turn === 'R' ? '右回り' : '左回り';
     ov.innerHTML =
       '<div id="rvBox" style="background:var(--card);color:var(--ink);border:1px solid var(--line2);border-radius:14px;max-width:none;width:100%;padding:10px;overflow:visible;display:flex;flex-direction:column;box-sizing:border-box">' +
-      '<style id="rvReplayResponsiveStyles">' +
-      '#rvBox #rv3dBtn:focus-visible,#rvBox button:focus-visible,#rvBox input:focus-visible{outline:3px solid #ffd54f;outline-offset:2px;box-shadow:0 0 0 2px #202020}'+
-      '#rvBox #rv3dBtn[aria-pressed="true"]{border-color:#2e7d32;background:#e8f5e9;color:#1b5e20}'+
-      '#rvBox #rv3dBtn[aria-busy="true"]{opacity:.78;cursor:progress}'+
-      '@media(max-width:480px){#rvBox{padding:7px}#rvBox #rvMap{width:min(36vw,150px);height:auto;max-height:102px}#rvBox #rvRankPanel{max-width:48%;max-height:32%;overflow:auto;font-size:10px!important}#rvBox #rv3dStatus{flex:1 1 100%;min-height:1.2em}}'+
-      '@media(max-width:360px){#rvBox #rvMap{width:112px;max-height:78px}#rvBox #rvRankPanel{max-width:46%;max-height:29%;padding:4px 5px!important;font-size:9px!important}#rvBox #rvControls #rvSeek{flex:1 1 100%!important;order:20}#rvBox #rvControls #rvTime{order:21}}'+
-      '@media(prefers-reduced-motion:reduce){#rvBox *,#rvBox *::before,#rvBox *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}'+
-      '</style>' +
       '<div id="rvBar" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:2px 2px 6px;flex:0 0 auto">' +
       '<b style="font-size:15px">🎬 レースリプレイ</b>' +
       '<b style="font-size:14px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(meta.name || '') + '">' + esc(meta.name || '(レース名未入力)') + '</b>' +
@@ -52494,15 +52655,14 @@ function rvOpen(res){
       '<div id="rvRem" style="position:absolute;left:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">残り --- m</div>' +
       '<div id="rvClock" style="position:absolute;right:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">0:00.0</div>' +
       '<div id="rvRankPanel" style="position:absolute;left:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.78);color:#fff;border-radius:8px;padding:6px 8px;font-size:11.5px;max-width:280px;line-height:1.45"></div>' +
-      '<canvas id="rvMap" width="220" height="150" role="img" aria-label="レースコース図。白丸は先頭馬、黄色は注目馬、Sはスタート、Gはゴール。矢印は進行方向。" style="position:absolute;right:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.78);border:1px solid rgba(255,255,255,.18);border-radius:8px"></canvas>' +
+      '<canvas id="rvMap" width="220" height="150" style="position:absolute;right:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.62);border-radius:8px"></canvas>' +
       '</div>' +
-      '<div id="rvControls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
       '<button type="button" class="btn" id="rvRestart" style="font-size:.85rem">⏮ 最初から</button>' +
       '<button type="button" class="btn" id="rvBack5" style="font-size:.85rem" title="現在時刻から正確に5秒戻す">⏪ 5秒</button>' +
       '<button type="button" class="btn primary" id="rvPlay" style="font-size:.85rem;min-width:86px">▶ 発走</button>' +
       '<button type="button" class="btn" id="rvFwd5" style="font-size:.85rem" title="現在時刻から正確に5秒進める">5秒 ⏩</button>' +
-      '<button type="button" class="btn small ghost" id="rv3dBtn" aria-pressed="false" aria-busy="false" style="font-size:.8rem" title="Three.jsで立体的に再生します(初回は数秒読み込み)。読み込みに失敗したときは自動で2Dに戻ります">🧊 3D</button>' +
-      '<span id="rv3dStatus" role="status" aria-live="polite" style="font-size:11px;color:var(--muted);align-self:center">2D表示中</span>' +
+      '<button type="button" class="btn small ghost" id="rv3dBtn" style="font-size:.8rem" title="Three.jsで立体的に再生します(初回は数秒読み込み)。読み込みに失敗したときは自動で2Dに戻ります">🧊 3D</button>' +
       '<span style="display:flex;gap:4px" id="rvSpd">' +
       '<button type="button" class="btn small ghost" data-r="0.5">0.5×</button>' +
       '<button type="button" class="btn small ghost on" data-r="1">1×</button>' +
@@ -52581,14 +52741,6 @@ function rvOpen(res){
         if (mc){
           var g = mc.getContext('2d'), W = mc.width, H = mc.height, pts = tl._pts;
           g.clearRect(0, 0, W, H);
-          var mapLive = states.slice().sort(function(a, b){ return b.d - a.d; });
-          var mapLead = mapLive.length ? mapLive[0] : null, mapSel = null;
-          mapLive.forEach(function(s){ if (s.no === rvS.sel) mapSel = s; });
-          mc.setAttribute('aria-label', 'レースコース図。' + (tl._courseReal ? '実コース形状の簡略図。' : '模式コース図。') +
-            surfTxt + ' ' + Math.round(tl.D) + 'm、' + turnTxt + '。' +
-            (mapLead ? '先頭は' + mapLead.no + '番 ' + (mapLead.name || '') + '、残り約' + Math.max(0, Math.round(tl.D - mapLead.d)) + 'm。' : '') +
-            (mapSel ? '注目馬は' + mapSel.no + '番 ' + (mapSel.name || '') + '。' : '注目馬は未選択。') +
-            'Sはスタート、Gはゴール、矢印は進行方向。');
           if (pts && pts.length){
             var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
             pts.forEach(function(p){ minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
@@ -52598,52 +52750,22 @@ function rvOpen(res){
             g.strokeStyle = tl.surf === 't' ? 'rgba(196,232,176,.95)' : 'rgba(226,196,146,.95)';
             g.lineWidth = 5; g.lineJoin = 'round';
             g.beginPath();
-            var lastDrawn = -1;
             for (var pi = 0; pi < pts.length; pi += 4){
               var q = XY(pts[pi][0], pts[pi][1]);
               if (pi === 0) g.moveTo(q[0], q[1]); else g.lineTo(q[0], q[1]);
-              lastDrawn = pi;
-            }
-            /* 第284弾: 4点刻みの間引きで終端が落ちる場合、ゴール側の最終点を必ず接続。 */
-            if (lastDrawn !== pts.length - 1){
-              var qEnd = XY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
-              g.lineTo(qEnd[0], qEnd[1]);
             }
             g.stroke();
             var q0 = XY(pts[0][0], pts[0][1]), q1 = XY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
             g.fillStyle = '#fff';
             g.beginPath(); g.arc(q0[0], q0[1], 2.6, 0, 7); g.fill();
-            /* 第284弾: S/G文字がcanvas端で切れないよう、文字幅を測って描画位置を内側へ補正。 */
-            function rvMapLabel(text, x, y, dx, dy){
-              var tx = x + dx, ty = y + dy;
-              var tw = g.measureText(text).width;
-              tx = Math.max(3, Math.min(W - tw - 3, tx));
-              ty = Math.max(10, Math.min(H - 3, ty));
-              g.fillText(text, tx, ty);
-            }
-            g.font = 'bold 9px sans-serif';
-            rvMapLabel('S', q0[0], q0[1], 4, -4);
             g.fillStyle = '#ffd54f'; g.font = 'bold 10px sans-serif';
             g.beginPath(); g.arc(q1[0], q1[1], 3.4, 0, 7); g.fill();
-            rvMapLabel('G', q1[0], q1[1], 5, 3);
-            /* 第283弾: 点列の接線から進行方向の矢印を描画。距離/状態計算は変更しない。 */
-            g.fillStyle = 'rgba(255,255,255,.88)';
-            [0.22, 0.48, 0.74].forEach(function(frac){
-              var ai = Math.max(1, Math.min(pts.length - 2, Math.floor((pts.length - 1) * frac)));
-              var a0 = XY(pts[ai - 1][0], pts[ai - 1][1]), a1 = XY(pts[ai + 1][0], pts[ai + 1][1]);
-              var ang = Math.atan2(a1[1] - a0[1], a1[0] - a0[0]);
-              var ac = XY(pts[ai][0], pts[ai][1]), al = 4.5;
-              g.beginPath();
-              g.moveTo(ac[0] + Math.cos(ang) * al, ac[1] + Math.sin(ang) * al);
-              g.lineTo(ac[0] + Math.cos(ang + 2.45) * al, ac[1] + Math.sin(ang + 2.45) * al);
-              g.lineTo(ac[0] + Math.cos(ang - 2.45) * al, ac[1] + Math.sin(ang - 2.45) * al);
-              g.closePath(); g.fill();
-            });
+            g.fillText('G', q1[0] + 5, q1[1] + 3);
             var live2 = states.slice().sort(function(a, b){ return b.d - a.d; });
             var leadNo = live2.length ? live2[0].no : -1;
             for (var hi = live2.length - 1; hi >= 0; hi--){
               var s = live2[hi];
-              var pp = rvPathAt(pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + 28), tl._totalPx, tl.D);
+              var pp = rvPathAt(pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
               var qq = XY(pp.x, pp.y);
               var isSel = (rvS.sel === s.no), isLead = (s.no === leadNo);
               g.beginPath();
@@ -52675,7 +52797,7 @@ function rvOpen(res){
         var fsel = null;
         states.forEach(function(s){ if (s.no === rvS.sel) fsel = s; });
         if (fsel){
-          var fp = rvPathAt(tl._pts, tl.turn, Math.min(fsel.d + (fsel.ro || 0), tl.D + 28), tl._totalPx, tl.D);
+          var fp = rvPathAt(tl._pts, tl.turn, Math.min(fsel.d + (fsel.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
           target = { x: fp.x, y: fp.y, z: 2.3, mode: 'focus' };
         }
       }
@@ -52694,24 +52816,7 @@ function rvOpen(res){
       var drew3d = false;
       if (rvS.mode3d && typeof rv3dPaint === 'function'){
         drew3d = rv3dPaint(cv3, tl, stAll);
-        if (!drew3d){
-          /* 第293弾: 描画中の例外で3Dが失敗した場合もrenderer/sceneを解放。
-             rv3dStopは冪等で、未初期化時や3D層未ロード時は安全にスキップする。 */
-          try { if (typeof rv3dStop === 'function') rv3dStop(); } catch(e){}
-          rvS.mode3d = false;   /* 以降も2Dで描く(次フレームから分岐しない) */
-          if (cv3) cv3.style.display = 'none';
-          if (cv) cv.style.display = 'block';
-          var failed3dBtn = document.getElementById('rv3dBtn');
-          if (failed3dBtn){
-            failed3dBtn.textContent = '🧊 3D';
-            failed3dBtn.setAttribute('aria-pressed', 'false');
-            failed3dBtn.setAttribute('aria-busy', 'false');
-            /* 描画中の失敗でも、切替コールバック時と同様に操作説明を2D状態へ戻す。 */
-            failed3dBtn.title = '3D描画に失敗しました。2Dで再生します。';
-          }
-          var failed3dStatus = document.getElementById('rv3dStatus');
-          if (failed3dStatus) failed3dStatus.textContent = '3D描画に失敗したため2D表示に戻しました。';
-        }
+        if (!drew3d) rvS.mode3d = false;   /* 以降も2Dで描く(次フレームから分岐しない) */
       }
       if (!drew3d) rvDraw2D(cv, tl, stAll);
       document.getElementById('rvTime').textContent =
@@ -52832,36 +52937,18 @@ function rvOpen(res){
        (通常のアプリ初期表示は重くならない)。失敗時は2Dのままフォールバック。 */
     var b3 = document.getElementById('rv3dBtn');
     if (b3) b3.addEventListener('click', function(){
-      var status3d = document.getElementById('rv3dStatus');
-      if (typeof rv3dToggle !== 'function'){
-        if (status3d) status3d.textContent = '3D機能を利用できません。2Dで再生します。';
-        return;
-      }
-      /* rv3dToggle の callback(false) は「3D→2Dの正常切替」と「3D起動失敗」の
-         両方で返る。クリック前のモードも保存し、正常な2D復帰を失敗扱いしない。 */
-      var was3d = !!(rvS && rvS.mode3d);
+      if (typeof rv3dToggle !== 'function') return;
       b3.disabled = true;
-      b3.setAttribute('aria-busy', 'true');
-      if (status3d) status3d.textContent = '3D表示を準備中…';
       var ov3 = document.getElementById('rvCanvas3d');
-      if (ov3) ov3.style.background = '#dfe9f0';   /* 読込中の色 */
+      ov3.style.background = '#dfe9f0';   /* 読込中の色 */
       rv3dToggle(function(ok){
         b3.disabled = false;
-        b3.setAttribute('aria-busy', 'false');
-        var returnedTo2d = !!(was3d && rvS && !rvS.mode3d);
-        var active3d = !!(ok && rvS && rvS.mode3d);
-        b3.setAttribute('aria-pressed', active3d ? 'true' : 'false');
-        b3.textContent = active3d ? '🗺 2D' : '🧊 3D';
-        if (status3d) status3d.textContent = active3d ? '3D表示中。ボタンで2Dに戻せます。' : ((ok || returnedTo2d) ? '2D表示中' : '3Dに切り替えられませんでした。2Dで再生します。');
-        if (!active3d){
-          if (ov3) ov3.style.display = 'none';
+        b3.textContent = (ok && rvS && rvS.mode3d) ? '🗺 2D' : '🧊 3D';
+        if (!ok){
+          ov3.style.display = 'none';
           var c2 = document.getElementById('rvCanvas');
           if (c2) c2.style.display = 'block';
-          b3.title = (ok || returnedTo2d)
-            ? '3D表示に切り替えます'
-            : '3D(Three.js)を読み込めませんでした。vendor/three.min.js が配置されているか確認してください。2Dで再生します';
-        } else {
-          b3.title = '2D表示に戻します';
+          b3.title = '3D(Three.js)を読み込めませんでした。vendor/three.min.js が配置されているか確認してください。2Dで再生します';
         }
       });
     });
@@ -52892,7 +52979,7 @@ function rvOpen(res){
       var wx = (x - cv.width / 2) / cam.z + cam.x, wy = (y - cv.height * 0.52) / cam.z + cam.y;
       var best = -1, bd = 26 / cam.z + 14;
       tl._pts && rvStateAt(tl, rvS.t).forEach(function(s){
-        var p = rvPathAt(tl._pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + 28), tl._totalPx, tl.D);
+        var p = rvPathAt(tl._pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
         var cx = p.x + p.nx * (s.lane - 0.5) * (46 * 2 - 26);
         var cy2 = p.y + p.ny * (s.lane - 0.5) * (46 * 2 - 26);
         var dd = Math.hypot(cx - wx, cy2 - wy);
@@ -53397,6 +53484,23 @@ function rv3dSplinePts(pts, step){
      そこではatan2(0,0)=0で向きが一瞬崩れる。ゼロベクトルは隣のセグメントで代替して
      常に正しい進行方向を返す(位置計算には影響しない=rvPathAtと同一式)。 */
 function rv3dPathPose(pts, turn, m, totalPx, D){
+  /* ★第273弾(A): ゴール後(m>D)=rvPathAt(p95)と同じ直線延長(ランオフ)。
+     位置はrvPathAtと厳密同一・angは最終セグメントの進行方向(直線なのでブレンド不要)。 */
+  if (m > D && pts && pts.length > 1){
+    var n1e = pts.length - 1, k1e = n1e - 1, dxe = 0, dye = 0, Le = 0;
+    while (k1e >= 0){
+      dxe = pts[n1e][0] - pts[k1e][0]; dye = pts[n1e][1] - pts[k1e][1];
+      Le = Math.hypot(dxe, dye);
+      if (Le > 1e-6) break;
+      k1e--;
+    }
+    if (Le > 1e-6){
+      var uxe = dxe / Le, uye = dye / Le, exte = (m - D) * (totalPx / Math.max(1, D));
+      return { x: pts[n1e][0] + uxe * exte, y: pts[n1e][1] + uye * exte,
+               nx: (turn === 'R') ? -uye : uye, ny: (turn === 'R') ? uxe : -uxe,
+               ang: Math.atan2(uye, uxe) };
+    }
+  }
   function segAng(i){
     var lim = Math.min(pts.length - 1, i + 3);
     for (var k = Math.max(0, i); k < lim; k++){
@@ -53591,6 +53695,17 @@ function rv3dStart(cv, tl){
        ===================================================== */
     var pts = tl._pts, TH = (typeof RV_TRACK_HALF !== 'undefined') ? RV_TRACK_HALF : 46;
     var sp = rv3dSplinePts(pts, 3);                       /* 描画用スプライン(約3px間隔) */
+    /* ★第273弾(A): ランオフ=ゴール後も走路リボン/柵を約34m延長して描く(馬のゴール後
+       減速域=rvPathAtのゴール後延長と同一幾何)。閉ループの汎用オーバルではrvRunoffDirが
+       null=延長しない(スタート直線と同一位置の柵が二重化してZファイティングするため)。 */
+    try {
+      var rd3 = (typeof rvRunoffDir === 'function') ? rvRunoffDir(pts, tl._totalPx || 1880, tl.D) : null;
+      if (rd3){
+        var lsp = sp[sp.length - 1];
+        for (var rq = 3; rq < rd3.lenPx; rq += 3) sp.push([lsp[0] + rd3.ux * rq, lsp[1] + rd3.uy * rq]);
+        sp.push([lsp[0] + rd3.ux * rd3.lenPx, lsp[1] + rd3.uy * rd3.lenPx]);
+      }
+    } catch(e){}
     var nrm = rv3dInnerNormals(sp, tl.turn);              /* スプライン上の内側法線 */
     var spLen = 0;
     for (var q0 = 1; q0 < sp.length; q0++) spLen += Math.hypot(sp[q0][0] - sp[q0 - 1][0], sp[q0][1] - sp[q0 - 1][1]);
@@ -53817,7 +53932,7 @@ function rv3dStart(cv, tl){
        視点が切り替わっても文字が横倒しにならない。模式オーバルの区分表示であり、
        実在競馬場の正確なコーナー位置を示すものではない。 */
     for (var cornerNo = 1; cornerNo <= 4; cornerNo++){
-      var cp = rv3dPathPose(pts, tl.turn, tl.D * RV_DIST_F[cornerNo], tl._totalPx, tl.D);
+      var cp = rv3dPathPose(pts, tl.turn, tl.D * (tl.stageF || RV_DIST_F)[cornerNo], tl._totalPx, tl.D);
       var cox = cp.nx, coz = cp.ny;
       var cdx = cp.x + cox * 10 - 480, cdz = cp.y + coz * 10 - 380;
       if (cdx * cox + cdz * coz < 0){ cox = -cox; coz = -coz; }
@@ -54172,13 +54287,15 @@ function rv3dPaint(cv, tl, st){
     chips3.length = st.states.length;
     for (var ci3 = 0; ci3 < st.states.length; ci3++){
       var s3 = st.states[ci3];
-      var p3 = rvPathAt(pts, tl.turn, Math.min(s3.d + (s3.ro || 0), tl.D + 28), tl._totalPx, tl.D);
+      var p3 = rvPathAt(pts, tl.turn, Math.min(s3.d + (s3.ro || 0), tl.D + ((typeof RV_POST_GOAL_M !== 'undefined') ? RV_POST_GOAL_M : 95)), tl._totalPx, tl.D);
       var chip3 = chips3[ci3] || (chips3[ci3] = {});
       chip3.s = s3;
       chip3.x = p3.x + p3.nx * (s3.lane - 0.5) * (TH * 2 - 26);
       chip3.y = p3.y + p3.ny * (s3.lane - 0.5) * (TH * 2 - 26);
     }
     try { rvDeCollide(chips3, 26, 12); } catch(e){}
+    /* ★第273弾(A): 2Dと共通の走路内再クランプ(押し出しの横成分を±(TH-8)pxへ・進行方向は保持) */
+    try { if (typeof rvClampChipsToTrack === 'function') rvClampChipsToTrack(chips3, pts, tl.turn, tl._totalPx, tl.D, TH); } catch(e){}
     var disp3 = RV3D._disp3 || (RV3D._disp3 = {});
     for (var oldDispNo in disp3) if (Object.prototype.hasOwnProperty.call(disp3, oldDispNo)) delete disp3[oldDispNo];
     for (var di3 = 0; di3 < chips3.length; di3++){
@@ -54198,7 +54315,7 @@ function rv3dPaint(cv, tl, st){
     st.states.forEach(function(s){
       var m = byNo[s.no];
       if (!m) return;
-      var mm = Math.min(s.d + (s.ro || 0), tl.D + 28);
+      var mm = Math.min(s.d + (s.ro || 0), tl.D + ((typeof RV_POST_GOAL_M !== 'undefined') ? RV_POST_GOAL_M : 95));
       var p = rvPathAt(pts, tl.turn, mm, tl._totalPx, tl.D);          /* 位置: シミュレーションと同一 */
       var pose = rv3dPathPose(pts, tl.turn, mm, tl._totalPx, tl.D);   /* 向き: 滑らか版(位置は同じ) */
       /* ★第211.5弾: 配置位置は2Dと同一のdeCollide補正後座標(disp3)。
