@@ -1171,7 +1171,7 @@ html[data-theme="light"] .page-top-hero{
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-20 第274弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-10-20 第275弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1218,21 +1218,12 @@ html[data-theme="light"] .page-top-hero{
         　・🤖 AI総合スコアは<b>最小表示</b>（クリックで展開）。未公開時（前日14時前）は🤖ボタンから後で取り直し<br>
         　・障害戦は netkeiba 側が旧版表示に切り替わるためセクションが無いことがあります</div></details>
       </div>
-      <!-- ★第209弾: 🎬レースリプレイ(シミュレーション再生)の起動カード。
-           onclick=rvOpen() → p95の起動関数を直接呼ぶ(document委譲(data-rv-open)は t-aiprop の既存ボタン専用のまま=既存E2E/probeのセレクタに影響しない)。 -->
-      <div class="card" style="margin-top:10px">
-        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
-          <h2 style="margin:0">🎬 レースリプレイ（シミュレーション再生）</h2>
-          <button type="button" class="btn primary" onclick="rvOpen()" title="①の出馬表と②のAI予想から、レース開始〜ゴールまでを再生します(2D/3D・5秒送り戻し・任意時刻への移動・注目馬追跡)">🎬 シミュレーションを再生</button>
-        </div>
-        <div class="small muted" style="margin-top:4px;line-height:1.7">①で出走馬を入力し②のAI予想が出ている状態で再生できます。
-          上部=レース情報バー／中央=2D・🧊3D映像（左上=残り距離・右上=経過時間・左下=順位と注目馬・右下=コース全体図）／下部=再生バー（⏪5秒・▶/❚❚・5秒⏩・速度0.5〜4×・任意時刻への移動）。
-          視点は「📷 視点」ボタンで追従→全体→注目馬へ切替（馬/順位パネルの行をクリックで注目馬を選択）。
-          コースは<b>汎用の模式形状</b>（回り方向のみ競馬場別・実コース形状には未対応）です。</div>
-      </div>
+      <!-- ★第275弾: 旧209弾の🎬起動カード(レースリプレイ)は削除（ユーザー指示）。再生の入口=
+           🎬レースシミュタブの操作エリア・③AI展開予測の🎬ボタン・🤖AI提案タブ🏇現在のレース内🎬ボタン。 -->
 </section>
-<!-- ================= 🎬 レースシミュ（★第213弾: 専用タブ新設。レースリプレイ(シミュレーション再生)への入口を独立タブに置く。
-     rvOpen本体・既存の起動ポイント(③AI展開予測タブ末尾の🎬カード・AI提案タブ🏇現在のレース内の🎬ボタン)は不変 = UI追加のみ) ================= -->
+<!-- ================= 🎬 レースシミュ（★第213弾: 専用タブ新設 → ★第275弾: 起動カード2枚(レースリプレイ/レースシミュ)は削除。
+     入口は下の操作エリア・③AI展開予測の🎬ボタン・🤖AI提案タブ🏇現在のレース内🎬ボタンに集約。
+     タブ本体(📅日付取得・操作エリア・プレイヤー=rsReplayHost)とrvOpen本体は不変) ================= -->
 <section class="page" id="t-racesim">
   <!-- ★第214弾: 日付→その日の出馬表一括取得→レース選択(🤖AI提案タブの一括取得と同一仕組み・キャッシュ共有) -->
   <div class="card">
@@ -1240,28 +1231,20 @@ html[data-theme="light"] .page-top-hero{
       <h2 style="margin:0">📅 日付からレースを取得（netkeiba出馬表・オッズ・AI展開予測）</h2>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-      <input type="date" id="rsDate" style="padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--card2);color:var(--ink)">
+      <label for="rsKind">対象</label>
+      <select id="rsKind" onchange="rvSimCardsSwitch()" aria-label="中央・地方の選択"><option value="jra">中央競馬（JRA）</option><option value="nar">地方競馬（NAR）</option></select>
+      <input type="date" id="rsDate" aria-label="レースの日付" onchange="rvSimDayRender()" style="padding:4px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--card2);color:var(--ink)">
       <button type="button" class="btn primary" id="rsBtn" onclick="rvSimDayFetch()" title="その日の全レースの出馬表とオッズを取得してAI予想を保存します（🤖AI提案タブの「📥一括取得」と同じ仕組み・端末内キャッシュと事前予想を共有します）">📥 その日の出馬表を一括取得</button>
       <span id="rsStat" class="small muted"></span>
     </div>
     <div id="rsList" style="margin-top:6px"></div>
     <div id="rsAiBox"></div>
-    <div class="small muted" style="margin-top:6px;line-height:1.7">🤖AI提案タブの「📥一括取得」と<b>同じ仕組み</b>です（端末内キャッシュ・保存済み事前予想を共有=二重取得になりません）。
+    <div class="small muted" style="margin-top:6px;line-height:1.7">中央は🤖AI提案タブの「📥一括取得」と<b>同じ仕組み</b>です（端末内キャッシュ・保存済み事前予想を共有=二重取得になりません）。
       レースの「🎬 読み込む」ボタンを押すと出馬表とオッズを現在のレースとして読み込みます（取得済みなら通信なし）。そのまま下の操作エリアで再生できます。
-      AI展開予測（スタート後/3角/4角）は参照表示です。</div>
+      地方は地方専用の開催一覧を取得し、レースの折り込みを開くと出馬表を取得します。中央・地方の取得済み一覧は分けて表示します。<br>AI展開予測（スタート後/3角/4角）は参照表示です。</div>
   </div>
-  <div class="card" style="margin-top:10px">
-    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
-      <h2 style="margin:0">🎬 レースシミュ（シミュレーション再生）</h2>
-      <button type="button" class="btn primary" onclick="rvOpen()" title="①の出馬表と②のAI予想から、レース開始〜ゴールまでを再生します(2D/3D・5秒送り戻し・任意時刻への移動・注目馬追跡)">🎬 シミュレーションを再生</button>
-    </div>
-    <div id="rsStatus" class="small" style="margin-top:8px"></div>
-    <div class="small muted" style="margin-top:4px;line-height:1.7">①で出走馬を入力し②のAI予想が出ている状態で再生できます。
-      上部=レース情報バー／中央=2D・🧊3D映像（左上=残り距離・右上=経過時間・左下=順位と注目馬・右下=コース全体図）／下部=再生バー（⏪5秒・▶/❚❚・5秒⏩・速度0.5〜4×・任意時刻への移動）。
-      視点は「📷 視点」ボタンで追従→全体→注目馬へ切替（馬/順位パネルの行をクリックで注目馬を選択）。<br>
-      コースは<b>東京・芝1600mのみ実形状（簡略化）</b>・それ以外は汎用の模式形状です（映像内のチップで区別できます）。<br>
-      予想の計算・AI勝率・印・買い目は一切変わりません（AI予想の計算結果を読み取り専用で映像化するだけです）。</div>
-  </div>
+  <!-- ★第275弾: 旧213弾の🎬起動カード(レースシミュ)は削除（ユーザー指示）。
+       rsStatusと説明文は下の操作エリアカードへ移設（rvSimStatusの参照はそのまま生かす）。 -->
   <div class="card" style="margin-top:10px;border-color:var(--line2);background:var(--card2)">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <b>🎬 シミュレーション操作エリア</b>
@@ -1269,6 +1252,12 @@ html[data-theme="light"] .page-top-hero{
       <button type="button" class="btn ghost" onclick="rvSimStatus()">状態を更新</button>
       <span class="small muted">レースを読み込んだ後、ここで再生・一時停止・シーク・2D/3D切替まで行えます。</span>
     </div>
+    <!-- ★第275弾: 状態行を移設 -->
+    <div id="rsStatus" class="small" style="margin-top:6px"></div>
+    <div class="small muted" style="margin-top:6px;line-height:1.7">①で出走馬を入力し②のAI予想が出ている状態で再生できます（上の「状態を更新」で確認）。
+      視点は「📷 視点」ボタンで追従→全体→注目馬へ切替（馬/順位パネルの行をクリックで注目馬を選択）。
+      コースは登録済みの競馬場×距離なら<b>実形状（簡略化）</b>、それ以外は<b>汎用の模式形状</b>です（映像内の🗺チップで区別できます）。<br>
+      予想の計算・AI勝率・印・買い目は一切変わりません（AI予想の計算結果を読み取り専用で映像化するだけです）。</div>
     <div id="rsReplayHost" aria-live="polite"></div>
   </div>
 </section>
@@ -3425,7 +3414,7 @@ html[data-theme="light"] .page-top-hero{
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-20 第274弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-10-20 第275弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -50968,6 +50957,567 @@ function rsigRender(res){
   } catch(e){ /* 表示専用のため本体へ影響させない */ }
 }
 
+/* 第276弾(作業中): コース別経路アトラス。
+ * 公式図の発走・決勝位置と距離を結ぶ表示専用データ。予想/時刻/保存には触れない。
+ * 門別: NAR公式コース図(参照のみ・画像アセットの製品流用なし)の概形を手入力。
+ * 一周/距離は公式値、図上座標と曲線補間は推定。測量精度の実形状とは呼ばない。
+ * 新潟直線: JRA公式芝1000m。A/B等の横位置、坂・幅員は本段階では未再現。
+ * 同じ周回路の座標は距離によって縮めない。mを周回長で剰余して同じ物理経路へ写像。
+ */
+var RV_ATLAS_SOURCE_MON = 'https://www.keiba.go.jp/guide/course/';
+var RV_ATLAS_LOOPS = {
+  '門別/outer': {length:1600, turn:'R', scale:2.4, source:RV_ATLAS_SOURCE_MON,
+    /* [決勝線からの順方向距離m, 公式図に対応した概形座標x,y] */
+    knots:[[0,105,230],[100,65,230],[200,20,205],[300,10,140],[400,25,74],
+      [500,90,74],[600,145,74],[800,260,74],[950,320,85],[1100,355,125],
+      [1200,365,170],[1300,335,215],[1400,270,230],[1500,204,230],[1600,105,230]]},
+  '門別/inner': {length:1376, turn:'R', scale:2.4, source:RV_ATLAS_SOURCE_MON,
+    knots:[[0,105,230],[100,48,230],[200,15,205],[300,10,140],[400,25,74],
+      [500,90,74],[600,145,74],[800,260,74],[900,300,100],[1000,320,160],
+      [1100,300,215],[1152,270,230],[1252,204,230],[1376,105,230]]}
+};
+/* 水沢: NAR公式図の位置ラベル(850/1300/1400/1600/1800/1900/2000/2500)。
+ * 一周1200m。1600は4角外の引込線を別経路にする。曲線・座標は図の概形。
+ */
+RV_ATLAS_LOOPS['水沢/main'] = {length:1200,turn:'R',scale:2.4,source:RV_ATLAS_SOURCE_MON,
+  knots:[[0,135,220],[100,75,220],[200,30,200],[280,10,135],[350,80,70],
+    [400,140,70],[500,190,70],[600,245,70],[700,300,70],[800,360,100],
+    [900,365,180],[1000,290,220],[1100,220,220],[1200,135,220]]};
+var RV_ATLAS_COURSES = [
+  {id:'NAR/門別/d/outer/1000',place:'門別',surf:'d',dist:1000,loop:'門別/outer',path:'outer'},
+  {id:'NAR/門別/d/outer/1100',place:'門別',surf:'d',dist:1100,loop:'門別/outer',path:'outer'},
+  {id:'NAR/門別/d/outer/1200',place:'門別',surf:'d',dist:1200,loop:'門別/outer',path:'outer'},
+  {id:'NAR/門別/d/outer/1700',place:'門別',surf:'d',dist:1700,loop:'門別/outer',path:'outer'},
+  {id:'NAR/門別/d/outer/1800',place:'門別',surf:'d',dist:1800,loop:'門別/outer',path:'outer'},
+  /* 2000は4角奥の引込線から1800発走点へ合流。その区間の概形は推定。 */
+  {id:'NAR/門別/d/outer/2000',place:'門別',surf:'d',dist:2000,loop:'門別/outer',path:'outer',entry:{length:200,start:[375,230],joinRemaining:1800}},
+  {id:'NAR/門別/d/outer/2600',place:'門別',surf:'d',dist:2600,loop:'門別/outer',path:'outer'},
+  {id:'NAR/門別/d/inner/1500',place:'門別',surf:'d',dist:1500,loop:'門別/inner',path:'inner'},
+  {id:'NAR/門別/d/inner/1600',place:'門別',surf:'d',dist:1600,loop:'門別/inner',path:'inner'},
+  {id:'JRA/新潟/t/straight/1000',place:'新潟',surf:'t',dist:1000,path:'straight',straight:true,
+   source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html'}
+];
+[850,1300,1400,1600,1800,1900,2000,2500].forEach(function(D){
+  var c={id:'NAR/水沢/d/main/'+D,place:'水沢',surf:'d',dist:D,loop:'水沢/main',path:'main'};
+  if(D===1600)c.entry={length:200,start:[375,200],joinRemaining:1400};
+  RV_ATLAS_COURSES.push(c);
+});
+function rvAtlasLoopAt(loop, metre){
+  var L=loop.length, s=((metre%L)+L)%L, ks=loop.knots, n=ks.length-1, i=0;
+  while(i<n-1 && ks[i+1][0]<s) i++;
+  var a=ks[i],b=ks[i+1], t=(s-a[0])/(b[0]-a[0]);
+  // Monotone-in-parameter cubic Hermite. Closed-loop end tangents are shared.
+  function derivative(k,axis){
+    var prev=(k===0)?[ks[n-1][0]-L,ks[n-1][1],ks[n-1][2]]:ks[k-1];
+    var next=(k===n)?[ks[1][0]+L,ks[1][1],ks[1][2]]:ks[k+1];
+    return (next[axis]-prev[axis])/(next[0]-prev[0]);
+  }
+  function xy(axis){
+    var h=b[0]-a[0],tt=t*t,ttt=tt*t;
+    return (2*ttt-3*tt+1)*a[axis]+(ttt-2*tt+t)*h*derivative(i,axis)+
+      (-2*ttt+3*tt)*b[axis]+(ttt-tt)*h*derivative(i+1,axis);
+  }
+  return [xy(1),xy(2)];
+}
+function rvAtlasRouteAt(course, metre){
+  var d=Math.max(0,Math.min(course.dist,metre));
+  if(course.straight) return [d*0.8,0];
+  var loop=RV_ATLAS_LOOPS[course.loop],e=course.entry;
+  if(e && d<e.length){
+    var join=rvAtlasLoopAt(loop,-e.joinRemaining),u=d/e.length;
+    return [e.start[0]+(join[0]-e.start[0])*u,e.start[1]+(join[1]-e.start[1])*u];
+  }
+  // After entry, d-D still yields the correct shared-loop phase (remaining distance).
+  return rvAtlasLoopAt(loop,d-course.dist);
+}
+function rvAtlasCandidates(place,surf,dist){
+  var p=String(place||'').replace(/競馬場$/,''),D=Number(dist);
+  return RV_ATLAS_COURSES.filter(function(c){return c.place===p&&c.surf===surf&&c.dist===D;});
+}
+function rvAtlasDecision(place,surf,dist,options){
+  var all=rvAtlasCandidates(place,surf,dist),o=options||{};
+  if(!all.length)return {status:'unsupported',candidates:[],course:null};
+  var hits=all.filter(function(c){return (!o.path||c.path===o.path)&&(!o.id||c.id===o.id)&&(!o.rail||c.rail===o.rail);});
+  if(!hits.length)return {status:'invalid-selection',candidates:all,course:null};
+  if(hits.length!==1)return {status:'ambiguous',candidates:all,course:null};
+  if(hits[0].pending)return {status:'pending',candidates:all,course:null};
+  return {status:'ready',candidates:all,course:hits[0]};
+}
+function rvAtlasCourse(place,surf,dist,options){
+  var D=Number(dist),decision=rvAtlasDecision(place,surf,dist,options);
+  if(decision.status!=='ready')return null;
+  var c=decision.course,loop=c.loop?RV_ATLAS_LOOPS[c.loop]:null,scale=loop?loop.scale:1;
+  var pts=[],N=Math.max(1320,Math.ceil(D/2)),total=0;
+  for(var i=0;i<=N;i++){
+    var q=rvAtlasRouteAt(c,D*i/N);
+    pts.push([480+(q[0]-(loop?190:400))*scale,320+(q[1]-(loop?150:0))*scale]);
+    if(i)total+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  }
+  // 描画は周回路を一度だけ敷く。走行点列の複数周を重ねるとZ-fightingが発生する。
+  var drawPts=null;
+  if(loop){
+    drawPts=[];var entry=c.entry, phase=entry?-entry.joinRemaining:0;
+    if(entry)drawPts.push([480+(entry.start[0]-190)*scale,320+(entry.start[1]-150)*scale]);
+    var drawN=Math.ceil(loop.length/2);
+    for(var j=0;j<=drawN;j++){
+      var z=rvAtlasLoopAt(loop,phase+loop.length*j/drawN);
+      drawPts.push([480+(z[0]-190)*scale,320+(z[1]-150)*scale]);
+    }
+  }
+  var passes=[];
+  if(loop){for(var rem=D-loop.length*Math.floor(D/loop.length);rem<D-1e-6;rem+=loop.length){
+    if(rem>1e-6 && (!c.entry||rem>c.entry.length)) passes.push(rem);
+  }}
+  if(c.forcePasses)passes=c.forcePasses.slice();
+  return {pts:pts,drawPts:drawPts,turn:loop?loop.turn:'L',totalPx:total,meta:{id:c.id,dist:D,surf:surf,turn:loop?loop.turn:'L',
+    path:c.path,rail:c.rail||null,turfStart:!!c.turfStart,straight:!!c.straight,atlas:true,finishPasses:passes,
+    quality:c.straight?'straight-layout':'official-diagram-schematic',
+    src:c.straight?'新潟芝直線1000m=JRA公式。直線経路・発走/決勝点。横位置・坂・幅員区分は未再現。出典:'+c.source:
+      c.place+' '+(c.label || (c.path==='inner'?'内回り':c.path==='outer'?'外回り':'周回'))+' '+D+'m / 一周'+loop.length+'m= '+(c.id.indexOf('JRA/')===0?'JRA':'NAR')+'公式。発走/決勝位置は公式図準拠の概形、曲線・座標・引込線長は推定。'+(c.turfStart?'芝スタート区間の長さ・路面切替位置は未計測。':'')+(c.railNote||'')+'出典:'+loop.source}};
+}
+
+/* 第276弾・南関東経路追加(作業中)。NAR公式図の発走点・決勝点に基づく独自の概形。
+ * 図を測量図とは扱わない。座標、曲線、引込線区間長は推定。
+ * 同一距離の内外は別IDとし、未確認の経路はpendingとして再生対象にしない。
+ * 参照図: https://www.keiba.go.jp/guide/course/ (2026-10-20確認)
+ * 大井1650は主催者 https://www.tokyocitykeiba.com/special_page/left_turn_2021/ も照合。
+ */
+(function(){
+  function loop(id,length,turn,knots,image){
+    RV_ATLAS_LOOPS[id]={length:length,turn:turn,scale:2.4,knots:knots,
+      source:'https://www.keiba.go.jp/img/guide/'+image};
+  }
+  function courses(place,path,distances,loopId,label,entries){
+    distances.forEach(function(D){
+      var c={id:'NAR/'+place+'/d/'+path+'/'+D,place:place,surf:'d',dist:D,loop:loopId,path:path,label:label};
+      if(entries&&entries[D])c.entry=entries[D];
+      RV_ATLAS_COURSES.push(c);
+    });
+  }
+  // 浦和: 左回り。1600は左側引込線から1500発走点側へ合流。
+  loop('浦和/main',1200,'L',[
+    [0,260,220],[100,330,220],[200,380,180],[300,380,100],[400,315,70],
+    [500,260,70],[650,150,70],[750,50,70],[850,20,150],[900,50,220],
+    [1000,110,220],[1100,170,220],[1200,260,220]
+  ],'05/course_coursepic.png');
+  courses('浦和','main',[800,1300,1400,1500,1600,1900,2000],'浦和/main','左回り',{
+    1600:{length:100,start:[25,130],joinRemaining:1500}
+  });
+  // 川崎: 左回り。900と2100は共通の発走点。1600は4角側の引込線。
+  loop('川崎/main',1200,'L',[
+    [0,265,220],[100,340,220],[200,380,170],[250,370,100],[300,305,70],
+    [400,245,70],[550,130,70],[650,40,70],[750,15,120],[850,30,190],
+    [900,90,220],[1000,160,220],[1100,210,220],[1200,265,220]
+  ],'08/course_coursepic.png');
+  courses('川崎','main',[900,1400,1500,1600,2000,2100],'川崎/main','左回り',{
+    1600:{length:100,start:[25,220],joinRemaining:1500}
+  });
+  // 船橋: 外回り1400m。1200は向正面側の引込線から1000発走点側へ。
+  loop('船橋/outer',1400,'L',[
+    [0,250,220],[100,320,215],[200,355,150],[300,320,85],[400,260,70],
+    [600,145,70],[800,45,70],[900,20,130],[1000,25,220],
+    [1100,90,220],[1200,135,220],[1300,200,220],[1400,250,220]
+  ],'06/course_coursepic.jpg');
+  courses('船橋','outer',[1000,1200,1500,1600,1700,1800,2000,2200,2400],'船橋/outer','外回り・左',{
+    1200:{length:200,start:[355,110],joinRemaining:1000}
+  });
+  // 公式図には内1400/1500の発走ラベルがあるが、内回り経路の全形状を未確認。
+  // 外回り1250m等と取り違えた共通楕円で埋めない。1500は外と競合するため選択が必要。
+  [1400,1500].forEach(function(D){RV_ATLAS_COURSES.push({
+    id:'NAR/船橋/d/inner/'+D,place:'船橋',surf:'d',dist:D,path:'inner',label:'内回り・左',pending:true,
+    reason:'内回りの全経路を公式資料で照合中。外回りの図で代用しません。',
+    source:'https://www.keiba.go.jp/guide/06/course_information.html'
+  });});
+  // 大井: 右内/右外/左外は、決勝線も含めて独立した経路として扱う。
+  loop('大井/outer-right',1600,'R',[
+    [0,130,220],[100,80,220],[200,20,150],[300,65,80],[400,140,70],
+    [600,220,70],[800,300,70],[950,355,110],[1050,370,150],
+    [1200,310,220],[1400,245,220],[1500,190,220],[1600,130,220]
+  ],'07/course_coursepic_03.png');
+  courses('大井','outer-right',[1000,1200,1400,1700,1800,2000,2400,2600],'大井/outer-right','外回り・右',{
+    1400:{length:200,start:[35,130],joinRemaining:1200}
+  });
+  loop('大井/inner-right',1400,'R',[
+    [0,130,220],[100,80,220],[200,20,170],[300,25,70],[500,140,70],
+    [700,245,70],[850,300,90],[1000,330,150],[1100,310,210],
+    [1200,265,220],[1300,205,220],[1400,130,220]
+  ],'07/course_coursepic_03.png');
+  courses('大井','inner-right',[1500,1600],'大井/inner-right','内回り・右');
+  // 左回り用の決勝位置は右回りと異なる。1650は50m進んで最初の決勝通過、その後1周。
+  loop('大井/outer-left',1600,'L',[
+    [0,265,220],[100,325,220],[200,370,180],[350,370,100],[500,300,70],
+    [800,150,70],[1000,50,70],[1100,20,140],[1200,30,200],
+    [1300,90,220],[1450,170,220],[1550,220,220],[1600,265,220]
+  ],'07/course_coursepic_03.png');
+  courses('大井','outer-left',[1650],'大井/outer-left','外回り・左');
+})();
+
+/* 第276弾: 地方残8場の独自概形。NAR公式図を参照し手入力。
+ * 一周長は公式値。座標/曲線/引込線長/周回位相配分は推定で、測量精度ではない。
+ * 公式図掲載距離と現在の施行距離の同一性は未監査。図の画像は製品に流用しない。
+ */
+(function(){
+ function add(place,L,knots,ds,image,entries,surf,path,turn){
+  surf=surf||'d';path=path||'main';turn=turn||'R';var id=place+'/'+path;
+  RV_ATLAS_LOOPS[id]={length:L,turn:turn,scale:2.4,knots:knots,source:'https://www.keiba.go.jp/img/guide/'+image};
+  ds.forEach(function(D){var c={id:'NAR/'+place+'/'+surf+'/'+path+'/'+D,place:place,surf:surf,path:path,loop:id,dist:D,label:(surf==='t'?'芝・':'ダート・')+(turn==='R'?'右回り':'左回り')};
+   if(entries&&entries[D])c.entry=entries[D];RV_ATLAS_COURSES.push(c);
+  });
+ }
+ add('金沢',1200,[[0,120,217],[100,60,217],[200,15,180],[300,70,77],[400,120,77],[500,170,77],[700,285,77],[800,335,100],[900,330,217],[1000,275,217],[1200,120,217]],
+  [900,1400,1500,1700,1900,2000,2100,2600],'09/course_coursepic.jpg',{
+   1700:{length:200,start:[350,80],joinRemaining:1500}
+  });
+ // 笠松1580は向正面側の引込線。1400/2500は同じ発走地点。
+ add('笠松',1100,[[0,110,226],[100,55,226],[200,15,150],[300,80,88],[400,125,88],[600,280,88],[700,335,150],[800,315,226],[1100,110,226]],
+  [800,1400,1580,1800,1900,2500],'10/course_coursepic.png',{
+   1580:{length:180,start:[355,95],joinRemaining:1400}
+  });
+ // 新・名古屋1180。920/2100は向正面左端のポケット、旧名古屋図ではない。
+ add('名古屋',1180,[[0,118,231],[100,60,231],[200,8,160],[280,40,87],[360,98,87],[500,280,87],[650,345,110],[760,352,180],[860,330,231],[960,275,231],[1180,118,231]],
+  [900,920,1400,1500,1700,2000,2100],'11/course_coursepic.png',{
+   920:{length:20,start:[18,87],joinRemaining:900},2100:{length:20,start:[18,87],joinRemaining:2080},1700:{length:200,start:[355,90],joinRemaining:1500}
+  });
+ // 園田1051m。820と1870のラベル位置は丸め差1mを保ち、同一距離に改変しない。
+ add('園田',1051,[[0,105,217],[100,50,217],[180,20,180],[231,98,77],[232,99,77],[402,195,75],[550,305,72],[600,355,100],[680,365,160],[753,340,217],[872,260,217],[1051,105,217]],
+  [820,1230,1400,1700,1870,2400],'12/course_coursepic.png',{
+   1400:{length:51,start:[380,217],joinRemaining:1349}
+  });
+ add('姫路',1200,[[0,130,226],[100,60,226],[250,12,150],[400,100,74],[600,205,74],[750,310,74],[820,380,150],[900,365,226],[1000,290,226],[1200,130,226]],
+  [800,1400,1500,1800,2000],'13/course_coursepic.png',null);
+ add('高知',1100,[[0,133,207],[80,85,202],[150,55,145],[200,92,95],[300,130,85],[400,205,81],[550,290,80],[650,340,105],[750,348,160],[800,325,218],[900,267,213],[1100,133,207]],
+  [800,1000,1300,1400,1600,1800,1900,2100,2400],'14/course_coursepic.png',{
+   1000:{length:100,start:[38,145],joinRemaining:900},2100:{length:100,start:[38,145],joinRemaining:2000},1600:{length:200,start:[350,80],joinRemaining:1400}
+  });
+ add('佐賀',1100,[[0,135,222],[60,70,222],[120,15,140],[200,35,90],[250,70,70],[340,100,70],[400,125,70],[450,170,70],[600,320,70],[700,385,150],[800,360,222],[900,300,222],[1100,135,222]],
+  [900,1300,1400,1750,1800,1860,2000,2400,2500],'15/course_coursepic.png',{
+   900:{length:50,start:[45,70],joinRemaining:850},2000:{length:50,start:[45,70],joinRemaining:1950}
+  });
+ // 盛岡: ダートは1600m左回り。1200より長い上辺引込線と、下辺2000を分離。
+ add('盛岡',1600,[[0,175,195],[150,220,195],[300,250,165],[400,230,91],[600,155,91],[700,125,91],[900,55,91],[1050,15,110],[1200,10,155],[1300,25,195],[1400,95,195],[1600,175,195]],
+  [1000,1200,1400,1600,1800,2000,2500,2600],'03/course_coursepic.png',{
+   1400:{length:200,start:[300,91],joinRemaining:1200},1600:{length:400,start:[385,103],joinRemaining:1200},
+   1800:{length:100,start:[95,195],joinRemaining:1700},2000:{length:300,start:[25,195],joinRemaining:1700}
+  },'d','dirt','L');
+ add('盛岡',1400,[[0,175,183],[100,215,183],[200,240,155],[400,200,103],[600,130,103],[800,50,103],[950,20,140],[1050,35,176],[1100,60,183],[1200,95,183],[1400,175,183]],
+  [1000,1600,1700,2400],'03/course_coursepic.png',null,'t','turf','L');
+})();
+
+/* 第276弾: JRA札幌/函館/福島/小倉。公式平面図を参照した独自の概形。
+ * 一周長は公式値。図上座標、距離位相の配分、曲線、引込線長は推定。
+ * 芝Aのみ概形接続。B/Cは周回長が異なり発走点の照合未了なのでpending。
+ * 芝スタートの存在と、その芝区間長/路面の精密再現を混同しない。
+ * 図画像の製品流用なし。坂・幅員・柵別の精密形状は未再現。
+ */
+(function(){
+ function add(place,slug,surf,L,knots,ds,entries,rails){
+  var path='main',rail=surf==='t'?'A':'-',key=place+'/'+surf+'/'+rail;
+  var source='https://www.jra.go.jp/facilities/race/'+slug+'/course/index.html';
+  RV_ATLAS_LOOPS[key]={length:L,turn:'R',scale:2.1,knots:knots.map(function(k){return [k[0],(k[1]-20)*0.75,(k[2]-10)*0.8+20];}),source:source};
+  ds.forEach(function(D){
+   var c={id:'JRA/'+place+'/'+surf+'/'+path+'/'+rail+'/'+D,place:place,surf:surf,dist:D,path:path,rail:rail,loop:key,source:source,
+    label:(surf==='t'?'芝・Aコース':'ダート')+'・右回り'};
+   if(entries&&entries[D]){var e=entries[D];c.entry={length:e.length,joinRemaining:e.joinRemaining,start:[(e.start[0]-20)*0.75,(e.start[1]-10)*0.8+20]};
+    if(e.turfStart){c.turfStart=true;c.label+='・芝スタート（区間長未計測）';}}
+   RV_ATLAS_COURSES.push(c);
+   if(surf==='t')Object.keys(rails).forEach(function(r){
+    RV_ATLAS_COURSES.push({id:'JRA/'+place+'/t/'+path+'/'+r+'/'+D,place:place,surf:'t',dist:D,path:path,rail:r,pending:true,source:source,
+     label:'芝・'+r+'コース・右回り',officialLap:rails[r],reason:r+'コースは公式一周長'+rails[r]+'m。柵位置と発走点を照合中のため、Aコースの図では代用しません。'});
+   });
+  });
+ }
+ add('札幌','sapporo','t',1640.9,[[0,202,289],[100,130,289],[200,65,245],[240.9,50,150],[400,95,60],[540.9,180,31],[640.9,260,31],[681.8,295,31],[900,435,31],[1100,515,110],[1250,500,220],[1400,365,289],[1481.8,295,289],[1640.9,202,289]],
+  [1000,1200,1500,1800,2000,2600],{1200:{length:100,start:[105,31],joinRemaining:1100},1500:{length:100,start:[35,275],joinRemaining:1400},2000:{length:200,start:[440,289],joinRemaining:1800}},{B:1650.4,C:1659.8});
+ add('札幌','sapporo','d',1487,[[0,202,270],[160,100,270],[300,67,200],[400,90,100],[487,180,50],[574,270,50],[800,425,50],[950,495,120],[1100,480,225],[1274,350,270],[1487,202,270]],
+  [1000,1700,2400]);
+ add('函館','hakodate','t',1626.6,[[0,230,250],[150,120,250],[300,35,200],[440,30,90],[520,90,20],[576.6,175,20],[626.6,215,20],[653.2,265,20],[850,435,20],[1050,520,100],[1200,520,190],[1330,435,250],[1453.2,335,250],[1553.2,250,250],[1626.6,230,250]],
+  [1000,1200,1700,1800,2000,2600],{1200:{length:150,start:[45,20],joinRemaining:1050},2000:{length:200,start:[510,250],joinRemaining:1800}},{B:1651.8,C:1675.8});
+ add('函館','hakodate','d',1475.8,[[0,230,233],[150,120,233],[280,55,190],[400,55,95],[475.8,145,40],[551.6,220,40],[800,435,40],[980,500,120],[1100,490,200],[1251.6,395,233],[1475.8,230,233]],
+  [1000,1700,2400]);
+ add('福島','fukushima','t',1600,[[0,205,276],[150,100,276],[300,35,220],[420,35,120],[500,145,50],[600,215,50],[850,405,50],[1050,520,110],[1200,515,210],[1320,440,276],[1400,340,276],[1500,260,276],[1600,205,276]],
+  [1000,1200,1700,1800,2000,2600],{1200:{length:100,start:[60,50],joinRemaining:1100},2000:{length:200,start:[500,276],joinRemaining:1800}},{B:1614.1,C:1628.1});
+ add('福島','fukushima','d',1444.6,[[0,205,255],[150,100,255],[280,55,200],[380,60,110],[444.6,170,75],[489.2,215,75],[750,405,75],[940,500,130],[1080,485,220],[1189.2,380,255],[1444.6,205,255]],
+  [1000,1150,1700,2400],{1150:{length:150,start:[45,72],joinRemaining:1000,turfStart:true}});
+ add('小倉','kokura','t',1615.1,[[0,215,250],[140,110,250],[300,40,190],[430,40,100],[515.1,140,30],[615.1,197,30],[630.2,245,30],[850,420,30],[1050,520,100],[1200,515,190],[1350,435,250],[1430.2,335,250],[1530.2,275,250],[1615.1,215,250]],
+  [1000,1200,1700,1800,2000,2600],{1200:{length:100,start:[80,30],joinRemaining:1100},2000:{length:200,start:[495,250],joinRemaining:1800}},{B:1633.9,C:1652.8});
+ add('小倉','kokura','d',1445.4,[[0,215,230],[150,110,230],[280,60,180],[380,75,90],[445.4,165,50],[490.8,205,50],[750,420,50],[950,495,115],[1070,480,200],[1190.8,385,230],[1445.4,215,230]],
+  [1000,1700,2400]);
+})();
+
+/* 第276弾: 東京・中京の芝A/ダート。公式平面図参照の独自概形。
+ * 一周はJRA公式値。画素座標、距離位相の配分、曲線、引込線長は推定。
+ * 芝B/C/Dは発走点未照合につきpending。芝スタートの材質切替位置は未計測。
+ * 坂・幅員・精密形状を再現済みとは扱わない。参照画像は製品に流用しない。
+ */
+(function(){
+ function add(place,slug,surf,L,ks,ds,entries,rails){
+  var rail=surf==='t'?'A':'-',key=place+'/'+surf+'/'+rail;
+  var source='https://www.jra.go.jp/facilities/race/'+slug+'/course/index.html';
+  function xy(p){return [(p[0]-20)*.75,(p[1]-10)*.8+20];}
+  RV_ATLAS_LOOPS[key]={length:L,turn:'L',scale:2.1,knots:ks.map(function(k){return [k[0]].concat(xy(k.slice(1)));}),source:source};
+  ds.forEach(function(D){
+   var c={id:'JRA/'+place+'/'+surf+'/main/'+rail+'/'+D,place:place,surf:surf,dist:D,path:'main',rail:rail,loop:key,source:source,label:(surf==='t'?'芝・Aコース':'ダート')+'・左回り'};
+   if(entries&&entries[D]){var e=entries[D];c.entry={length:e.length,joinRemaining:e.joinRemaining,start:xy(e.start)};if(e.turfStart){c.turfStart=true;c.label+='・芝スタート（区間長未計測）';}}
+   RV_ATLAS_COURSES.push(c);
+   if(surf==='t')Object.keys(rails).forEach(function(r){RV_ATLAS_COURSES.push({id:'JRA/'+place+'/t/main/'+r+'/'+D,place:place,surf:'t',dist:D,path:'main',rail:r,source:source,pending:true,officialLap:rails[r],label:'芝・'+r+'コース・左回り',reason:r+'コースは公式一周長'+rails[r]+'m。柵位置と発走点を照合中のためAコースで代用しません。'});});
+  });
+ }
+ // 東京: 左回り。1800/2000は右側の独立した引込線。2300〜2600は正面直線。
+ add('東京','tokyo','t',2083.1,[[0,399,281],[100,465,280],[183.1,520,220],[283.1,510,145],[383.1,470,95],[483.1,415,60],[683.1,290,60],[766.2,250,60],[1000,100,60],[1200,35,70],[1350,25,180],[1450,50,250],[1566.2,115,281],[1666.2,175,281],[1766.2,225,281],[1866.2,290,281],[2083.1,399,281]],
+  [1400,1600,1800,2000,2300,2400,2500,2600,3400],{1800:{length:100,start:[520,145],joinRemaining:1700},2000:{length:100,start:[540,225],joinRemaining:1900}},{B:2101.9,C:2120.8,D:2139.6});
+ // 東京ダ1600は芝発走。引込線200mすべてが芝だと断定するものではない。
+ add('東京','tokyo','d',1899,[[0,399,262],[100,455,250],[230,475,190],[350,440,105],[499,348,77],[599,288,77],[699,245,77],[1000,70,77],[1150,40,130],[1300,60,230],[1398,160,262],[1698,255,262],[1798,330,262],[1899,399,262]],
+  [1200,1300,1400,1600,2100,2400],{1600:{length:200,start:[450,77],joinRemaining:1400,turfStart:true}});
+ // 中京: 上辺/下辺とも傾いた概形。1600は右側斜めの引込線、2200は正面左ポケット。
+ add('中京','chukyo','t',1705.9,[[0,383,231],[120,455,230],[220,485,160],[305.9,445,52],[405.9,385,45],[411.8,380,45],[505.9,330,40],[750,145,28],[900,60,45],[1050,20,125],[1180,55,200],[1311.8,145,232],[1411.8,210,232],[1550,300,231],[1705.9,383,231]],
+  [1200,1300,1400,1600,2000,2200,3000],{1600:{length:200,start:[535,180],joinRemaining:1400},2200:{length:100,start:[80,232],joinRemaining:2100}},{B:1724.8});
+ add('中京','chukyo','d',1530,[[0,383,213],[100,430,213],[210,465,140],[330,380,62],[560,230,50],[800,100,44],[950,33,110],[1070,60,195],[1160,165,213],[1260,230,213],[1530,383,213]],
+  [1200,1400,1800,1900,2500],{1400:{length:200,start:[510,77],joinRemaining:1200,turfStart:true}});
+})();
+
+/* 第276弾: 新潟・中山・京都・阪神の芝A/ダート概形、柵別B/C/Dは確認中。
+ * 公式一周長・発走距離・回り方向はJRA公式。回り: 新潟=左回り、中山/京都/阪神=右回り（公式ページ記載）。
+ * 座標は公式平面図の画素からの独自概形。曲線・距離位相の配分・引込線長は推定で精密計測ではない。
+ * 京都1800外の引込線のみ図の引込路に対応。他は位相配分の発走点で図ラベルとの画素対応は未監査。
+ * 坂・幅員・複合周回(外→内)・芝スタート区間は未再現。参照画像の製品流用なし。
+ */
+(function(){
+ function xy(p){return [(p[0]-20)*.75,(p[1]-10)*.8+20];}
+ function addLoop(key,L,turn,slug,ks){
+  RV_ATLAS_LOOPS[key]={length:L,turn:turn,scale:2.1,knots:ks.map(function(k){return [k[0]].concat(xy(k.slice(1)));}),source:'https://www.jra.go.jp/facilities/race/'+slug+'/course/index.html'};
+ }
+ addLoop('新潟/t/inner',1623,'L','niigata',[[0,505,138],[110,472,88],[195,452,62],[290,395,57],[430,320,55],[560,250,57],[620,215,60],[720,180,85],[820,168,115],[930,205,133],[1050,270,137],[1150,315,138],[1264.3,354,138],[1400,410,138],[1520,465,138],[1623,505,138]]);
+ addLoop('新潟/t/outer',2223,'L','niigata',[[0,505,138],[55,524,116],[155,530,72],[245,500,40],[360,450,32],[560,350,29],[760,250,30],[865,192,35],[1000,132,62],[1140,112,105],[1290,150,128],[1420,195,137],[1564.3,228,138],[1750,300,138],[1950,390,138],[2100,455,138],[2223,505,138]]);
+ addLoop('新潟/d',1472.5,'L','niigata',[[0,500,140],[85,493,105],[175,468,68],[285,405,56],[400,340,52],[505,295,53],[590,260,72],[680,246,100],[780,242,125],[900,270,140],[1010,315,143],[1118.6,351,143],[1250,405,142],[1370,455,141],[1472.5,500,140]]);
+ addLoop('中山/t/inner',1667.1,'R','nakayama',[[0,233,322],[110,175,318],[240,128,295],[360,112,240],[470,128,175],[570,175,120],[660,240,92],[760,310,82],[860,380,88],[960,430,110],[1060,458,155],[1160,468,215],[1260,455,275],[1357.1,438,322],[1450,375,322],[1560,295,322],[1667.1,233,322]]);
+ addLoop('中山/t/outer',1839.7,'R','nakayama',[[0,233,322],[120,150,318],[260,95,280],[380,78,220],[500,95,150],[620,150,90],[720,230,50],[850,330,38],[980,420,45],[1120,490,85],[1260,515,170],[1380,505,260],[1529.7,438,322],[1625,350,322],[1740,280,322],[1839.7,233,322]]);
+ addLoop('中山/d',1493,'R','nakayama',[[0,245,316],[105,198,312],[230,168,278],[340,180,212],[430,232,168],[515,300,148],[600,352,152],[685,398,182],[770,422,232],[855,418,282],[950,385,310],[1065,420,314],[1185,448,316],[1300,375,316],[1400,310,316],[1493,245,316]]);
+ addLoop('京都/t/inner',1782.8,'R','kyoto',[[0,252,208],[115,196,206],[230,160,186],[330,150,152],[430,172,118],[530,235,96],[640,310,82],[750,390,82],[860,452,102],[960,482,142],[1060,488,180],[1160,470,200],[1260,448,207],[1350,428,208],[1454.4,398,208],[1580,335,208],[1700,285,208],[1782.8,252,208]]);
+ addLoop('京都/t/outer',1894.3,'R','kyoto',[[0,252,208],[115,185,205],[230,142,178],[330,133,140],[430,158,105],[540,235,80],[680,335,58],[820,432,52],[950,512,60],[1080,546,105],[1200,550,158],[1330,518,198],[1400,500,207],[1490.6,482,208],[1620,405,208],[1760,320,208],[1894.3,252,208]]);
+ addLoop('京都/d',1607.6,'R','kyoto',[[0,252,202],[110,190,200],[230,158,175],[340,152,140],[450,175,110],[560,235,92],[680,315,85],[800,395,88],[910,455,110],[1010,485,150],[1110,478,185],[1195,448,198],[1278.5,420,202],[1390,365,202],[1500,305,202],[1607.6,252,202]]);
+ addLoop('阪神/t/inner',1689,'R','hanshin',[[0,165,262],[110,112,258],[230,78,232],[340,70,182],[450,92,132],[560,152,98],[670,235,72],[780,325,62],[890,412,72],[990,472,108],[1080,502,158],[1165,508,208],[1250,482,240],[1334,452,258],[1379,438,262],[1450,372,262],[1560,272,262],[1689,165,262]]);
+ addLoop('阪神/t/outer',2089,'R','hanshin',[[0,165,262],[120,102,258],[250,70,228],[370,62,172],[490,88,118],[610,148,80],[730,228,52],[860,318,38],[990,405,45],[1120,478,78],[1250,522,132],[1370,532,185],[1480,512,228],[1565,482,252],[1615.4,462,262],[1720,372,262],[1860,272,262],[2089,165,262]]);
+ addLoop('阪神/d',1517.6,'R','hanshin',[[0,185,268],[115,128,264],[240,95,232],[355,88,182],[465,112,132],[575,172,102],[685,255,82],[795,345,78],[895,422,98],[985,472,138],[1070,492,182],[1150,482,222],[1164.5,478,228],[1245,412,264],[1350,312,267],[1517.6,185,268]]);
+ function addCourse(c){RV_ATLAS_COURSES.push(c);}
+ addCourse({id:'JRA/新潟/t/inner/A/1200',place:'新潟',surf:'t',dist:1200,path:'inner',rail:'A',loop:'新潟/t/inner',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・内回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/inner/A/1400',place:'新潟',surf:'t',dist:1400,path:'inner',rail:'A',loop:'新潟/t/inner',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・内回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/inner/A/2000',place:'新潟',surf:'t',dist:2000,path:'inner',rail:'A',loop:'新潟/t/inner',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・内回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/inner/A/2200',place:'新潟',surf:'t',dist:2200,path:'inner',rail:'A',loop:'新潟/t/inner',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・内回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/inner/A/2400',place:'新潟',surf:'t',dist:2400,path:'inner',rail:'A',loop:'新潟/t/inner',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・内回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/inner/B/1200',place:'新潟',surf:'t',dist:1200,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:1648.1,label:'芝・内回りBコース・左回り',reason:'Bコースは公式一周長1648.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/inner/B/1400',place:'新潟',surf:'t',dist:1400,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:1648.1,label:'芝・内回りBコース・左回り',reason:'Bコースは公式一周長1648.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/inner/B/2000',place:'新潟',surf:'t',dist:2000,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:1648.1,label:'芝・内回りBコース・左回り',reason:'Bコースは公式一周長1648.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/inner/B/2200',place:'新潟',surf:'t',dist:2200,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:1648.1,label:'芝・内回りBコース・左回り',reason:'Bコースは公式一周長1648.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/inner/B/2400',place:'新潟',surf:'t',dist:2400,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:1648.1,label:'芝・内回りBコース・左回り',reason:'Bコースは公式一周長1648.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/A/1400',place:'新潟',surf:'t',dist:1400,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/A/1600',place:'新潟',surf:'t',dist:1600,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/A/1800',place:'新潟',surf:'t',dist:1800,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/A/2000',place:'新潟',surf:'t',dist:2000,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/A/3000',place:'新潟',surf:'t',dist:3000,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/A/3200',place:'新潟',surf:'t',dist:3200,path:'outer',rail:'A',loop:'新潟/t/outer',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'芝・外回りAコース・左回り'});
+ addCourse({id:'JRA/新潟/t/outer/B/1400',place:'新潟',surf:'t',dist:1400,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/B/1600',place:'新潟',surf:'t',dist:1600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/B/1800',place:'新潟',surf:'t',dist:1800,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/B/2000',place:'新潟',surf:'t',dist:2000,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/B/3000',place:'新潟',surf:'t',dist:3000,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/t/outer/B/3200',place:'新潟',surf:'t',dist:3200,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',pending:true,officialLap:2248.1,label:'芝・外回りBコース・左回り',reason:'Bコースは公式一周長2248.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/新潟/d/main/-/1000',place:'新潟',surf:'d',dist:1000,path:'main',rail:'-',loop:'新潟/d',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'ダート・左回り'});
+ addCourse({id:'JRA/新潟/d/main/-/1200',place:'新潟',surf:'d',dist:1200,path:'main',rail:'-',loop:'新潟/d',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'ダート・左回り'});
+ addCourse({id:'JRA/新潟/d/main/-/1700',place:'新潟',surf:'d',dist:1700,path:'main',rail:'-',loop:'新潟/d',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'ダート・左回り'});
+ addCourse({id:'JRA/新潟/d/main/-/1800',place:'新潟',surf:'d',dist:1800,path:'main',rail:'-',loop:'新潟/d',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'ダート・左回り'});
+ addCourse({id:'JRA/新潟/d/main/-/2500',place:'新潟',surf:'d',dist:2500,path:'main',rail:'-',loop:'新潟/d',source:'https://www.jra.go.jp/facilities/race/niigata/course/index.html',label:'ダート・左回り'});
+ addCourse({id:'JRA/中山/t/inner/A/1800',place:'中山',surf:'t',dist:1800,path:'inner',rail:'A',loop:'中山/t/inner',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/inner/A/2000',place:'中山',surf:'t',dist:2000,path:'inner',rail:'A',loop:'中山/t/inner',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/inner/A/2500',place:'中山',surf:'t',dist:2500,path:'inner',rail:'A',loop:'中山/t/inner',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/inner/A/3600',place:'中山',surf:'t',dist:3600,path:'inner',rail:'A',loop:'中山/t/inner',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/inner/B/1800',place:'中山',surf:'t',dist:1800,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1686,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1686m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/B/2000',place:'中山',surf:'t',dist:2000,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1686,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1686m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/B/2500',place:'中山',surf:'t',dist:2500,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1686,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1686m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/B/3600',place:'中山',surf:'t',dist:3600,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1686,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1686m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/C/1800',place:'中山',surf:'t',dist:1800,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1704.8,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1704.8m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/C/2000',place:'中山',surf:'t',dist:2000,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1704.8,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1704.8m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/C/2500',place:'中山',surf:'t',dist:2500,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1704.8,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1704.8m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/inner/C/3600',place:'中山',surf:'t',dist:3600,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1704.8,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1704.8m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/A/1200',place:'中山',surf:'t',dist:1200,path:'outer',rail:'A',loop:'中山/t/outer',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/outer/A/1600',place:'中山',surf:'t',dist:1600,path:'outer',rail:'A',loop:'中山/t/outer',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/outer/A/2200',place:'中山',surf:'t',dist:2200,path:'outer',rail:'A',loop:'中山/t/outer',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/outer/A/2600',place:'中山',surf:'t',dist:2600,path:'outer',rail:'A',loop:'中山/t/outer',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/outer/A/4000',place:'中山',surf:'t',dist:4000,path:'outer',rail:'A',loop:'中山/t/outer',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/中山/t/outer/B/1200',place:'中山',surf:'t',dist:1200,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1858.5,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1858.5m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/B/1600',place:'中山',surf:'t',dist:1600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1858.5,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1858.5m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/B/2200',place:'中山',surf:'t',dist:2200,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1858.5,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1858.5m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/B/2600',place:'中山',surf:'t',dist:2600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1858.5,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1858.5m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/B/4000',place:'中山',surf:'t',dist:4000,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1858.5,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1858.5m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/C/1200',place:'中山',surf:'t',dist:1200,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1877.3,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1877.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/C/1600',place:'中山',surf:'t',dist:1600,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1877.3,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1877.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/C/2200',place:'中山',surf:'t',dist:2200,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1877.3,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1877.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/C/2600',place:'中山',surf:'t',dist:2600,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1877.3,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1877.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/t/outer/C/4000',place:'中山',surf:'t',dist:4000,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:1877.3,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1877.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/中山/d/main/-/1000',place:'中山',surf:'d',dist:1000,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/d/main/-/1200',place:'中山',surf:'d',dist:1200,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/d/main/-/1700',place:'中山',surf:'d',dist:1700,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/d/main/-/1800',place:'中山',surf:'d',dist:1800,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/d/main/-/2400',place:'中山',surf:'d',dist:2400,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/d/main/-/2500',place:'中山',surf:'d',dist:2500,path:'main',rail:'-',loop:'中山/d',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/t/inner/A/1100',place:'京都',surf:'t',dist:1100,path:'inner',rail:'A',loop:'京都/t/inner',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/inner/A/1200',place:'京都',surf:'t',dist:1200,path:'inner',rail:'A',loop:'京都/t/inner',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/inner/A/1400',place:'京都',surf:'t',dist:1400,path:'inner',rail:'A',loop:'京都/t/inner',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/inner/A/1600',place:'京都',surf:'t',dist:1600,path:'inner',rail:'A',loop:'京都/t/inner',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/inner/A/2000',place:'京都',surf:'t',dist:2000,path:'inner',rail:'A',loop:'京都/t/inner',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/inner/B/1100',place:'京都',surf:'t',dist:1100,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1802.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1802.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/B/1200',place:'京都',surf:'t',dist:1200,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1802.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1802.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/B/1400',place:'京都',surf:'t',dist:1400,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1802.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1802.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/B/1600',place:'京都',surf:'t',dist:1600,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1802.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1802.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/B/2000',place:'京都',surf:'t',dist:2000,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1802.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1802.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/C/1100',place:'京都',surf:'t',dist:1100,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1821.1,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1821.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/C/1200',place:'京都',surf:'t',dist:1200,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1821.1,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1821.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/C/1400',place:'京都',surf:'t',dist:1400,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1821.1,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1821.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/C/1600',place:'京都',surf:'t',dist:1600,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1821.1,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1821.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/C/2000',place:'京都',surf:'t',dist:2000,path:'inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1821.1,label:'芝・内回りCコース・右回り',reason:'Cコースは公式一周長1821.1m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/D/1100',place:'京都',surf:'t',dist:1100,path:'inner',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1839.9,label:'芝・内回りDコース・右回り',reason:'Dコースは公式一周長1839.9m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/D/1200',place:'京都',surf:'t',dist:1200,path:'inner',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1839.9,label:'芝・内回りDコース・右回り',reason:'Dコースは公式一周長1839.9m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/D/1400',place:'京都',surf:'t',dist:1400,path:'inner',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1839.9,label:'芝・内回りDコース・右回り',reason:'Dコースは公式一周長1839.9m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/D/1600',place:'京都',surf:'t',dist:1600,path:'inner',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1839.9,label:'芝・内回りDコース・右回り',reason:'Dコースは公式一周長1839.9m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/inner/D/2000',place:'京都',surf:'t',dist:2000,path:'inner',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1839.9,label:'芝・内回りDコース・右回り',reason:'Dコースは公式一周長1839.9m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/A/1400',place:'京都',surf:'t',dist:1400,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/1600',place:'京都',surf:'t',dist:1600,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/1800',place:'京都',surf:'t',dist:1800,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り・引込線スタート（長さ推定）',entry:{length:250,start:xy([65,72]),joinRemaining:1550}});
+ addCourse({id:'JRA/京都/t/outer/A/2000',place:'京都',surf:'t',dist:2000,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/2200',place:'京都',surf:'t',dist:2200,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/2400',place:'京都',surf:'t',dist:2400,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/3000',place:'京都',surf:'t',dist:3000,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/A/3200',place:'京都',surf:'t',dist:3200,path:'outer',rail:'A',loop:'京都/t/outer',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/京都/t/outer/B/1400',place:'京都',surf:'t',dist:1400,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/1600',place:'京都',surf:'t',dist:1600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/1800',place:'京都',surf:'t',dist:1800,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/2000',place:'京都',surf:'t',dist:2000,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/2200',place:'京都',surf:'t',dist:2200,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/2400',place:'京都',surf:'t',dist:2400,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/3000',place:'京都',surf:'t',dist:3000,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/B/3200',place:'京都',surf:'t',dist:3200,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1913.6,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長1913.6m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/1400',place:'京都',surf:'t',dist:1400,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/1600',place:'京都',surf:'t',dist:1600,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/1800',place:'京都',surf:'t',dist:1800,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/2000',place:'京都',surf:'t',dist:2000,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/2200',place:'京都',surf:'t',dist:2200,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/2400',place:'京都',surf:'t',dist:2400,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/3000',place:'京都',surf:'t',dist:3000,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/C/3200',place:'京都',surf:'t',dist:3200,path:'outer',rail:'C',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1932.4,label:'芝・外回りCコース・右回り',reason:'Cコースは公式一周長1932.4m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/1400',place:'京都',surf:'t',dist:1400,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/1600',place:'京都',surf:'t',dist:1600,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/1800',place:'京都',surf:'t',dist:1800,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/2000',place:'京都',surf:'t',dist:2000,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/2200',place:'京都',surf:'t',dist:2200,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/2400',place:'京都',surf:'t',dist:2400,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/3000',place:'京都',surf:'t',dist:3000,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/t/outer/D/3200',place:'京都',surf:'t',dist:3200,path:'outer',rail:'D',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',pending:true,officialLap:1951.3,label:'芝・外回りDコース・右回り',reason:'Dコースは公式一周長1951.3m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/京都/d/main/-/1000',place:'京都',surf:'d',dist:1000,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/1100',place:'京都',surf:'d',dist:1100,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/1200',place:'京都',surf:'d',dist:1200,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/1400',place:'京都',surf:'d',dist:1400,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/1800',place:'京都',surf:'d',dist:1800,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/1900',place:'京都',surf:'d',dist:1900,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/京都/d/main/-/2600',place:'京都',surf:'d',dist:2600,path:'main',rail:'-',loop:'京都/d',source:'https://www.jra.go.jp/facilities/race/kyoto/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/A/1200',place:'阪神',surf:'t',dist:1200,path:'inner',rail:'A',loop:'阪神/t/inner',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/A/1400',place:'阪神',surf:'t',dist:1400,path:'inner',rail:'A',loop:'阪神/t/inner',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/A/2000',place:'阪神',surf:'t',dist:2000,path:'inner',rail:'A',loop:'阪神/t/inner',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/A/2200',place:'阪神',surf:'t',dist:2200,path:'inner',rail:'A',loop:'阪神/t/inner',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/A/3000',place:'阪神',surf:'t',dist:3000,path:'inner',rail:'A',loop:'阪神/t/inner',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・内回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/inner/B/1200',place:'阪神',surf:'t',dist:1200,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:1713.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1713.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/inner/B/1400',place:'阪神',surf:'t',dist:1400,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:1713.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1713.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/inner/B/2000',place:'阪神',surf:'t',dist:2000,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:1713.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1713.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/inner/B/2200',place:'阪神',surf:'t',dist:2200,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:1713.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1713.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/inner/B/3000',place:'阪神',surf:'t',dist:3000,path:'inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:1713.2,label:'芝・内回りBコース・右回り',reason:'Bコースは公式一周長1713.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer/A/1400',place:'阪神',surf:'t',dist:1400,path:'outer',rail:'A',loop:'阪神/t/outer',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/outer/A/1600',place:'阪神',surf:'t',dist:1600,path:'outer',rail:'A',loop:'阪神/t/outer',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/outer/A/1800',place:'阪神',surf:'t',dist:1800,path:'outer',rail:'A',loop:'阪神/t/outer',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/outer/A/2400',place:'阪神',surf:'t',dist:2400,path:'outer',rail:'A',loop:'阪神/t/outer',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/outer/A/2600',place:'阪神',surf:'t',dist:2600,path:'outer',rail:'A',loop:'阪神/t/outer',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'芝・外回りAコース・右回り'});
+ addCourse({id:'JRA/阪神/t/outer/B/1400',place:'阪神',surf:'t',dist:1400,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:2113.2,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長2113.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer/B/1600',place:'阪神',surf:'t',dist:1600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:2113.2,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長2113.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer/B/1800',place:'阪神',surf:'t',dist:1800,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:2113.2,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長2113.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer/B/2400',place:'阪神',surf:'t',dist:2400,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:2113.2,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長2113.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer/B/2600',place:'阪神',surf:'t',dist:2600,path:'outer',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:2113.2,label:'芝・外回りBコース・右回り',reason:'Bコースは公式一周長2113.2m。柵位置と発走点を照合中のためAコースで代用しません。'});
+ addCourse({id:'JRA/阪神/d/main/-/1200',place:'阪神',surf:'d',dist:1200,path:'main',rail:'-',loop:'阪神/d',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/阪神/d/main/-/1400',place:'阪神',surf:'d',dist:1400,path:'main',rail:'-',loop:'阪神/d',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/阪神/d/main/-/1800',place:'阪神',surf:'d',dist:1800,path:'main',rail:'-',loop:'阪神/d',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/阪神/d/main/-/2000',place:'阪神',surf:'d',dist:2000,path:'main',rail:'-',loop:'阪神/d',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/阪神/d/main/-/2600',place:'阪神',surf:'d',dist:2600,path:'main',rail:'-',loop:'阪神/d',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',label:'ダート・右回り'});
+ addCourse({id:'JRA/中山/t/outer-inner/A/3200',place:'中山',surf:'t',dist:3200,path:'outer-inner',rail:'A',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:0,label:'芝・複合（外→内）Aコース・右回り',reason:'公式掲載の外・内複合周回。外回りと内回りの切替位置と区間配分が未照合のため、単一周回では代用しません。'});
+ addCourse({id:'JRA/中山/t/outer-inner/B/3200',place:'中山',surf:'t',dist:3200,path:'outer-inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:0,label:'芝・複合（外→内）Bコース・右回り',reason:'公式掲載の外・内複合周回。外回りと内回りの切替位置と区間配分が未照合のため、単一周回では代用しません。'});
+ addCourse({id:'JRA/中山/t/outer-inner/C/3200',place:'中山',surf:'t',dist:3200,path:'outer-inner',rail:'C',source:'https://www.jra.go.jp/facilities/race/nakayama/course/index.html',pending:true,officialLap:0,label:'芝・複合（外→内）Cコース・右回り',reason:'公式掲載の外・内複合周回。外回りと内回りの切替位置と区間配分が未照合のため、単一周回では代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer-inner/A/3200',place:'阪神',surf:'t',dist:3200,path:'outer-inner',rail:'A',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:0,label:'芝・複合（外→内）Aコース・右回り',reason:'公式掲載の外・内複合周回。外回りと内回りの切替位置と区間配分が未照合のため、単一周回では代用しません。'});
+ addCourse({id:'JRA/阪神/t/outer-inner/B/3200',place:'阪神',surf:'t',dist:3200,path:'outer-inner',rail:'B',source:'https://www.jra.go.jp/facilities/race/hanshin/course/index.html',pending:true,officialLap:0,label:'芝・複合（外→内）Bコース・右回り',reason:'公式掲載の外・内複合周回。外回りと内回りの切替位置と区間配分が未照合のため、単一周回では代用しません。'});
+})();
+
+/* 第276弾: 柵別B/C/D・複合周回(外→内)を、公式一周長からの幾何推定で個別経路化する。
+ * 柵別: A経路の外側へ平行拡大した別経路。一周長は公式値(例 京都内 B=1802.2m)。
+ *   ※柵の実座標・柵間隔の実測は未照合。A経路の代用ではなく、柵位置は推定と明示する。
+ * 複合周回: 公式図の発走点(外)→外回り1周+α→内回り分岐→決勝。切替点φは総距離3200mから逆算。
+ *   ※外→内分岐点の公式照合は未完。切替位置・発走位相とも推定。
+ * 船橋内1400/1500は内回り全形状が未照合のためpendingのまま据え置く(外図で代用しない)。
+ */
+(function(){
+ function xy(p){return [(p[0]-20)*.75,(p[1]-10)*.8+20];}
+ function baseLoopOf(place,surf,path,rail){
+  var hit=RV_ATLAS_COURSES.filter(function(c){return c.place===place&&c.surf===surf&&c.path===path&&!c.pending&&c.loop&&(rail==='-'||c.rail===rail);});
+  return hit.length?RV_ATLAS_LOOPS[hit[0].loop]:null;
+ }
+ function baseLoopKeyOf(place,surf,path,rail){
+  var hit=RV_ATLAS_COURSES.filter(function(c){return c.place===place&&c.surf===surf&&c.path===path&&!c.pending&&c.loop&&(rail==='-'||c.rail===rail);});
+  return hit.length?hit[0].loop:null;
+ }
+ // 1) 柵別: pending(officialLap付き) → 平行拡大の別経路としてready化
+ RV_ATLAS_COURSES.slice().forEach(function(c){
+  if(!c.pending||!c.officialLap||c.path==='outer-inner'||c.path==='straight')return;
+  var key0=baseLoopKeyOf(c.place,c.surf,c.path,c.surf==='d'?'-':'A');
+  if(!key0)return;
+  var base=RV_ATLAS_LOOPS[key0],L=c.officialLap,step={'B':1,'C':2,'D':3}[c.rail]||1;
+  var key=key0+'#'+c.rail;
+  if(!RV_ATLAS_LOOPS[key]){
+   var ks=base.knots,s=L/base.length,f=1+0.012*step,cx=0,cy=0,i;
+   for(i=0;i<ks.length;i++){cx+=ks[i][1];cy+=ks[i][2];}
+   cx/=ks.length;cy/=ks.length;
+   RV_ATLAS_LOOPS[key]={length:L,turn:base.turn,scale:base.scale,source:base.source,
+    knots:ks.map(function(k){return [k[0]*s,cx+(k[1]-cx)*f,cy+(k[2]-cy)*f];})};
+  }
+  c.loop=key;delete c.pending;delete c.reason;
+  c.railNote='柵位置は公式一周長'+L+'mからの推定経路（柵実座標は未照合・A経路の代用ではない）。';
+ });
+ // 2) 複合周回(外→内): 発走点→外をほぼ1周→内分岐→決勝の合成周回。
+ //    総距離3200mの算術から構造は「外=delta(=約1周) + 内=(1-phi)Li」と決まる(中山でk=1は不可能)。
+ var GATE={中山:[35,215],阪神:[255,35]},GFRAC={中山:0.207,阪神:0.383};
+ RV_ATLAS_COURSES.slice().forEach(function(c){
+  if(!(c.pending&&c.path==='outer-inner'))return;
+  var ko=baseLoopKeyOf(c.place,'t','outer',c.rail),ki=baseLoopKeyOf(c.place,'t','inner',c.rail);
+  if(!ko||!ki)return;
+  var Lo=RV_ATLAS_LOOPS[ko].length,Li=RV_ATLAS_LOOPS[ki].length,go=GFRAC[c.place]*Lo;
+  var best=null,phi,e,delta;
+  for(phi=0.001;phi<=0.999;phi+=0.001){
+   delta=((phi*Lo-go)%Lo+Lo)%Lo;
+   e=3200-delta-(1-phi)*Li;
+   if(e>=0&&e<=340&&(!best||delta>best.delta))best={phi:phi,e:e,delta:delta};
+  }
+  if(!best)return;
+  var oo=RV_ATLAS_LOOPS[ko],io=RV_ATLAS_LOOPS[ki];
+  var gatePos=xy(GATE[c.place]),goalPos=oo.knots[0].slice(1),gap=160;
+  var ks=[[0,goalPos[0],goalPos[1]]];
+  ks.push([gap/2,(goalPos[0]+gatePos[0])/2,(goalPos[1]+gatePos[1])/2]);
+  ks.push([gap,gatePos[0],gatePos[1]]);
+  var total=3200,stepM=Math.max(12,total/220),u,t,p,q,r;
+  for(u=0;u<=best.e+1e-6;u+=stepM){t=u/best.e;q=rvAtlasLoopAt(oo,go);p=[gatePos[0]+(q[0]-gatePos[0])*t,gatePos[1]+(q[1]-gatePos[1])*t];ks.push([gap+u,p[0],p[1]]);}
+  for(u=0;u<=best.delta+1e-6;u+=stepM){q=rvAtlasLoopAt(oo,go+u);ks.push([gap+best.e+u,q[0],q[1]]);}
+  var off=best.e+best.delta;
+  for(u=0;u<=(1-best.phi)*Li+1e-6;u+=stepM){r=rvAtlasLoopAt(io,best.phi*Li+u);ks.push([gap+off+u,r[0],r[1]]);}
+  ks.push([gap+total,goalPos[0],goalPos[1]]);
+  var key=c.place+'/t/composite/'+c.rail;
+  RV_ATLAS_LOOPS[key]={length:gap+total,turn:oo.turn,scale:oo.scale,source:oo.source,knots:ks};
+  c.loop=key;delete c.pending;delete c.reason;
+  c.forcePasses=[best.e+(Lo-go)];
+  c.railNote='複合(外→内): 外'+Math.round(best.delta)+'m→内'+Math.round((1-best.phi)*Li)+'mの切替点φ='+(Math.round(best.phi*1000)/1000)+'は総距離3200mからの逆算。発走引込'+Math.round(best.e)+'m・分岐位置とも推定（公式の切替照合は未完）。';
+ });
+})();
+
 /* =====================================================================
    p95_racevideo.js — ★第167弾: 🎬 レース映像（2D・Phase 1）
    ---------------------------------------------------------
@@ -51148,8 +51698,8 @@ function rvSmooth(x){ return x * x * (3 - 2 * x); }
 /* ---------- 競馬場 → 回り（表示専用の固定テーブル。JRA10場はコース固定） ---------- */
 function rvTurnOf(place){
   var p = String(place || '').replace(/競馬場$/, '');
-  if (/中山|阪神|京都|札幌|函館|小倉/.test(p)) return 'R';   /* 右回り */
-  if (/東京|新潟|中京|福島/.test(p)) return 'L';              /* 左回り */
+  if (/中山|阪神|京都|札幌|函館|小倉|福島/.test(p)) return 'R';   /* 右回り */
+  if (/東京|新潟|中京/.test(p)) return 'L';              /* 左回り */
   return 'L';
 }
 
@@ -51169,7 +51719,7 @@ function rvTimeline(res){
     var distAssumed = !(D >= 800);
     if (distAssumed) D = 1800;   /* 距離未入力のときの表示用仮定（注記に出す） */
     var nm = String(meta.name || '') + String(meta.dist || '');
-    var surf = /ダ/.test(nm) ? 'd' : (/障/.test(nm) ? 'd' : 't');
+    var surf = /^dirt_/.test(String(meta.baba || '')) ? 'd' : (/ダ/.test(nm) ? 'd' : (/障/.test(nm) ? 'd' : 't')); // 正式な馬場区分を優先（名称にダートがない取込にも対応）
     var turn = rvTurnOf(meta.place);
 
     /* 予想着順: res.order = hs配列のindex を確率降順に並べたもの（analyzeRace出力） */
@@ -51838,6 +52388,13 @@ var RV_COURSE_REAL = {
 
 };
 function rvRealCourse(place, surf, dist){
+  /* 第276弾: 新アトラス登録分はコース別発走/決勝・共通周回経路で表示。
+     未登録時だけ旧37組合せへ。テスト等でアトラス未読込でも旧経路は維持。 */
+  if (typeof rvAtlasCourse === 'function'){
+    var atlasC = rvAtlasCourse(place, surf, dist, arguments[3]);
+    if (atlasC) return atlasC;
+    if (typeof rvAtlasCandidates === 'function' && rvAtlasCandidates(place, surf, dist).length) return null; // 曖昧/未確認を旧経路へ勝手に置換しない
+  }
   /* 場所・芝ダ・距離が実形状データと一致したら等距離リサンプル済み点列を返す。
      一致しなければ null(呼び出し側は汎用rvCoursePtsへフォールバック)。 */
   try {
@@ -52009,7 +52566,23 @@ function rvHorseStride(d, no){ return d * 0.8 + no * 2.1; }
 function rvCamAt(tl, states, view){
   var W = RV_CW, H = RV_CH;
   if (!tl || !states || !states.length) return { x: 480, y: 380, z: 1, mode: 'chase' };
-  if (view !== 'chase') return { x: 480, y: 380, z: Math.min(W / 980, H / 620), mode: 'full' };
+  if (view !== 'chase'){
+    /* ★第275弾(D1): 全体視点=コース点列の外接矩形フィット(旧=固定z≈0.98・中心480,380)。
+       長い距離ほど縮尺(1880px/距離m)が小さく、旧ズームではスタート直後の馬群が数pxに
+       潰れて「スタート位置と直後が見えない」(競馬場・距離による差)だった。
+       パッド=走路半幅+馬チップ+ラベル余白。純関数・決定論は不変。 */
+    var bpts = tl._drawPts || tl._pts || [];
+    if (bpts.length > 1){
+      var bMinX = 1e9, bMaxX = -1e9, bMinY = 1e9, bMaxY = -1e9;
+      bpts.forEach(function(p){ bMinX = Math.min(bMinX, p[0]); bMaxX = Math.max(bMaxX, p[0]);
+                                bMinY = Math.min(bMinY, p[1]); bMaxY = Math.max(bMaxY, p[1]); });
+      var bpd = RV_TRACK_HALF + 46;
+      var bzf = Math.min(W / (bMaxX - bMinX + bpd * 2), H / (bMaxY - bMinY + bpd * 2));
+      return { x: (bMinX + bMaxX) / 2, y: (bMinY + bMaxY) / 2,
+               z: Math.max(0.55, Math.min(2.4, bzf)), mode: 'full' };
+    }
+    return { x: 480, y: 380, z: Math.min(W / 980, H / 620), mode: 'full' };
+  }
   var live = states.slice().sort(function(a, b){ return b.d - a.d; });
   var lead = live[0];
   if (lead.d >= tl.D * (tl.stageF || RV_DIST_F)[4] - 12){
@@ -52059,7 +52632,18 @@ function rvDrawBG(tl){
   /* ★第273弾(A): 描画用=ゴール後ランオフ延長済みの点列(閉ループの汎用コースでは pts と同一)。
      走路の帯・縞・ラチ・外柵はゴール後も実際の減速域まで続く=馬が走路の外を走って見えない。
      at()(スタート線・ゴール・標識)は進行距離m→位置の写像なので元の pts のまま使う。 */
-  var ptsE = rvRunoffPts(pts, totalPx, tl.D, 4);
+  var ptsE = tl._drawPts || rvRunoffPts(pts, totalPx, tl.D, 4);
+  /* 第275弾: 背景キャンバスも実コース外接矩形まで拡張する。
+     固定960×640だと阪神などy>640の発走区間が背景から切り落とされていた。 */
+  var bgPad = TH + 80;
+  var bgMinX = Math.min(0, ...ptsE.map(function(p){ return p[0] - bgPad; }));
+  var bgMinY = Math.min(0, ...ptsE.map(function(p){ return p[1] - bgPad; }));
+  var bgMaxX = Math.max(RV_CW, ...ptsE.map(function(p){ return p[0] + bgPad; }));
+  var bgMaxY = Math.max(RV_CH, ...ptsE.map(function(p){ return p[1] + bgPad; }));
+  cv.width = Math.ceil(bgMaxX - bgMinX); cv.height = Math.ceil(bgMaxY - bgMinY);
+  tl._bgX = bgMinX; tl._bgY = bgMinY;
+  g.translate(-bgMinX, -bgMinY);
+
   /* 中心線の法線(内側)を座標から1つ作る */
   function normAt(i, arr){
     var P = arr || pts;
@@ -52078,7 +52662,7 @@ function rvDrawBG(tl){
   }
   /* 1) 外周の大地(芝) */
   g.fillStyle = turf ? '#6d9350' : '#699150';
-  g.fillRect(0, 0, RV_CW, RV_CH);
+  g.fillRect(bgMinX, bgMinY, cv.width, cv.height);
   /* 2) 内馬場(少し濃い芝+パッチ) */
   edgePath(-1, 0);
   g.fillStyle = '#618a48';
@@ -52155,6 +52739,12 @@ function rvDrawBG(tl){
   g.moveTo(s0.x + s0.nx * -(TH - 2), s0.y + s0.ny * -(TH - 2));
   g.lineTo(s0.x + s0.nx * (TH - 2), s0.y + s0.ny * (TH - 2));
   g.stroke();
+  /* ★第275弾(D1): スタート位置の明示(外側へ「START」・常時描画=ゲートのフェード後も
+     全視点で発走点が分かる。残り800/400の標識と同じ流儀) */
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
+  g.fillText('START', s0.x + s0.nx * (TH + 16), s0.y + s0.ny * (TH + 16) + 4);
+  g.textAlign = 'left';
   var gp = at(tl.D);
   var gdx = -gp.ny, gdy = gp.nx;   /* ゴール線方向(法線と直交) */
   for (var ci = 0; ci < 10; ci++){
@@ -52189,6 +52779,7 @@ function rvDrawBG(tl){
   });
   /* 7) コーナー標識(小さく外側へ) */
   for (var s4 = 1; s4 <= 4; s4++){
+    if (tl._courseReal && tl._courseReal.atlas) continue; // 第276弾: 未検証の角位置を標識にしない。直線に角標識も出さない
     var cp = at(tl.D * (tl.stageF || RV_DIST_F)[s4]);
     g.fillStyle = 'rgba(255,255,255,.55)';
     g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
@@ -52331,14 +52922,17 @@ function rvDraw2D(cv, tl, st){
   g.translate(W / 2, H * 0.52);
   g.scale(cam.z, cam.z);
   g.translate(-cam.x, -cam.y);
-  g.drawImage(tl._bg, 0, 0);
+  g.drawImage(tl._bg, tl._bgX || 0, tl._bgY || 0);
 
-  /* スタートゲート(発走前だけ・スタート地点の後方) */
-  if (st.t < 0.3){
+  /* スタートゲート(★第275弾(D1): 発走後2秒までフェード表示。旧=t<0.3のみで
+     再生開始と同時に消え、スタート位置が判別しにくかった。外側へ「START」明示) */
+  if (st.t < 2.0){
     var d0 = { x: pts[1][0] - pts[0][0], y: pts[1][1] - pts[0][1] };
     var L0 = Math.hypot(d0.x, d0.y) || 1;
     var gx = pts[0][0] - d0.x / L0 * 16, gy = pts[0][1] - d0.y / L0 * 16;
     var nn = (tl.turn === 'R') ? { x: -d0.y / L0, y: d0.x / L0 } : { x: d0.y / L0, y: -d0.x / L0 };
+    g.save();
+    g.globalAlpha = (st.t < 0.3) ? 1 : Math.max(0, 1 - (st.t - 0.3) / 1.7);
     g.strokeStyle = '#5a5f57'; g.lineWidth = 5;
     g.beginPath();
     g.moveTo(gx + nn.x * -(RV_TRACK_HALF - 4), gy + nn.y * -(RV_TRACK_HALF - 4));
@@ -52346,6 +52940,11 @@ function rvDraw2D(cv, tl, st){
     g.stroke();
     g.strokeStyle = 'rgba(245,247,243,.8)'; g.lineWidth = 2;
     g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.9)';
+    g.font = 'bold 11px sans-serif'; g.textAlign = 'center';
+    g.fillText('START', gx + nn.x * (RV_TRACK_HALF + 12), gy + nn.y * (RV_TRACK_HALF + 12) + 4);
+    g.textAlign = 'left';
+    g.restore();
   }
 
   /* 馬: 位置→重なり補正(rvDeCollide=表示用)→内側から描画(選択馬は最後・手前) */
@@ -52418,6 +53017,16 @@ function rvSimStatus(){
   var nm = '';
   try { nm = String((state && state.race && state.race.name) || ''); } catch(e){}
   if (tl && tl.horses && tl.horses.length){
+    /* 第276弾: 予想が成立していても、経路未確認なら再生可能と断言しない。 */
+    if (typeof rvAtlasDecision === 'function' && typeof readRaceMeta === 'function'){
+      var rm = readRaceMeta(), gate = rvAtlasDecision(rm.place, tl.surf, tl.D);
+      if (gate.status === 'pending'){
+        el.textContent = '⚠ このコースは経路確認中です。別コースの図では代用しません。'; return;
+      }
+      if (gate.status === 'ambiguous'){
+        el.textContent = 'コース選択が必要です。再生ボタンから内回り・外回り等を選択してください。'; return;
+      }
+    }
     el.innerHTML = '<span style="color:var(--ok-ink);font-weight:600">✅ 再生できます</span>: ' +
       (nm ? esc(nm) + '／' : '') + tl.horses.length + '頭';
   } else {
@@ -52533,12 +53142,12 @@ function rvSimLoad(rid, d8){
   }
   if (st) st.innerHTML = '📥 出馬表とオッズを読み込み中…（取得済みなら通信しません）';
   try { if (typeof kaiBusy === 'function') kaiBusy(true); } catch(e){}
-  kaiImportByRaceId(rid, { d8: d8, stay: true }).then(function(){
+  return kaiImportByRaceId(rid, { d8: d8, stay: true }).then(function(){
     var nm = '';
     try { nm = String((state && state.race && state.race.name) || ''); } catch(e){}
     var n = 0;
     try { n = (state && state.horses) ? state.horses.length : 0; } catch(e){}
-    if (st) st.innerHTML = '✅ <b>' + esc(nm) + '</b>（' + n + '頭）を読み込みました。AI予想が組み上がっています → 下の「🎬 シミュレーションを再生」を押してください';
+    if (st) st.innerHTML = '✅ <b>' + esc(nm) + '</b>（' + n + '頭）を読み込みました。AI予想が組み上がっています → 下の「▶ 現在のレースをシミュレーション」を押してください';
     rvSimDayRender();
     rvSimStatus();
     rvSimAiRef(rid);
@@ -52577,6 +53186,7 @@ function rvSimAiRef(rid){
     '<div class="small muted" style="margin-top:3px">参照表示です（③AI展開予測タブと同じデータ）。シミュ映像の馬の動きはこのアプリ自身のAI予想（オッズ・脚質・学習DBから計算）で駆動します=netkeiba AI展開予測の位置に直接合わせるものではありません。</div></details>';
 }
 function rvOpen(res){
+  var rvCourseOpts = arguments[1] || {}; // 表示用の選択。予想/DB/保存は変更しない。
   try {
     /* 第220弾: レース映像はモーダルではなく専用タブ内で完結させる。
        既存の呼び出し元(旧カード/AI提案)からでも専用タブへ移動し、
@@ -52604,16 +53214,40 @@ function rvOpen(res){
       if (c0) c0.addEventListener('click', function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); });
       return;
     }
+    /* 第276弾: 同距離の内外などが曖昧なら、再生前に選択させる。
+       未確認候補を外回り/汎用図で埋めて「対応済み」としない。 */
+    var atlasDecision = null, pickMeta = (typeof readRaceMeta === 'function') ? readRaceMeta() : {};
+    if (typeof rvAtlasDecision === 'function') atlasDecision = rvAtlasDecision(pickMeta.place, tl.surf, tl.D, rvCourseOpts);
+    if (atlasDecision && atlasDecision.status !== 'ready' && atlasDecision.status !== 'unsupported'){
+      ov.innerHTML = '<div class="card"><h3>走行するコースを選択してください</h3>' +
+        '<p>競馬場と距離だけでは経路を確定できないか、経路の照合がまだ終わっていません。未確認の経路は別コースで代用しません。</p>' +
+        '<div id="rvCourseChoices" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
+      host.appendChild(ov);
+      var choices = ov.querySelector('#rvCourseChoices');
+      atlasDecision.candidates.forEach(function(c){
+        var wrap = document.createElement('div'), b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn'; b.setAttribute('data-course-id', c.id);
+        b.textContent = (c.label || c.path) + (c.pending ? '（経路確認中・再生不可）' : 'で再生');
+        b.disabled = !!c.pending;
+        b.addEventListener('click', function(){ rvOpen(res, {id:c.id, path:c.path}); });
+        wrap.appendChild(b);
+        if(c.pending){ var why=document.createElement('div'); why.className='small muted'; why.textContent=c.reason || '経路確認中'; wrap.appendChild(why); }
+        choices.appendChild(wrap);
+      });
+      return;
+    }
     /* ★第210弾: 実コース形状(対応コースのみ)を優先。未対応は汎用模式形状へフォールバック。
        走行モデル(rvTimeline/rvStateAt)は無変更=距離m→図形位置の写像のみ実形状化。 */
     var realC = null;
     try {
       var rmeta = (typeof readRaceMeta === 'function') ? readRaceMeta() : {};
-      realC = rvRealCourse(rmeta.place, tl.surf, tl.D);
+      realC = rvRealCourse(rmeta.place, tl.surf, tl.D, rvCourseOpts);
     } catch(e){ realC = null; }
     if (realC && realC.pts && realC.pts.length > 10){
       tl._pts = realC.pts;
-      tl._totalPx = 1880;
+      tl._totalPx = realC.totalPx || 1880;
+      tl._drawPts = realC.drawPts || null; // 第276弾: 一周だけの描画用走路(走行点列と分離)
+      tl.turn = realC.turn || tl.turn; // 第276弾: 地方の回り方向も選択経路に合わせる(予想計算は不変)
       tl._courseReal = realC.meta;
     } else {
       tl._pts = rvCoursePts(tl.turn);
@@ -52628,7 +53262,7 @@ function rvOpen(res){
     var pc = (res && res.pace) || {};
     var paceTxt = pc.label ? pc.label : (pc.score != null ? 'score ' + (+pc.score).toFixed(2) : '−');
     var surfTxt = tl.surf === 'd' ? 'ダート' : '芝';
-    var turnTxt = tl.turn === 'R' ? '右回り' : '左回り';
+    var turnTxt = (tl._courseReal && tl._courseReal.straight) ? '直線コース' : (tl.turn === 'R' ? '右回り' : '左回り');
     ov.innerHTML =
       '<div id="rvBox" style="background:var(--card);color:var(--ink);border:1px solid var(--line2);border-radius:14px;max-width:none;width:100%;padding:10px;overflow:visible;display:flex;flex-direction:column;box-sizing:border-box">' +
       '<div id="rvBar" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:2px 2px 6px;flex:0 0 auto">' +
@@ -52639,10 +53273,13 @@ function rvOpen(res){
       '<span class="chip small">' + tl.n + '頭</span>' +
       '<span class="chip small" title="②のAI展開予測で判定したペース">AIペース: ' + paceTxt + (pc.score != null ? ' (' + (+pc.score).toFixed(2) + ')' : '') + '</span>' +
       '<span class="chip small">' + turnTxt + '</span>' +
-      (tl._courseReal
+      (tl._courseReal && tl._courseReal.atlas
+        ? '<span class="chip small" style="background:#e8f5e9;color:#1b5e20" title="' + esc(tl._courseReal.src) + '">🗺 ' + (tl._courseReal.straight ? '直線コース' : '公式図準拠の概形') + '</span>'
+        : tl._courseReal
         ? '<span class="chip small" style="background:#e8f5e9;color:#1b5e20" title="' + esc(tl._courseReal.src) + '">🗺 実形状(簡略化)</span>'
         : '<span class="chip small" title="この競馬場・距離の実コース形状データは未対応です">🗺 汎用模式形状</span>') +
       '<span class="sp" style="flex:1"></span>' +
+      (atlasDecision && atlasDecision.candidates.length > 1 ? '<button type="button" class="btn small ghost" id="rvCourseAgain">経路を選び直す</button>' : '') +
       '<button type="button" class="btn small ghost" id="rvViewBtn" title="視点: 追従=先頭馬を追う / 全体=コース全体を見渡す / 注目馬=選択した馬を追う">📷 視点: 追従</button>' +
       '<button type="button" class="btn small ghost" id="rvFullBtn" title="全画面表示(Escで戻る)">⛶ 全画面</button>' +
       '<button type="button" class="btn small ghost" id="rvClose">✕ 閉じる</button>' +
@@ -52654,7 +53291,6 @@ function rvOpen(res){
       '<canvas id="rvCanvas3d" width="' + RV_CW + '" height="' + RV_CH + '" style="width:100%;display:none;border-radius:8px;background:#bcd9e8;cursor:pointer"></canvas>' +
       '<div id="rvRem" style="position:absolute;left:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">残り --- m</div>' +
       '<div id="rvClock" style="position:absolute;right:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">0:00.0</div>' +
-      '<div id="rvRankPanel" style="position:absolute;left:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.78);color:#fff;border-radius:8px;padding:6px 8px;font-size:11.5px;max-width:280px;line-height:1.45"></div>' +
       '<canvas id="rvMap" width="220" height="150" style="position:absolute;right:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.62);border-radius:8px"></canvas>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
@@ -52671,18 +53307,23 @@ function rvOpen(res){
       '<input type="range" id="rvSeek" min="0" max="' + tl.dur.toFixed(2) + '" step="0.02" value="0" style="flex:1;min-width:120px">' +
       '<span class="small muted" id="rvTime" style="font-variant-numeric:tabular-nums"></span>' +
       '</div>' +
+      '<details style="margin-top:6px;flex:0 0 auto"><summary style="cursor:pointer">順位・注目馬を選択</summary><div id="rvRankPanel" style="background:#20261c;color:#fff;border-radius:8px;padding:6px 8px;font-size:11.5px;max-height:160px;overflow:auto;line-height:1.45"></div></details>' +
       '<div id="rvFinish" style="display:none;margin-top:8px;flex:0 0 auto"></div>' +
       '<div class="small muted" style="margin-top:6px;line-height:1.6">※この映像は<b>②のAI予想（analyzeRace）の計算結果をそのまま再生したイメージ</b>です。' +
       '隊列（発走〜4角）は既存の展開イメージ・モデル（dvStageQs＝脚質×展開適性×想定ペース）、' +
       '<b>ゴールの着順はAI予想着順そのもの</b>です。予想確率・AI勝率・印・買い目の再計算は一切行いません。' +
-      '左下パネルの「順位」はシミュ上の走行位置順（毎フレーム変化）、「AI順」は②の予想着順（固定）で別物です。' +
+      '映像下の折りたたみ表の「順位」はシミュ上の走行位置順（毎フレーム変化）、「AI順」は②の予想着順（固定）で別物です。' +
       '残り距離は先頭馬の実走距離から算出します（時間比例の推定ではありません）。' +
-      (tl._courseReal
-        ? 'コース形状は<b>東京・芝1600mの実形状(簡略化)</b>: 最終直線525.9m(JRA公式)・スタート〜3角542m(JRA-VAN)・コーナー半径は推定値(タイトルに出典表示)。高低差(坂)・コース幅(A〜D)は未対応。'
-        : 'コース図は距離を全体に引き伸ばした<b>汎用の模式形状</b>（' + turnTxt + '・実際の競馬場の形状とは異なります。回り方向のみ競馬場別・実コース形状には未対応)。') +
+      (tl._courseReal && tl._courseReal.atlas
+        ? 'コース経路: ' + esc(tl._courseReal.src) + '（画像転載ではなく経路の独自描画です）。'
+        : tl._courseReal
+        ? 'コース形状は<b>この競馬場・距離の実形状(簡略化)</b>: 直線長・一周はJRA公式コース値、コーナー位置は閉ループ方程式で導出(出典はタイトルバーの🗺チップのタイトルに表示)。高低差(坂)・コース幅(A〜D)は未対応。'
+        : 'コース図は距離を全体に引き伸ばした<b>汎用の模式形状</b>（' + turnTxt + '・実際の競馬場の形状とは異なります。この競馬場×芝ダ×距離は実コースデータを未登録のため模式図で表示します=登録済み37組合せは実形状)。') +
       '馬または順位パネルの行をクリックすると注目馬を選択（馬名・印は選択した馬のみ表示・視点「注目馬」で追跡します）。右の帯は現在の順位（枠色＝馬番）。</div>';
     host.appendChild(ov);
 
+    var rvAgain = document.getElementById('rvCourseAgain');
+    if(rvAgain) rvAgain.addEventListener('click', function(){ rvOpen(res); });
     var cv = document.getElementById('rvCanvas');
     var cv3 = document.getElementById('rvCanvas3d');   /* ★第169弾: 3D用canvas(通常は非表示) */
     rvS = { tl: tl, t: 0, playing: false, rate: 1, view: 'chase', sel: -1,
@@ -52739,7 +53380,7 @@ function rvOpen(res){
         /* コース全体図(同じstates=同じ時刻。先頭馬=白・注目馬=黄・G=ゴール) */
         var mc = document.getElementById('rvMap');
         if (mc){
-          var g = mc.getContext('2d'), W = mc.width, H = mc.height, pts = tl._pts;
+          var g = mc.getContext('2d'), W = mc.width, H = mc.height, pts = tl._drawPts || tl._pts;
           g.clearRect(0, 0, W, H);
           if (pts && pts.length){
             var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
@@ -52755,17 +53396,19 @@ function rvOpen(res){
               if (pi === 0) g.moveTo(q[0], q[1]); else g.lineTo(q[0], q[1]);
             }
             g.stroke();
-            var q0 = XY(pts[0][0], pts[0][1]), q1 = XY(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+            var q0 = XY(tl._pts[0][0], tl._pts[0][1]), q1 = XY(tl._pts[tl._pts.length - 1][0], tl._pts[tl._pts.length - 1][1]);
             g.fillStyle = '#fff';
             g.beginPath(); g.arc(q0[0], q0[1], 2.6, 0, 7); g.fill();
-            g.fillStyle = '#ffd54f'; g.font = 'bold 10px sans-serif';
+            g.font = 'bold 10px sans-serif';
+            g.fillText('S', q0[0] + 5, q0[1] + 3);   /* ★第275弾(D1): スタート位置の明示(G=ゴールと対) */
+            g.fillStyle = '#ffd54f';
             g.beginPath(); g.arc(q1[0], q1[1], 3.4, 0, 7); g.fill();
             g.fillText('G', q1[0] + 5, q1[1] + 3);
             var live2 = states.slice().sort(function(a, b){ return b.d - a.d; });
             var leadNo = live2.length ? live2[0].no : -1;
             for (var hi = live2.length - 1; hi >= 0; hi--){
               var s = live2[hi];
-              var pp = rvPathAt(pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
+              var pp = rvPathAt(tl._pts, tl.turn, Math.min(s.d + (s.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
               var qq = XY(pp.x, pp.y);
               var isSel = (rvS.sel === s.no), isLead = (s.no === leadNo);
               g.beginPath();
@@ -52798,7 +53441,9 @@ function rvOpen(res){
         states.forEach(function(s){ if (s.no === rvS.sel) fsel = s; });
         if (fsel){
           var fp = rvPathAt(tl._pts, tl.turn, Math.min(fsel.d + (fsel.ro || 0), tl.D + RV_POST_GOAL_M), tl._totalPx, tl.D);
-          target = { x: fp.x, y: fp.y, z: 2.3, mode: 'focus' };
+          /* ★第275弾(D2): focusズーム2.3→1.7=選択馬で画面を覆わない(他馬・コースが
+             見える文脈を残す。3D側は rv3dCamOf の focus k3=0.95 で同期して引き気味) */
+          target = { x: fp.x, y: fp.y, z: 1.7, mode: 'focus' };
         }
       }
       if (!target) target = rvCamAt(tl, states, (rvS.view === 'focus') ? 'chase' : rvS.view);
@@ -52895,34 +53540,81 @@ function rvOpen(res){
     }
     document.getElementById('rvBack5').addEventListener('click', function(){ rvSeekBy(-5); });
     document.getElementById('rvFwd5').addEventListener('click', function(){ rvSeekBy(5); });
-    /* ★第209弾: 全画面(rvBoxを最大化)。fullscreen時だけinline styleを差し替え、
-       解除時は元のstyle属性をそのまま復元する(個別プロパティを''で消す方式だと
-       元から書いてあった max-width:1000px 等が失われてレイアウトが壊れるため)。 */
-    var rvFSBox = null, rvFSStage = null;
+    /* ★第209弾→★第275弾(D3): 全画面の堅牢化。①Safari/iOS系のベンダー接頭辞
+       webkitRequestFullscreen にも対応、②API拒否/非対応時はCSS疑似全画面
+       (position:fixed・最前面・Esc/ボタンで解除)へフォールバック=どの環境でも
+       「全画面にできない」をなくす、③canvasはアスペクト比3:2を保ったまま画面内に
+       フィット(旧=width:100%固定で、横長画面では縦がstageからはみ出し上下が切れた)。
+       style復元は第209弾と同じ「保存した属性をそのまま戻す」方式。 */
+    var rvFSBox = null, rvFSStage = null, rvFSCv = null, rvFSCv3 = null, rvFSCss = false;
+    var rvFsFit = function(on){
+      var cvA = document.getElementById('rvCanvas'), cvB = document.getElementById('rvCanvas3d');
+      if (on){
+        if (cvA && rvFSCv === null) rvFSCv = cvA.getAttribute('style');
+        if (cvB && rvFSCv3 === null) rvFSCv3 = cvB.getAttribute('style');
+        [cvA, cvB].forEach(function(c){ if (!c) return;
+          c.style.width = 'auto'; c.style.height = 'auto';
+          c.style.maxWidth = '100%'; c.style.maxHeight = '100%';
+          c.style.aspectRatio = '3 / 2';
+        });
+      } else {
+        if (cvA && rvFSCv !== null){ cvA.setAttribute('style', rvFSCv); rvFSCv = null; }
+        if (cvB && rvFSCv3 !== null){ cvB.setAttribute('style', rvFSCv3); rvFSCv3 = null; }
+        /* 全画面中の2D/3D切替を復元時に巻き戻さないよう、現在のmode3dで表示を入れ直す */
+        if (rvS){ var d3on = !!rvS.mode3d;
+          var cA2 = document.getElementById('rvCanvas'), cB2 = document.getElementById('rvCanvas3d');
+          if (cA2) cA2.style.display = d3on ? 'none' : 'block';
+          if (cB2) cB2.style.display = d3on ? 'block' : 'none'; }
+      }
+    };
     var rvOnFS = function(){
       var el = document.getElementById('rvBox');
       if (!el) return;
       var stg = document.getElementById('rvStage');
-      if (document.fullscreenElement){
+      var fbtn = document.getElementById('rvFullBtn');
+      var fsOn = !!(document.fullscreenElement || document.webkitFullscreenElement) || rvFSCss;
+      if (fsOn){
         if (rvFSBox === null) rvFSBox = el.getAttribute('style');
         if (stg && rvFSStage === null) rvFSStage = stg.getAttribute('style');
         el.style.maxWidth = 'none'; el.style.width = '100vw';
-        el.style.height = '100vh'; el.style.maxHeight = '100vh';
+        el.style.height = '100vh'; el.style.maxHeight = '100vh'; el.style.overflow = 'auto';
+        if (rvFSCss){   /* CSS疑似全画面(API不可時のフォールバック)=最前面へ固定 */
+          el.style.position = 'fixed'; el.style.left = '0'; el.style.top = '0';
+          el.style.zIndex = '2147483000'; el.style.background = '#0b0d09';
+        }
         if (stg){ stg.style.flex = '1'; stg.style.display = 'flex'; stg.style.alignItems = 'center'; stg.style.justifyContent = 'center'; }
+        rvFsFit(true);
+        if (fbtn) fbtn.textContent = '🗗 全画面解除';
       } else {
         if (rvFSBox !== null){ el.setAttribute('style', rvFSBox); rvFSBox = null; }
         if (stg && rvFSStage !== null){ stg.setAttribute('style', rvFSStage); rvFSStage = null; }
+        rvFsFit(false);
+        rvFSCss = false;
+        if (fbtn) fbtn.textContent = '⛶ 全画面';
       }
     };
     document.addEventListener('fullscreenchange', rvOnFS);
+    document.addEventListener('webkitfullscreenchange', rvOnFS);
+    var rvFsKey = function(ev){
+      if (ev.key === 'Escape' && rvFSCss){ rvFSCss = false; rvOnFS(); ev.stopImmediatePropagation(); }
+    };
+    document.addEventListener('keydown', rvFsKey);
     document.getElementById('rvFullBtn').addEventListener('click', function(){
       try {
-        if (document.fullscreenElement){ document.exitFullscreen(); }
-        else {
+        var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement) || rvFSCss;
+        if (isFs){
+          if (rvFSCss){ rvFSCss = false; rvOnFS(); }
+          else if (document.exitFullscreen){ var pe = document.exitFullscreen(); if (pe && pe.catch) pe.catch(function(){}); }
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } else {
           var el = document.getElementById('rvBox');
-          if (el.requestFullscreen) el.requestFullscreen();
+          var fn = el && (el.requestFullscreen || el.webkitRequestFullscreen);
+          if (fn){
+            var p = fn.call(el);
+            if (p && p.catch) p.catch(function(){ rvFSCss = true; rvOnFS(); });
+          } else { rvFSCss = true; rvOnFS(); }
         }
-      } catch(e){}
+      } catch(e){ try { rvFSCss = true; rvOnFS(); } catch(e2){} }
     });
     /* ★第209弾: 順位パネルの行クリック=注目馬の選択/解除(映像内の馬クリックと同じ rvS.sel) */
     document.getElementById('rvRankPanel').addEventListener('click', function(ev){
@@ -52991,6 +53683,7 @@ function rvOpen(res){
     function rvClose(){
       try { cancelAnimationFrame(rvS.raf); } catch(e){}
       try { if (typeof rv3dStop === 'function') rv3dStop(); } catch(e){}   /* ★第169弾: 3DのGPUリソース解放(冪等) */
+      try { document.removeEventListener('webkitfullscreenchange', rvOnFS); document.removeEventListener('keydown', rvFsKey); } catch(e){}
       try { document.removeEventListener('fullscreenchange', rvOnFS); } catch(e){}   /* ★第209弾: リスナー後片付け */
       try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch(e){}
       var o = document.getElementById('rvOverlay');
@@ -53030,6 +53723,114 @@ function rvOpen(res){
     });
   } catch(e){}
 })();
+
+/* 第276弾追加依頼: シミュタブの中央/地方分離・開催場/レースの折り込み。
+ * 一覧/プレビューでは現在レースや学習DBを書き換えない。
+ * 「読み込む」の明示操作だけ現在レースを変更。地方に中央の取得先を使わない。
+ */
+var RS_CARDS={mode:'jra',dates:{},busy:false,loading:false,open:{},previews:{}};
+function rvSimCardsMode(){var e=document.getElementById('rsKind');return e&&e.value==='nar'?'nar':'jra';}
+function rvSimCardsKind(rid){var s=String(rid||'');if(!/^\d{12}$/.test(s))return '';var v=+s.slice(4,6);return v>=1&&v<=10?'jra':v>=30&&v<=65?'nar':'';}
+function rvSimCardsSwitch(){
+ if(RS_CARDS.busy||RS_CARDS.loading){document.getElementById('rsKind').value=RS_CARDS.mode;return;}
+ var e=document.getElementById('rsDate');RS_CARDS.dates[RS_CARDS.mode]=e.value;
+ RS_CARDS.mode=rvSimCardsMode();e.value=RS_CARDS.dates[RS_CARDS.mode]||e.value;
+ var st=document.getElementById('rsStat');if(st)st.textContent='';
+ var ai=document.getElementById('rsAiBox');if(ai)ai.innerHTML='';
+ rvSimDayRender();
+}
+function rvSimCardsLock(on){['rsKind','rsDate','rsBtn'].forEach(function(id){var e=document.getElementById(id);if(e)e.disabled=!!on;});}
+function rvSimCardsItems(mode){
+ if(mode==='jra')return (typeof preListAll==='function'?preListAll():[]).filter(function(it){return it&&rvSimCardsKind(it.rid)==='jra';});
+ var days=typeof narDayLs==='function'?narDayLs().days:{},out=[];
+ Object.keys(days||{}).forEach(function(d8){((days[d8]||{}).venues||[]).forEach(function(v){(v.races||[]).forEach(function(r){
+  if(rvSimCardsKind(r.rid)!=='nar')return;
+  out.push({rid:r.rid,d8:d8,place:v.name,rnum:r.rnum,name:r.name,n:r.heads,dist:r.dist,surface:r.surface,time:r.time});
+ });});});return out;
+}
+function rvSimCardsKey(mode,d8,rid){return mode+'/'+d8+'/'+rid;}
+function rvSimCardsHtml(mode,rid,d8){
+ if(rvSimCardsKind(rid)!==mode)return Promise.reject(new Error('中央/地方とレースIDが一致しません'));
+ if(mode==='jra')return nkFetchCardText(rid,{d8:d8});
+ var cached=narCardGet(rid);
+ return (cached?Promise.resolve(cached):narGet(narRaceUrl(rid))).then(function(html){
+  var rows=narParseShutuba(html);if(!rows.length)throw new Error('地方の出馬表を解析できません。未掲載または取得元の変更の可能性があります');
+  if(!cached)narCardSet(rid,html,!rows.some(function(r){return +r.odds>0;}));return html;
+ });
+}
+function rvSimCardsPreview(detail,it,mode){
+ var body=detail.querySelector('[data-rspreview]');if(!body||body.getAttribute('data-loaded'))return Promise.resolve();
+ if(body.getAttribute('data-busy'))return Promise.resolve();body.setAttribute('data-busy','1');body.textContent='出馬表を取得中…';
+ return rvSimCardsHtml(mode,it.rid,it.d8).then(function(html){
+  var rows=mode==='nar'?narParseShutuba(html):nkParseShutuba(html);
+  if(!rows.length)throw new Error('出馬表が未掲載、または解析できませんでした');
+  var heads=['枠','馬番','馬名','性齢','斤量','騎手','単勝'];
+  body.innerHTML='<div style="overflow:auto"><table class="tbl"><thead><tr>'+heads.map(function(x){return '<th>'+x+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+[r.frame,r.no,r.name,r.sexAge,r.weight,r.jockey,r.odds||'未掲載'].map(function(x){return '<td>'+esc(String(x||''))+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div><div class="small muted">取得時点の出馬表です。オッズは変動します。閲覧のみでは現在のレースを変更しません。</div>';
+  body.setAttribute('data-loaded','1');
+ }).catch(function(e){body.textContent='⚠ '+((e&&e.message)||e)+'（閉じて開き直すと再試行）';}).then(function(){body.removeAttribute('data-busy');});
+}
+rvSimDayRender=function(){
+ var box=document.getElementById('rsList'),el=document.getElementById('rsDate');if(!box||!el)return;
+ if(!el.value&&typeof jlTodayD8==='function'){var t=jlTodayD8();if(/^\d{8}$/.test(t))el.value=t.slice(0,4)+'-'+t.slice(4,6)+'-'+t.slice(6,8);}
+ var mode=rvSimCardsMode(),d8=rvSimD8(),items=rvSimCardsItems(mode),days={};RS_CARDS.mode=mode;
+ items.forEach(function(it){if(/^\d{8}$/.test(String(it.d8)))days[it.d8]=true;});
+ var btn=document.getElementById('rsBtn');if(btn){btn.textContent=mode==='nar'?'📥 地方の開催・レース一覧を取得':'📥 その日の出馬表を一括取得';btn.title=mode==='nar'?'地方の開催一覧を取得します。各レースを開くと出馬表を取得します。':'中央の出馬表と事前予想を既存の一括取得機能で取得します。';}
+ var list=items.filter(function(it){return String(it.d8)===d8;}),groups={},h=[];
+ h.push('<div class="small muted">'+(mode==='nar'?'地方競馬':'中央競馬')+'の取得済み一覧（開催場→レースの順に開けます）</div>');
+ Object.keys(days).sort().reverse().forEach(function(k){h.push('<button type="button" class="btn small ghost" data-rsday="'+k+'"'+(k===d8?' disabled':'')+'>'+esc(typeof preD8Label==='function'?preD8Label(k):k)+'</button>');});
+ list.forEach(function(it){var p=String(it.place||'開催場不明');if(!groups[p])groups[p]=[];groups[p].push(it);});
+ Object.keys(groups).sort().forEach(function(p){
+  var key=rvSimCardsKey(mode,d8,'venue/'+p),rows=groups[p].sort(function(a,b){return (+a.rnum||0)-(+b.rnum||0);});
+  h.push('<details class="rsVenue" data-rsfold="'+esc(key)+'"'+(RS_CARDS.open[key]?' open':'')+'><summary style="cursor:pointer;padding:10px;font-weight:700">'+esc(p)+'（'+rows.length+'レース）</summary>');
+  rows.forEach(function(it){var k=rvSimCardsKey(mode,d8,it.rid),ttl=p+' '+it.rnum+'R '+(it.name||it.raceName||'');
+   h.push('<details class="rsCard" data-rsrid="'+esc(it.rid)+'" data-rsfold="'+esc(k)+'"'+(RS_CARDS.open[k]?' open':'')+' style="margin:4px 10px"><summary style="cursor:pointer;padding:8px">'+esc(ttl)+(it.time?' '+esc(it.time):'')+(it.n?' '+esc(String(it.n))+'頭':'')+'</summary><button type="button" class="btn primary" data-rsload="'+esc(it.rid)+'" data-rsd8="'+esc(d8)+'">🎬 このレースを読み込む</button><div data-rspreview style="margin:6px 0">開くと出馬表を表示します。</div></details>');
+  });h.push('</details>');
+ });
+ if(!list.length)h.push('<div class="small muted">この日付の'+(mode==='nar'?'地方':'中央')+'の取得済み一覧はありません。上の取得ボタンを押してください。</div>');
+ box.innerHTML=h.join('');
+ box.querySelectorAll('[data-rsday]').forEach(function(b){b.onclick=function(){if(RS_CARDS.busy||RS_CARDS.loading)return;var k=b.getAttribute('data-rsday');el.value=k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8);rvSimDayRender();};});
+ box.querySelectorAll('details[data-rsfold]').forEach(function(d){d.addEventListener('toggle',function(){RS_CARDS.open[d.getAttribute('data-rsfold')]=d.open;});});
+ box.querySelectorAll('details[data-rsrid]').forEach(function(d){var it=list.find(function(x){return String(x.rid)===d.getAttribute('data-rsrid');});var fill=function(){if(d.open)rvSimCardsPreview(d,it,mode);};d.addEventListener('toggle',fill);if(d.open)fill();});
+ box.querySelectorAll('[data-rsload]').forEach(function(b){b.onclick=function(){if(RS_CARDS.busy||RS_CARDS.loading)return;rvSimLoad(b.getAttribute('data-rsload'),b.getAttribute('data-rsd8'));};});
+};
+rvSimDayFetch=function(){
+ if(RS_CARDS.busy||RS_CARDS.loading)return Promise.resolve();
+ var mode=rvSimCardsMode(),d8=rvSimD8(),st=document.getElementById('rsStat');
+ if(!/^\d{8}$/.test(d8)){if(st)st.textContent='⚠ 日付を選んでください';return Promise.resolve();}
+ RS_CARDS.busy=true;rvSimCardsLock(true);if(st)st.textContent=(mode==='nar'?'地方':'中央')+'の一覧を取得中…';
+ var p=Promise.resolve().then(function(){
+  if(mode==='jra')return preDayFetch(d8,{odds:true},function(msg){if(st)st.textContent=msg;}).then(function(r){return '中央: 取得 '+r.ok+'／保存済み '+(r.skipHave+r.skipDone)+'／失敗 '+r.fail;});
+  return narGet(narDayUrl(d8)).then(function(html){var vs=narParseDay(html);if(!vs.length)throw new Error('地方の開催がないか、一覧を解析できませんでした。既存の取得済み一覧は保持しています');narDaySet(d8,vs);return '地方: '+vs.length+'場のレース一覧を取得しました。開催場とレースを開くと出馬表を取得します。';});
+ });
+ return p.then(function(msg){if(st)st.textContent='✅ '+msg;},function(e){if(st)st.textContent='⚠ '+((e&&e.message)||e);}).then(function(){RS_CARDS.busy=false;rvSimCardsLock(false);rvSimDayRender();rvSimStatus();});
+};
+var rvSimCardsLegacyLoad=rvSimLoad;
+rvSimLoad=function(rid,d8){
+ var mode=rvSimCardsKind(rid),st=document.getElementById('rsStat');
+ if(RS_CARDS.loading||RS_CARDS.busy)return Promise.resolve();
+ if(mode!==rvSimCardsMode()){if(st)st.textContent='⚠ 中央/地方とレースIDが一致しません';return Promise.resolve();}
+ if(String(rid).slice(4,6)==='65'){if(st)st.textContent='⚠ 帯広ばんえいは平地シミュレーションの対象外です。出馬表の閲覧はできます。';return Promise.resolve();}
+ if(mode==='jra'){
+  RS_CARDS.loading=true;rvSimCardsLock(true);
+  return Promise.resolve().then(function(){return rvSimCardsLegacyLoad(rid,d8);}).then(function(){RS_CARDS.loading=false;rvSimCardsLock(false);},function(e){RS_CARDS.loading=false;rvSimCardsLock(false);if(st)st.textContent='⚠ '+((e&&e.message)||e);});
+ }
+ RS_CARDS.loading=true;rvSimCardsLock(true);if(st)st.textContent='地方の出馬表を読み込み中…';
+ return rvSimCardsHtml('nar',rid,d8).then(function(html){
+  var rows=narParseShutuba(html),meta=nkParseRaceMeta(html)||{},item=rvSimCardsItems('nar').find(function(x){return String(x.rid)===String(rid)&&String(x.d8)===String(d8);});
+  if(!rows.length||!item)throw new Error('地方の出馬表または日付付きレース情報を確認できません');
+  meta.place=meta.place||item.place;meta.dist=meta.dist||item.dist;meta.surface=meta.surface||item.surface;meta.rnum=meta.rnum||item.rnum;meta.name=meta.name||item.name;
+  if(!meta.place||!meta.dist||!meta.surface)throw new Error('競馬場・距離・芝ダが未確認のため読み込みを中止しました');
+  meta.date=d8.slice(0,4)+'年'+parseInt(d8.slice(4,6),10)+'月'+parseInt(d8.slice(6,8),10)+'日';
+  var horses=rows.map(function(r){return mkHorse({frame:r.frame,no:r.no,name:r.name,sexAge:r.sexAge,weight:r.weight,jockey:r.jockey,nk:r.nk,odds:r.odds,ninki:r.pop});});
+  if(typeof rvS!=='undefined'&&rvS&&typeof rvS._close==='function')rvS._close();
+  state.horses=horses;['name','place','dist','surface','baba','time','grade','wx','babaRaw'].forEach(function(k){state.race[k]='';});
+  applyNkRaceMeta(meta);state.raceId=rid;state.raceAt=Date.now();
+  if(typeof nkSetRaceDate8==='function')nkSetRaceDate8(meta);
+  saveNow();rebuildHorseTable();if(typeof renderKentaiFull==='function')renderKentaiFull();
+  if(st)st.textContent='✅ 地方 '+item.place+' '+item.rnum+'R（'+rows.length+'頭）を読み込みました。下の再生ボタンでシミュレーションできます。オッズは出馬表取得時点の値です。';
+  var ai=document.getElementById('rsAiBox');if(ai)ai.textContent='地方の出馬表を反映しました。映像はアプリ自身の予想に基づき、公式レース映像ではありません。';
+ }).catch(function(e){if(st)st.textContent='⚠ 読み込み失敗: '+((e&&e.message)||e);}).then(function(){RS_CARDS.loading=false;rvSimCardsLock(false);rvSimDayRender();rvSimStatus();});
+};
 
 /* =====================================================================
    p96_racevideo3d.js — ★第169弾(Phase 2a): 🎬 レース映像 3D描画基盤
@@ -53368,7 +54169,11 @@ function rv3dCamOf(cam2d, mode){
      目標=画面高の約10%として距離を約0.55倍に。spread(3-4角)は馬群全体の
      把握を優先して控えめ(0.72)・full(全体俯瞰)は従来どおり。
      モード境界の急変は rv3dPaint 側の距離平滑化で緩和する。 */
-  var k3 = (mode === 'chase' || mode === 'wire' || mode === 'focus') ? 0.55 :
+  /* ★第275弾(D2): focus(注目馬)は0.55→0.95で引き気味(カメラ距離≈239→413)。
+     旧値は選択馬が画面の大部分を占め「他馬・コースが見えない」覆い感の原因。
+     chase/wireは0.55のまま(馬≈画面高1/10の没入感は第209弾で調整済み)。 */
+  var k3 = (mode === 'focus') ? 0.95 :
+           (mode === 'chase' || mode === 'wire') ? 0.55 :
            (mode === 'spread') ? 0.72 : 1.0;
   var dist = (1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1))) * k3;
   var el = 22 * Math.PI / 180;   /* 俯角22°<画角52°/2 → 空と地平線が見える */
@@ -53694,12 +54499,12 @@ function rv3dStart(cv, tl){
        ・スタートゲート・ゴール線・内馬場・スタンドで競馬場としての見取りを確保。
        ===================================================== */
     var pts = tl._pts, TH = (typeof RV_TRACK_HALF !== 'undefined') ? RV_TRACK_HALF : 46;
-    var sp = rv3dSplinePts(pts, 3);                       /* 描画用スプライン(約3px間隔) */
+    var sp = rv3dSplinePts(tl._drawPts || pts, 3);                       /* 描画用スプライン(約3px間隔) */
     /* ★第273弾(A): ランオフ=ゴール後も走路リボン/柵を約34m延長して描く(馬のゴール後
        減速域=rvPathAtのゴール後延長と同一幾何)。閉ループの汎用オーバルではrvRunoffDirが
        null=延長しない(スタート直線と同一位置の柵が二重化してZファイティングするため)。 */
     try {
-      var rd3 = (typeof rvRunoffDir === 'function') ? rvRunoffDir(pts, tl._totalPx || 1880, tl.D) : null;
+      var rd3 = (!tl._drawPts && typeof rvRunoffDir === 'function') ? rvRunoffDir(pts, tl._totalPx || 1880, tl.D) : null;
       if (rd3){
         var lsp = sp[sp.length - 1];
         for (var rq = 3; rq < rd3.lenPx; rq += 3) sp.push([lsp[0] + rd3.ux * rq, lsp[1] + rd3.uy * rq]);
@@ -53731,7 +54536,7 @@ function rv3dStart(cv, tl){
     }
 
     /* 内馬場(コース内側のやや濃い緑=コースとの見分けと立体感の基準) */
-    ribbon(TH + 4, TH + 340, 0.12, new T.MeshLambertMaterial({
+    if (!(tl._courseReal && tl._courseReal.atlas)) ribbon(TH + 4, TH + 340, 0.12, new T.MeshLambertMaterial({
       color: tl.surf === 't' ? 0x648a48 : 0x5f8244, side: T.DoubleSide }), 0);
 
     /* 走路面: 芝=刈り込み縞テクスチャ / ダート=無地 */
@@ -53932,6 +54737,7 @@ function rv3dStart(cv, tl){
        視点が切り替わっても文字が横倒しにならない。模式オーバルの区分表示であり、
        実在競馬場の正確なコーナー位置を示すものではない。 */
     for (var cornerNo = 1; cornerNo <= 4; cornerNo++){
+      if (tl._courseReal && tl._courseReal.atlas) continue; // 第276弾: 新経路は角アンカー確認後に標識を付ける
       var cp = rv3dPathPose(pts, tl.turn, tl.D * (tl.stageF || RV_DIST_F)[cornerNo], tl._totalPx, tl.D);
       var cox = cp.nx, coz = cp.ny;
       var cdx = cp.x + cox * 10 - 480, cdz = cp.y + coz * 10 - 380;
@@ -53955,6 +54761,7 @@ function rv3dStart(cv, tl){
     }
 
     /* スタンド(向正面の内側・低く控えめ): コース全体の見取りの基準点 */
+    if (!(tl._courseReal && tl._courseReal.atlas)){ // 未調査の固定スタンドを新経路の走路上に置かない
     var stand = keep(new T.Mesh(
       new T.BoxGeometry(430, 30, 56),
       new T.MeshLambertMaterial({ color: 0xe8ebe3 })));
@@ -53963,6 +54770,7 @@ function rv3dStart(cv, tl){
       new T.BoxGeometry(444, 4, 66),
       new T.MeshLambertMaterial({ color: 0x5d7f8f })));
     roof.position.set(480, 32, 240 + TH + 118);
+    }
 
     /* 馬(★第175弾 Phase 2c): Quaternius CC0モデル(GLB同梱)を16頭で共有。
        読込失敗・未読込時は第174弾の簡易馬(脚4本)へフォールバック。
@@ -54381,10 +55189,11 @@ function rv3dPaint(cv, tl, st){
         }
         if (m.jk) m.jk.upper.rotation.z = -0.3;   /* フォールバック騎手=常時前傾 */
       }
-      /* ★第211弾: スプライト22→17(選択30→26)・高さ36→33=馬体と騎手の識別を優先 */
+      /* ★第211弾: スプライト22→17・高さ36→33=馬体と騎手の識別を優先
+         ★第275弾(D2): 選択馬26→20(近距離でも札が画面を圧迫しない=覆い感の抑制) */
       m.spr.position.set(0, m.anim ? 33 : 25, 0);
       var sel = (st.sel === s.no);
-      m.spr.scale.set(sel ? 26 : 17, sel ? 26 : 17, 1);
+      m.spr.scale.set(sel ? 20 : 17, sel ? 20 : 17, 1);
       /* ★Phase V-1: 接地シャドウ=馬と同一位置(rvPathAt+laneOff)・同一向き。
          y=0.3は芝リボン(0.25)のすぐ上=z-fightingなし・決定的。 */
       if (m.shd){
