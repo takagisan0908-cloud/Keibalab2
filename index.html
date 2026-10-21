@@ -52791,82 +52791,16 @@ function rvDrawBG(tl){
 
 /* ---------- 馬1頭の描画(進行方向へ回転・ギャロップの脚・勝負服=枠色) ---------- */
 function rvHorse(g, s, x, y, ang, tl, st){
-  var ph = rvHorseStride(s.d, s.no);
-  var coat = rvCoatOf(s.no);
-  var sel = (st.sel === s.no);
-  /* 影(回転の外・地面) */
-  g.beginPath();
-  g.ellipse(x + 1.5, y + 10, 13, 4.5, ang, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(20,30,12,.28)';
-  g.fill();
+  /* 第277弾: 2Dは丸付き馬番のみ。馬体・影・馬名の重ね描きなし。 */
   g.save();
-  g.translate(x, y);
-  g.rotate(ang);
-  /* 脚(ギャロップ: 前脚対と後脚対が逆位相で振れる) */
-  function leg(hx, phase, len){
-    var sw = Math.sin(ph + phase);
-    g.strokeStyle = coat; g.lineWidth = 2.4; g.lineCap = 'round';
-    g.beginPath();
-    g.moveTo(hx, 2);
-    g.lineTo(hx + sw * 5, 6 + len * 0.45);
-    g.lineTo(hx + sw * 7.5, 11 + len);
-    g.stroke();
-  }
-  leg(-7.5, Math.PI, 2.5); leg(-6.0, Math.PI + 2.6, 2.0);
-  leg(6.5, 0, 2.5);        leg(8.0, 2.6, 2.0);
-  /* 尻尾(後方になびく) */
-  g.strokeStyle = coat; g.lineWidth = 2.2;
-  g.beginPath();
-  g.moveTo(-10.5, -1.5);
-  g.quadraticCurveTo(-15, -2 + Math.sin(ph * 0.5) * 2, -17, 1 + Math.sin(ph * 0.7) * 2);
-  g.stroke();
-  /* 胴・首・頭 */
-  g.beginPath(); g.ellipse(0, 0, 11, 5.2, 0, 0, Math.PI * 2);
-  g.fillStyle = coat; g.fill();
-  g.beginPath();
-  g.moveTo(7.5, -2.2);
-  g.quadraticCurveTo(13, -4.5, 15.5, -7.5);
-  g.lineTo(18.5, -6.2);
-  g.quadraticCurveTo(16.5, -3.2, 13.5, -1.2);
-  g.closePath();
-  g.fillStyle = coat; g.fill();
-  g.beginPath(); g.ellipse(17.5, -6.8, 2.6, 1.7, -0.5, 0, Math.PI * 2);
-  g.fill();
-  /* 背中のハイライト */
-  g.beginPath(); g.ellipse(-0.5, -2.2, 8.5, 2.0, 0, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(255,240,210,.18)'; g.fill();
-  /* 騎手(勝負服=枠色・ヘルメット白・前傾) */
-  g.beginPath(); g.ellipse(1.0, -5.0, 5.0, 3.2, -0.15, 0, Math.PI * 2);
-  g.fillStyle = s.col; g.fill();
-  g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 0.8; g.stroke();
-  g.strokeStyle = s.col; g.lineWidth = 2.2;
-  g.beginPath(); g.moveTo(4.5, -5.5); g.lineTo(9.5, -4.5); g.stroke();   /* 腕(手綱へ) */
-  g.beginPath(); g.arc(2.6, -8.6, 2.2, 0, Math.PI * 2);
-  g.fillStyle = '#f5f7f3'; g.fill();                                      /* ヘルメット */
-  g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.8; g.stroke();
+  g.beginPath(); g.arc(x, y, 10, 0, Math.PI * 2);
+  g.fillStyle = '#fff'; g.fill();
+  g.strokeStyle = st.sel === s.no ? '#b03a2e' : '#222';
+  g.lineWidth = st.sel === s.no ? 3 : 1.5; g.stroke();
+  g.fillStyle = '#111'; g.font = 'bold 12px sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(String(s.no), x, y);
   g.restore();
-  /* 馬番バッジ(回転しない=常に真上・読める向き)。★第211弾: 半径7.5→6・枠3→2・
-     半透明背景=密集時に馬体と騎手の識別を優先(バッジが馬を支配しない) */
-  g.beginPath(); g.arc(x, y - 15, 6, 0, Math.PI * 2);
-  g.fillStyle = 'rgba(255,255,255,.88)'; g.fill();
-  g.lineWidth = 2; g.strokeStyle = s.col; g.stroke(); g.lineWidth = 1;
-  g.fillStyle = '#222'; g.font = 'bold 9.5px sans-serif'; g.textAlign = 'center';
-  g.fillText(String(s.no), x, y - 11.8);
-  g.textAlign = 'left';
-  if (sel){
-    g.beginPath(); g.arc(x, y - 15, 10.5, 0, Math.PI * 2);
-    g.strokeStyle = '#b03a2e'; g.lineWidth = 2.5; g.setLineDash([4, 3]); g.stroke(); g.setLineDash([]);
-    /* 選択時のみ詳細(馬名・印)を表示 = 密集防止 */
-    var lbl = String(s.no) + ' ' + String(s.name || '').slice(0, 10) + (s.mark ? ' ' + s.mark : '');
-    g.font = 'bold 12px sans-serif';
-    var w2 = g.measureText(lbl).width + 12;
-    g.fillStyle = 'rgba(255,255,255,.92)';
-    g.fillRect(x + 12, y - 36, w2, 18);
-    g.strokeStyle = s.col; g.lineWidth = 1.5;
-    g.strokeRect(x + 12, y - 36, w2, 18);
-    g.fillStyle = '#222';
-    g.fillText(lbl, x + 18, y - 23);
-  }
 }
 
 /* ---------- 右端のライブ順位ストリップ(全馬の現在順・枠色) ---------- */
@@ -53281,7 +53215,6 @@ function rvOpen(res){
       '<span class="sp" style="flex:1"></span>' +
       (atlasDecision && atlasDecision.candidates.length > 1 ? '<button type="button" class="btn small ghost" id="rvCourseAgain">経路を選び直す</button>' : '') +
       '<button type="button" class="btn small ghost" id="rvViewBtn" title="視点: 追従=先頭馬を追う / 全体=コース全体を見渡す / 注目馬=選択した馬を追う">📷 視点: 追従</button>' +
-      '<button type="button" class="btn small ghost" id="rvFullBtn" title="全画面表示(Escで戻る)">⛶ 全画面</button>' +
       '<button type="button" class="btn small ghost" id="rvClose">✕ 閉じる</button>' +
       '</div>' +
       '<div id="rvStage" style="position:relative;background:#eef4ea;border-radius:8px;overflow:hidden;flex:0 0 auto">' +
@@ -53540,82 +53473,6 @@ function rvOpen(res){
     }
     document.getElementById('rvBack5').addEventListener('click', function(){ rvSeekBy(-5); });
     document.getElementById('rvFwd5').addEventListener('click', function(){ rvSeekBy(5); });
-    /* ★第209弾→★第275弾(D3): 全画面の堅牢化。①Safari/iOS系のベンダー接頭辞
-       webkitRequestFullscreen にも対応、②API拒否/非対応時はCSS疑似全画面
-       (position:fixed・最前面・Esc/ボタンで解除)へフォールバック=どの環境でも
-       「全画面にできない」をなくす、③canvasはアスペクト比3:2を保ったまま画面内に
-       フィット(旧=width:100%固定で、横長画面では縦がstageからはみ出し上下が切れた)。
-       style復元は第209弾と同じ「保存した属性をそのまま戻す」方式。 */
-    var rvFSBox = null, rvFSStage = null, rvFSCv = null, rvFSCv3 = null, rvFSCss = false;
-    var rvFsFit = function(on){
-      var cvA = document.getElementById('rvCanvas'), cvB = document.getElementById('rvCanvas3d');
-      if (on){
-        if (cvA && rvFSCv === null) rvFSCv = cvA.getAttribute('style');
-        if (cvB && rvFSCv3 === null) rvFSCv3 = cvB.getAttribute('style');
-        [cvA, cvB].forEach(function(c){ if (!c) return;
-          c.style.width = 'auto'; c.style.height = 'auto';
-          c.style.maxWidth = '100%'; c.style.maxHeight = '100%';
-          c.style.aspectRatio = '3 / 2';
-        });
-      } else {
-        if (cvA && rvFSCv !== null){ cvA.setAttribute('style', rvFSCv); rvFSCv = null; }
-        if (cvB && rvFSCv3 !== null){ cvB.setAttribute('style', rvFSCv3); rvFSCv3 = null; }
-        /* 全画面中の2D/3D切替を復元時に巻き戻さないよう、現在のmode3dで表示を入れ直す */
-        if (rvS){ var d3on = !!rvS.mode3d;
-          var cA2 = document.getElementById('rvCanvas'), cB2 = document.getElementById('rvCanvas3d');
-          if (cA2) cA2.style.display = d3on ? 'none' : 'block';
-          if (cB2) cB2.style.display = d3on ? 'block' : 'none'; }
-      }
-    };
-    var rvOnFS = function(){
-      var el = document.getElementById('rvBox');
-      if (!el) return;
-      var stg = document.getElementById('rvStage');
-      var fbtn = document.getElementById('rvFullBtn');
-      var fsOn = !!(document.fullscreenElement || document.webkitFullscreenElement) || rvFSCss;
-      if (fsOn){
-        if (rvFSBox === null) rvFSBox = el.getAttribute('style');
-        if (stg && rvFSStage === null) rvFSStage = stg.getAttribute('style');
-        el.style.maxWidth = 'none'; el.style.width = '100vw';
-        el.style.height = '100vh'; el.style.maxHeight = '100vh'; el.style.overflow = 'auto';
-        if (rvFSCss){   /* CSS疑似全画面(API不可時のフォールバック)=最前面へ固定 */
-          el.style.position = 'fixed'; el.style.left = '0'; el.style.top = '0';
-          el.style.zIndex = '2147483000'; el.style.background = '#0b0d09';
-        }
-        if (stg){ stg.style.flex = '1'; stg.style.display = 'flex'; stg.style.alignItems = 'center'; stg.style.justifyContent = 'center'; }
-        rvFsFit(true);
-        if (fbtn) fbtn.textContent = '🗗 全画面解除';
-      } else {
-        if (rvFSBox !== null){ el.setAttribute('style', rvFSBox); rvFSBox = null; }
-        if (stg && rvFSStage !== null){ stg.setAttribute('style', rvFSStage); rvFSStage = null; }
-        rvFsFit(false);
-        rvFSCss = false;
-        if (fbtn) fbtn.textContent = '⛶ 全画面';
-      }
-    };
-    document.addEventListener('fullscreenchange', rvOnFS);
-    document.addEventListener('webkitfullscreenchange', rvOnFS);
-    var rvFsKey = function(ev){
-      if (ev.key === 'Escape' && rvFSCss){ rvFSCss = false; rvOnFS(); ev.stopImmediatePropagation(); }
-    };
-    document.addEventListener('keydown', rvFsKey);
-    document.getElementById('rvFullBtn').addEventListener('click', function(){
-      try {
-        var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement) || rvFSCss;
-        if (isFs){
-          if (rvFSCss){ rvFSCss = false; rvOnFS(); }
-          else if (document.exitFullscreen){ var pe = document.exitFullscreen(); if (pe && pe.catch) pe.catch(function(){}); }
-          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-        } else {
-          var el = document.getElementById('rvBox');
-          var fn = el && (el.requestFullscreen || el.webkitRequestFullscreen);
-          if (fn){
-            var p = fn.call(el);
-            if (p && p.catch) p.catch(function(){ rvFSCss = true; rvOnFS(); });
-          } else { rvFSCss = true; rvOnFS(); }
-        }
-      } catch(e){ try { rvFSCss = true; rvOnFS(); } catch(e2){} }
-    });
     /* ★第209弾: 順位パネルの行クリック=注目馬の選択/解除(映像内の馬クリックと同じ rvS.sel) */
     document.getElementById('rvRankPanel').addEventListener('click', function(ev){
       var tr = ev.target;
@@ -53683,9 +53540,6 @@ function rvOpen(res){
     function rvClose(){
       try { cancelAnimationFrame(rvS.raf); } catch(e){}
       try { if (typeof rv3dStop === 'function') rv3dStop(); } catch(e){}   /* ★第169弾: 3DのGPUリソース解放(冪等) */
-      try { document.removeEventListener('webkitfullscreenchange', rvOnFS); document.removeEventListener('keydown', rvFsKey); } catch(e){}
-      try { document.removeEventListener('fullscreenchange', rvOnFS); } catch(e){}   /* ★第209弾: リスナー後片付け */
-      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch(e){}
       var o = document.getElementById('rvOverlay');
       if (o && o.parentNode) o.parentNode.removeChild(o);
       rvS = null;
@@ -55149,6 +55003,7 @@ function rv3dPaint(cv, tl, st){
         m.anim.aG.setEffectiveWeight(W.g);
         m.anim.aW.setEffectiveWeight(W.w);
         m.anim.mixer.update(0);
+        m.grp.scale.setScalar(0.45); /* 第277弾: 馬体の占有幅を抑制 */
         m.grp.position.set(dp.x, 0.8, dp.y);   /* ★第211.5弾: 2Dと同一の補正後位置(バウンドはクリップ自带) */
         m.grp.rotation.y = -pose.ang;
         m.grp.rotation.x = 0;   /* ピッチもクリップ自带 */
@@ -55178,6 +55033,7 @@ function rv3dPaint(cv, tl, st){
       } else {
         /* ---- 簡易馬(フォールバック・第174弾と同一) ---- */
         var sw = Math.sin(ph);
+        m.grp.scale.setScalar(0.45);
         m.grp.position.set(dp.x, 2 + Math.abs(sw) * 1.7, dp.y);
         m.grp.rotation.y = -pose.ang;
         m.grp.rotation.x = Math.sin(ph + 1.2) * 0.045;   /* 推進のピッチ(前傾/後傾) */
@@ -55193,7 +55049,7 @@ function rv3dPaint(cv, tl, st){
          ★第275弾(D2): 選択馬26→20(近距離でも札が画面を圧迫しない=覆い感の抑制) */
       m.spr.position.set(0, m.anim ? 33 : 25, 0);
       var sel = (st.sel === s.no);
-      m.spr.scale.set(sel ? 20 : 17, sel ? 20 : 17, 1);
+      m.spr.scale.set(sel ? 29 : 25, sel ? 29 : 25, 1);
       /* ★Phase V-1: 接地シャドウ=馬と同一位置(rvPathAt+laneOff)・同一向き。
          y=0.3は芝リボン(0.25)のすぐ上=z-fightingなし・決定的。 */
       if (m.shd){
