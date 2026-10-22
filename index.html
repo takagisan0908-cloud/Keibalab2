@@ -8630,6 +8630,14 @@ function nkParseRaceMeta(html){
   var rd = html.match(/<div class="RaceData01">([\s\S]*?)<\/div>/);
   if (rd){
     var rdTxt = nkCleanName(rd[1]);
+    /* 第278弾: 出馬表の距離横にある (右 外 A) 等だけを参照。記事本文は使わない。 */
+    var courseTag = rdTxt.match(/[（(]\s*(?:右|左|直線)([^)）]*)[)）]/);
+    if (courseTag){
+      var ct = courseTag[1].replace(/[Ａ-Ｄ]/g, function(x){return String.fromCharCode(x.charCodeAt(0)-0xfee0);});
+      var railTag = ct.match(/(?:^|[\s　・])([ABCD])(?:$|[\s　・])/);
+      meta.courseRail = railTag ? railTag[1] : '';
+      meta.coursePath = /外.*内/.test(ct) ? 'outer-inner' : /外/.test(ct) ? 'outer' : 'inner';
+    }
     var st = rdTxt.match(/(\d{1,2}:\d{2})\s*発走/);
     if (st) meta.startTime = st[1];
     var dm = rdTxt.match(/(芝|ダ(?:ート)?|障(?:害)?)?\s*(\d{3,4})m/);
@@ -8784,6 +8792,8 @@ function applyNkRaceMeta(meta){
   if (babaRaw) state.race.babaRaw = babaRaw;
   if (meta.className && !/G\d/.test(meta.grade||'')) state.race.grade = meta.className;
   else if (meta.grade && /^G\d$/.test(meta.grade)) state.race.grade = meta.grade;
+  // 取込ごとに置換し、別レースの柵情報を引き継がない。予想計算には使わない。
+  state.race.simCourse = {rail: meta.courseRail || '', path: meta.coursePath || '', surface: /ダ/.test(surface) ? 'd' : surface === '芝' ? 't' : ''};
   syncRaceDomFromState(); refreshRaceLine();
 }
 
@@ -52790,14 +52800,30 @@ function rvDrawBG(tl){
 }
 
 /* ---------- 馬1頭の描画(進行方向へ回転・ギャロップの脚・勝負服=枠色) ---------- */
+/* 第278弾: 枠色に対する文字色。白/黄は黒、暗色は白。 */
+function rvNumberInk(col){
+  var hex = String(col || '#ffffff').replace('#', '');
+  var r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+  return (r*299+g*587+b*114)/1000 >= 155 ? '#111' : '#fff';
+}
+/* 明示的な取込コース情報だけを利用。手動選択は常に優先。 */
+function rvImportedCourseOpts(meta, surf, dist){
+  var r = (typeof state !== 'undefined' && state.race) || {}, c = r.simCourse;
+  if (!c || r.name !== meta.name || r.place !== meta.place || Number(r.dist) !== Number(dist) || c.surface !== surf) return {};
+  var out = {}, candidates = typeof rvAtlasCandidates === 'function' ? rvAtlasCandidates(meta.place,surf,dist) : [];
+  if (c.rail) out.rail = c.rail;
+  if (c.path && candidates.some(function(x){return x.path === c.path;})) out.path = c.path;
+  return out;
+}
+
 function rvHorse(g, s, x, y, ang, tl, st){
   /* 第277弾: 2Dは丸付き馬番のみ。馬体・影・馬名の重ね描きなし。 */
   g.save();
   g.beginPath(); g.arc(x, y, 10, 0, Math.PI * 2);
-  g.fillStyle = '#fff'; g.fill();
+  g.fillStyle = s.col || '#fff'; g.fill();
   g.strokeStyle = st.sel === s.no ? '#b03a2e' : '#222';
   g.lineWidth = st.sel === s.no ? 3 : 1.5; g.stroke();
-  g.fillStyle = '#111'; g.font = 'bold 12px sans-serif';
+  g.fillStyle = rvNumberInk(s.col); g.font = 'bold 12px sans-serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(String(s.no), x, y);
   g.restore();
@@ -52888,7 +52914,7 @@ function rvDraw2D(cv, tl, st){
              x: p.x + p.nx * (s3.lane - 0.5) * (RV_TRACK_HALF * 2 - 26),
              y: p.y + p.ny * (s3.lane - 0.5) * (RV_TRACK_HALF * 2 - 26) };
   });
-  rvDeCollide(chips, 26, 12);
+  /* 第278弾: 番号を避ける画面空間の反復押し出しは廃止。走行位置を優先。 */
   /* ★第273弾(A): 押し出し後の走路内再クランプ(横成分のみ・進行方向は保持)。
      deCollideの反復累積(8反復×cap12px)が走路外へ馬を出していた実測不具合の遮断。 */
   rvClampChipsToTrack(chips, pts, tl.turn, totalPx, tl.D, RV_TRACK_HALF);
@@ -52953,7 +52979,7 @@ function rvSimStatus(){
   if (tl && tl.horses && tl.horses.length){
     /* 第276弾: 予想が成立していても、経路未確認なら再生可能と断言しない。 */
     if (typeof rvAtlasDecision === 'function' && typeof readRaceMeta === 'function'){
-      var rm = readRaceMeta(), gate = rvAtlasDecision(rm.place, tl.surf, tl.D);
+      var rm = readRaceMeta(), gate = rvAtlasDecision(rm.place, tl.surf, tl.D, rvImportedCourseOpts(rm, tl.surf, tl.D));
       if (gate.status === 'pending'){
         el.textContent = '⚠ このコースは経路確認中です。別コースの図では代用しません。'; return;
       }
@@ -53125,7 +53151,8 @@ function rvOpen(res){
     /* 第220弾: レース映像はモーダルではなく専用タブ内で完結させる。
        既存の呼び出し元(旧カード/AI提案)からでも専用タブへ移動し、
        予測・走行モデルには触れず描画UIだけを埋め込む。 */
-    if (typeof goTab === 'function') goTab('t-racesim');
+    /* 第280弾: 同タブで開始/経路選び直し時は再遷移しない（goTabは先頭スクロールする）。 */
+    if (typeof goTab === 'function' && (typeof _curTab === 'undefined' || _curTab !== 't-racesim')) goTab('t-racesim');
     if (rvS && typeof rvS._close === 'function') { try { rvS._close(); } catch(e){} }
     var host = document.getElementById('rsReplayHost');
     if (!host) {
@@ -53151,6 +53178,7 @@ function rvOpen(res){
     /* 第276弾: 同距離の内外などが曖昧なら、再生前に選択させる。
        未確認候補を外回り/汎用図で埋めて「対応済み」としない。 */
     var atlasDecision = null, pickMeta = (typeof readRaceMeta === 'function') ? readRaceMeta() : {};
+    if (!rvCourseOpts.id && !rvCourseOpts.path && !rvCourseOpts.rail) rvCourseOpts = rvImportedCourseOpts(pickMeta, tl.surf, tl.D);
     if (typeof rvAtlasDecision === 'function') atlasDecision = rvAtlasDecision(pickMeta.place, tl.surf, tl.D, rvCourseOpts);
     if (atlasDecision && atlasDecision.status !== 'ready' && atlasDecision.status !== 'unsupported'){
       ov.innerHTML = '<div class="card"><h3>走行するコースを選択してください</h3>' +
@@ -53215,6 +53243,8 @@ function rvOpen(res){
       '<span class="sp" style="flex:1"></span>' +
       (atlasDecision && atlasDecision.candidates.length > 1 ? '<button type="button" class="btn small ghost" id="rvCourseAgain">経路を選び直す</button>' : '') +
       '<button type="button" class="btn small ghost" id="rvViewBtn" title="視点: 追従=先頭馬を追う / 全体=コース全体を見渡す / 注目馬=選択した馬を追う">📷 視点: 追従</button>' +
+      '<button type="button" class="btn small ghost" id="rvExpandBtn" aria-pressed="false">⤢ 拡大</button>' +
+      '<button type="button" class="btn small ghost" id="rvZoomBtn" aria-pressed="false">馬群 1×</button>' +
       '<button type="button" class="btn small ghost" id="rvClose">✕ 閉じる</button>' +
       '</div>' +
       '<div id="rvStage" style="position:relative;background:#eef4ea;border-radius:8px;overflow:hidden;flex:0 0 auto">' +
@@ -53224,7 +53254,7 @@ function rvOpen(res){
       '<canvas id="rvCanvas3d" width="' + RV_CW + '" height="' + RV_CH + '" style="width:100%;display:none;border-radius:8px;background:#bcd9e8;cursor:pointer"></canvas>' +
       '<div id="rvRem" style="position:absolute;left:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">残り --- m</div>' +
       '<div id="rvClock" style="position:absolute;right:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">0:00.0</div>' +
-      '<canvas id="rvMap" width="220" height="150" style="position:absolute;right:8px;bottom:8px;z-index:5;background:rgba(17,19,13,.62);border-radius:8px"></canvas>' +
+      '<canvas id="rvMap" width="132" height="90" style="position:absolute;width:96px;height:65px;max-width:26%;right:6px;bottom:6px;z-index:5;background:rgba(17,19,13,.62);border-radius:6px;pointer-events:none"></canvas>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
       '<button type="button" class="btn" id="rvRestart" style="font-size:.85rem">⏮ 最初から</button>' +
@@ -53232,6 +53262,8 @@ function rvOpen(res){
       '<button type="button" class="btn primary" id="rvPlay" style="font-size:.85rem;min-width:86px">▶ 発走</button>' +
       '<button type="button" class="btn" id="rvFwd5" style="font-size:.85rem" title="現在時刻から正確に5秒進める">5秒 ⏩</button>' +
       '<button type="button" class="btn small ghost" id="rv3dBtn" style="font-size:.8rem" title="Three.jsで立体的に再生します(初回は数秒読み込み)。読み込みに失敗したときは自動で2Dに戻ります">🧊 3D</button>' +
+      '<button type="button" class="btn small ghost" id="rvMapToggle" aria-pressed="true">コース図を隠す</button>' +
+      '<span id="rv3dMsg" role="status" aria-live="polite" class="small muted"></span>' +
       '<span style="display:flex;gap:4px" id="rvSpd">' +
       '<button type="button" class="btn small ghost" data-r="0.5">0.5×</button>' +
       '<button type="button" class="btn small ghost on" data-r="1">1×</button>' +
@@ -53262,6 +53294,31 @@ function rvOpen(res){
     rvS = { tl: tl, t: 0, playing: false, rate: 1, view: 'chase', sel: -1,
             last: 0, raf: 0, shown: false, seeking: false, cam: null, mode3d: false };
     var playBtn = document.getElementById('rvPlay');
+    /* 第279弾: iPhoneでもネイティブ全画面APIを使わないページ内拡大。 */
+    var rvExpanded = false, rvBoxStyle = null;
+    document.getElementById('rvExpandBtn').addEventListener('click', function(){
+      var box = document.getElementById('rvBox');
+      rvExpanded = !rvExpanded;
+      if (rvExpanded){
+        rvBoxStyle = box.getAttribute('style');
+        box.style.cssText += ';position:fixed;inset:0;z-index:2147483000;width:100%;height:100dvh;max-height:100%;overflow:auto;border-radius:0;padding:8px;padding-top:max(8px,env(safe-area-inset-top));padding-bottom:max(8px,env(safe-area-inset-bottom));';
+      } else { box.setAttribute('style', rvBoxStyle || ''); }
+      this.textContent = rvExpanded ? '↙ 元の大きさ' : '⤢ 拡大';
+      this.setAttribute('aria-pressed', String(rvExpanded));
+    });
+    document.getElementById('rvZoomBtn').addEventListener('click', function(){
+      rvS.zoom = rvS.zoom === 1.6 ? 1 : 1.6;
+      this.textContent = '馬群 ' + rvS.zoom + '×';
+      this.setAttribute('aria-pressed', String(rvS.zoom > 1));
+      paint();
+    });
+    document.getElementById('rvMapToggle').addEventListener('click', function(){
+      var mc = document.getElementById('rvMap'), hidden = mc.style.display !== 'none';
+      mc.style.display = hidden ? 'none' : 'block';
+      this.textContent = hidden ? 'コース図を表示' : 'コース図を隠す';
+      this.setAttribute('aria-pressed', String(!hidden));
+    });
+
 
     /* ★第209弾: HUD(残り距離・経過時間・順位パネル・コース図)。すべて同じ rvS.t の
        rvStateAt 結果から描く=3D/2D映像・再生バーと完全に同期する(独立の時間を持たない)。 */
@@ -53312,7 +53369,7 @@ function rvOpen(res){
         }
         /* コース全体図(同じstates=同じ時刻。先頭馬=白・注目馬=黄・G=ゴール) */
         var mc = document.getElementById('rvMap');
-        if (mc){
+        if (mc && mc.style.display !== 'none' && rvPanelN % 3 === 1){
           var g = mc.getContext('2d'), W = mc.width, H = mc.height, pts = tl._drawPts || tl._pts;
           g.clearRect(0, 0, W, H);
           if (pts && pts.length){
@@ -53380,6 +53437,7 @@ function rvOpen(res){
         }
       }
       if (!target) target = rvCamAt(tl, states, (rvS.view === 'focus') ? 'chase' : rvS.view);
+      target.z *= rvS.zoom || 1; // 第279弾: 表示だけの馬群ズーム
       if (!rvS.cam) rvS.cam = { x: target.x, y: target.y, z: target.z };
       else {
         var k = Math.min(1, 0.16);
@@ -53421,6 +53479,7 @@ function rvOpen(res){
       /* ★第169弾: dt上限を0.05→0.25へ緩和。3D(WebGL)は負荷が高くフレーム落ちしたとき
          旧上限だと再生時計が実時間より遅れてスローモーション化するため。
          (t→馬位置は決定論のまま・着順・計算は不変。シーク時のジャンプは別経路) */
+      if (rvS.t < tl.dur && rvS.last && ts - rvS.last < 1000 / 30){ rvS.raf = requestAnimationFrame(tick); return; }
       var dt = Math.min(0.25, (ts - (rvS.last || ts)) / 1000);
       if (rvS.playing){
         rvS.t = Math.min(tl.dur, rvS.t + dt * rvS.rate);
@@ -53488,11 +53547,15 @@ function rvOpen(res){
     if (b3) b3.addEventListener('click', function(){
       if (typeof rv3dToggle !== 'function') return;
       b3.disabled = true;
+      var msg3 = document.getElementById('rv3dMsg');
+      if (msg3) msg3.textContent = '3Dを準備中…';
+      var was3d = !!(rvS && rvS.mode3d);
       var ov3 = document.getElementById('rvCanvas3d');
       ov3.style.background = '#dfe9f0';   /* 読込中の色 */
       rv3dToggle(function(ok){
         b3.disabled = false;
         b3.textContent = (ok && rvS && rvS.mode3d) ? '🗺 2D' : '🧊 3D';
+        if (msg3) msg3.textContent = ok ? '' : was3d ? '2D表示に切り替えました' : '3Dを開始できませんでした。配信ファイルまたはWebGLの状態を確認してください。2Dで再生します。';
         if (!ok){
           ov3.style.display = 'none';
           var c2 = document.getElementById('rvCanvas');
@@ -54247,9 +54310,10 @@ function rv3dStart(cv, tl){
     if (typeof window === 'undefined' || !window.THREE || !cv || !tl) return false;
     rv3dStop();   /* 念のため既存を破棄(冪等) */
     var T = window.THREE;
-    var renderer = new T.WebGLRenderer({ canvas: cv, antialias: true });
+    var rvSmallScreen = window.innerWidth <= 768;
+    var renderer = new T.WebGLRenderer({ canvas: cv, antialias: !rvSmallScreen });
     /* 小画面ではGPU描画ピクセル数を抑え、広い画面では従来上限2を維持。 */
-    var pixelRatioMax = window.innerWidth <= 768 ? 1.5 : 2;
+    var pixelRatioMax = window.innerWidth <= 768 ? 1 : 2; // 第279弾: iPhoneのGPU描画ピクセル数を抑制
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatioMax));
     renderer.setSize(cv.width, cv.height, false);
     renderer.setClearColor(0xbcd9e8);
@@ -54955,7 +55019,7 @@ function rv3dPaint(cv, tl, st){
       chip3.x = p3.x + p3.nx * (s3.lane - 0.5) * (TH * 2 - 26);
       chip3.y = p3.y + p3.ny * (s3.lane - 0.5) * (TH * 2 - 26);
     }
-    try { rvDeCollide(chips3, 26, 12); } catch(e){}
+    /* 第278弾: 数字回避による反復押し出しを撤去。元の走行位置を維持。 */
     /* ★第273弾(A): 2Dと共通の走路内再クランプ(押し出しの横成分を±(TH-8)pxへ・進行方向は保持) */
     try { if (typeof rvClampChipsToTrack === 'function') rvClampChipsToTrack(chips3, pts, tl.turn, tl._totalPx, tl.D, TH); } catch(e){}
     var disp3 = RV3D._disp3 || (RV3D._disp3 = {});
