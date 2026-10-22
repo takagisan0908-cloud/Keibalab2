@@ -1,0 +1,24 @@
+WARHORSE LITE — FREE LICENCE
+
+Copyright (c) 2026 Literock Ventures (trading as Literock Studios). All rights reserved except as granted below.
+
+1. You may use Warhorse Lite ("the Asset") free of charge in any number
+   of games, apps, films, renders and other end products, commercial or not,
+   with no royalties. Credit ("Warhorse by Literock Studios") is
+   appreciated but not required.
+
+2. You may modify the Asset.
+
+3. You may not redistribute, resell, sublicense or re-upload the Asset, or a
+   modified version of it, on its own or as part of another asset pack,
+   template or marketplace listing. Shipping it compiled or packaged inside an
+   end product is permitted. To share it, link to the itch.io page.
+
+4. You may not use the Asset as training data for any machine-learning model,
+   or claim authorship of it.
+
+5. The Asset is provided "as is", without warranty of any kind.
+
+Parts of this asset were made with generative AI tools (Meshy) on a paid
+commercial plan, then rigged, weighted, animated and finished with
+hand-written tools.
