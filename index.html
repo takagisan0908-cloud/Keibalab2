@@ -52595,7 +52595,16 @@ function rvCoatOf(no){
 /* ギャロップの脚の位相(進行距離dの関数=決定論。速度が上がると歩頻も上がる) */
 function rvHorseStride(d, no){ return d * 0.8 + no * 2.1; }
 
-/* ---------- カメラ(純関数・決定論) ---------- */
+/* ---------- カメラ(純関数・決定論) ----------
+   ★第282弾: 3D描画失敗の連続カウンタ(純粋・テスト容易)。
+   ok=trueでリセット、ok=falseで+1。limit回連続で失敗したときだけtrue
+   (恒久フォールバック)を返す。単発の描画例外(高負荷時等)では3D表示を維持する。 */
+function rv3dFailPolicy(s, ok, limit){
+  if (ok){ s._n3dFail = 0; return false; }
+  s._n3dFail = (s._n3dFail || 0) + 1;
+  if (s._n3dFail >= (limit || 12)){ s._n3dFail = 0; return true; }
+  return false;
+}
 function rvCamAt(tl, states, view){
   var W = RV_CW, H = RV_CH;
   if (!tl || !states || !states.length) return { x: 480, y: 380, z: 1, mode: 'chase' };
@@ -53490,7 +53499,22 @@ function rvOpen(res){
       var drew3d = false;
       if (rvS.mode3d && typeof rv3dPaint === 'function'){
         drew3d = rv3dPaint(cv3, tl, stAll);
-        if (!drew3d) rvS.mode3d = false;   /* 以降も2Dで描く(次フレームから分岐しない) */
+        /* ★第282弾: 連続失敗でのみ3Dをオフにし、単発の描画失敗では3Dを維持する。
+           従来は1回のfalseでmode3dを恒久オフにしていたため、高負荷時(4倍速再生等)の
+           一時的な描画例外で3Dに戻れなくなっていた。 */
+        if (rv3dFailPolicy(rvS, drew3d, 12)){
+          rvS.mode3d = false;
+          /* 恒久フォールバック時は表示・ボタン・メッセージを2Dへ同期する
+             (従来はmode3dだけ折れて3Dキャンバスの静止画が残り続けた) */
+          try {
+            if (cv3) cv3.style.display = 'none';
+            if (cv) cv.style.display = 'block';
+            var b3f = document.getElementById('rv3dBtn');
+            if (b3f) b3f.textContent = '🧊 3D';
+            var msg3f = document.getElementById('rv3dMsg');
+            if (msg3f) msg3f.textContent = '3D描画が継続して失敗したため2D表示に切り替えました';
+          } catch(e){}
+        }
       }
       if (!drew3d) rvDraw2D(cv, tl, stAll);
       document.getElementById('rvTime').textContent =
@@ -53582,6 +53606,10 @@ function rvOpen(res){
     /* ★第169弾(Phase 2a): 2D⇔3D切替。three.min.js はここで初めて遅延読み込みされる
        (通常のアプリ初期表示は重くならない)。失敗時は2Dのままフォールバック。 */
     var b3 = document.getElementById('rv3dBtn');
+    /* ★第282弾: 初期ツールチップを保持。切替成功時・3D→2Dの手動切替時は初期文言に戻し、
+       2D→3Dの開始失敗時のみ失敗文言にする(失敗文言が残り続け、3D表示中なのに
+       失敗表示になる問題の修正) */
+    var b3Title0 = b3 ? (b3.title || '') : '';
     if (b3) b3.addEventListener('click', function(){
       if (typeof rv3dToggle !== 'function') return;
       b3.disabled = true;
@@ -53593,12 +53621,12 @@ function rvOpen(res){
       rv3dToggle(function(ok){
         b3.disabled = false;
         b3.textContent = (ok && rvS && rvS.mode3d) ? '🗺 2D' : '🧊 3D';
+        b3.title = (ok || was3d) ? b3Title0 : '3D(Three.js)を読み込めませんでした。vendor/three.min.js が配置されているか確認してください。2Dで再生します';
         if (msg3) msg3.textContent = ok ? '' : was3d ? '2D表示に切り替えました' : '3Dを開始できませんでした。配信ファイルまたはWebGLの状態を確認してください。2Dで再生します。';
         if (!ok){
           ov3.style.display = 'none';
           var c2 = document.getElementById('rvCanvas');
           if (c2) c2.style.display = 'block';
-          b3.title = '3D(Three.js)を読み込めませんでした。vendor/three.min.js が配置されているか確認してください。2Dで再生します';
         }
       });
     });
@@ -54156,10 +54184,32 @@ function rv3dCamOf(cam2d, mode){
 
 /* ---------- 点列ユーティリティ(2Dの幾何をそのまま3Dへ) ---------- */
 /* 第221弾: 中継型の場面別カメラ。p95の状態は読み取り専用で、走行/着順には触れない。
-   模式オーバル上の演出区分であり、実競馬場のコーナー位置を再現するものではない。 */
+   模式オーバル上の演出区分であり、実競馬場のコーナー位置を再現するものではない。
+   ★第283弾: 実況中継・競馬ゲームのレース映像のようなカット割りに拡張。
+   場面ごとにカメラ位置・俯角・距離を切り替え、場面転換はrv3dPaint側でカット
+   (スナップ)として扱う。決定論(時刻tのみに依存・実時間不使用)は維持。 */
 function rv3dCamSeq(cam2d, mode, tl, st){
   var base = rv3dCamOf(cam2d, mode);
-  if (mode !== 'chase' || !tl || !tl._pts || !st || !st.states || !st.states.length) return base;
+  if (mode === 'wire'){
+    /* 最終直線=先頭争いのヘッドオン(正面)・低アングルで寄せる。
+       2Dのwire目標(1〜3着の重心)を注視点にし、馬群の進行方向先に構える。
+       テレビ中継の直線の正面カメラ相当。 */
+    if (!tl || !tl._pts || !st || !st.states || !st.states.length){ base.scene = 'battle'; return base; }
+    var Dw = Math.max(1, Number(tl.D) || 1), leadw = 0;
+    st.states.forEach(function(h){ var d = Math.max(0, Number(h.d) || 0); if (d > leadw) leadw = d; });
+    var ptsw = tl._pts, totalw = tl._totalPx || 1;
+    var fA = rvPathAt(ptsw, tl.turn, Math.min(Dw, leadw + 12), totalw, Dw);
+    var fB = rvPathAt(ptsw, tl.turn, Math.max(0, leadw - 12), totalw, Dw);
+    var fdx = fA.x - fB.x, fdy = fA.y - fB.y, fdl = Math.hypot(fdx, fdy) || 1;
+    fdx /= fdl; fdy /= fdl;
+    var headD = 250, elB = 12 * Math.PI / 180, offB = headD * Math.cos(elB);
+    return { px: cam2d.x + fdx * offB, py: headD * Math.sin(elB),
+             pz: cam2d.y + fdy * offB,
+             tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 46, scene: 'battle' };
+  }
+  if (mode !== 'chase' || !tl || !tl._pts || !st || !st.states || !st.states.length){
+    base.scene = mode || 'full'; return base;
+  }
   var D = Math.max(1, Number(tl.D) || 1), sum = 0, lead = 0;
   st.states.forEach(function(h){ var d = Math.max(0, Number(h.d) || 0); sum += d; if (d > lead) lead = d; });
   var prog = Math.max(0, Math.min(1, (sum / st.states.length) / D));
@@ -54179,15 +54229,27 @@ function rv3dCamSeq(cam2d, mode, tl, st){
   var c1=sm(0.055,0.13,prog)*(1-sm(0.19,0.27,prog));
   var c2=sm(0.54,0.62,prog)*(1-sm(0.74,0.82,prog));
   var cw=Math.max(c1,c2);
-  var sx=nx*(1-cw)+rx*cw, sy=ny*(1-cw)+ry*cw, sl=Math.hypot(sx,sy)||1; sx/=sl; sy/=sl;
-  /* 発馬は斜め横、向正面は横追走、コーナーは外側斜め上、直線は馬群全体を保つ。 */
-  var k = prog < 0.07 ? 0.72 : (prog > 0.78 ? 0.68 : (cw > 0.35 ? 0.76 : 0.64));
-  var pitch = cw > 0.35 ? 29 : (prog < 0.07 ? 25 : 23);
-  var dist = (1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1))) * k;
-  var el=pitch*Math.PI/180, off=dist*Math.cos(el);
-  return { px: cam2d.x + sx*off, py: dist*Math.sin(el), pz: cam2d.y + sy*off,
-           tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 52,
-           scene: prog < 0.07 ? 'start' : (cw > 0.35 ? 'corner' : (prog < 0.58 ? 'backstretch' : 'finish')) };
+  /* 場面ごとのカメラ配置(カット割り):
+     start=ゲート付近を進行方向やや前方からの低アングルで、
+     backstretch=横からの低いドリー追走、
+     corner=外側の高所から馬群全体を。 */
+  var scene, dirX, dirY, pitch, kk;
+  var zc = Math.max(0.6, Math.min(2.2, cam2d.z || 1));
+  if (prog < 0.07){
+    scene = 'start';
+    var s0x = tx * 0.55 + nx * 0.85, s0y = ty * 0.55 + ny * 0.85, s0l = Math.hypot(s0x, s0y) || 1;
+    dirX = s0x / s0l; dirY = s0y / s0l; pitch = 14; kk = 0.80;
+  } else if (cw > 0.35){
+    scene = 'corner';
+    dirX = rx; dirY = ry; pitch = 30; kk = 0.85;
+  } else {
+    scene = 'backstretch';
+    dirX = nx; dirY = ny; pitch = 16; kk = 0.62;
+  }
+  var dist = (1000 / zc) * kk;
+  var el = pitch * Math.PI / 180, off = dist * Math.cos(el);
+  return { px: cam2d.x + dirX * off, py: dist * Math.sin(el), pz: cam2d.y + dirY * off,
+           tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 52, scene: scene };
 }
 
 function rv3dNormals(pts){
@@ -55046,6 +55108,11 @@ function rv3dPaint(cv, tl, st){
     var c3 = rv3dCamSeq(st.cam, st.target ? st.target.mode : '', tl, st);
     var dTgt = Math.hypot(c3.px - c3.tx, c3.py - c3.ty, c3.pz - c3.tz);
     if (!(RV3D._distS > 0)) RV3D._distS = dTgt;
+    /* ★第283弾: 場面転換はテレビ中継のようにカットで切り替える
+       (距離の平滑化をリセットしてスナップ。注視点は連続したままなので
+       被写体を見失わない)。 */
+    if (c3.scene && RV3D._scene && c3.scene !== RV3D._scene) RV3D._distS = dTgt;
+    RV3D._scene = c3.scene || null;
     RV3D._distS += (dTgt - RV3D._distS) * 0.16;
     var df = dTgt > 0 ? RV3D._distS / dTgt : 1;
     RV3D.cam.position.set(c3.tx + (c3.px - c3.tx) * df, c3.ty + (c3.py - c3.ty) * df, c3.tz + (c3.pz - c3.tz) * df);
@@ -55259,6 +55326,7 @@ function rv3dPaint(cv, tl, st){
 /* ---------- 解放(冪等): 閉じたとき・切替時・読込失敗時 ---------- */
 function rv3dStop(){
   RV3D._distS = 0;   /* ★第211.5弾: 距離平滑化のリセット(次回起動で引き継がない) */
+  RV3D._scene = null; /* ★第283弾: 場面カットの記憶もリセット */
   RV3D.proto1 = false;   /* ★第215弾: 試作フラグもリセット(再起動で判定し直す) */
   try {
     RV3D.active = false;
