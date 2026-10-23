@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>競馬AIラボ｜展開予想・AI印・netkeiba AI展開予測</title>
 <meta name="description" content="競馬AIラボ — 展開予想・AI印・netkeiba AI展開予測ビュー。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
 <meta name="theme-color" content="#0b3a2a">
@@ -1142,6 +1142,29 @@ html[data-theme="light"] .page-top-hero{
 
 
 
+
+/* 第281弾: 折りたたみ端末を含む可変ビューポート。機種の固定解像度に依存しない。 */
+#rvBox { min-width:0; container-type:inline-size; }
+#rvBox button { min-height:44px; touch-action:manipulation; }
+#rvStage { aspect-ratio:3 / 2; }
+#rvStage > canvas:not(#rvMap) { height:auto; max-width:100%; }
+#rvControls { min-width:0; }
+#rvControls #rvSeek { flex-basis:100% !important; min-width:0 !important; width:100%; }
+#rvBox[data-rv-layout="compact"] #rvControls { gap:5px !important; }
+#rvBox[data-rv-layout="compact"] #rvSpd { flex-wrap:wrap; }
+#rvBox[data-rv-layout="wide"] #rvSeek { flex-basis:200px !important; }
+#rvBox[data-rv-layout="wide"] #rvMap { width:112px !important; height:76px !important; }
+#rvBox.rv-expanded { padding-left:max(8px,env(safe-area-inset-left)) !important;
+  padding-right:max(8px,env(safe-area-inset-right)) !important; overscroll-behavior:contain; }
+#rvBox.rv-expanded .rvFootnote, #rvBox.rv-expanded #rvRankDetails { display:none; }
+#rvBox.rv-expanded #rvBar > .chip, #rvBox.rv-expanded #rvBar > b { display:none; }
+#rvBox.rv-expanded #rvControls { justify-content:center; }
+@media (max-width:460px) {
+  #t-racesim #rsReplayHost { margin-left:-4px; margin-right:-4px; }
+  #rvBox { padding:6px !important; }
+  #rvBar { gap:4px !important; }
+  #rvRem, #rvClock { font-size:11px !important; padding:3px 6px !important; }
+}
 </style>
 
 </head><body>
@@ -53145,6 +53168,19 @@ function rvSimAiRef(rid){
     '<div style="max-height:260px;overflow:auto;margin-top:4px"><table class="tbl" style="font-size:12px"><thead><tr><th>馬番</th><th>馬名</th><th>スタート後</th><th>3コーナー</th><th>4コーナー</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<div class="small muted" style="margin-top:3px">参照表示です（③AI展開予測タブと同じデータ）。シミュ映像の馬の動きはこのアプリ自身のAI予想（オッズ・脚質・学習DBから計算）で駆動します=netkeiba AI展開予測の位置に直接合わせるものではありません。</div></details>';
 }
+/* 第281弾: 外画面/内画面/回転は実測CSS幅で適応。再生データや描画解像度は変更しない。 */
+function rvAdaptiveLayout(box, stage, bar, controls, expanded, viewportHeight){
+  if (!box || !stage) return;
+  var width = box.clientWidth || 0;
+  box.setAttribute('data-rv-layout', width >= 700 ? 'wide' : 'compact');
+  if (!expanded){ stage.style.width = '100%'; stage.style.margin = ''; return; }
+  var h = Math.max(100, (viewportHeight || 600) - (bar ? bar.offsetHeight : 0) -
+    (controls ? controls.offsetHeight : 0) - 48);
+  var available = Math.max(100, width - 24);
+  stage.style.width = Math.floor(Math.min(available, h * 1.5)) + 'px';
+  stage.style.margin = '0 auto';
+}
+
 function rvOpen(res){
   var rvCourseOpts = arguments[1] || {}; // 表示用の選択。予想/DB/保存は変更しない。
   try {
@@ -53256,7 +53292,7 @@ function rvOpen(res){
       '<div id="rvClock" style="position:absolute;right:8px;top:6px;z-index:5;background:rgba(17,19,13,.72);color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">0:00.0</div>' +
       '<canvas id="rvMap" width="132" height="90" style="position:absolute;width:96px;height:65px;max-width:26%;right:6px;bottom:6px;z-index:5;background:rgba(17,19,13,.62);border-radius:6px;pointer-events:none"></canvas>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
+      '<div id="rvControls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex:0 0 auto">' +
       '<button type="button" class="btn" id="rvRestart" style="font-size:.85rem">⏮ 最初から</button>' +
       '<button type="button" class="btn" id="rvBack5" style="font-size:.85rem" title="現在時刻から正確に5秒戻す">⏪ 5秒</button>' +
       '<button type="button" class="btn primary" id="rvPlay" style="font-size:.85rem;min-width:86px">▶ 発走</button>' +
@@ -53272,9 +53308,9 @@ function rvOpen(res){
       '<input type="range" id="rvSeek" min="0" max="' + tl.dur.toFixed(2) + '" step="0.02" value="0" style="flex:1;min-width:120px">' +
       '<span class="small muted" id="rvTime" style="font-variant-numeric:tabular-nums"></span>' +
       '</div>' +
-      '<details style="margin-top:6px;flex:0 0 auto"><summary style="cursor:pointer">順位・注目馬を選択</summary><div id="rvRankPanel" style="background:#20261c;color:#fff;border-radius:8px;padding:6px 8px;font-size:11.5px;max-height:160px;overflow:auto;line-height:1.45"></div></details>' +
+      '<details id="rvRankDetails" style="margin-top:6px;flex:0 0 auto"><summary style="cursor:pointer">順位・注目馬を選択</summary><div id="rvRankPanel" style="background:#20261c;color:#fff;border-radius:8px;padding:6px 8px;font-size:11.5px;max-height:160px;overflow:auto;line-height:1.45"></div></details>' +
       '<div id="rvFinish" style="display:none;margin-top:8px;flex:0 0 auto"></div>' +
-      '<div class="small muted" style="margin-top:6px;line-height:1.6">※この映像は<b>②のAI予想（analyzeRace）の計算結果をそのまま再生したイメージ</b>です。' +
+      '<div class="small muted rvFootnote" style="margin-top:6px;line-height:1.6">※この映像は<b>②のAI予想（analyzeRace）の計算結果をそのまま再生したイメージ</b>です。' +
       '隊列（発走〜4角）は既存の展開イメージ・モデル（dvStageQs＝脚質×展開適性×想定ペース）、' +
       '<b>ゴールの着順はAI予想着順そのもの</b>です。予想確率・AI勝率・印・買い目の再計算は一切行いません。' +
       '映像下の折りたたみ表の「順位」はシミュ上の走行位置順（毎フレーム変化）、「AI順」は②の予想着順（固定）で別物です。' +
@@ -53305,6 +53341,8 @@ function rvOpen(res){
       } else { box.setAttribute('style', rvBoxStyle || ''); }
       this.textContent = rvExpanded ? '↙ 元の大きさ' : '⤢ 拡大';
       this.setAttribute('aria-pressed', String(rvExpanded));
+      if (box.classList) box.classList.toggle('rv-expanded', rvExpanded);
+      if (typeof rvRelayout === 'function') rvRelayout();
     });
     document.getElementById('rvZoomBtn').addEventListener('click', function(){
       rvS.zoom = rvS.zoom === 1.6 ? 1 : 1.6;
@@ -53600,7 +53638,22 @@ function rvOpen(res){
       if (best > 0) rvS.sel = (rvS.sel === best) ? -1 : best;
       paint();
     });
+    /* ResizeObserverは要素所有。global resizeリスナー不要・閉時に解放。 */
+    var rvLayoutObserver = null;
+    function rvRelayout(){
+      if (!rvS || rvS.tl !== tl) return;
+      var box = document.getElementById('rvBox');
+      var h = (typeof window !== 'undefined' && window.innerHeight) || 600;
+      rvAdaptiveLayout(box, document.getElementById('rvStage'), document.getElementById('rvBar'),
+        document.getElementById('rvControls'), rvExpanded, h);
+    }
+    if (typeof ResizeObserver !== 'undefined'){
+      rvLayoutObserver = new ResizeObserver(function(){ rvRelayout(); });
+      rvLayoutObserver.observe(document.getElementById('rvBox'));
+    }
+    rvRelayout();
     function rvClose(){
+      try { if (rvLayoutObserver) rvLayoutObserver.disconnect(); } catch(e){}
       try { cancelAnimationFrame(rvS.raf); } catch(e){}
       try { if (typeof rv3dStop === 'function') rv3dStop(); } catch(e){}   /* ★第169弾: 3DのGPUリソース解放(冪等) */
       var o = document.getElementById('rvOverlay');
@@ -54305,15 +54358,22 @@ function rv3dCoatVariant3d(no){
 
 
 /* ---------- シーン構築(初期化・終了・再起動で安全に作り直し) ---------- */
+/* 第281弾: 内画面が広がってもiPhone/iPad系のGPU上限を跳ね上げない。 */
+function rv3dPixelCap(w){
+  var n = (w && w.navigator) || {}, ua = String(n.userAgent || '');
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && Number(n.maxTouchPoints) > 1);
+  return ios || Number(w && w.innerWidth) <= 768 ? 1 : 2;
+}
+
 function rv3dStart(cv, tl){
   try {
     if (typeof window === 'undefined' || !window.THREE || !cv || !tl) return false;
     rv3dStop();   /* 念のため既存を破棄(冪等) */
     var T = window.THREE;
-    var rvSmallScreen = window.innerWidth <= 768;
+    var rvSmallScreen = rv3dPixelCap(window) === 1;
     var renderer = new T.WebGLRenderer({ canvas: cv, antialias: !rvSmallScreen });
     /* 小画面ではGPU描画ピクセル数を抑え、広い画面では従来上限2を維持。 */
-    var pixelRatioMax = window.innerWidth <= 768 ? 1 : 2; // 第279弾: iPhoneのGPU描画ピクセル数を抑制
+    var pixelRatioMax = rv3dPixelCap(window); // 第279弾: iPhoneのGPU描画ピクセル数を抑制
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatioMax));
     renderer.setSize(cv.width, cv.height, false);
     renderer.setClearColor(0xbcd9e8);
