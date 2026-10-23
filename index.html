@@ -54178,7 +54178,7 @@ function rv3dCamOf(cam2d, mode){
   var k3 = (mode === 'focus') ? 0.95 :
            (mode === 'chase' || mode === 'wire') ? 0.55 :
            (mode === 'spread') ? 0.72 : 1.0;
-  var dist = (1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1))) * k3;
+  var dist = (1000 / Math.max(0.6, Math.min(2.6, cam2d.z || 1))) * k3;
   var el = 22 * Math.PI / 180;   /* 俯角22°<画角52°/2 → 空と地平線が見える */
   return { px: cam2d.x,
            py: dist * Math.sin(el),
@@ -54214,7 +54214,7 @@ function rv3dCamSeq(cam2d, mode, tl, st){
   /* 発馬は斜め横、向正面は横追走、コーナーは外側斜め上、直線は馬群全体を保つ。 */
   var k = prog < 0.07 ? 0.72 : (prog > 0.78 ? 0.68 : (cw > 0.35 ? 0.76 : 0.64));
   var pitch = cw > 0.35 ? 29 : (prog < 0.07 ? 25 : 23);
-  var dist = (1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1))) * k;
+  var dist = (1000 / Math.max(0.6, Math.min(2.6, cam2d.z || 1))) * k;
   var el=pitch*Math.PI/180, off=dist*Math.cos(el);
   return { px: cam2d.x + sx*off, py: dist*Math.sin(el), pz: cam2d.y + sy*off,
            tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 52,
@@ -54683,7 +54683,9 @@ function rv3dStart(cv, tl){
     fence(-TH - 7, [ { y: 4.6, r: 1.1, c: 0xf5f7f3 }, { y: 9.2, r: 1.1, c: 0x5d7f4a } ], 19, 0xede9df);  /* 外柵(白+緑) */
 
     /* ★第286弾: スタートゲートを枠ごとの発馬機に作り替え(番組感)。
-       側柱+上梁(枠番表示)+各枠の仕切り。進行方向の後方に配置。 */
+       側柱+上梁(枠番表示)+各枠の仕切り。進行方向の後方に配置。
+       ★第287弾: スタート後に撤去(実競走どおり)。メッシュをRV3D._gateに保持し、
+       rv3dPaintでt>6秒後に非表示にする。 */
     var s0 = rv3dPathPose(pts, tl.turn, 0, tl._totalPx, tl.D);
     var startLine = keep(new T.Mesh(
       new T.BoxGeometry(TH * 2, 0.8, 6),
@@ -54696,10 +54698,12 @@ function rv3dStart(cv, tl){
       var gx = s0.x - Math.cos(s0.ang) * 14, gz = s0.y - Math.sin(s0.ang) * 14;
       var rotY = -s0.ang + Math.PI / 2;
       var cR = Math.cos(rotY), sR = Math.sin(rotY);
+      var gateMeshes = [];
       function gbox(w, h, d, mat, lx, ly){
         var m = keep(new T.Mesh(new T.BoxGeometry(w, h, d), mat));
         m.position.set(gx + lx * cR, ly, gz - lx * sR);
         m.rotation.y = rotY;
+        gateMeshes.push(m);
         return m;
       }
       var frameM = new T.MeshLambertMaterial({ color: 0xf2f4ee });
@@ -54724,6 +54728,7 @@ function rv3dStart(cv, tl){
       /* 後方パネル(低めで開放感を残す) */
       var bp = gbox(gw, 4.2, 1.2, backM, 0, 2.5);
       bp.position.x += -2.4 * sR; bp.position.z += -2.4 * cR;
+      RV3D._gateMeshes = gateMeshes;   /* ★第287弾: スタート後撤去用 */
     })();
 
     /* ★第286弾: ゴールガントリーを番組風に(バナー文字+質感)。 */
@@ -55119,6 +55124,16 @@ function rv3dPaint(cv, tl, st){
     var df = dTgt > 0 ? RV3D._distS / dTgt : 1;
     RV3D.cam.position.set(c3.tx + (c3.px - c3.tx) * df, c3.ty + (c3.py - c3.ty) * df, c3.tz + (c3.pz - c3.tz) * df);
     RV3D.cam.lookAt(c3.tx, c3.ty, c3.tz);
+    /* ★第287弾: スタートゲートは発馬後に撤去(実競走どおり・障害物に見えない)。
+       t>6秒で非表示。RV3D._gateMeshesはrv3dStartで設定。 */
+    if (RV3D._gateMeshes){
+      var gateVis = !(st && st.t > 6);
+      if (RV3D._gateVis !== gateVis){
+        RV3D._gateVis = gateVis;
+        for (var gi2 = 0; gi2 < RV3D._gateMeshes.length; gi2++)
+          RV3D._gateMeshes[gi2].visible = gateVis;
+      }
+    }
     /* 馬: st.states(=rvStateAt出力・読み取り専用)を3D座標へ配置。
        ★第174弾(Phase 2b-2):
        ・位置はシミュレーション(rvPathAt)と同一。向きangだけ滑らか版(rv3dPathPose)。
@@ -55329,6 +55344,7 @@ function rv3dPaint(cv, tl, st){
 function rv3dStop(){
   RV3D._distS = 0;   /* ★第211.5弾: 距離平滑化のリセット(次回起動で引き継がない) */
   RV3D.proto1 = false;   /* ★第215弾: 試作フラグもリセット(再起動で判定し直す) */
+  RV3D._gateMeshes = null; RV3D._gateVis = true;   /* ★第287弾: ゲート撤去状態もリセット */
   try {
     RV3D.active = false;
     if (RV3D.renderer){
