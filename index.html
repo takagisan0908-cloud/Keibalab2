@@ -52087,6 +52087,10 @@ function rvStateAt(tl, t){
          レーンは[0.05,0.92]クランプでコース外へ出ない・最大オフセットは
          前方馬数の和で決まり=馬群が厚い場面で大きく外へ持ち出す(追込の進出表現)。 */
       offs[i2] *= RV_NAV_SHIFT * fade;
+      /* ★第285弾: 外向きの回避を弱め内向きを優先(実競走は内ラチ沿いを走る)。
+         外ラチ沿い(0.75+)の滞在を減らし、外への反発感を抑える。
+         0で0=連続・決定論は不変。内向き回避はそのまま=分離性能を保つ。 */
+      if (offs[i2] > 0) offs[i2] *= 0.35;
     }
     for (i2 = 0; i2 < out.length; i2++){
       if (offs[i2] === 0) continue;
@@ -53354,7 +53358,8 @@ function rvOpen(res){
       if (typeof rvRelayout === 'function') rvRelayout();
     });
     document.getElementById('rvZoomBtn').addEventListener('click', function(){
-      rvS.zoom = rvS.zoom === 1.6 ? 1 : 1.6;
+      /* ★第285弾: ズーム段階を 1 → 1.6 → 2.5 → 1 に拡張(馬群の視認性向上) */
+      rvS.zoom = rvS.zoom === 1.6 ? 2.5 : (rvS.zoom === 2.5 ? 1 : 1.6);
       this.textContent = '馬群 ' + rvS.zoom + '×';
       this.setAttribute('aria-pressed', String(rvS.zoom > 1));
       paint();
@@ -54183,33 +54188,9 @@ function rv3dCamOf(cam2d, mode){
 }
 
 /* ---------- 点列ユーティリティ(2Dの幾何をそのまま3Dへ) ---------- */
-/* 第221弾: 中継型の場面別カメラ。p95の状態は読み取り専用で、走行/着順には触れない。
-   模式オーバル上の演出区分であり、実競馬場のコーナー位置を再現するものではない。
-   ★第283弾: 実況中継・競馬ゲームのレース映像のようなカット割りに拡張。
-   場面ごとにカメラ位置・俯角・距離を切り替え、場面転換はrv3dPaint側でカット
-   (スナップ)として扱う。決定論(時刻tのみに依存・実時間不使用)は維持。 */
 function rv3dCamSeq(cam2d, mode, tl, st){
   var base = rv3dCamOf(cam2d, mode);
-  if (mode === 'wire'){
-    /* 最終直線=先頭争いのヘッドオン(正面)・低アングルで寄せる。
-       2Dのwire目標(1〜3着の重心)を注視点にし、馬群の進行方向先に構える。
-       テレビ中継の直線の正面カメラ相当。 */
-    if (!tl || !tl._pts || !st || !st.states || !st.states.length){ base.scene = 'battle'; return base; }
-    var Dw = Math.max(1, Number(tl.D) || 1), leadw = 0;
-    st.states.forEach(function(h){ var d = Math.max(0, Number(h.d) || 0); if (d > leadw) leadw = d; });
-    var ptsw = tl._pts, totalw = tl._totalPx || 1;
-    var fA = rvPathAt(ptsw, tl.turn, Math.min(Dw, leadw + 12), totalw, Dw);
-    var fB = rvPathAt(ptsw, tl.turn, Math.max(0, leadw - 12), totalw, Dw);
-    var fdx = fA.x - fB.x, fdy = fA.y - fB.y, fdl = Math.hypot(fdx, fdy) || 1;
-    fdx /= fdl; fdy /= fdl;
-    var headD = 250, elB = 12 * Math.PI / 180, offB = headD * Math.cos(elB);
-    return { px: cam2d.x + fdx * offB, py: headD * Math.sin(elB),
-             pz: cam2d.y + fdy * offB,
-             tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 46, scene: 'battle' };
-  }
-  if (mode !== 'chase' || !tl || !tl._pts || !st || !st.states || !st.states.length){
-    base.scene = mode || 'full'; return base;
-  }
+  if (mode !== 'chase' || !tl || !tl._pts || !st || !st.states || !st.states.length) return base;
   var D = Math.max(1, Number(tl.D) || 1), sum = 0, lead = 0;
   st.states.forEach(function(h){ var d = Math.max(0, Number(h.d) || 0); sum += d; if (d > lead) lead = d; });
   var prog = Math.max(0, Math.min(1, (sum / st.states.length) / D));
@@ -54229,28 +54210,17 @@ function rv3dCamSeq(cam2d, mode, tl, st){
   var c1=sm(0.055,0.13,prog)*(1-sm(0.19,0.27,prog));
   var c2=sm(0.54,0.62,prog)*(1-sm(0.74,0.82,prog));
   var cw=Math.max(c1,c2);
-  /* 場面ごとのカメラ配置(カット割り):
-     start=ゲート付近を進行方向やや前方からの低アングルで、
-     backstretch=横からの低いドリー追走、
-     corner=外側の高所から馬群全体を。 */
-  var scene, dirX, dirY, pitch, kk;
-  var zc = Math.max(0.6, Math.min(2.2, cam2d.z || 1));
-  if (prog < 0.07){
-    scene = 'start';
-    var s0x = tx * 0.55 + nx * 0.85, s0y = ty * 0.55 + ny * 0.85, s0l = Math.hypot(s0x, s0y) || 1;
-    dirX = s0x / s0l; dirY = s0y / s0l; pitch = 14; kk = 0.80;
-  } else if (cw > 0.35){
-    scene = 'corner';
-    dirX = rx; dirY = ry; pitch = 30; kk = 0.85;
-  } else {
-    scene = 'backstretch';
-    dirX = nx; dirY = ny; pitch = 16; kk = 0.62;
-  }
-  var dist = (1000 / zc) * kk;
-  var el = pitch * Math.PI / 180, off = dist * Math.cos(el);
-  return { px: cam2d.x + dirX * off, py: dist * Math.sin(el), pz: cam2d.y + dirY * off,
-           tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 52, scene: scene };
+  var sx=nx*(1-cw)+rx*cw, sy=ny*(1-cw)+ry*cw, sl=Math.hypot(sx,sy)||1; sx/=sl; sy/=sl;
+  /* 発馬は斜め横、向正面は横追走、コーナーは外側斜め上、直線は馬群全体を保つ。 */
+  var k = prog < 0.07 ? 0.72 : (prog > 0.78 ? 0.68 : (cw > 0.35 ? 0.76 : 0.64));
+  var pitch = cw > 0.35 ? 29 : (prog < 0.07 ? 25 : 23);
+  var dist = (1000 / Math.max(0.6, Math.min(2.2, cam2d.z || 1))) * k;
+  var el=pitch*Math.PI/180, off=dist*Math.cos(el);
+  return { px: cam2d.x + sx*off, py: dist*Math.sin(el), pz: cam2d.y + sy*off,
+           tx: cam2d.x, ty: 22, tz: cam2d.y, fov: 52,
+           scene: prog < 0.07 ? 'start' : (cw > 0.35 ? 'corner' : (prog < 0.58 ? 'backstretch' : 'finish')) };
 }
+
 
 function rv3dNormals(pts){
   /* 各点の「内側」法線(p95 rvPathAt と同一式・turnで向きが決まる) */
@@ -54492,10 +54462,10 @@ function rv3dStart(cv, tl){
     texs.push(skyTex);   /* Phase V-2: 空テクスチャも閉時にdispose */
     function keep(mesh){ geos.push(mesh.geometry); mats.push(mesh.material); scene.add(mesh); return mesh; }
 
-    /* 地面(芝の緑=2Dと同系) */
+    /* 地面(芝の緑=2Dと同系・★第286弾で蛍光っぽさを抑制) */
     var gnd = keep(new T.Mesh(
       new T.PlaneGeometry(7200, 7200),
-      new T.MeshLambertMaterial({ color: tl.surf === 't' ? 0x6d9350 : 0x699150 })));
+      new T.MeshLambertMaterial({ color: tl.surf === 't' ? 0x5f8a48 : 0x5d8a48 })));
     gnd.rotation.x = -Math.PI / 2;
     gnd.position.set(480, -0.5, 380);
 
@@ -54585,8 +54555,9 @@ function rv3dStart(cv, tl){
       var mcnv = document.createElement('canvas');
       mcnv.width = 2; mcnv.height = 64;
       var mc = mcnv.getContext('2d');
-      mc.fillStyle = '#7ba659'; mc.fillRect(0, 0, 2, 32);
-      mc.fillStyle = '#6f9b4e'; mc.fillRect(0, 32, 2, 32);
+      /* ★第286弾: 蛍光っぽさを抑えた自然な芝色に(刈り込み縞は維持) */
+      mc.fillStyle = '#64984d'; mc.fillRect(0, 0, 2, 32);
+      mc.fillStyle = '#588a43'; mc.fillRect(0, 32, 2, 32);
       var mtex = new T.CanvasTexture(mcnv);
       mtex.wrapS = T.ClampToEdgeWrapping; mtex.wrapT = T.RepeatWrapping;
       texs.push(mtex);
@@ -54711,40 +54682,76 @@ function rv3dStart(cv, tl){
     fence(TH - 1, [ { y: 4.2, r: 1.0, c: 0xf5f7f3 }, { y: 8.4, r: 1.0, c: 0xf5f7f3 } ], 15, 0xf5f7f3);  /* 内ラチ(白) */
     fence(-TH - 7, [ { y: 4.6, r: 1.1, c: 0xf5f7f3 }, { y: 9.2, r: 1.1, c: 0x5d7f4a } ], 19, 0xede9df);  /* 外柵(白+緑) */
 
-    /* スタート地点: 路面の白線 + 発馬機風ゲート(進行方向の後方) */
+    /* ★第286弾: スタートゲートを枠ごとの発馬機に作り替え(番組感)。
+       側柱+上梁(枠番表示)+各枠の仕切り。進行方向の後方に配置。 */
     var s0 = rv3dPathPose(pts, tl.turn, 0, tl._totalPx, tl.D);
     var startLine = keep(new T.Mesh(
       new T.BoxGeometry(TH * 2, 0.8, 6),
       new T.MeshLambertMaterial({ color: 0xfdfdfb })));
     startLine.position.set(s0.x, 0.6, s0.y);
     startLine.rotation.y = -s0.ang + Math.PI / 2;
-    var gate = keep(new T.Mesh(
-      new T.BoxGeometry(TH * 2 + 10, 9, 2.6),
-      new T.MeshLambertMaterial({ color: 0xf0f2ec })));
-    gate.position.set(s0.x - Math.cos(s0.ang) * 14, 5.2, s0.y - Math.sin(s0.ang) * 14);
-    gate.rotation.y = -s0.ang + Math.PI / 2;
-    var gateTop = keep(new T.Mesh(
-      new T.BoxGeometry(TH * 2 + 12, 2.2, 3.4),
-      new T.MeshLambertMaterial({ color: 0x4f7345 })));
-    gateTop.position.set(s0.x - Math.cos(s0.ang) * 14, 10.6, s0.y - Math.sin(s0.ang) * 14);
-    gateTop.rotation.y = -s0.ang + Math.PI / 2;
+    (function(){
+      var nH = Math.max(1, Math.min(18, (tl.horses || []).length || 8));
+      var gw = TH * 2 + 10;
+      var gx = s0.x - Math.cos(s0.ang) * 14, gz = s0.y - Math.sin(s0.ang) * 14;
+      var rotY = -s0.ang + Math.PI / 2;
+      var cR = Math.cos(rotY), sR = Math.sin(rotY);
+      function gbox(w, h, d, mat, lx, ly){
+        var m = keep(new T.Mesh(new T.BoxGeometry(w, h, d), mat));
+        m.position.set(gx + lx * cR, ly, gz - lx * sR);
+        m.rotation.y = rotY;
+        return m;
+      }
+      var frameM = new T.MeshLambertMaterial({ color: 0xf2f4ee });
+      var backM = new T.MeshLambertMaterial({ color: 0xdfe4d8 });
+      mats.push(frameM); mats.push(backM);
+      gbox(2.4, 13, 3.4, frameM, -gw / 2, 6.5);   /* 側柱 */
+      gbox(2.4, 13, 3.4, frameM, gw / 2, 6.5);
+      /* 上梁(枠番表示つき) */
+      var ncv = document.createElement('canvas');
+      ncv.width = 64 * nH; ncv.height = 48;
+      var nctx = ncv.getContext('2d');
+      nctx.fillStyle = '#2f5b33'; nctx.fillRect(0, 0, ncv.width, 48);
+      nctx.fillStyle = '#ffffff'; nctx.font = 'bold 30px sans-serif';
+      nctx.textAlign = 'center'; nctx.textBaseline = 'middle';
+      for (var gi = 0; gi < nH; gi++) nctx.fillText(String(gi + 1), 64 * gi + 32, 26);
+      var ntex = new T.CanvasTexture(ncv); texs.push(ntex);
+      var beamM = new T.MeshLambertMaterial({ map: ntex }); mats.push(beamM);
+      gbox(gw + 2, 3.4, 3.6, beamM, 0, 12.4);
+      /* 各枠の仕切り */
+      for (var di = 1; di < nH; di++)
+        gbox(0.9, 10.6, 2.8, frameM, -gw / 2 + (gw / nH) * di, 5.6);
+      /* 後方パネル(低めで開放感を残す) */
+      var bp = gbox(gw, 4.2, 1.2, backM, 0, 2.5);
+      bp.position.x += -2.4 * sR; bp.position.z += -2.4 * cR;
+    })();
 
-    /* ゴール: 路面のゴール線(白帯×2) + 柱+バー(第169弾から維持) */
+    /* ★第286弾: ゴールガントリーを番組風に(バナー文字+質感)。 */
     var gp = rv3dPathPose(pts, tl.turn, tl.D, tl._totalPx, tl.D);
     var gLine = keep(new T.Mesh(
       new T.BoxGeometry(TH * 2 + 12, 0.7, 7),
       new T.MeshLambertMaterial({ color: 0xfdfdfb })));
     gLine.position.set(gp.x, 0.62, gp.y);
     gLine.rotation.y = -gp.ang + Math.PI / 2;
+    var gCanv = document.createElement('canvas');
+    gCanv.width = 512; gCanv.height = 64;
+    var gctx = gCanv.getContext('2d');
+    gctx.fillStyle = '#1f3a24'; gctx.fillRect(0, 0, 512, 64);
+    gctx.fillStyle = '#ffffff'; gctx.font = 'bold 40px sans-serif';
+    gctx.textAlign = 'center'; gctx.textBaseline = 'middle';
+    gctx.fillText('G O A L', 256, 34);
+    var gtex = new T.CanvasTexture(gCanv); texs.push(gtex);
+    var gBarM = new T.MeshLambertMaterial({ map: gtex }); mats.push(gBarM);
     var gBar = keep(new T.Mesh(
-      new T.BoxGeometry(TH * 2 + 24, 3, 3),
-      new T.MeshLambertMaterial({ color: 0xf5f7f3 })));
+      new T.BoxGeometry(TH * 2 + 24, 4.2, 3),
+      gBarM));
     gBar.position.set(gp.x, 38, gp.y);
     gBar.rotation.y = -gp.ang + Math.PI / 2;
+    var poleM = new T.MeshLambertMaterial({ color: 0x3d4a3f }); mats.push(poleM);
     [-1, 1].forEach(function(sd){
       var pole = keep(new T.Mesh(
-        new T.BoxGeometry(3, 42, 3),
-        new T.MeshLambertMaterial({ color: 0xf5f7f3 })));
+        new T.BoxGeometry(3.6, 42, 3.6),
+        poleM));
       pole.position.set(gp.x + gp.nx * sd * (TH + 10), 21, gp.y + gp.ny * sd * (TH + 10));
     });
 
@@ -55108,11 +55115,6 @@ function rv3dPaint(cv, tl, st){
     var c3 = rv3dCamSeq(st.cam, st.target ? st.target.mode : '', tl, st);
     var dTgt = Math.hypot(c3.px - c3.tx, c3.py - c3.ty, c3.pz - c3.tz);
     if (!(RV3D._distS > 0)) RV3D._distS = dTgt;
-    /* ★第283弾: 場面転換はテレビ中継のようにカットで切り替える
-       (距離の平滑化をリセットしてスナップ。注視点は連続したままなので
-       被写体を見失わない)。 */
-    if (c3.scene && RV3D._scene && c3.scene !== RV3D._scene) RV3D._distS = dTgt;
-    RV3D._scene = c3.scene || null;
     RV3D._distS += (dTgt - RV3D._distS) * 0.16;
     var df = dTgt > 0 ? RV3D._distS / dTgt : 1;
     RV3D.cam.position.set(c3.tx + (c3.px - c3.tx) * df, c3.ty + (c3.py - c3.ty) * df, c3.tz + (c3.pz - c3.tz) * df);
@@ -55326,7 +55328,6 @@ function rv3dPaint(cv, tl, st){
 /* ---------- 解放(冪等): 閉じたとき・切替時・読込失敗時 ---------- */
 function rv3dStop(){
   RV3D._distS = 0;   /* ★第211.5弾: 距離平滑化のリセット(次回起動で引き継がない) */
-  RV3D._scene = null; /* ★第283弾: 場面カットの記憶もリセット */
   RV3D.proto1 = false;   /* ★第215弾: 試作フラグもリセット(再起動で判定し直す) */
   try {
     RV3D.active = false;
