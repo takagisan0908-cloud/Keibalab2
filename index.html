@@ -41165,10 +41165,18 @@ function aiProposalInit(){
   (function attachPdf(n){
     var xp = null;
     try { xp = $('aiPdf'); } catch(e){}
-    if (xp && xp.dataset && !xp.dataset.pdfBound){
+    if (xp){
+      /* ★第290弾追加5:PWA/スタンドアロンモードでは共有シートを開くため、ラベルを分かりやすくする */
+      try {
+        var isSA = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                    window.navigator.standalone === true;
+        if (isSA) xp.textContent = '📤 共有';
+      } catch(e){}
+      if (xp.dataset && !xp.dataset.pdfBound){
       xp.dataset.pdfBound = '1';
       xp.addEventListener('click', function(){ try { aiExportPDF(); } catch(e){ aiSettleMsg('⚠ PDF(印刷)に失敗: ' + esc(String((e && e.message) || e))); } });
-    } else if (!xp && n > 0){
+      }
+    } else if (n > 0){
       setTimeout(function(){ attachPdf(n - 1); }, 500);
     }
   })(5);
@@ -41978,228 +41986,6 @@ function aiExportPdfHTML(model, d8){
   h += '</body></html>';
   return h;
 }
-/* ★第290弾追加3:PWA/スタンドアロンモード用 body置換印刷。
-   iOSのPWAでは window.print() がオーバーレイ/iframe経由で動作しないことがあるため、
-   メインドキュメントのbody内容を印刷用HTMLに一時置換して直接印刷する方式を試す。
-   既存のbody子要素は非表示holderへ「移動」する（appendChildによる移動なので
-   addEventListener で付けたリスナーは保持される）。印刷ダイアログが閉じたら
-   afterprint イベント＋タイムアウト保険で確実に元に戻す。
-   準備段階で例外が出たらオーバーレイ（Safari案内）にフォールバックする。 */
-function aiExportPdfBodySwap(model, d8){
-  var body = null;
-  try { body = document.body; } catch(e){}
-  if (!body){ try { aiExportPdfOverlay(model, d8); } catch(e2){} return; }
-  try { aiSettleMsg('🖨 印刷準備中…'); } catch(e){}
-  var prevTitle = '';
-  try { prevTitle = document.title || ''; } catch(e){}
-  var restored = false;
-  var holder = null, printDiv = null, styleEl = null, cancelBar = null;
-  var restoreBody = function(){
-    if (restored) return; restored = true;
-    try { if (cancelBar && cancelBar.parentNode) cancelBar.parentNode.removeChild(cancelBar); } catch(e){}
-    try { if (printDiv && printDiv.parentNode) printDiv.parentNode.removeChild(printDiv); } catch(e){}
-    try {
-      if (holder && holder.parentNode){
-        while (holder.firstChild) body.appendChild(holder.firstChild);
-        holder.parentNode.removeChild(holder);
-      }
-    } catch(e){}
-    try { if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl); } catch(e){}
-    try { document.title = prevTitle; } catch(e){}
-    try { window.removeEventListener('afterprint', restoreBody); } catch(e){}
-    holder = null; printDiv = null; styleEl = null; cancelBar = null;
-  };
-  try {
-    /* 1. 既存のbody子要素を非表示holderへ移動（リスナー保持のため innerHTML 置換は使わない） */
-    holder = document.createElement('div');
-    holder.id = 'aiPdfBodyHolder';
-    holder.style.cssText = 'display:none!important;';
-    while (body.firstChild) holder.appendChild(body.firstChild);
-    body.appendChild(holder);
-    /* 2. 印刷用コンテンツを挿入 */
-    printDiv = document.createElement('div');
-    printDiv.id = 'aiPdfPrintBody';
-    printDiv.innerHTML = aiExportPdfBodyHTML(model, d8);
-    body.appendChild(printDiv);
-    /* 3. キャンセルバー（印刷ダイアログが開かない場合用。印刷時は非表示） */
-    cancelBar = document.createElement('div');
-    cancelBar.id = 'aiPdfSwapCancel';
-    cancelBar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100000;background:#1a73e8;color:#fff;padding:10px 12px;text-align:center;';
-    cancelBar.innerHTML = '<button id="aiPdfSwapCancelBtn" style="font-size:15px;padding:10px 18px;border-radius:8px;border:0;background:#ffffff;color:#1a73e8;font-weight:700;cursor:pointer;">✕ キャンセルして戻る</button>' +
-      ' <span style="font-size:12px;">印刷ダイアログが開かない場合はこちら</span>';
-    body.appendChild(cancelBar);
-    try {
-      var cb = document.getElementById('aiPdfSwapCancelBtn');
-      if (cb) cb.onclick = function(){ restoreBody(); try { aiSettleMsg('印刷をキャンセルしました。'); } catch(e){} };
-    } catch(e){}
-    /* 4. 印刷用CSSを注入（非スコープ版：コンテンツがbody直下のため。キャンセルバーは印刷時非表示） */
-    styleEl = document.createElement('style');
-    styleEl.id = 'aiPdfBodySwapCss';
-    styleEl.textContent = aiExportPdfCSS(false) +
-      '@media print{#aiPdfSwapCancel{display:none!important;}}';
-    document.head.appendChild(styleEl);
-    /* 5. タイトルを対象日に一時変更（第173弾の仕組みを流用：印刷ダイアログのファイル名に反映） */
-    if (/^\d{8}$/.test(String(d8 || ''))){ try { document.title = String(d8); } catch(e){} }
-  } catch(e){
-    try { restoreBody(); } catch(e2){}
-    try { aiExportPdfOverlay(model, d8); } catch(e3){}
-    return;
-  }
-  /* 6. afterprint＋タイムアウト保険で確実に復元（ダイアログ長期滞在に備え120秒） */
-  try { window.addEventListener('afterprint', restoreBody); } catch(e){}
-  setTimeout(restoreBody, 120000);
-  /* 7. 印刷実行。例外時はオーバーレイにフォールバック */
-  try {
-    window.print();
-  } catch(e){
-    restoreBody();
-    try { aiExportPdfOverlay(model, d8); } catch(e2){}
-  }
-}
-/* ★第290弾追加:PWA/スタンドアロンモード用。別タブ・共有ボタンが使えないため、
-   アプリ内フルスクリーンオーバーレイで印刷プレビューを表示する。
-   印刷時はメインドキュメントのCSSでアプリ本体を隠し、オーバーレイ内容のみ出力する。 */
-var AI_PDF_OV_PRINT_CSS =
-  '@page{size:A4 landscape;margin:9mm}' +
-  '@media print{' +
-  'body>*:not(#aiPdfOverlay){display:none!important;}' +
-  '#aiPdfOverlay{position:static!important;z-index:auto!important;height:auto!important;overflow:visible!important;background:#ffffff!important;}' +
-  '#aiPdfOverlay .pdf-ov-toolbar{display:none!important;}' +
-  '}';
-var AI_PDF_OV_PREV_TITLE = '';
-function aiExportPdfOverlayClose(){
-  try {
-    var ov = document.getElementById('aiPdfOverlay');
-    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-  } catch(e){}
-  try {
-    var st = document.getElementById('aiPdfOverlayCss');
-    if (st && st.parentNode) st.parentNode.removeChild(st);
-  } catch(e){}
-  try { document.body.style.overflow = ''; } catch(e){}
-  try { if (AI_PDF_OV_PREV_TITLE && document.title !== AI_PDF_OV_PREV_TITLE) document.title = AI_PDF_OV_PREV_TITLE; } catch(e){}
-  AI_PDF_OV_PREV_TITLE = '';
-}
-function aiExportPdfOverlay(model, d8){
-  try { aiExportPdfOverlayClose(); } catch(e){}
-  var prevTitle = '';
-  try { prevTitle = document.title || ''; } catch(e){}
-  try {
-    var ov = document.createElement('div');
-    ov.id = 'aiPdfOverlay';
-    ov.setAttribute('role', 'dialog');
-    ov.setAttribute('aria-label', '印刷プレビュー');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#ffffff;overflow-y:auto;-webkit-overflow-scrolling:touch;';
-    /* ツールバー（印刷時は非表示） */
-    var bar = document.createElement('div');
-    bar.className = 'pdf-ov-toolbar';
-    bar.style.cssText = 'position:sticky;top:0;z-index:2;background:#1a73e8;color:#fff;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;';
-    var bClose = document.createElement('button');
-    bClose.textContent = '✕ 閉じる';
-    bClose.style.cssText = 'font-size:15px;padding:10px 18px;border-radius:8px;border:0;background:#ffffff;color:#1a73e8;font-weight:700;cursor:pointer;';
-    bClose.onclick = function(){ aiExportPdfOverlayClose(); };
-    var bPrint = document.createElement('button');
-    bPrint.textContent = '📋 Safariで印刷する手順';
-    bPrint.style.cssText = 'font-size:15px;padding:10px 18px;border-radius:8px;border:0;background:#fbbc04;color:#202124;font-weight:700;cursor:pointer;';
-    /* ★第290弾追加2:PWA/スタンドアロンモードでは window.print() が動作しない（iOSの制限）。
-       ボタンを押したらSafariブラウザで開いて印刷するよう案内パネルを表示する。 */
-    var guidePanel = null;
-    bPrint.onclick = function(){
-      try {
-        if (guidePanel && guidePanel.parentNode){
-          guidePanel.parentNode.removeChild(guidePanel);
-          guidePanel = null;
-          return;
-        }
-        var siteUrl = '';
-        try { siteUrl = String(window.location.origin || ''); } catch(e0){}
-        if (!siteUrl || siteUrl === 'null' || siteUrl === 'file://') siteUrl = 'https://keibalab2.vercel.app';
-        guidePanel = document.createElement('div');
-        guidePanel.style.cssText = 'background:#fff8e1;color:#5d4037;padding:12px 14px;font-size:13px;line-height:1.8;border-bottom:2px solid #fbbc04;';
-        var msgHtml =
-          '<div style="font-weight:700;margin-bottom:6px;">⚠ ホーム画面アプリでは印刷できません</div>' +
-          '<div>iPhoneのホーム画面アプリ（PWA）では、iOSの制限により印刷機能が使えません。<br>' +
-          'お手数ですが、<b>Safariアプリ</b>で下のURLを開いて印刷してください。</div>' +
-          '<div style="margin:10px 0 6px;font-weight:700;">手順：</div>' +
-          '<div>1. 下のURLをコピーしてSafariアプリで開く<br>' +
-          '2. 🤖AI提案タブで「🖨 PDF（印刷）」ボタンを押す<br>' +
-          '3. 別タブで開いた印刷ページから「🖨 印刷 / PDF保存」</div>';
-        var urlRow = document.createElement('div');
-        urlRow.style.cssText = 'display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;';
-        var urlInput = document.createElement('input');
-        urlInput.type = 'text';
-        urlInput.readOnly = true;
-        urlInput.value = siteUrl;
-        urlInput.setAttribute('aria-label', 'サイトURL');
-        urlInput.style.cssText = 'flex:1;min-width:200px;font-size:14px;padding:8px 10px;border:1px solid #bdbdbd;border-radius:6px;background:#ffffff;color:#1a1a1a;';
-        urlInput.onclick = function(){ try { this.select(); } catch(e1){} };
-        var bCopy = document.createElement('button');
-        bCopy.textContent = '📋 コピー';
-        bCopy.style.cssText = 'font-size:14px;padding:8px 16px;border-radius:6px;border:0;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;';
-        bCopy.onclick = function(){
-          var done = function(ok){
-            try { bCopy.textContent = ok ? '✅ コピー済み' : '⚠ コピー失敗'; } catch(e2){}
-            setTimeout(function(){ try { bCopy.textContent = '📋 コピー'; } catch(e3){} }, 2000);
-          };
-          try {
-            if (navigator.clipboard && navigator.clipboard.writeText){
-              navigator.clipboard.writeText(siteUrl).then(function(){ done(true); }, function(){ fallbackCopy(); });
-            } else {
-              fallbackCopy();
-            }
-          } catch(e4){ fallbackCopy(); }
-          function fallbackCopy(){
-            try {
-              urlInput.select();
-              var ok = false;
-              try { ok = document.execCommand('copy'); } catch(e5){}
-              done(!!ok);
-            } catch(e6){ done(false); }
-          }
-        };
-        guidePanel.innerHTML = msgHtml;
-        urlRow.appendChild(urlInput);
-        urlRow.appendChild(bCopy);
-        guidePanel.appendChild(urlRow);
-        /* ツールバーの直後に挿入 */
-        try {
-          if (bar.nextSibling) bar.parentNode.insertBefore(guidePanel, bar.nextSibling);
-          else bar.parentNode.appendChild(guidePanel);
-        } catch(e7){}
-      } catch(e8){}
-    };
-    var hint = document.createElement('span');
-    hint.style.cssText = 'font-size:12px;line-height:1.6;';
-    hint.textContent = '印刷プレビューです。ホーム画面アプリでは印刷できないため「📋 Safariで印刷する手順」をご覧ください。';
-    bar.appendChild(bClose);
-    bar.appendChild(bPrint);
-    bar.appendChild(hint);
-    /* 本文（スコープ付きCSSでアプリ本体のスタイルと衝突させない） */
-    var bodyDiv = document.createElement('div');
-    bodyDiv.id = 'aiPdfOvBody';
-    bodyDiv.style.cssText = 'padding:12px;';
-    bodyDiv.innerHTML = aiExportPdfBodyHTML(model, d8);
-    /* スコープ付きCSS＋印刷時制御をheadへ注入（既存があれば置換） */
-    try {
-      var old = document.getElementById('aiPdfOverlayCss');
-      if (old && old.parentNode) old.parentNode.removeChild(old);
-    } catch(e2){}
-    var st = document.createElement('style');
-    st.id = 'aiPdfOverlayCss';
-    st.textContent = aiExportPdfCSS(true) + AI_PDF_OV_PRINT_CSS;
-    try { document.head.appendChild(st); } catch(e3){}
-    ov.appendChild(bar);
-    ov.appendChild(bodyDiv);
-    document.body.appendChild(ov);
-    try { document.body.style.overflow = 'hidden'; } catch(e4){}
-    try { ov.scrollTop = 0; } catch(e5){}
-    /* 印刷ダイアログのファイル名用にタイトルを対象日へ一時付け替え（閉じたら戻す） */
-    if (/^\d{8}$/.test(String(d8 || ''))){
-      try { AI_PDF_OV_PREV_TITLE = prevTitle; document.title = String(d8); } catch(e6){}
-    }
-    aiSettleMsg('📄 印刷プレビューを開きました。ホーム画面アプリでは印刷できないため「📋 Safariで印刷する手順」ボタンから手順をご確認ください。「✕ 閉じる」でアプリに戻ります。');
-  } catch(e){ aiSettleMsg('⚠ PDFプレビューの表示に失敗: ' + esc(String((e && e.message) || e))); }
-}
 function aiExportNeed(){
   var model = aiDayExportModel();
   if (!model.length){ aiSettleMsg('⚠ エクスポート対象がありません。①で「📥 その日の出馬表を一括取得」してから開いてください。'); return null; }
@@ -42219,19 +42005,154 @@ function aiExportExcel(){
     aiSettleMsg('✅ Excel（keiba_' + (AI_DAY_D8 || '') + '.xls）を保存しました。開けない場合はブラウザの「この種のダウンロードを保存」を許可してください。');
   } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); }
 }
+/* ★第290弾追加4:PWA/スタンドアロンモード用。iOSのPWAでは window.print() が動作しないため、
+   印刷ダイアログに頼らず印刷用HTMLをファイルとしてダウンロードする。
+   Blobダウンロード方式はExcel出力でPWA実機動作を確認済み。
+   日本語はブラウザがレンダリングするため文字化けなし。保存後にSafariアプリで開いて
+   「共有→プリント」からPDF保存できる。 */
+function aiExportHTMLDownload(model, d8){
+  try {
+    var html = aiExportPdfHTML(model, d8);
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'keiba_' + (d8 || AI_DAY_D8 || 'export') + '.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
+    aiSettleMsg('📄 印刷用HTML（keiba_' + (d8 || AI_DAY_D8 || '') + '.html）を保存しました。Safariアプリで開いて「共有→プリント→ピンチアウト」でPDF保存できます。');
+  } catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); }
+}
+/* ★第290弾追加6:PWA/スタンドアロンモード用スクリーンショット方式。
+   html2canvasを動的ロード（初回のみ・CDN）し、印刷用HTMLをPNG画像化して
+   共有シートで渡す。window.print()不要・日本語フォント問題なし（画像化される）。
+   PNGは200-500KB程度でiPhoneの写真アプリで直接開ける。
+   html2canvasのロードに失敗した場合（オフライン等）は従来のHTMLダウンロード方式に
+   フォールバック（追加ライブラリ不要・ネットワーク不要）。 */
+var AI_H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+var AI_H2C_STATE = 0; /* 0=未ロード 1=ロード中 2=完了 3=失敗 */
+var AI_H2C_QUEUE = [];
+function aiLoadHtml2Canvas(cb){
+  var fire = function(h2c){
+    var q = AI_H2C_QUEUE; AI_H2C_QUEUE = [];
+    for (var i = 0; i < q.length; i++){ try { q[i](h2c); } catch(e){} }
+  };
+  try { if (window.html2canvas){ cb(window.html2canvas); return; } } catch(e){}
+  if (AI_H2C_STATE === 2){ try { cb(window.html2canvas || null); } catch(e){} return; }
+  if (AI_H2C_STATE === 3){ try { cb(null); } catch(e){} return; }
+  AI_H2C_QUEUE.push(cb);
+  if (AI_H2C_STATE === 1) return;
+  AI_H2C_STATE = 1;
+  var settle = function(ok){
+    AI_H2C_STATE = ok ? 2 : 3;
+    var h2c = null;
+    try { h2c = ok ? window.html2canvas : null; } catch(e){}
+    fire(h2c);
+  };
+  try {
+    var s = document.createElement('script');
+    s.src = AI_H2C_URL; s.async = true;
+    s.onload = function(){ settle(true); };
+    s.onerror = function(){ settle(false); };
+    (document.head || document.documentElement).appendChild(s);
+    setTimeout(function(){ if (AI_H2C_STATE === 1) settle(!!window.html2canvas); }, 15000);
+  } catch(e){ settle(false); }
+}
+/* PWA用：印刷用HTMLをPNG化して共有シート（フォールバックはPNGダウンロード） */
+function aiExportScreenshot(model, d8){
+  aiSettleMsg('📸 画像を作成しています…');
+  aiLoadHtml2Canvas(function(h2c){
+    if (!h2c){ aiExportHTMLDownload(model, d8); return; }
+    var holder = null, cssEl = null;
+    var cleanup = function(){
+      try { if (cssEl && cssEl.parentNode) cssEl.parentNode.removeChild(cssEl); } catch(e){}
+      try { if (holder && holder.parentNode) holder.parentNode.removeChild(holder); } catch(e){}
+    };
+    try {
+      /* 描画用コンテナを画面外に配置（html2canvasはDOM上のレイアウトが必要） */
+      holder = document.createElement('div');
+      holder.id = 'aiShotHolder';
+      holder.style.cssText = 'position:fixed;left:-12000px;top:0;width:1100px;background:#fff;z-index:-1;';
+      var inner = document.createElement('div');
+      inner.id = 'aiPdfOvBody';
+      inner.innerHTML = aiExportPdfBodyHTML(model, d8);
+      holder.appendChild(inner);
+      document.body.appendChild(holder);
+      /* スコープ付きCSSを注入（アプリ本体のスタイルと衝突しない） */
+      cssEl = document.createElement('style');
+      cssEl.id = 'aiShotCss';
+      try { cssEl.textContent = aiExportPdfCSS(true); } catch(e){ cssEl.textContent = ''; }
+      document.head.appendChild(cssEl);
+      h2c(holder, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas){
+        var fname = 'keiba_' + (d8 || AI_DAY_D8 || 'export') + '.png';
+        var afterBlob = function(blob){
+          cleanup();
+          if (!blob){ aiExportHTMLDownload(model, d8); return; }
+          var file = null;
+          try { file = new File([blob], fname, { type: 'image/png' }); } catch(e){ file = null; }
+          var shared = false;
+          try {
+            if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+              shared = true;
+              var pr = navigator.share({ files: [file], title: '競馬AIラボ ' + (d8 || '') });
+              if (pr && typeof pr.then === 'function'){
+                pr.then(function(){
+                  aiSettleMsg('📤 共有しました（' + fname + '）。「写真に保存」やAirDrop等が選べます。');
+                }, function(err){
+                  var nm = '';
+                  try { nm = String((err && err.name) || ''); } catch(e2){}
+                  if (nm === 'AbortError') return; /* キャンセル時はフォールバックしない */
+                  aiExportPngDownload(blob, fname);
+                });
+              } else {
+                aiExportPngDownload(blob, fname);
+              }
+            }
+          } catch(e){ shared = false; }
+          if (!shared) aiExportPngDownload(blob, fname);
+        };
+        try {
+          if (canvas.toBlob) canvas.toBlob(afterBlob, 'image/png');
+          else {
+            var bin = atob(canvas.toDataURL('image/png').split(',')[1]);
+            var arr = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            afterBlob(new Blob([arr], { type: 'image/png' }));
+          }
+        } catch(e){ afterBlob(null); }
+      }, function(err){
+        cleanup();
+        aiExportHTMLDownload(model, d8);
+      });
+    } catch(e){
+      cleanup();
+      aiExportHTMLDownload(model, d8);
+    }
+  });
+}
+/* PNGのBlobダウンロード（共有シート非対応時のフォールバック。Excel出力と同パターン） */
+function aiExportPngDownload(blob, fname){
+  try {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
+    aiSettleMsg('📸 画像（' + fname + '）を保存しました。写真アプリで開けます。');
+  } catch(e){ aiSettleMsg('⚠ 画像の保存に失敗: ' + esc(String((e && e.message) || e))); }
+}
 function aiExportPDF(){
   var model = aiExportNeed();
   if (!model) return;
   var d8 = aiExportPdfD8();
-  /* ★第290弾追加:PWA/スタンドアロンモード検出。PWAでは別タブ・共有ボタンが使えないため
-     body置換方式でメインドキュメントから直接印刷を試す（第290弾追加3）。
-     準備に失敗した場合は aiExportPdfBodySwap 内でオーバーレイ（Safari案内）にフォールバックする。 */
+  /* ★第290弾追加4:PWA/スタンドアロンモード検出。PWAでは別タブ・共有ボタン・window.print() が
+     使えない（iOSの制限・実機で body置換方式も失敗を確認）ため、印刷用HTMLのダウンロード方式を使う。
+     BlobダウンロードはExcel出力でPWA実機動作を確認済み。 */
   var isStandalone = false;
   try {
     isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    window.navigator.standalone === true;
   } catch(e){}
-  if (isStandalone){ aiExportPdfBodySwap(model, d8); return; }
+  if (isStandalone){ aiExportScreenshot(model, d8); return; }
   var html = aiExportPdfHTML(model, d8);
   /* ★第290弾: iOS Safariでは iframe.contentWindow.print() が動作しないことが多い。
      iOSでは別タブに印刷用HTMLを開き、共有→プリント→PDF保存の手順を案内する。
