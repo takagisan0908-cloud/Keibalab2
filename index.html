@@ -17837,7 +17837,7 @@ function apLsAllRec(){
   apScanMem = out;
   return out;
 }
-function apLsSetRec(rid, rec){ apScanDrop(); try { safeSetItem(AP_PREFIX + rid, JSON.stringify(rec))   /* 🥇AI印の学習＝第一優先 */; return true; } catch(e){ return false; } }
+function apLsSetRec(rid, rec){ apScanDrop(); try { safeSetItem(AP_PREFIX + rid, JSON.stringify(rec))   /* 🥇AI印の学習＝第一優先 */; /* ★第293弾修正: 結果保存時にフォワードテストも自動反映（結果がある場合のみ） */ try { if (rec && rec.result && typeof fwAutoReflect === 'function') fwAutoReflect(); } catch(e){} return true; } catch(e){ return false; } }
 function apLsDelRec(rid){ apScanDrop(); try { localStorage.removeItem(AP_PREFIX + rid); } catch(e){} }
 /* 年月ごとの学習集計(localStorage 側) */
 function apMBLs(ym){ try { var o = JSON.parse(localStorage.getItem(AP_YM_PREFIX + ym) || 'null'); return (o && o.ym) ? o : null; } catch(e){ return null; } }
@@ -57773,44 +57773,55 @@ function gkKaiFlagHTML(name, d8, isKiri){
 }
 
 /* =========================================================
-   ★第293弾: 軸ギャップ基準のフォワードテスト自動記録＋検証タブダウンロード
-   ---------------------------------------------------------
-   目的: 軸ギャップ5%基準（AI勝率1位と2位の差が5%以上）の有効性を、
-   今後の実レースでフォワードテストするための自動記録基盤。
-   ・出馬表取り込み→分析実行時（analyzeRace完了時）に自動記録。
-   ・結果入力時（学習DBの結果確定時）に着順・3着内有無を紐付け更新。
-   ・検証タブ（📓実戦予想の記録・検証）からJSONダウンロード。
-   ・ユーザーがダウンロードしたJSONをMuseに提示して分析する。
-   分離: 専用localStorageキー klForwardAxis のみ使用。既存の予想・
-   学習DB・実戦予想記録（evLS_v1）とは完全に独立。表示・予想には
-   一切影響しない（記録のみ）。
-   決定論: res.order・最終着順は変更しない。記録は読み取り専用。
-   ========================================================= */
+★第293弾: 軸ギャップ基準のフォワードテスト自動記録＋検証タブダウンロード
+★第293弾修正: 結果反映機能の強化（2026-10-24）
+---------------------------------------------------------
+目的: 軸ギャップ5%基準（AI勝率1位と2位の差が5%以上）の有効性を、
+今後の実レースでフォワードテストするための自動記録基盤。
+・出馬表取り込み→分析実行時（analyzeRace完了時）に自動記録。
+・結果入力時（学習DBの結果確定時）に着順・3着内有無を紐付け更新。
+・検証タブ（📓実戦予想の記録・検証）からJSONダウンロード。
+・ユーザーがダウンロードしたJSONをMuseに提示して分析する。
+分離: 専用localStorageキー klForwardAxis のみ使用。既存の予想・
+学習DB・実戦予想記録（evLS_v1）とは完全に独立。表示・予想には
+一切影響しない（記録のみ）。
+決定論: res.order・最終着順は変更しない。記録は読み取り専用。
+---------------------------------------------------------
 
-var FW_LS = 'klForwardAxis';   /* ★第293弾: フォワードテスト専用キー */
-var FW_MAX = 1000;             /* 保存上限（1000レースまで・古いものから削除） */
+・fwSyncResults: 学習DBの実際の結果形式（result.rows）に対応
+- 従来のバグ：resultを配列 or {馬番:着順} と想定していたが、
+実際は {settledAt, rows:[{no,order,...}], payout,...} 形式
+→ rows形式を最優先で処理
+・フォールバック照合：raceId不一致時に日付＋開催場＋レース番号で照合
+・「✅ 結果を反映」ボタン：ユーザー分かりやすいラベルで追加
+・自動反映フック：apLsSetRec呼び出し時にフォワードテストも更新
+・過去レース対応：結果確定済みレースでも分析時に記録（即座に着順紐付け）
+========================================================= */
+
+var FW_LS = 'klForwardAxis'; /* ★第293弾: フォワードテスト専用キー */
+var FW_MAX = 1000; /* 保存上限（1000レースまで・古いものから削除） */
 
 /* ---------- 保存 ---------- */
 function fwLoad(){
   try {
     var o = JSON.parse(localStorage.getItem(FW_LS) || '{"races":[]}');
-    if (!o || !Array.isArray(o.races)) return { races: [] };
+    if (!o ||!Array.isArray(o.races)) return { races: []};
     return o;
-  } catch(e){ return { races: [] }; }
+  } catch(e){ return { races: []};}
 }
 function fwSave(o){
-  try { localStorage.setItem(FW_LS, JSON.stringify(o)); return true; }
-  catch(e){ return false; }
+  try { localStorage.setItem(FW_LS, JSON.stringify(o)); return true;}
+  catch(e){ return false;}
 }
 
 /* ---------- 日付取得 ---------- */
 function fwDate8(){
   try {
-    if (typeof state !== 'undefined' && state && state.raceDate8 && /^\d{8}$/.test(String(state.raceDate8))) return String(state.raceDate8);
+    if (typeof state!== 'undefined' && state && state.raceDate8 && /^\d{8}$/.test(String(state.raceDate8))) return String(state.raceDate8);
   } catch(e){}
-  var d = new Date();
-  var m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
-  return d.getFullYear() + m + dd;
+var d = new Date();
+var m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
+return d.getFullYear() + m + dd;
 }
 
 /* ---------- レース番号の抽出（raceId 12桁の末尾2桁） ---------- */
@@ -57823,127 +57834,249 @@ function fwRaceNoFromRid(rid){
 /* ---------- analyzeRace結果から記録 ---------- */
 function fwRecordFromRes(res){
   try {
-    if (!res || !res.ok || !res.rows || !res.rows.length) return null;
+    if (!res ||!res.ok ||!res.rows ||!res.rows.length) return null;
     var rid = '';
-    try { rid = (typeof state !== 'undefined' && state && state.raceId) ? String(state.raceId) : ''; } catch(e){}
+    try { rid = (typeof state!== 'undefined' && state && state.raceId)? String(state.raceId): '';} catch(e){}
     /* 既に同raceIdの記録があれば上書きしない（初回分析時のみ記録） */
     var data = fwLoad();
     if (rid){
       for (var i = 0; i < data.races.length; i++){
         if (data.races[i].raceId === rid) return data.races[i];
       }
+  }
+/* AI勝率順にソート（rowsは既にrank順だが念のため） */
+var sorted = res.rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0);});
+var top1 = sorted[0], top2 = sorted[1] || null;
+var prob1 = (top1 && typeof top1.prob === 'number')? top1.prob: null;
+var prob2 = (top2 && typeof top2.prob === 'number')? top2.prob: null;
+var gap = (prob1!= null && prob2!= null)? (prob1 - prob2): null;
+var raceName = '', place = '';
+try {
+  if (typeof readRaceMeta === 'function'){
+    var rm = readRaceMeta();
+    raceName = rm.name || ''; place = rm.place || '';
+  }
+} catch(e){}
+if (!raceName){
+  try { raceName = (state && state.race && state.race.name) || '';} catch(e){}
+}
+if (!place){
+  try { place = (state && state.race && state.race.place) || '';} catch(e){}
+}
+var rec = {
+  date: fwDate8(),
+  raceId: rid,
+  raceName: raceName,
+  place: place,
+  raceNo: fwRaceNoFromRid(rid),
+  axisName: (top1 && top1.h && top1.h.name) || '',
+  axisNo: (top1 && top1.h && top1.h.no) || null,
+  prob1: prob1,
+  prob2: prob2,
+  gap: gap,
+  gap5: (gap!= null && gap >= 0.05),
+  result: null, /* 着順（結果確定時に更新） */
+  top3: null, /* 3着内有無（結果確定時に更新） */
+  recordedAt: new Date().toISOString()
+};
+/* ★修正: 既に結果確定済みのレースなら即座に着順を紐付け（過去レース対応） */
+try {
+  var immediate = fwFindFinish(rec);
+  if (immediate!= null){
+    rec.result = immediate;
+    rec.top3 = (immediate <= 3);
+  }
+} catch(e){}
+data.races.push(rec);
+/* 上限超過時は古いものから削除 */
+while (data.races.length > FW_MAX) data.races.shift();
+fwSave(data);
+return rec;
+} catch(e){ return null;}
+}
+
+/* ---------- 学習DBの結果から軸馬の着順を抽出（全形式対応） ---------- */
+/* 戻り値: 着順（数値）or null */
+function fwExtractFinish(learnResult, axisNo){
+  try {
+    if (learnResult == null || axisNo == null) return null;
+    var axStr = String(axisNo);
+    /* 形式1: {rows: [{no, order,...}]} — 学習DBの標準形式（最優先） */
+    if (learnResult && Array.isArray(learnResult.rows)){
+      for (var i = 0; i < learnResult.rows.length; i++){
+        var row = learnResult.rows[i];
+        if (row && (String(row.no) === axStr)){
+          var ord = parseInt(row.order, 10);
+          if (ord >= 1) return ord;
+        }
     }
-    /* AI勝率順にソート（rowsは既にrank順だが念のため） */
-    var sorted = res.rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0); });
-    var top1 = sorted[0], top2 = sorted[1] || null;
-    var prob1 = (top1 && typeof top1.prob === 'number') ? top1.prob : null;
-    var prob2 = (top2 && typeof top2.prob === 'number') ? top2.prob : null;
-    var gap = (prob1 != null && prob2 != null) ? (prob1 - prob2) : null;
-    var raceName = '', place = '';
-    try {
-      if (typeof readRaceMeta === 'function'){
-        var rm = readRaceMeta();
-        raceName = rm.name || ''; place = rm.place || '';
+  return null;
+}
+/* 形式2: 配列（着順順の馬番リスト） */
+if (Array.isArray(learnResult)){
+  for (var j = 0; j < learnResult.length; j++){
+    if (String(learnResult[j]) === axStr) return j + 1;
+  }
+return null;
+}
+/* 形式3: {馬番: 着順} オブジェクト */
+if (typeof learnResult === 'object'){
+  if (learnResult[axStr]!= null){
+    var fwExV = parseInt(learnResult[axStr], 10);
+    if (fwExV >= 1) return fwExV;
+  }
+if (learnResult[axisNo]!= null){
+  var fwExV2 = parseInt(learnResult[axisNo], 10);
+  if (fwExV2 >= 1) return fwExV2;
+}
+/* 形式3b: {order: N} 単一着順（軸馬自身の結果だけが入っている場合） */
+if (learnResult.order!= null){
+  var fwExV3 = parseInt(learnResult.order, 10);
+  if (fwExV3 >= 1) return fwExV3;
+}
+}
+/* 形式4: 文字列（"1" など） */
+if (typeof learnResult === 'string' || typeof learnResult === 'number'){
+  var fwExV4 = parseInt(learnResult, 10);
+  if (fwExV4 >= 1) return fwExV4;
+}
+return null;
+} catch(e){ return null;}
+}
+
+/* ---------- 学習DBから1レース分の結果レコードを探す ---------- */
+/* 戻り値: {learnRec, matchedBy} or null */
+/* matchedBy: 'rid' | 'datePlaceNo' */
+function fwFindLearnRec(fwRec){
+  try {
+    if (typeof apScan!== 'function') return null;
+    var all = apScan() || {};
+    /* 優先1: raceIdで照合 */
+    if (fwRec.raceId && all[fwRec.raceId] && all[fwRec.raceId].result){
+      return { learnRec: all[fwRec.raceId], matchedBy: 'rid'};
+    }
+  /* フォールバック: raceIdの文字列表現でも試す */
+  if (fwRec.raceId){
+    var ridStr = String(fwRec.raceId);
+    for (var k in all){
+      if (String(k) === ridStr && all[k] && all[k].result){
+        return { learnRec: all[k], matchedBy: 'rid'};
       }
-    } catch(e){}
-    if (!raceName){
-      try { raceName = (state && state.race && state.race.name) || ''; } catch(e){}
+  }
+}
+/* 優先2: 日付＋開催場＋レース番号で照合 */
+if (fwRec.date && fwRec.place && fwRec.raceNo!= null){
+  for (var k2 in all){
+    var lr = all[k2];
+    if (!lr ||!lr.result) continue;
+    var mm = lr.meta || {};
+    var d8 = mm.date8 || '';
+    var pl = mm.place || '';
+    var rn = mm.rnum!= null? String(mm.rnum): '';
+    /* 日付が空の場合はスキップ（誤マッチ防止） */
+    if (!d8) continue;
+    if (String(d8) === String(fwRec.date) &&
+    String(pl) === String(fwRec.place) &&
+    String(rn) === String(fwRec.raceNo)){
+      return { learnRec: lr, matchedBy: 'datePlaceNo'};
     }
-    var rec = {
-      date: fwDate8(),
-      raceId: rid,
-      raceName: raceName,
-      place: place,
-      raceNo: fwRaceNoFromRid(rid),
-      axisName: (top1 && top1.h && top1.h.name) || '',
-      axisNo: (top1 && top1.h && top1.h.no) || null,
-      prob1: prob1,
-      prob2: prob2,
-      gap: gap,
-      gap5: (gap != null && gap >= 0.05),
-      result: null,      /* 着順（結果確定時に更新） */
-      top3: null,        /* 3着内有無（結果確定時に更新） */
-      recordedAt: new Date().toISOString()
-    };
-    data.races.push(rec);
-    /* 上限超過時は古いものから削除 */
-    while (data.races.length > FW_MAX) data.races.shift();
-    fwSave(data);
-    return rec;
-  } catch(e){ return null; }
+}
+}
+return null;
+} catch(e){ return null;}
+}
+
+/* ---------- 単一フォワード記録の着順を学習DBから探す ---------- */
+/* fwRecordFromRes内の即座紐付け用。戻り値: 着順 or null */
+function fwFindFinish(fwRec){
+  try {
+    var found = fwFindLearnRec(fwRec);
+    if (!found) return null;
+    return fwExtractFinish(found.learnRec.result, fwRec.axisNo);
+  } catch(e){ return null;}
 }
 
 /* ---------- 結果の紐付け（学習DBの完了レースから同期） ---------- */
+/* ★修正版：result.rows形式対応＋フォールバック照合＋デバッグログ */
 function fwSyncResults(){
   try {
-    if (typeof apScan !== 'function') return 0;
-    var completed = {};
-    try {
-      var all = apScan() || {};
-      for (var rid in all){
-        var r = all[rid];
-        if (r && r.result) completed[String(rid)] = r.result;
-      }
-    } catch(e){ return 0; }
+    if (typeof apScan!== 'function'){
+      if (typeof console!== 'undefined') console.log('[fwSync] apScan not available');
+      return 0;
+    }
+  var data = fwLoad();
+  var updated = 0, skipped = 0, noMatch = 0;
+  data.races.forEach(function(rec){
+    if (rec.result!= null){ skipped++; return;} /* 既に確定済みはスキップ */
+    var found = fwFindLearnRec(rec);
+    if (!found){ noMatch++; return;}
+    var finish = fwExtractFinish(found.learnRec.result, rec.axisNo);
+    if (finish!= null){
+      rec.result = finish;
+      rec.top3 = (finish <= 3);
+      updated++;
+    } else {
+    noMatch++;
+  }
+});
+if (updated > 0) fwSave(data);
+if (typeof console!== 'undefined'){
+  console.log('[fwSync] updated=' + updated + ' skipped=' + skipped + ' noMatch=' + noMatch + ' total=' + data.races.length);
+}
+return updated;
+} catch(e){
+if (typeof console!== 'undefined') console.log('[fwSync] error: ' + e);
+return 0;
+}
+}
+
+/* ---------- 結果反映（ユーザー向けボタン用） ---------- */
+/* fwSyncResultsと同義だが、わかりやすい名前と詳細な結果を返す */
+function fwReflectResults(){
+  var before = fwLoad().races.filter(function(r){ return r.result!= null;}).length;
+  var updated = fwSyncResults();
+  var after = fwLoad().races.filter(function(r){ return r.result!= null;}).length;
+  return { updated: updated, determinedBefore: before, determinedAfter: after};
+}
+
+/* ---------- 学習DB保存時の自動反映フック ---------- */
+/* apLsSetRecのラッパー。既存のapLsSetRecを置き換えず、呼び出し後に同期する。 */
+/* 呼び出し元: p30_learnrec.js の apLsSetRec 内から呼ぶか、結果保存処理の直後に呼ぶ */
+function fwAutoReflect(){
+  try {
+    /* 軽量：未確定レースがある場合のみ同期 */
     var data = fwLoad();
-    var updated = 0;
-    data.races.forEach(function(rec){
-      if (rec.result != null) return; /* 既に確定済みはスキップ */
-      if (!rec.raceId || !completed[rec.raceId]) return;
-      var res = completed[rec.raceId];
-      /* resultの形式: 配列（着順順の馬番）or オブジェクト */
-      var finish = null;
-      if (Array.isArray(res)){
-        /* 着順順の馬番リストから軸馬の着順を探す */
-        var idx = res.indexOf(rec.axisNo);
-        if (idx >= 0) finish = idx + 1;
-        else {
-          /* 馬番が数値/文字列の不一致に対応 */
-          for (var i = 0; i < res.length; i++){
-            if (String(res[i]) === String(rec.axisNo)){ finish = i + 1; break; }
-          }
-        }
-      } else if (res && typeof res === 'object'){
-        /* {馬番: 着順} 形式 */
-        if (res[String(rec.axisNo)] != null) finish = +res[String(rec.axisNo)];
-        else if (res[rec.axisNo] != null) finish = +res[rec.axisNo];
-      }
-      if (finish != null){
-        rec.result = finish;
-        rec.top3 = (finish <= 3);
-        updated++;
-      }
-    });
-    if (updated > 0) fwSave(data);
-    return updated;
-  } catch(e){ return 0; }
+    var hasPending = data.races.some(function(r){ return r.result == null;});
+    if (!hasPending) return 0;
+    return fwSyncResults();
+  } catch(e){ return 0;}
 }
 
 /* ---------- 集計サマリー ---------- */
 function fwSummary(){
   var data = fwLoad();
   var races = data.races;
-  var done = races.filter(function(r){ return r.result != null; });
-  var gap5 = done.filter(function(r){ return r.gap5; });
-  var gapLt5 = done.filter(function(r){ return !r.gap5; });
+  var done = races.filter(function(r){ return r.result!= null;});
+  var gap5 = done.filter(function(r){ return r.gap5;});
+  var gapLt5 = done.filter(function(r){ return!r.gap5;});
   var hitRate = function(arr){
     if (!arr.length) return null;
-    var h = arr.filter(function(r){ return r.top3; }).length;
+    var h = arr.filter(function(r){ return r.top3;}).length;
     return h / arr.length;
   };
-  return {
-    total: races.length,
-    determined: done.length,
-    pending: races.length - done.length,
-    gap5Count: gap5.length,
-    gapLt5Count: gapLt5.length,
-    hitAll: hitRate(done),
-    hitGap5: hitRate(gap5),
-    hitGapLt5: hitRate(gapLt5),
-    hitAllN: done.filter(function(r){ return r.top3; }).length,
-    hitGap5N: gap5.filter(function(r){ return r.top3; }).length,
-    hitGapLt5N: gapLt5.filter(function(r){ return r.top3; }).length
-  };
+return {
+  total: races.length,
+  determined: done.length,
+  pending: races.length - done.length,
+  gap5Count: gap5.length,
+  gapLt5Count: gapLt5.length,
+  hitAll: hitRate(done),
+  hitGap5: hitRate(gap5),
+  hitGapLt5: hitRate(gapLt5),
+  hitAllN: done.filter(function(r){ return r.top3;}).length,
+  hitGap5N: gap5.filter(function(r){ return r.top3;}).length,
+  hitGapLt5N: gapLt5.filter(function(r){ return r.top3;}).length
+};
 }
 
 /* ---------- ダウンロード用データ生成 ---------- */
@@ -57965,15 +58098,15 @@ function fwExport(){
   try {
     var payload = fwExportData();
     var d8 = fwDate8();
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'forward_axis_' + d8 + '.json';
     document.body.appendChild(a);
     a.click();
-    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href);}, 1000);
     return true;
-  } catch(e){ alert('ダウンロードに失敗しました: ' + e); return false; }
+  } catch(e){ alert('ダウンロードに失敗しました: ' + e); return false;}
 }
 
 /* ---------- 検証タブへのカード描画 ---------- */
@@ -57982,34 +58115,42 @@ function fwRenderCard(){
     var box = document.getElementById('fwCard');
     if (!box) return;
     fwSyncResults();
-    var s = fwSummary();
-    var pct = function(v){ return v == null ? '—' : (v * 100).toFixed(1) + '%'; };
+    var fwSum = fwSummary();
+    var fwPct = function(v){ return v == null? '—': (v * 100).toFixed(1) + '%';};
     var html = '';
     html += '<div class="small muted">軸ギャップ5%基準のフォワードテスト記録。分析実行時に自動で記録され、結果入力後に着順が紐付けられます。ダウンロードしたJSONをMuseに提示すると分析できます。</div>';
     html += '<div style="margin-top:8px;font-size:13px;line-height:1.8">';
-    html += '記録レース数: <b>' + s.total + '</b>（確定: ' + s.determined + ' / 未確定: ' + s.pending + '）<br>';
-    html += 'ギャップ5%以上: <b>' + s.gap5Count + 'レース</b>・的中率 ' + pct(s.hitGap5) + '（' + s.hitGap5N + '/' + s.gap5Count + '）<br>';
-    html += 'ギャップ5%未満: <b>' + s.gapLt5Count + 'レース</b>・的中率 ' + pct(s.hitGapLt5) + '（' + s.hitGapLt5N + '/' + s.gapLt5Count + '）<br>';
-    html += '全体: 的中率 ' + pct(s.hitAll) + '（' + s.hitAllN + '/' + s.determined + '）';
+    html += '記録レース数: <b>' + fwSum.total + '</b>（確定: ' + fwSum.determined + ' / 未確定: ' + fwSum.pending + '）<br>';
+    html += 'ギャップ5%以上: <b>' + fwSum.gap5Count + 'レース</b>・的中率 ' + fwPct(s.hitGap5) + '（' + fwSum.hitGap5N + '/' + fwSum.gap5Count + '）<br>';
+    html += 'ギャップ5%未満: <b>' + fwSum.gapLt5Count + 'レース</b>・的中率 ' + fwPct(s.hitGapLt5) + '（' + fwSum.hitGapLt5N + '/' + fwSum.gapLt5Count + '）<br>';
+    html += '全体: 的中率 ' + fwPct(s.hitAll) + '（' + fwSum.hitAllN + '/' + fwSum.determined + '）';
     html += '</div>';
     html += '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">';
     html += '<button id="fwBtnExport" class="btn primary">📥 フォワードテスト結果をダウンロード</button>';
+    html += '<button id="fwBtnReflect" class="btn primary">✅ 結果を反映</button>';
     html += '<button id="fwBtnSync" class="btn">🔄 結果を同期</button>';
     html += '<button id="fwBtnClear" class="btn ghost">🧹 全消し</button>';
     html += '</div>';
-    html += '<div class="small muted" style="margin-top:4px">📥ダウンロードは <code>forward_axis_YYYYMMDD.json</code>。🔄同期は学習DBの確定結果から着順を紐付けます。🧹全消しはこのフォワードテスト記録のみ消します（AI予想・学習DB・実戦予想記録には影響しません）。</div>';
+    html += '<div class="small muted" style="margin-top:4px">📥ダウンロードは <code>forward_axis_YYYYMMDD.json</code>。✅結果を反映は学習DBの確定結果から着順を紐付けます（🔄同期と同じ動作）。🧹全消しはこのフォワードテスト記録のみ消します（AI予想・学習DB・実戦予想記録には影響しません）。</div>';
     box.innerHTML = html;
     var bEx = document.getElementById('fwBtnExport');
     if (bEx) bEx.onclick = fwExport;
-    var bSy = document.getElementById('fwBtnSync');
-    if (bSy) bSy.onclick = function(){ var n = fwSyncResults(); fwRenderCard(); alert(n + 'レースの結果を同期しました。'); };
-    var bCl = document.getElementById('fwBtnClear');
-    if (bCl) bCl.onclick = function(){
-      if (!confirm('フォワードテスト記録を全て消しますか？（AI予想・学習DB・実戦予想記録には影響しません。この操作は取り消せません）')) return;
-      try { localStorage.removeItem(FW_LS); } catch(e){}
+    /* ★修正: 「✅ 結果を反映」ボタン（ユーザー要望。🔄同期と同義だが分かりやすいラベル） */
+    var bRf = document.getElementById('fwBtnReflect');
+    if (bRf) bRf.onclick = function(){
+      var r = fwReflectResults();
       fwRenderCard();
+      alert(r.updated + 'レースの結果を反映しました。（確定済み: ' + r.determinedBefore + ' → ' + r.determinedAfter + '）');
     };
-  } catch(e){}
+  var bSy = document.getElementById('fwBtnSync');
+  if (bSy) bSy.onclick = function(){ var n = fwSyncResults(); fwRenderCard(); alert(n + 'レースの結果を同期しました。');};
+  var bCl = document.getElementById('fwBtnClear');
+  if (bCl) bCl.onclick = function(){
+    if (!confirm('フォワードテスト記録を全て消しますか？（AI予想・学習DB・実戦予想記録には影響しません。この操作は取り消せません）')) return;
+    try { localStorage.removeItem(FW_LS);} catch(e){}
+    fwRenderCard();
+  };
+} catch(e){}
 }
 
 /* =========================================================
