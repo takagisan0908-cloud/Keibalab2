@@ -41166,11 +41166,11 @@ function aiProposalInit(){
     var xp = null;
     try { xp = $('aiPdf'); } catch(e){}
     if (xp){
-      /* ★第290弾追加5:PWA/スタンドアロンモードでは共有シートを開くため、ラベルを分かりやすくする */
+      /* ★第290弾追加5:PWA/スタンドアロンモードではHTMLダウンロード方式のため、ラベルを分かりやすくする */
       try {
         var isSA = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                     window.navigator.standalone === true;
-        if (isSA) xp.textContent = '📤 共有';
+        if (isSA) xp.textContent = '📥 HTML保存';
       } catch(e){}
       if (xp.dataset && !xp.dataset.pdfBound){
       xp.dataset.pdfBound = '1';
@@ -42022,137 +42022,19 @@ function aiExportHTMLDownload(model, d8){
     aiSettleMsg('📄 印刷用HTML（keiba_' + (d8 || AI_DAY_D8 || '') + '.html）を保存しました。Safariアプリで開いて「共有→プリント→ピンチアウト」でPDF保存できます。');
   } catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); }
 }
-/* ★第290弾追加6:PWA/スタンドアロンモード用スクリーンショット方式。
-   html2canvasを動的ロード（初回のみ・CDN）し、印刷用HTMLをPNG画像化して
-   共有シートで渡す。window.print()不要・日本語フォント問題なし（画像化される）。
-   PNGは200-500KB程度でiPhoneの写真アプリで直接開ける。
-   html2canvasのロードに失敗した場合（オフライン等）は従来のHTMLダウンロード方式に
-   フォールバック（追加ライブラリ不要・ネットワーク不要）。 */
-var AI_H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-var AI_H2C_STATE = 0; /* 0=未ロード 1=ロード中 2=完了 3=失敗 */
-var AI_H2C_QUEUE = [];
-function aiLoadHtml2Canvas(cb){
-  var fire = function(h2c){
-    var q = AI_H2C_QUEUE; AI_H2C_QUEUE = [];
-    for (var i = 0; i < q.length; i++){ try { q[i](h2c); } catch(e){} }
-  };
-  try { if (window.html2canvas){ cb(window.html2canvas); return; } } catch(e){}
-  if (AI_H2C_STATE === 2){ try { cb(window.html2canvas || null); } catch(e){} return; }
-  if (AI_H2C_STATE === 3){ try { cb(null); } catch(e){} return; }
-  AI_H2C_QUEUE.push(cb);
-  if (AI_H2C_STATE === 1) return;
-  AI_H2C_STATE = 1;
-  var settle = function(ok){
-    AI_H2C_STATE = ok ? 2 : 3;
-    var h2c = null;
-    try { h2c = ok ? window.html2canvas : null; } catch(e){}
-    fire(h2c);
-  };
-  try {
-    var s = document.createElement('script');
-    s.src = AI_H2C_URL; s.async = true;
-    s.onload = function(){ settle(true); };
-    s.onerror = function(){ settle(false); };
-    (document.head || document.documentElement).appendChild(s);
-    setTimeout(function(){ if (AI_H2C_STATE === 1) settle(!!window.html2canvas); }, 15000);
-  } catch(e){ settle(false); }
-}
-/* PWA用：印刷用HTMLをPNG化して共有シート（フォールバックはPNGダウンロード） */
-function aiExportScreenshot(model, d8){
-  aiSettleMsg('📸 画像を作成しています…');
-  aiLoadHtml2Canvas(function(h2c){
-    if (!h2c){ aiExportHTMLDownload(model, d8); return; }
-    var holder = null, cssEl = null;
-    var cleanup = function(){
-      try { if (cssEl && cssEl.parentNode) cssEl.parentNode.removeChild(cssEl); } catch(e){}
-      try { if (holder && holder.parentNode) holder.parentNode.removeChild(holder); } catch(e){}
-    };
-    try {
-      /* 描画用コンテナを画面外に配置（html2canvasはDOM上のレイアウトが必要） */
-      holder = document.createElement('div');
-      holder.id = 'aiShotHolder';
-      holder.style.cssText = 'position:fixed;left:-12000px;top:0;width:1100px;background:#fff;z-index:-1;';
-      var inner = document.createElement('div');
-      inner.id = 'aiPdfOvBody';
-      inner.innerHTML = aiExportPdfBodyHTML(model, d8);
-      holder.appendChild(inner);
-      document.body.appendChild(holder);
-      /* スコープ付きCSSを注入（アプリ本体のスタイルと衝突しない） */
-      cssEl = document.createElement('style');
-      cssEl.id = 'aiShotCss';
-      try { cssEl.textContent = aiExportPdfCSS(true); } catch(e){ cssEl.textContent = ''; }
-      document.head.appendChild(cssEl);
-      h2c(holder, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas){
-        var fname = 'keiba_' + (d8 || AI_DAY_D8 || 'export') + '.png';
-        var afterBlob = function(blob){
-          cleanup();
-          if (!blob){ aiExportHTMLDownload(model, d8); return; }
-          var file = null;
-          try { file = new File([blob], fname, { type: 'image/png' }); } catch(e){ file = null; }
-          var shared = false;
-          try {
-            if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
-              shared = true;
-              var pr = navigator.share({ files: [file], title: '競馬AIラボ ' + (d8 || '') });
-              if (pr && typeof pr.then === 'function'){
-                pr.then(function(){
-                  aiSettleMsg('📤 共有しました（' + fname + '）。「写真に保存」やAirDrop等が選べます。');
-                }, function(err){
-                  var nm = '';
-                  try { nm = String((err && err.name) || ''); } catch(e2){}
-                  if (nm === 'AbortError') return; /* キャンセル時はフォールバックしない */
-                  aiExportPngDownload(blob, fname);
-                });
-              } else {
-                aiExportPngDownload(blob, fname);
-              }
-            }
-          } catch(e){ shared = false; }
-          if (!shared) aiExportPngDownload(blob, fname);
-        };
-        try {
-          if (canvas.toBlob) canvas.toBlob(afterBlob, 'image/png');
-          else {
-            var bin = atob(canvas.toDataURL('image/png').split(',')[1]);
-            var arr = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-            afterBlob(new Blob([arr], { type: 'image/png' }));
-          }
-        } catch(e){ afterBlob(null); }
-      }, function(err){
-        cleanup();
-        aiExportHTMLDownload(model, d8);
-      });
-    } catch(e){
-      cleanup();
-      aiExportHTMLDownload(model, d8);
-    }
-  });
-}
-/* PNGのBlobダウンロード（共有シート非対応時のフォールバック。Excel出力と同パターン） */
-function aiExportPngDownload(blob, fname){
-  try {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
-    aiSettleMsg('📸 画像（' + fname + '）を保存しました。写真アプリで開けます。');
-  } catch(e){ aiSettleMsg('⚠ 画像の保存に失敗: ' + esc(String((e && e.message) || e))); }
-}
 function aiExportPDF(){
   var model = aiExportNeed();
   if (!model) return;
   var d8 = aiExportPdfD8();
   /* ★第290弾追加4:PWA/スタンドアロンモード検出。PWAでは別タブ・共有ボタン・window.print() が
-     使えない（iOSの制限・実機で body置換方式も失敗を確認）ため、印刷用HTMLのダウンロード方式を使う。
-     BlobダウンロードはExcel出力でPWA実機動作を確認済み。 */
+     使えない（iOSの制限・実機で body置換方式もスクリーンショット方式も失敗を確認）ため、
+     印刷用HTMLのダウンロード方式を使う。BlobダウンロードはExcel出力でPWA実機動作を確認済み。 */
   var isStandalone = false;
   try {
     isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    window.navigator.standalone === true;
   } catch(e){}
-  if (isStandalone){ aiExportScreenshot(model, d8); return; }
+  if (isStandalone){ aiExportHTMLDownload(model, d8); return; }
   var html = aiExportPdfHTML(model, d8);
   /* ★第290弾: iOS Safariでは iframe.contentWindow.print() が動作しないことが多い。
      iOSでは別タブに印刷用HTMLを開き、共有→プリント→PDF保存の手順を案内する。
