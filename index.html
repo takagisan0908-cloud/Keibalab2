@@ -58110,20 +58110,40 @@ function fwExport(){
 }
 
 /* ---------- 検証タブへのカード描画 ---------- */
+/* ★第293弾緊急修正: 変数名ミス（s→fwSum）でReferenceError→空白化していた問題を修正。
+   さらに fwSyncResults/fwSummary の失敗がカード全体を消さないよう独立try-catch化し、
+   いかなる場合でもカード枠とボタンは表示する。エラー時はカード内に文言を出す。 */
 function fwRenderCard(){
+  var box = null;
+  try { box = document.getElementById('fwCard'); } catch(e){ box = null; }
+  if (!box) {
+    if (typeof console !== 'undefined') console.log('[fwRender] fwCard not found');
+    return;
+  }
+  if (typeof console !== 'undefined') console.log('[fwRender] fwRenderCard called, box found');
+  /* 同期は独立try-catch：失敗しても描画を続行 */
+  try { fwSyncResults(); } catch(e){
+    if (typeof console !== 'undefined') console.log('[fwRender] fwSyncResults error: ' + e);
+  }
+  /* 集計も独立try-catch：失敗時はデフォルト値で表示 */
+  var fwSum = null;
+  var sumErr = null;
+  try { fwSum = fwSummary(); } catch(e){
+    sumErr = e;
+    if (typeof console !== 'undefined') console.log('[fwRender] fwSummary error: ' + e);
+    fwSum = { total: 0, determined: 0, pending: 0, gap5Count: 0, gapLt5Count: 0,
+      hitAll: null, hitGap5: null, hitGapLt5: null, hitAllN: 0, hitGap5N: 0, hitGapLt5N: 0 };
+  }
+  var fwPct = function(v){ return v == null ? '—' : (v * 100).toFixed(1) + '%'; };
+  var html = '';
   try {
-    var box = document.getElementById('fwCard');
-    if (!box) return;
-    fwSyncResults();
-    var fwSum = fwSummary();
-    var fwPct = function(v){ return v == null? '—': (v * 100).toFixed(1) + '%';};
-    var html = '';
     html += '<div class="small muted">軸ギャップ5%基準のフォワードテスト記録。分析実行時に自動で記録され、結果入力後に着順が紐付けられます。ダウンロードしたJSONをMuseに提示すると分析できます。</div>';
+    if (sumErr) html += '<div style="color:#c00;font-size:12px;margin-top:4px">表示エラー：集計に失敗しました（' + String(sumErr) + '）。記録データ自体は残っています。</div>';
     html += '<div style="margin-top:8px;font-size:13px;line-height:1.8">';
     html += '記録レース数: <b>' + fwSum.total + '</b>（確定: ' + fwSum.determined + ' / 未確定: ' + fwSum.pending + '）<br>';
-    html += 'ギャップ5%以上: <b>' + fwSum.gap5Count + 'レース</b>・的中率 ' + fwPct(s.hitGap5) + '（' + fwSum.hitGap5N + '/' + fwSum.gap5Count + '）<br>';
-    html += 'ギャップ5%未満: <b>' + fwSum.gapLt5Count + 'レース</b>・的中率 ' + fwPct(s.hitGapLt5) + '（' + fwSum.hitGapLt5N + '/' + fwSum.gapLt5Count + '）<br>';
-    html += '全体: 的中率 ' + fwPct(s.hitAll) + '（' + fwSum.hitAllN + '/' + fwSum.determined + '）';
+    html += 'ギャップ5%以上: <b>' + fwSum.gap5Count + 'レース</b>・的中率 ' + fwPct(fwSum.hitGap5) + '（' + fwSum.hitGap5N + '/' + fwSum.gap5Count + '）<br>';
+    html += 'ギャップ5%未満: <b>' + fwSum.gapLt5Count + 'レース</b>・的中率 ' + fwPct(fwSum.hitGapLt5) + '（' + fwSum.hitGapLt5N + '/' + fwSum.gapLt5Count + '）<br>';
+    html += '全体: 的中率 ' + fwPct(fwSum.hitAll) + '（' + fwSum.hitAllN + '/' + fwSum.determined + '）';
     html += '</div>';
     html += '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">';
     html += '<button id="fwBtnExport" class="btn primary">📥 フォワードテスト結果をダウンロード</button>';
@@ -58132,25 +58152,41 @@ function fwRenderCard(){
     html += '<button id="fwBtnClear" class="btn ghost">🧹 全消し</button>';
     html += '</div>';
     html += '<div class="small muted" style="margin-top:4px">📥ダウンロードは <code>forward_axis_YYYYMMDD.json</code>。✅結果を反映は学習DBの確定結果から着順を紐付けます（🔄同期と同じ動作）。🧹全消しはこのフォワードテスト記録のみ消します（AI予想・学習DB・実戦予想記録には影響しません）。</div>';
-    box.innerHTML = html;
+  } catch(e){
+    /* HTML組み立て自体が失敗してもボタンだけは出す */
+    if (typeof console !== 'undefined') console.log('[fwRender] html build error: ' + e);
+    html = '<div style="color:#c00;font-size:12px">表示エラー：' + String(e) + '</div>'
+      + '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">'
+      + '<button id="fwBtnExport" class="btn primary">📥 フォワードテスト結果をダウンロード</button>'
+      + '<button id="fwBtnReflect" class="btn primary">✅ 結果を反映</button>'
+      + '<button id="fwBtnSync" class="btn">🔄 結果を同期</button>'
+      + '<button id="fwBtnClear" class="btn ghost">🧹 全消し</button></div>';
+  }
+  try { box.innerHTML = html; } catch(e){
+    if (typeof console !== 'undefined') console.log('[fwRender] innerHTML error: ' + e);
+    return;
+  }
+  try {
     var bEx = document.getElementById('fwBtnExport');
     if (bEx) bEx.onclick = fwExport;
-    /* ★修正: 「✅ 結果を反映」ボタン（ユーザー要望。🔄同期と同義だが分かりやすいラベル） */
+    /* 「✅ 結果を反映」ボタン（🔄同期と同義だが分かりやすいラベル） */
     var bRf = document.getElementById('fwBtnReflect');
     if (bRf) bRf.onclick = function(){
       var r = fwReflectResults();
       fwRenderCard();
       alert(r.updated + 'レースの結果を反映しました。（確定済み: ' + r.determinedBefore + ' → ' + r.determinedAfter + '）');
     };
-  var bSy = document.getElementById('fwBtnSync');
-  if (bSy) bSy.onclick = function(){ var n = fwSyncResults(); fwRenderCard(); alert(n + 'レースの結果を同期しました。');};
-  var bCl = document.getElementById('fwBtnClear');
-  if (bCl) bCl.onclick = function(){
-    if (!confirm('フォワードテスト記録を全て消しますか？（AI予想・学習DB・実戦予想記録には影響しません。この操作は取り消せません）')) return;
-    try { localStorage.removeItem(FW_LS);} catch(e){}
-    fwRenderCard();
-  };
-} catch(e){}
+    var bSy = document.getElementById('fwBtnSync');
+    if (bSy) bSy.onclick = function(){ var n = fwSyncResults(); fwRenderCard(); alert(n + 'レースの結果を同期しました。'); };
+    var bCl = document.getElementById('fwBtnClear');
+    if (bCl) bCl.onclick = function(){
+      if (!confirm('フォワードテスト記録を全て消しますか？（AI予想・学習DB・実戦予想記録には影響しません。この操作は取り消せません）')) return;
+      try { localStorage.removeItem(FW_LS); } catch(e){}
+      fwRenderCard();
+    };
+  } catch(e){
+    if (typeof console !== 'undefined') console.log('[fwRender] button bind error: ' + e);
+  }
 }
 
 /* =========================================================
