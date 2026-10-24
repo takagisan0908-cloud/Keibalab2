@@ -28126,6 +28126,46 @@ function ckAutoFetch(onDone){
   }).catch(function(){ _ckAutoRunning = false; });
 }
 
+/* ★第295弾: 一括取得用・調教データの同期取得。
+   preOneRaceからanalyzeRaceの前にawaitされる。ckAutoFetchとの違い：
+   - ckAutoFetchはstate依存（state.raceId/state.horsesを読む）で非同期コールバック式。
+     一括取得ではapSnapPredがコールバック完了前に走るためスナップショットに調教が入らない。
+   - 本関数は引数のrid/hsに直接適用し、Promiseで完了を返す。analyzeRace前にawait
+     することで、エンジンのchokyoファクター計算とスナップショット保存の両方に調教が入る。
+   - 失敗時・不正な引数・stFetchHtml不在・既にckEvalありの場合は0でresolveし、処理を止めない。
+   - _ckAutoRunningフラグを共有し、ckAutoFetchとの重複取得を避ける。 */
+function ckFetchForRace(rid, hs){
+  return new Promise(function(resolve){
+    var tookFlag = false;
+    try {
+      if (!/^\d{12}$/.test(String(rid || ''))) return resolve(0);
+      if (!hs || !hs.length) return resolve(0);
+      if (typeof stFetchHtml !== 'function') return resolve(0);
+      var hasCk = hs.some(function(h){ return h && h.ckEval; });
+      if (hasCk) return resolve(0);
+      if (_ckAutoRunning) return resolve(0);
+      _ckAutoRunning = true;
+      tookFlag = true;
+      stFetchHtml('https://race.netkeiba.com/race/oikiri.html?race_id=' + rid).then(function(html){
+        var items = ckParseOikiri(html);
+        var names = hs.map(function(h){ return h.name; });
+        var nApply = 0;
+        items.forEach(function(it){
+          var idx = (typeof suggestNameIdx === 'function') ? suggestNameIdx(it.name, names) : -1;
+          if (idx >= 0 && hs[idx]){
+            hs[idx].ckEval = it.eval;
+            var s = ckSeriousnessOf(hs[idx].name, it.eval);
+            hs[idx].ckSeriousness = s;
+            nApply++;
+          }
+        });
+        _ckAutoRunning = false;
+        resolve(nApply);
+      }).catch(function(){ _ckAutoRunning = false; resolve(0); });
+    } catch(e){ if (tookFlag){ try { _ckAutoRunning = false; } catch(e2){} } resolve(0); }
+  });
+}
+
 /* =========================================================
    43 バ場・馬場別の好走率ファクター（同開催場×同馬場の3着内率）
    ---------------------------------------------------------
@@ -34534,8 +34574,14 @@ function preOneRace(rid, d8, opt){
       }
       /* ★第156弾: うましる調教（重賞のみ・opt.uma===falseで回避可）を待ってから予想 */
       var umaP = (opt.uma === false) ? Promise.resolve(0) : preUmaApply(raceObj, hs);
-      return Promise.all([detP, umaP]).then(function(ua){
+      /* ★第295弾: netkeiba調教評価（全レース）をanalyzeRaceの前に同期取得してhsへ適用。
+         ckAutoFetchは非同期でapSnapPredに間に合わず、スナップショットに調教が入らないため、
+         ここでawaitする。失敗時は0で続行（調教なしでも予想は計算される）。
+         netkeibaへの負荷は1レース1リクエストのみで、レース間のpreSleepと併せて間隔を確保する。 */
+      var ckP = (typeof ckFetchForRace === 'function') ? ckFetchForRace(rid, hs) : Promise.resolve(0);
+      return Promise.all([detP, umaP, ckP]).then(function(ua){
       var detN = ua[0];
+      var ckN = ua[2] || 0;
         /* ★第97弾: preWithState の退避→復元を1レース2回→1回に（高速化。計算順序・内容は不変：
            analyzeRace → apMetaCur の順で同じ state コンテキストで呼ぶ） */
         var mmBox = {};
@@ -34550,10 +34596,11 @@ function preOneRace(rid, d8, opt){
         var rec = (typeof apSnapPred === 'function') ? apSnapPred(rid, res, mm, { refresh: !!(opt && opt.refresh) }) : null;
         if (!rec || !rec.pre) throw new Error('事前予想を保存できませんでした（すでに結果が確定している可能性があります）');
         return { rid: rid, n: hs.length, oddsN: Object.keys(oddsMap).length, detailN: detN || 0,
+                 ckN: ckN || 0,
                  styleN: hs._styleFilled || 0, honmei: (res.rows && res.rows[0]) ? (res.rows[0].h.name + res.rows[0].mark) : '',
                  /* ★2026-09-13 第23弾⑤: 一覧に「何場 何R 何レース」を出せるように引き渡す */
                  place: meta.place || '', rnum: String(meta.rnum || '').replace(/[^0-9]/g, ''), raceName: raceName || '' };
-      });   /* ★第156弾: Promise.all([detP, umaP]) の閉じ */
+      });   /* ★第156弾＋第295弾: Promise.all([detP, umaP, ckP]) の閉じ */
     });
   });
 }
@@ -34562,7 +34609,7 @@ function preOneRace(rid, d8, opt){
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
-  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, errors: [] };   /* ★第97弾: refreshed=引き直し件数 */
+  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, ckN: 0, errors: [] };   /* ★第97弾: refreshed=引き直し件数 */   /* ★第295弾: ckN=調教反映頭数 */
   var d8 = String(date8 || '').replace(/[^0-9]/g, '');
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
@@ -34625,6 +34672,7 @@ function preDayFetch(date8, opt, progress){
           result.detailN += info.detailN || 0;
           if (info.oddsN) result.oddsN++;
           result.styleN += info.styleN || 0;
+          result.ckN += info.ckN || 0;   /* ★第295弾 */
           result.cardN++;
           /* ★第23弾⑤: 取得できたレースを一覧に記録する（読み込み履歴に載らなかった問題の対応） */
           try {
@@ -34634,7 +34682,7 @@ function preDayFetch(date8, opt, progress){
             });
           } catch(e){}
           preLog(progress, '✅ ' + rid + '（' + info.n + '頭・オッズ' + info.oddsN + '件・脚質補完' + info.styleN +
-            '頭' + (info.detailN ? '・馬柱' + info.detailN + '頭' : '') + '） 本命: ' + info.honmei);
+            '頭' + (info.detailN ? '・馬柱' + info.detailN + '頭' : '') + (info.ckN ? '・調教' + info.ckN + '頭' : '') + '） 本命: ' + info.honmei);
         }).catch(function(e){
           result.fail++;
           result.errors.push(rid + ': ' + ((e && e.message) || e));
