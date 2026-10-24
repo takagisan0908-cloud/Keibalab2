@@ -3423,6 +3423,10 @@ html[data-theme="light"] .page-top-hero{
     <div id="evList"></div>
   </div>
   <div class="card">
+    <h2>🎯 軸ギャップ フォワードテスト</h2>
+    <div id="fwCard"></div>
+  </div>
+  <div class="card">
     <h2>バックアップ</h2>
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button id="evBtnExport" class="btn primary">💾 JSON書き出し</button>
@@ -5264,6 +5268,8 @@ function analyzeRace(){
   res.markSrc = modelFirst ? 'model' : 'market';
   res.facN = facN;
   res.ok = true;
+  /* ★第293弾: 軸ギャップ基準のフォワードテスト自動記録（表示・予想には影響なし）。 */
+  try { if (typeof fwRecordFromRes === 'function') fwRecordFromRes(res); } catch(e){}
   res.note = '';
   if (!modelFirst) res.note += '（印：データ材料のばらつきが小さいため市場基準（人気込み）の順位で付与）';
   if (!hs.some(function(h){ return num(h.odds) != null; })) res.note = '単勝オッズが未入力のため、人気要素は使われていません。';
@@ -6315,6 +6321,8 @@ function renderTables(res){
     } else if (_cks != null && _cks < -0.5){
       ckBadge = '<span title="調教「勝負度」' + _cks.toFixed(2) + '：過去平均より調教評価が低下" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:#546e7a;color:#fff;font-size:.62rem;font-weight:800;">📉調落</span>';
     }
+    /* ★第292弾修正: 「末脚注意」フラグはメイン結果テーブルには出さない。
+       HTML出力に✂️表記がないため文脈が分からない。AI展開予測タブ（p66の表）の✂️行に表示する。 */
     var nameCell = '<span class="hname" title="' + nameFull.replace(/"/g, '&quot;') + '">' + nameFull +
       (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') +
       (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') + umBadge + ckBadge + '</span>';
@@ -8173,6 +8181,12 @@ function adKaisetuHtml(d, rid){
   var markJpn = { UP: '加速', DN: '減速', '--': '—' };
   /* ★第158弾: 表は馬券内率（観測×隊列推定）の高い順に並べ替え（ユーザー指示）。
      ★第289弾: 並びは adKaiMarksOf の byEst（推定率降順）をそのまま使う */
+  /* ★第292弾修正: 末脚注意フラグ用の対象レース日。rid（12桁）優先、無ければタブ③の選択日 */
+  var _d8k = '';
+  try {
+    if (/^\d{12}$/.test(String(rid || ''))) _d8k = String(rid).slice(0, 8);
+    else if (typeof AI_DEP_D8 !== 'undefined' && /^\d{8}$/.test(String(AI_DEP_D8))) _d8k = String(AI_DEP_D8);
+  } catch(e){}
   var disp = mk.byEst.map(function(r){ return { r: r, e: r._kaiEst }; });
   var trs = disp.map(function(x){
     var r = x.r, e = x.e;
@@ -8182,6 +8196,13 @@ function adKaisetuHtml(d, rid){
       ana.indexOf(r) >= 0 ? '<span class="kaiB kaiA">▲</span>' :
       kiriKakujitsu.indexOf(r) >= 0 ? '<span class="kaiB kaiXX">✂✂</span>' :   /* ★第290弾: 確実切は強い警告色 */
       kiri.indexOf(r) >= 0 ? '<span class="kaiB kaiX">✂</span>' : '<span class="kaiB kaiN2">−</span>';
+    /* ★第292弾修正: ✂️/✂✂✂の行に末脚注意フラグを追記（AI展開予測タブの表内のみ） */
+    var gkKai = '';
+    try {
+      if (typeof gkKaiFlagHTML === 'function' && (kiriKakujitsu.indexOf(r) >= 0 || kiri.indexOf(r) >= 0)){
+        gkKai = gkKaiFlagHTML(r.name, _d8k, true);
+      }
+    } catch(e){}
     var cls = r === axis ? 'kaiRj' : tai.indexOf(r) >= 0 ? 'kaiRo' : ana.indexOf(r) >= 0 ? 'kaiRa' :
       kiriKakujitsu.indexOf(r) >= 0 ? 'kaiRxx' : kiri.indexOf(r) >= 0 ? 'kaiRx' : '';
     var pw = Math.min(100, Math.round(e.rate * 130));
@@ -8203,7 +8224,7 @@ function adKaisetuHtml(d, rid){
       '<td><span class="kaiP kaiP' + r.b3 + '">' + adKaiPathJpn(r.path) + '</span><span class="kaiN"> ' + rks + '</span>' + dir + '</td>' +
       '<td>' + (Math.round(r.c3 * 10) / 10) + '<span class="kaiN"> ' + (AD_B5_JPN[r.b5] || '') + '</span></td><td>' + mk + '</td>' +
       '<td><span class="kaiBar"><i style="width:' + pw + '%;background:' + pc + '"></i><em>' + adKaiPct(e.rate) + '%</em></span><span class="kaiN">n=' + e.n + '</span></td>' +
-      '<td>' + badge + '</td></tr>';
+      '<td>' + badge + gkKai + '</td></tr>';
   }).join('');
   var tbl = '<table class="kaiTbl"><tr><th>馬番</th><th style="text-align:left">馬名</th><th>人気</th><th>単勝</th><th>AI予測の動き</th><th>4C<br>番手</th><th>直線<br>伸び</th><th>馬券内率<br>（観測×隊列推定）</th><th>評価</th></tr>' + trs + '</table>';
 
@@ -33730,7 +33751,8 @@ function hfBuildIndex(races){
       (byHorse[key] = byHorse[key] || []).push({
         d8: rc.d8, rid: rc.rid, order: x.order, odds: x.odds, band: rc.band, m: rc.m,
         surface: rc.surface, place: rc.place, pos4: hfLastPos(x.passing), pos1: hfFirstPos(x.passing), n: rc.n,
-        l3rank: x.l3rank, l3n: x.l3n, jockey: x.jockey, no: x.no, name: x.name, fsec: fsec
+        l3rank: x.l3rank, l3n: x.l3n, jockey: x.jockey, no: x.no, name: x.name, fsec: fsec,
+        last3: x.last3 || null  /* ★第292弾: 激走フラグ用に生の上り3Fも保存 */
       });
       /* meta欠損(面・距離不明)のレースはパーを汚すので集計しない */
       if (x.order === 1 && fsec != null && rc.surface && parseInt(rc.m, 10)){
@@ -57601,6 +57623,8 @@ function evImportFile(file){
   fr.readAsText(file);
 }
 function evInitTab(){
+  /* ★第293弾: フォワードテストカードを描画（p100_forward.js） */
+  try { if (typeof fwRenderCard === 'function') fwRenderCard(); } catch(e){}
   var bAi = $('evBtnAi'), bAf = $('evBtnAfter'), bRe = $('evBtnResult');
   if (bAi) bAi.onclick = function(){ EV_FORM = 'ai'; evRenderForm(); };
   if (bAf) bAf.onclick = function(){ EV_FORM = 'after'; evRenderForm(); };
@@ -57620,6 +57644,373 @@ function evInitTab(){
 
 /* 既存goTabは変更しない=p10のhookから呼ばれる(追加2行)。未初期化環境でも
    タブ要素が無ければ何もしない(既存データが無い環境で正常動作)。 */
+
+/* =========================================================
+   ⚠ 第292弾: ✂候補への「末脚注意」フラグ
+   - 精度向上検証（accuracy_improvement/kiri_improvement.md）の結果、
+     ✂候補のうち直近4走の最速上り3Fが速い馬は激走率が高いことが判明。
+   - ✂から除外するのではなく、警告フラグとして表示のみ行う。
+     買い目への自動反映はしない（ROI改善効果は統計的に未証明のため）。
+   - 閾値（GEKISO_REPORT.md・kiri_improvement.mdより）：
+     ・≤32.5秒：✂全体で35.7%の3着内率（vs その他6.6%）→ 強い警告
+     ・≤33.0秒：✂全体で14.8%の3着内率（vs その他6.5%）→ 注意
+   - データソース：p52_histfeat.js の学習DBインデックス（byHorse）の last3。
+     直近4走（対象レース日より前）の最速値を best4 とする。
+   - 表示はAI展開予測タブの表（p66）の✂️行のみ。第292弾修正でメイン結果テーブルからは撤去
+     （HTML出力に✂️表記がないため文脈が分からない）。PDF/Excelには出さない（第291弾と同様）。
+   - 決定論：表示のみで res.order・最終着順は変更しない。
+   ========================================================= */
+
+/* 閾値 */
+var GK_STRONG = 32.5;  /* 強い警告 */
+var GK_WARN = 33.0;    /* 注意 */
+
+/* 馬の直近4走の最速上り3Fを返す。データなし・対象レース日不明なら null。
+   h: 馬オブジェクト { name, id? } / d8: 対象レース日 YYYYMMDD（空なら全走） */
+function gkBestLast3Of(h, d8){
+  try {
+    if (typeof hfIndex !== 'function') return null;
+    var idx = hfIndex(false);
+    if (!idx || !idx.byHorse) return null;
+    var key = String((h && h.id) || '') || (typeof hfNameKey === 'function' ? hfNameKey(h && h.name) : '');
+    if (!key) return null;
+    var list = idx.byHorse[key];
+    if (!list || !list.length) return null;
+    var c;
+    if (/^\d{8}$/.test(String(d8 || ''))){
+      /* d8より前の要素数 */
+      var lo = 0, hi = list.length;
+      while (lo < hi){
+        var mid = (lo + hi) >> 1;
+        if (list[mid].d8 < d8) lo = mid + 1; else hi = mid;
+      }
+      c = lo;
+    } else {
+      c = list.length;
+    }
+    if (c < 1) return null;
+    var best = null;
+    for (var i = Math.max(0, c - 4); i < c; i++){
+      var v = list[i] && list[i].last3;
+      if (v != null && !isNaN(v) && v > 0){
+        if (best == null || v < best) best = v;
+      }
+    }
+    return best;
+  } catch(e){ return null; }
+}
+
+/* フラグレベルを返す。
+   bestLast3: 直近最速上り（秒）/ isKiri: ✂候補かどうか
+   戻り値: 'strong'（⚠末脚注意）/ 'warn'（末脚注意）/ null（フラグなし）
+   ※ ✂候補でない馬にはフラグを出さない（第292弾仕様） */
+function gkFlagOf(bestLast3, isKiri){
+  if (!isKiri) return null;
+  if (bestLast3 == null || isNaN(bestLast3)) return null;
+  if (bestLast3 <= GK_STRONG) return 'strong';
+  if (bestLast3 <= GK_WARN) return 'warn';
+  return null;
+}
+
+/* 馬が✂候補かどうかをエンジン結果から判定する簡易版。
+   p66のadKaiMarksOf（推定率ベース）とは別系統だが、メイン表では
+   エンジンの3着内率 p3 を用いる。p3 < 8% を✂候補相当とする。
+   （p66の✂✂は推定8%未満かつ4C最後方、✂は推定6%未満。
+    メイン表に4C位置はないため、8%で両方をカバーする。） */
+function gkIsKiriCandidate(r){
+  if (!r) return false;
+  /* p3（3着内率）があればそれを使う */
+  if (r.p3 != null && !isNaN(r.p3)){
+    var p3 = r.p3;
+    /* p3は 0..1 または 0..100 のどちらかの可能性があるため正規化 */
+    if (p3 > 1) p3 = p3 / 100;
+    return p3 < 0.08;
+  }
+  /* p3がなければ確率 prob から推定（3着内率は勝率の約2倍が目安） */
+  if (r.prob != null && !isNaN(r.prob)){
+    var pr = r.prob;
+    if (pr > 1) pr = pr / 100;
+    return pr * 2 < 0.08;
+  }
+  return false;
+}
+
+/* フラグspanの共通生成。best: 直近最速上り / flag: 'strong' | 'warn' */
+function gkFlagSpan(best, flag){
+  if (flag === 'strong'){
+    return '<span title="✂候補だが直近4走の最速上り3Fが' + best.toFixed(1) + '秒（32.5秒以下）。検証ではこの群の3着内率35.7%（vs その他6.6%）で激走注意" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:#c62828;color:#fff;font-size:.62rem;font-weight:800;">⚠末脚注意</span>';
+  } else if (flag === 'warn'){
+    return '<span title="✂候補だが直近4走の最速上り3Fが' + best.toFixed(1) + '秒（33.0秒以下）。検証ではこの群の3着内率14.8%（vs その他6.5%）で注意" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:#ef6c00;color:#fff;font-size:.62rem;font-weight:800;">末脚注意</span>';
+  }
+  return '';
+}
+
+/* メイン表の1行ぶんのフラグHTMLを返す。フラグなしなら ''。
+   r: エンジン結果行 { h, p3, prob } / d8: 対象レース日
+   ※第292弾修正でメイン表での使用は廃止。AI展開予測タブは gkKaiFlagHTML を使う。
+     互換のため関数は残す。 */
+function gkBadgeHTML(r, d8){
+  try {
+    if (!r || !r.h) return '';
+    if (!gkIsKiriCandidate(r)) return '';
+    var best = gkBestLast3Of(r.h, d8);
+    var flag = gkFlagOf(best, true);
+    if (!flag) return '';
+    return gkFlagSpan(best, flag);
+  } catch(e){ return ''; }
+}
+
+/* ★第292弾修正: AI展開予測タブ（p66の表）の✂️行用のフラグHTMLを返す。フラグなしなら ''。
+   name: 馬名 / d8: 対象レース日 YYYYMMDD（空なら全走）/ isKiri: ✂️/✂✂✂かどうか */
+function gkKaiFlagHTML(name, d8, isKiri){
+  try {
+    if (!isKiri) return '';
+    var best = gkBestLast3Of({ name: name }, d8);
+    var flag = gkFlagOf(best, true);
+    if (!flag) return '';
+    return gkFlagSpan(best, flag);
+  } catch(e){ return ''; }
+}
+
+/* =========================================================
+   ★第293弾: 軸ギャップ基準のフォワードテスト自動記録＋検証タブダウンロード
+   ---------------------------------------------------------
+   目的: 軸ギャップ5%基準（AI勝率1位と2位の差が5%以上）の有効性を、
+   今後の実レースでフォワードテストするための自動記録基盤。
+   ・出馬表取り込み→分析実行時（analyzeRace完了時）に自動記録。
+   ・結果入力時（学習DBの結果確定時）に着順・3着内有無を紐付け更新。
+   ・検証タブ（📓実戦予想の記録・検証）からJSONダウンロード。
+   ・ユーザーがダウンロードしたJSONをMuseに提示して分析する。
+   分離: 専用localStorageキー klForwardAxis のみ使用。既存の予想・
+   学習DB・実戦予想記録（evLS_v1）とは完全に独立。表示・予想には
+   一切影響しない（記録のみ）。
+   決定論: res.order・最終着順は変更しない。記録は読み取り専用。
+   ========================================================= */
+
+var FW_LS = 'klForwardAxis';   /* ★第293弾: フォワードテスト専用キー */
+var FW_MAX = 1000;             /* 保存上限（1000レースまで・古いものから削除） */
+
+/* ---------- 保存 ---------- */
+function fwLoad(){
+  try {
+    var o = JSON.parse(localStorage.getItem(FW_LS) || '{"races":[]}');
+    if (!o || !Array.isArray(o.races)) return { races: [] };
+    return o;
+  } catch(e){ return { races: [] }; }
+}
+function fwSave(o){
+  try { localStorage.setItem(FW_LS, JSON.stringify(o)); return true; }
+  catch(e){ return false; }
+}
+
+/* ---------- 日付取得 ---------- */
+function fwDate8(){
+  try {
+    if (typeof state !== 'undefined' && state && state.raceDate8 && /^\d{8}$/.test(String(state.raceDate8))) return String(state.raceDate8);
+  } catch(e){}
+  var d = new Date();
+  var m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
+  return d.getFullYear() + m + dd;
+}
+
+/* ---------- レース番号の抽出（raceId 12桁の末尾2桁） ---------- */
+function fwRaceNoFromRid(rid){
+  var s = String(rid || '');
+  if (/^\d{12}$/.test(s)) return parseInt(s.slice(10, 12), 10);
+  return null;
+}
+
+/* ---------- analyzeRace結果から記録 ---------- */
+function fwRecordFromRes(res){
+  try {
+    if (!res || !res.ok || !res.rows || !res.rows.length) return null;
+    var rid = '';
+    try { rid = (typeof state !== 'undefined' && state && state.raceId) ? String(state.raceId) : ''; } catch(e){}
+    /* 既に同raceIdの記録があれば上書きしない（初回分析時のみ記録） */
+    var data = fwLoad();
+    if (rid){
+      for (var i = 0; i < data.races.length; i++){
+        if (data.races[i].raceId === rid) return data.races[i];
+      }
+    }
+    /* AI勝率順にソート（rowsは既にrank順だが念のため） */
+    var sorted = res.rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0); });
+    var top1 = sorted[0], top2 = sorted[1] || null;
+    var prob1 = (top1 && typeof top1.prob === 'number') ? top1.prob : null;
+    var prob2 = (top2 && typeof top2.prob === 'number') ? top2.prob : null;
+    var gap = (prob1 != null && prob2 != null) ? (prob1 - prob2) : null;
+    var raceName = '', place = '';
+    try {
+      if (typeof readRaceMeta === 'function'){
+        var rm = readRaceMeta();
+        raceName = rm.name || ''; place = rm.place || '';
+      }
+    } catch(e){}
+    if (!raceName){
+      try { raceName = (state && state.race && state.race.name) || ''; } catch(e){}
+    }
+    var rec = {
+      date: fwDate8(),
+      raceId: rid,
+      raceName: raceName,
+      place: place,
+      raceNo: fwRaceNoFromRid(rid),
+      axisName: (top1 && top1.h && top1.h.name) || '',
+      axisNo: (top1 && top1.h && top1.h.no) || null,
+      prob1: prob1,
+      prob2: prob2,
+      gap: gap,
+      gap5: (gap != null && gap >= 0.05),
+      result: null,      /* 着順（結果確定時に更新） */
+      top3: null,        /* 3着内有無（結果確定時に更新） */
+      recordedAt: new Date().toISOString()
+    };
+    data.races.push(rec);
+    /* 上限超過時は古いものから削除 */
+    while (data.races.length > FW_MAX) data.races.shift();
+    fwSave(data);
+    return rec;
+  } catch(e){ return null; }
+}
+
+/* ---------- 結果の紐付け（学習DBの完了レースから同期） ---------- */
+function fwSyncResults(){
+  try {
+    if (typeof apScan !== 'function') return 0;
+    var completed = {};
+    try {
+      var all = apScan() || {};
+      for (var rid in all){
+        var r = all[rid];
+        if (r && r.result) completed[String(rid)] = r.result;
+      }
+    } catch(e){ return 0; }
+    var data = fwLoad();
+    var updated = 0;
+    data.races.forEach(function(rec){
+      if (rec.result != null) return; /* 既に確定済みはスキップ */
+      if (!rec.raceId || !completed[rec.raceId]) return;
+      var res = completed[rec.raceId];
+      /* resultの形式: 配列（着順順の馬番）or オブジェクト */
+      var finish = null;
+      if (Array.isArray(res)){
+        /* 着順順の馬番リストから軸馬の着順を探す */
+        var idx = res.indexOf(rec.axisNo);
+        if (idx >= 0) finish = idx + 1;
+        else {
+          /* 馬番が数値/文字列の不一致に対応 */
+          for (var i = 0; i < res.length; i++){
+            if (String(res[i]) === String(rec.axisNo)){ finish = i + 1; break; }
+          }
+        }
+      } else if (res && typeof res === 'object'){
+        /* {馬番: 着順} 形式 */
+        if (res[String(rec.axisNo)] != null) finish = +res[String(rec.axisNo)];
+        else if (res[rec.axisNo] != null) finish = +res[rec.axisNo];
+      }
+      if (finish != null){
+        rec.result = finish;
+        rec.top3 = (finish <= 3);
+        updated++;
+      }
+    });
+    if (updated > 0) fwSave(data);
+    return updated;
+  } catch(e){ return 0; }
+}
+
+/* ---------- 集計サマリー ---------- */
+function fwSummary(){
+  var data = fwLoad();
+  var races = data.races;
+  var done = races.filter(function(r){ return r.result != null; });
+  var gap5 = done.filter(function(r){ return r.gap5; });
+  var gapLt5 = done.filter(function(r){ return !r.gap5; });
+  var hitRate = function(arr){
+    if (!arr.length) return null;
+    var h = arr.filter(function(r){ return r.top3; }).length;
+    return h / arr.length;
+  };
+  return {
+    total: races.length,
+    determined: done.length,
+    pending: races.length - done.length,
+    gap5Count: gap5.length,
+    gapLt5Count: gapLt5.length,
+    hitAll: hitRate(done),
+    hitGap5: hitRate(gap5),
+    hitGapLt5: hitRate(gapLt5),
+    hitAllN: done.filter(function(r){ return r.top3; }).length,
+    hitGap5N: gap5.filter(function(r){ return r.top3; }).length,
+    hitGapLt5N: gapLt5.filter(function(r){ return r.top3; }).length
+  };
+}
+
+/* ---------- ダウンロード用データ生成 ---------- */
+function fwExportData(){
+  fwSyncResults();
+  var data = fwLoad();
+  var summary = fwSummary();
+  return {
+    app: 'keiba-forward-axis',
+    v: 1,
+    exportedAt: new Date().toISOString(),
+    summary: summary,
+    races: data.races
+  };
+}
+
+/* ---------- JSONダウンロード ---------- */
+function fwExport(){
+  try {
+    var payload = fwExportData();
+    var d8 = fwDate8();
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'forward_axis_' + d8 + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+    return true;
+  } catch(e){ alert('ダウンロードに失敗しました: ' + e); return false; }
+}
+
+/* ---------- 検証タブへのカード描画 ---------- */
+function fwRenderCard(){
+  try {
+    var box = document.getElementById('fwCard');
+    if (!box) return;
+    fwSyncResults();
+    var s = fwSummary();
+    var pct = function(v){ return v == null ? '—' : (v * 100).toFixed(1) + '%'; };
+    var html = '';
+    html += '<div class="small muted">軸ギャップ5%基準のフォワードテスト記録。分析実行時に自動で記録され、結果入力後に着順が紐付けられます。ダウンロードしたJSONをMuseに提示すると分析できます。</div>';
+    html += '<div style="margin-top:8px;font-size:13px;line-height:1.8">';
+    html += '記録レース数: <b>' + s.total + '</b>（確定: ' + s.determined + ' / 未確定: ' + s.pending + '）<br>';
+    html += 'ギャップ5%以上: <b>' + s.gap5Count + 'レース</b>・的中率 ' + pct(s.hitGap5) + '（' + s.hitGap5N + '/' + s.gap5Count + '）<br>';
+    html += 'ギャップ5%未満: <b>' + s.gapLt5Count + 'レース</b>・的中率 ' + pct(s.hitGapLt5) + '（' + s.hitGapLt5N + '/' + s.gapLt5Count + '）<br>';
+    html += '全体: 的中率 ' + pct(s.hitAll) + '（' + s.hitAllN + '/' + s.determined + '）';
+    html += '</div>';
+    html += '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">';
+    html += '<button id="fwBtnExport" class="btn primary">📥 フォワードテスト結果をダウンロード</button>';
+    html += '<button id="fwBtnSync" class="btn">🔄 結果を同期</button>';
+    html += '<button id="fwBtnClear" class="btn ghost">🧹 全消し</button>';
+    html += '</div>';
+    html += '<div class="small muted" style="margin-top:4px">📥ダウンロードは <code>forward_axis_YYYYMMDD.json</code>。🔄同期は学習DBの確定結果から着順を紐付けます。🧹全消しはこのフォワードテスト記録のみ消します（AI予想・学習DB・実戦予想記録には影響しません）。</div>';
+    box.innerHTML = html;
+    var bEx = document.getElementById('fwBtnExport');
+    if (bEx) bEx.onclick = fwExport;
+    var bSy = document.getElementById('fwBtnSync');
+    if (bSy) bSy.onclick = function(){ var n = fwSyncResults(); fwRenderCard(); alert(n + 'レースの結果を同期しました。'); };
+    var bCl = document.getElementById('fwBtnClear');
+    if (bCl) bCl.onclick = function(){
+      if (!confirm('フォワードテスト記録を全て消しますか？（AI予想・学習DB・実戦予想記録には影響しません。この操作は取り消せません）')) return;
+      try { localStorage.removeItem(FW_LS); } catch(e){}
+      fwRenderCard();
+    };
+  } catch(e){}
+}
 
 /* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
