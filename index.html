@@ -3689,7 +3689,9 @@ function defaultWeights(){ return { odds:7, yobi:6, time:6, tenkai:7, mark:0, ba
   waku:3, jockey:2, fieldLv:2,  /* ★第26弾③: 騎手×調教師相性（学習DB自前集計）の初期重み（小さめ）。サンプル5戦未満は自動OFF */
   pos:3,  /* ★第60弾→61弾で既定5→3・片側ボーナスに再調整（位置は加点中心。人気を追い越しすぎない））。出馬表HTML・学習DBどちら也无効なときは自動で使われない */
   umEval:3,  /* ★第288弾: うましる追い切り評価（Ｓ/Ａ/Ｂ/Ｃ）。重賞のみ・データが無い馬は中立。検証: S=50%/C=0%の3着内率（p=0.0157有意） */
-  chokyo:2  /* ★第291弾: 調教「勝負度」（netkeiba調教評価×履歴DB）。全レース対応・データが無い馬は中立。検証: 上位20%の3着内率38.0% vs 下位20%の14.3%（p=0.0073有意） */ }; }
+  chokyo:2,  /* ★第291弾: 調教「勝負度」（netkeiba調教評価×履歴DB）。全レース対応・データが無い馬は中立。検証: 上位20%の3着内率38.0% vs 下位20%の14.3%（p=0.0073有意） */
+  surfChg:2, /* ★第296弾: 芝⇄ダート替わり割引（学習DBの前走馬場×今回馬場）。データが無い馬は中立。検証(19,666R・人気帯層別): 替わりは全帯で3着内率2〜9pt低。ROIは悪化しないため弱い割引に限定 */
+  rest:2  /* ★第296弾: 休み明け割引（学習DBの前走からの間隔91日以上）。データが無い馬は中立。検証(19,666R・人気帯層別): 91日以上は全帯で3着内率2〜5pt低 */ }; }
 function defaultRace(){
   return { name:'', place:'', baba:'', dist:'', grade:'', time:'', wx:'', babaRaw:'' };   /* ★第75弾: wx/babaRaw 追加 */
 }
@@ -4857,6 +4859,40 @@ function analyzeRace(){
     if (anyC) colCk = cc;
   }
   var ckOn = !!colCk;
+  /* ★第296弾: 芝⇄ダート替わり（surfChg）／休み明け91日以上（rest）の弱い割引ファクター。
+     検証（19,666R・人気帯層別）: 馬場替わりは全帯で3着内率2〜9pt低、休み明け91日以上は2〜5pt低。
+     どちらもROIは悪化しない（市場の織り込みが強い）ため、小さな重みで確率を微調整するだけに留める。
+     材料は学習DB特徴量（hfCurFeatures）の prevSurf / restDays。abl列が作られていない場合は
+     この2ファクターのためだけに特徴量を取り直す。データが無い馬は中立(0.5)、
+     1頭も材料が無ければファクター自体をOFF（sumWにも入れない）。 */
+  var feat296 = ablInfo;
+  if (!feat296 && ((w.surfChg||0) > 0 || (w.rest||0) > 0) && typeof hfCurFeatures === 'function'){
+    try { feat296 = hfCurFeatures(hs); } catch(e){ feat296 = null; }
+  }
+  var colSurf = null, surfOn = false;
+  if ((w.surfChg||0) > 0 && feat296 && feat296.map && typeof hfSurfChgScore === 'function'){
+    var curSurf296 = '';
+    try { curSurf296 = (typeof aihCurSurf === 'function') ? (aihCurSurf() || '') : ''; } catch(e){ curSurf296 = ''; }
+    if (!curSurf296){
+      var dstr296 = String((raceMeta && raceMeta.dist) || '');
+      curSurf296 = /ダ/.test(dstr296) ? 'ダ' : (/芝/.test(dstr296) ? '芝' : '');
+    }
+    if (curSurf296){
+      var cs296 = hs.map(function(h){
+        var f = feat296.map[String(h.no)];
+        return f ? hfSurfChgScore(f.prevSurf, curSurf296) : null;
+      });
+      if (cs296.some(function(x){ return x != null; })){ colSurf = cs296; surfOn = true; }
+    }
+  }
+  var colRest = null, restOn = false;
+  if ((w.rest||0) > 0 && feat296 && feat296.map && typeof hfRestScore === 'function'){
+    var cr296 = hs.map(function(h){
+      var f = feat296.map[String(h.no)];
+      return f ? hfRestScore(f.restDays) : null;
+    });
+    if (cr296.some(function(x){ return x != null; })){ colRest = cr296; restOn = true; }
+  }
   /* ★第28弾: ⑤前走レースレベル（fieldLv）を予想ファクターに（学習DBが無い馬は中立）。 */
   var flSt = null, colF = null;
   if ((w.fieldLv||0) > 0 && typeof fieldLvForRace === 'function'){
@@ -4999,7 +5035,7 @@ function analyzeRace(){
         ? '🐎 位置係数を適用（学習DB: この場・距離±200mの' + (res.posLearnN || 0) + 'Rから4角バンド→3着内率・重み' + ((w.pos||0)) + '/10）'
         : '');
   } catch(e){ colPos = null; posOn = false; }
-  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0) + (ctxN ? wCtxN : 0) + (posOn ? (w.pos||0) : 0) + (umOn ? (w.umEval||0) : 0) + (ckOn ? (w.chokyo||0) : 0)) || 1;
+  var sumW = (w.odds + w.yobi + w.time + wK + (w.mark||0) + (babaOn ? (w.baba||0) : 0) + (yosoOn ? (w.yoso||0) : 0) + (ablOn ? (w.abl||0) : 0) + (wakuOn ? (w.waku||0) : 0) + (jockeyOn ? (w.jockey||0) : 0) + (fieldLvOn ? (w.fieldLv||0) : 0) + (ctxN ? wCtxN : 0) + (posOn ? (w.pos||0) : 0) + (umOn ? (w.umEval||0) : 0) + (ckOn ? (w.chokyo||0) : 0) + (surfOn ? (w.surfChg||0) : 0) + (restOn ? (w.rest||0) : 0)) || 1;
   var _num = (typeof num === 'function') ? num : function(s){ var x = parseFloat(String(s == null ? '' : s).replace(/[^0-9.]/g, '')); return isNaN(x) ? null : x; };
   /* ★第73弾: 美浦所属の騎手は「ほんの少し」評価を下げる（ユーザー指摘: 代替開催等で
      人気馬に乗る騎手の騎乗が信用しづらい）。所属は 🏇騎手・調教師DB（keibalab）の
@@ -5038,6 +5074,9 @@ function analyzeRace(){
     if (umOn) score += (w.umEval||0) * (colUm[i] != null ? colUm[i] : 0.5);
     /* ★第291弾: 調教「勝負度」。データが無い馬は中立(0.5) */
     if (ckOn) score += (w.chokyo||0) * (colCk[i] != null ? colCk[i] : 0.5);
+    /* ★第296弾: 芝⇄ダート替わり／休み明けの弱い割引。データが無い馬は中立(0.5) */
+    if (surfOn) score += (w.surfChg||0) * (colSurf[i] != null ? colSurf[i] : 0.5);
+    if (restOn) score += (w.rest||0) * (colRest[i] != null ? colRest[i] : 0.5);
     if (ctxN) score += wCtxN * (ctxN[i] != null ? ctxN[i] : 0.5);
     if (posOn) score += (w.pos||0) * (colPos[i] != null ? colPos[i] : 0.5);   /* ★第60弾 */
     var u = score / sumW;
@@ -5179,6 +5218,16 @@ function analyzeRace(){
         return (rankKey[b1] - rankKey[a1]) || (prob[b1] - prob[a1]) || ((oRankOf[a1] || 99) - (oRankOf[b1] || 99));
       })
     : order;
+  /* ★第299弾: ◎統一 — 印順位の先頭はAI確率1位（軸）に固定する。
+     従来は◎（rankKey順位1位）と軸（AI確率1位）が別々に決まり、10,018R測定で12.5%のレースでズレ、
+     ズレたレースでは確率1位が勝率+7.5pt・3着内+7.8pt上回った（2025-26でも同方向）。
+     主体を確率1位に一本化し、2位以下は従来のrankKey順（軸の馬を除く）をそのまま維持する。
+     確率・order・他ファクターには一切触れない（印順位の並べ替えのみ）。 */
+  if (modelFirst && order && order.length){
+    var axIdx299 = order[0];
+    var mi299 = markOrder.indexOf(axIdx299);
+    if (mi299 > 0){ markOrder.splice(mi299, 1); markOrder.unshift(axIdx299); }
+  }
 
   // オッズ比較(妙味)
   function mine(h, p){ var o = num(h.odds); return (o && o>1) ? o * p : null; }
@@ -6296,6 +6345,9 @@ function renderTables(res){
   /* ★第61弾: 行数があるのに描画HTMLが空（=表がヘッダだけになって「壊れて」見える状態）の自己防御。
      通常ここは通らないが、通過すると tbody が空白になり表全体が消えたように見える */
   if (!res.rows || !res.rows.length){ $('aiTbl').innerHTML = '<tr><td colspan="13"><span class="small muted">表示する馬がありません。①で出走馬を入力/取込してください</span></td></tr>'; return; }
+  /* ★第297弾: 鉄板軸フラグ（◎のp3>=0.70・表示のみ・予想には影響なし） */
+  var tpInfo = null;
+  try { if (typeof teppanOf === 'function') tpInfo = teppanOf(res); } catch(e){}
   res.rows.forEach(function(r){
     var h = r.h;
     var fc = frameColor(h.frame);
@@ -6321,11 +6373,16 @@ function renderTables(res){
     } else if (_cks != null && _cks < -0.5){
       ckBadge = '<span title="調教「勝負度」' + _cks.toFixed(2) + '：過去平均より調教評価が低下" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:#546e7a;color:#fff;font-size:.62rem;font-weight:800;">📉調落</span>';
     }
+    /* ★第297弾: 鉄板軸バッジ（軸馬＝AI勝率1位の行のみ・p3>=0.70） */
+    var tpBadge = '';
+    if (tpInfo && tpInfo.flag && tpInfo.axisNo != null && String(h.no) === String(tpInfo.axisNo)){
+      try { tpBadge = (typeof teppanBadgeHTML === 'function') ? teppanBadgeHTML(tpInfo) : ''; } catch(e){}
+    }
     /* ★第292弾修正: 「末脚注意」フラグはメイン結果テーブルには出さない。
        HTML出力に✂️表記がないため文脈が分からない。AI展開予測タブ（p66の表）の✂️行に表示する。 */
     var nameCell = '<span class="hname" title="' + nameFull.replace(/"/g, '&quot;') + '">' + nameFull +
       (typeof hbBadgeHTML === 'function' ? hbBadgeHTML(h) : '') +
-      (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') + umBadge + ckBadge + '</span>';
+      (typeof tlBadgeHTML === 'function' ? tlBadgeHTML(h) : '') + umBadge + ckBadge + tpBadge + '</span>';
     html += '<tr' + (r.rank===1 ? ' class="leadcol"' : '') + '>' +
       '<td class="vm" title="' + esc((r.markSrc === 'model' ? '着順予想=AI勝率（市場×データ）にデータ補正を掛けた順位（第63弾）' : '印=市場基準順位（データが薄いため）')) + (r.modelRank ? ' / モデル' + r.modelRank + '位・人気' + (r.mktRank || '—') + '位' : '') + (r.strongN ? '・強いデータ' + r.strongN + '項目' : '') + '"><span class="mk0 ' + (r.markCls||'') + '">' + esc(r.mark||'') + '</span>' +
         (r.axisOk ? '<span style="display:block;font-size:.6rem;font-weight:800;color:#0d6a3d">🎯軸</span>' : '') +
@@ -8117,6 +8174,14 @@ function adKaisetuHtml(d, rid){
 
   /* --- 候補選定（★第289弾: データドリブン。旧ルールベースは廃止） --- */
   var mk = adKaiMarksOf(rows, pace, distB);
+  /* ★第298弾: 鉄板軸（保存済み予想 snap の prob から判定するAI勝率軸の判定。このタブの◎軸とは別系統） */
+  var tpKai = null;
+  try {
+    if (rid && typeof aiRecBundle === 'function' && typeof teppanOfSnapRows === 'function'){
+      var bb = aiRecBundle(rid);
+      if (bb && bb.snap && bb.snap.rows) tpKai = teppanOfSnapRows(bb.snap.rows);
+    }
+  } catch(e){}
   var axis = mk.axis, tai = mk.tai, jiten = mk.jiten, ana = mk.ana, kiri = mk.kiri;
   var kiriKakujitsu = mk.kiriKakujitsu || [];   /* ★第290弾: 2段階✂の確実切 */
   var deg = !hasPop;
@@ -8174,6 +8239,11 @@ function adKaisetuHtml(d, rid){
   }
   if (deg) P.push('※ この出馬表にはオッズが入っていません（発売前・確定後はnetkeibaのページにオッズが残りません）。発売中にこのタブを開くと自動で取得して反映します。');
 
+  /* ★第298弾: 鉄板軸の説明行（保存済み予想で鉄板条件を満たす場合のみ・本文の先頭に表示） */
+  if (tpKai && tpKai.flag){
+    P.unshift('🔒 <b>鉄板軸（AI勝率軸）</b>: ' + tpKai.axisNo + '番' + adKaiEsc(tpKai.axisName || '') + ' — AI勝率1位の3着内率 ' + adKaiPct(tpKai.p3) + '%（検証では該当レースの軸3着内率80.3%）。このタブの◎（展開推定の軸）とは別の判定です。');
+  }
+
   /* --- 表 --- */
   /* ★第154弾: ①ﾏｰｸ→「直線の伸び」3段階（netkeibaの凡例どおり ＋=少し伸びる/＋＋=伸びる/＋＋＋=大きく伸びる。
      netkeiba AIに減速マークは存在しない） ②馬券内率→馬ごとの推定値（人気帯×4C帯の観測に軌跡・伸び・
@@ -8203,6 +8273,8 @@ function adKaisetuHtml(d, rid){
         gkKai = gkKaiFlagHTML(r.name, _d8k, true);
       }
     } catch(e){}
+    /* ★第298弾: 鉄板軸バッジ（AI勝率軸の馬の行・評価列に併記） */
+    var tpKaiBadge = (tpKai && tpKai.flag && String(r.no) === String(tpKai.axisNo)) ? '<span class="kaiB" style="background:#b71c1c;color:#fff">🔒鉄板</span>' : '';
     var cls = r === axis ? 'kaiRj' : tai.indexOf(r) >= 0 ? 'kaiRo' : ana.indexOf(r) >= 0 ? 'kaiRa' :
       kiriKakujitsu.indexOf(r) >= 0 ? 'kaiRxx' : kiri.indexOf(r) >= 0 ? 'kaiRx' : '';
     var pw = Math.min(100, Math.round(e.rate * 130));
@@ -8224,7 +8296,7 @@ function adKaisetuHtml(d, rid){
       '<td><span class="kaiP kaiP' + r.b3 + '">' + adKaiPathJpn(r.path) + '</span><span class="kaiN"> ' + rks + '</span>' + dir + '</td>' +
       '<td>' + (Math.round(r.c3 * 10) / 10) + '<span class="kaiN"> ' + (AD_B5_JPN[r.b5] || '') + '</span></td><td>' + mk + '</td>' +
       '<td><span class="kaiBar"><i style="width:' + pw + '%;background:' + pc + '"></i><em>' + adKaiPct(e.rate) + '%</em></span><span class="kaiN">n=' + e.n + '</span></td>' +
-      '<td>' + badge + gkKai + '</td></tr>';
+      '<td>' + badge + gkKai + tpKaiBadge + '</td></tr>';
   }).join('');
   var tbl = '<table class="kaiTbl"><tr><th>馬番</th><th style="text-align:left">馬名</th><th>人気</th><th>単勝</th><th>AI予測の動き</th><th>4C<br>番手</th><th>直線<br>伸び</th><th>馬券内率<br>（観測×隊列推定）</th><th>評価</th></tr>' + trs + '</table>';
 
@@ -33913,7 +33985,7 @@ function hfBefore(list, d8){
    ========================================================= */
 function hfHorseFeat(idx, horseKey, jockeyKey, d8, band, curWeightChg){
   var f = { has: false, prevN: 0, top3Rate: null, winRate: null, l3RankAvg: null,
-            sameDistN: 0, sameDistTop3Rate: null, restDays: null, isTeppo: false, is2nd: false,
+            sameDistN: 0, sameDistTop3Rate: null, restDays: null, prevSurf: '', isTeppo: false, is2nd: false,
             style: '', styleN: 0, jockeyN: 0, jockeyWinRate: null, jockeyTop3Rate: null, abl: null };
   if (!idx) return f;
   var list = idx.byHorse[horseKey];
@@ -33927,6 +33999,8 @@ function hfHorseFeat(idx, horseKey, jockeyKey, d8, band, curWeightChg){
       f.top3Rate = e._t / c;
       f.winRate = e._w / c;
       f.restDays = hfDays(last.d8, d8);
+      var psf296 = String(last.surface || '');
+      f.prevSurf = (psf296 === '芝' || psf296 === 'ダ') ? psf296 : '';   /* ★第296弾: 前走の馬場（芝/ダのみ） */
       // 上りの相対順位（直近 HF_LOOKBACK 戦）
       var s = 0, sn = 0;
       for (var i = Math.max(0, c - HF_LOOKBACK); i < c; i++){
@@ -34007,6 +34081,27 @@ function hfRestMul(f, teppoStat){
   }
   if (f.restDays != null && f.restDays >= 180) return 0.94;   // 半年以上の休養明けは軽く割引
   return 1;
+}
+
+/* ★第296弾: 芝⇄ダート替わり スコア（0〜1、0.5が中立）。
+   検証（19,666R・人気帯層別）: 前走と馬場が替わる馬は全人気帯で3着内率が2〜9pt低い
+   （特に1番人気の芝→ダート 56.8% vs 同馬場65.7%）。ただし回収率は悪化しない
+   （市場は実績以上に割り引いている）ため、強い材料にはせず弱い割引に留める。
+   前走馬場・今回馬場のどちらか不明なら null（＝中立扱い）。 */
+function hfSurfChgScore(prevSurf, curSurf){
+  if (prevSurf !== '芝' && prevSurf !== 'ダ') return null;
+  if (curSurf !== '芝' && curSurf !== 'ダ') return null;
+  return (prevSurf === curSurf) ? 0.56 : 0.34;
+}
+/* ★第296弾: 休み明け スコア（0〜1、0.5が中立）。
+   検証（19,666R・人気帯層別）: 前走から91日以上はほぼ全人気帯で3着内率が2〜5pt低い。
+   ROIは悪化しない（市場織り込み済み）ため弱い割引に留める。
+   90日以下・間隔不明は null（＝中立扱い）。 */
+function hfRestScore(restDays){
+  if (restDays == null || isNaN(restDays)) return null;
+  if (restDays >= 181) return 0.36;
+  if (restDays >= 91) return 0.42;
+  return null;
 }
 
 /* 学習DB全体で「鉄砲だった馬」「2走目だった馬」の成績を集計（日付に依存しない全体統計） */
@@ -41971,9 +42066,10 @@ function aiStorySim(b){
    1枚のシートに 1レースぶんの出馬表ブロックを並べる（画像仕様準拠）:
      見出し行: 20260905　中山 1R　3歳未勝利　｜　波乱度: D（波乱傾向・5段階）
      列: 番 / 馬名 / 印 / オッズ / 特記(軸・妙味・穴・高確実) / 勝率 / 連対率 / 複勝率 / 出典
-   ・勝率・連対率・複勝率は AI数値化: 学習DBに10走以上の実績がある馬は
-     その実績率（勝率=1着率・連対率=2着内・複勝率=3着内）、
-     実績不足の馬は保存済みAI確率から倍率換算（連対×2.1／複勝×3.3、上限97/99%）。
+   ・勝率・連対率・複勝率は AI確率ベース（★第301弾で統一）: 保存済みAI勝率から
+     Harville式で連対率・複勝率を導出し、実績とのズレの補正表（2021-24で作成・
+     2025-26で検証済み）を当てた値。確率が保存されていない古い予想だけ従来方式
+     （10走以上は学習DB実績率／未満は倍率換算 連対×2.1・複勝×3.3）。
    ・波乱度5段階: 市場オッズのエントロピー(0.72)と1番人気オッズ(0.28)から
      A=堅実・配当安 … E=大波乱傾向 に分類。
    ------------------------------------------------------------ */
@@ -42041,17 +42137,26 @@ function aiRatesFor(hname, prob){
   if (out.wr != null){ out.pr = Math.max(out.pr, out.wr); out.sr = Math.max(out.sr, out.pr); }
   return out;
 }
-function aiSpecialNotes(no, mark, rate, picks){
+function aiSpecialNotes(no, mark, rate, picks, opts){
   var t = [];
+  /* ★第299弾: 特記「軸」は軸のp3が0.65以上のレースだけ（呼び出し側が opts.axisOk で渡す）。
+     未指定（旧来の呼び出し）は従来どおり表示可。 */
+  var axisOk = !opts || opts.axisOk !== false;
   try {
     if (picks){
       if (picks.hole && String(picks.hole.no) === String(no)) t.push('穴');
       if (picks.value && String(picks.value.no) === String(no)) t.push('妙味');
-      if (picks.axis && String(picks.axis.no) === String(no) && !t.length) t.push('軸');
+      if (axisOk && picks.axis && String(picks.axis.no) === String(no) && !t.length) t.push('軸');
     }
   } catch(e){}
-  if (!t.length && mark === '◎') t.push('軸');
-  if (rate && rate.wr != null && rate.wr >= 0.28) t.push('高確実');
+  if (axisOk && !t.length && mark === '◎') t.push('軸');
+  /* ★第300弾: 高確実の判定はAI勝率28%以上に一本化（呼び出し側が opts.hiConf で渡す）。
+     旧「学習DB実績勝率28%以上」経由は検証で弱かった（該当馬の3着内28.3%・n=2,881）ため廃止。
+     AI勝率経由は3着内78.0%（n=3,839）、全馬適用でも77.9%（2025-26: 79.2%）。
+     opts.hiConf 未指定（旧来の呼び出し）は従来判定のまま。 */
+  var hiConf = (opts && typeof opts.hiConf === 'boolean') ? opts.hiConf
+             : (rate && rate.wr != null && rate.wr >= 0.28);
+  if (hiConf) t.push('高確実');
   return t.join('・');
 }
 /* その日のエクスポート用モデル（保存済み予想のみ・通信なし） */
@@ -42081,13 +42186,38 @@ function aiDayExportModel(){
           gidx = (typeof aiFreezeGidx === 'function') ? aiFreezeGidx(b.rows, mmG) : null;
         } catch(e){ gidx = null; }
       }
-      /* ★第70弾: 荒れ/堅実はレースLv×コースLvの読み方から（両Lvが揃わないレースはオッズ波乱度へ） */
-      var wave = aiWaveFromLv(b, lv) || aiWaveGrade(b.rows.map(function(r){ return r.odds; }));
+      /* ★第298弾: 鉄板軸（保存済み予想のprobからHarvilleでp3を再計算。予想時点の値のみ＝第102弾規約に反しない） */
+      var tpExp = null;
+      try { if (typeof teppanOfSnapRows === 'function' && b.snap && b.snap.rows) tpExp = teppanOfSnapRows(b.snap.rows); } catch(e){}
+      /* ★第299弾: 波乱度は軸p3で判定（旧Lv乖離判定は2025-26検証で逆転＝不採用）。
+         p3が無いレースだけオッズ波乱度へフォールバック */
+      var axisP3 = (tpExp && typeof tpExp.p3 === 'number' && isFinite(tpExp.p3)) ? tpExp.p3 : null;
+      var wave = null;
+      try { if (typeof selWaveFromP3 === 'function') wave = selWaveFromP3(axisP3); } catch(e){}
+      if (!wave) wave = aiWaveGrade(b.rows.map(function(r){ return r.odds; }));
+      /* ★第299弾: 見出し1行（種別＋厚み＋紐目安。標準レースは空＝行を出さない） */
+      var headline = '';
+      try {
+        if (typeof selHeadline === 'function'){
+          headline = selHeadline(String((b.rec && b.rec.meta && b.rec.meta.grade) || ''), String(it.name || ''), axisP3);
+        }
+      } catch(e){}
+      var raceD8_299 = String((b.snap && b.snap.d8) || (b.rec && b.rec.meta && b.rec.meta.date8) || AI_DAY_D8 || '');
+      /* ★第301弾: 率はAI確率（Harville＋実績補正）に統一。snap の全頭probから計算（レース単位で1回） */
+      var selRates = null;
+      try { if (typeof selRatesOfSnapRows === 'function' && b.snap && b.snap.rows) selRates = selRatesOfSnapRows(b.snap.rows); } catch(e){}
       var rows = b.rows.map(function(r, ri){
         /* 予想時AI確率 pr0（aiRatesForのAI確率換算で使用） */
         var pr0 = null;
         try { (b.snap.rows || []).forEach(function(x){ if (String(x.no) === String(r.no)) pr0 = (x.prob != null ? x.prob : null); }); } catch(e){}
         var rate = aiRatesFor(r.name, pr0);
+        /* ★第301弾: 率の欄はAI確率ベースで上書き（probが無い古い予想だけ従来の率のまま）。
+           出典(src)も合わせる。高確実の判定は pr0（生のAI勝率）基準で、この上書きの影響を受けない */
+        try {
+          var sr301 = selRates && selRates[String(r.no)];
+          if (!sr301 && selRates){ for (var k301 in selRates){ if (String(k301) === String(r.no)){ sr301 = selRates[k301]; break; } } }
+          if (sr301){ rate = { wr: sr301.wr, pr: sr301.pr, sr: sr301.sr, src: 'AI確率（検証補正済）' }; }
+        } catch(e){}
         /* ★第294弾: 調教勝負度（スナップショットから。旧スナップには無く null になる） */
         var ckSer = (r.ckSeriousness != null && !isNaN(r.ckSeriousness)) ? r.ckSeriousness : null;
         var ckRank = '';
@@ -42096,14 +42226,29 @@ function aiDayExportModel(){
           if (typeof ckRankOf === 'function') ckRank = ckRankOf(ckSer);
           if (typeof ckExportNote === 'function') ckNote = ckExportNote(r.name, ckSer);
         } catch(e){}
-        var baseNote = aiSpecialNotes(r.no, r.mark, rate, picks);
+        /* ★第299弾: 特記「軸」はp3>=0.65のレースだけ（p3不明のときは従来どおり）
+           ★第300弾: 高確実はAI勝率（pr0）>=28%で判定。pr0が無い古い予想だけ従来の実績判定 */
+        var baseNote = aiSpecialNotes(r.no, r.mark, rate, picks,
+          { axisOk: (axisP3 == null || axisP3 >= ((typeof SEL_AXIS_P3_MIN !== 'undefined') ? SEL_AXIS_P3_MIN : 0.65)),
+            hiConf: (pr0 != null) ? (pr0 >= 0.28) : (rate && rate.wr != null && rate.wr >= 0.28) });
         var fullNote = baseNote;
         if (ckNote){
           fullNote = fullNote ? (fullNote + '・' + ckNote) : ckNote;
         }
+        /* ★第298弾: 鉄板軸は特記へ追記（軸馬の行のみ） */
+        var isTp = !!(tpExp && tpExp.flag && String(r.no) === String(tpExp.axisNo));
+        if (isTp) fullNote = fullNote ? (fullNote + '・🔒鉄板軸') : '🔒鉄板軸';
+        /* ★第299弾: 単穴シグナル（去勢明け2〜3戦目／前走上がり最速。発火した馬だけ） */
+        try {
+          if (typeof selSignalsFor === 'function'){
+            var sg299 = selSignalsFor(r.name, raceD8_299);
+            if (sg299 && sg299.length) fullNote = fullNote ? (fullNote + '・' + sg299.join('・')) : sg299.join('・');
+          }
+        } catch(e){}
         return { no: r.no, name: r.name, mark: r.mark, odds: r.odds,
                  wr: rate.wr, pr: rate.pr, sr: rate.sr, src: rate.src,
                  note: fullNote,
+                 teppan: isTp,
                  ckSeriousness: ckSer, ckRank: ckRank, ckNote: ckNote,
                  /* ★第71弾: Lvは出馬表内の順位（1=最高評価・整数）。内部相対値はaiWaveFromLvが使用 */
                  clk: (lv.clRk[r.name] != null ? lv.clRk[r.name] : null),
@@ -42145,6 +42290,7 @@ function aiDayExportModel(){
       out.push({
         d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || ''), rnum: String(it.rnum || ''),
         name: String(it.name || ''), rid: String(it.rid || ''), wave: wave, rows: rows,
+        headline: headline, axisP3: axisP3,
         rl: rl, giTxt: giTxt, story: (story && story.lines) ? story.lines : null, geom: geom,
         settled: aiIsSettled(b),
         resultMap: (function(){ var m = {}; try { (b.res && b.res.rows ? b.res.rows : []).forEach(function(x){ if (x && x.no != null) m[String(x.no)] = (parseInt(x.order, 10) || 0); }); } catch(e){} return m; })()
@@ -42172,6 +42318,9 @@ function aiExportXlsHTML(model){
     h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
       '<td colspan="4" style="text-align:left">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</td>' +
       '<td colspan="4" style="text-align:left">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</td></tr>';
+    if (rc.headline){
+      h += '<tr><td colspan="12" style="text-align:left;background:#e8f5e9;font-size:10pt;font-weight:700">🎯 ' + esc(rc.headline) + '</td></tr>';
+    }
     if (rc.wave && rc.wave.why){
       h += '<tr><td colspan="12" style="text-align:left;background:#fdf6ec;font-size:9.5pt">⚠ ' + esc(rc.wave.why) + '（レースLv＝基本の強さ／コースLv＝適性・騎手。乖離が大きい馬が荒れ要素）</td></tr>';
     }
@@ -42195,7 +42344,7 @@ function aiExportXlsHTML(model){
     }
     h += '<tr><td colspan="12"></td></tr>';
   });
-  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝レースLv（基本の強さ）とコースLv（適性・騎手）の乖離から判定（両方高い馬が上位に固まれば堅実・食い違えば荒れ要素。測れないレースはオッズの偏り）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>指数＝多要素評価（★第131弾・1-99点）: 【コア】レース質+対戦馬のその後／馬場点(クッション値×含水率)／コース適性(競馬場×距離×好走パターン)【追加】持ちタイム・上り3F・距離適性・該当レースの好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順（測定不能の馬は最後）。要素が取れない馬は旧式(CL+RL)または「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝軸馬（AI勝率1位）の3着内率（p3）から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースはオッズの偏りで判定）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>指数＝多要素評価（★第131弾・1-99点）: 【コア】レース質+対戦馬のその後／馬場点(クッション値×含水率)／コース適性(競馬場×距離×好走パターン)【追加】持ちタイム・上り3F・距離適性・該当レースの好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順（測定不能の馬は最後）。要素が取れない馬は旧式(CL+RL)または「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）</b>・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -42265,6 +42414,9 @@ function aiExportPdfBodyHTML(model, d8){
       '<span class="wave" style="background:' + (wcol[rc.wave.key] || '#eee') + '">波乱度 ' + esc(rc.wave.key || '-') + '（' + esc(rc.wave.name) + '）</span>' +
       '<span class="wave" style="background:#ede7f6">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</span>' +
       '<span class="muted">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</span></div>';
+    if (rc.headline){
+      h += '<div style="margin:2px 0 4px;font-size:10px;font-weight:700;color:#1b5e20;background:#e8f5e9;padding:3px 6px;border-radius:4px">🎯 ' + esc(rc.headline) + '</div>';
+    }
     if (rc.wave && rc.wave.why){
       h += '<div style="margin:2px 0 4px;font-size:9.5px;color:#8a5a00;background:#fdf6ec;padding:3px 6px;border-radius:4px">⚠ ' + esc(rc.wave.why) + '</div>';
     }
@@ -42291,7 +42443,7 @@ function aiExportPdfBodyHTML(model, d8){
     }
     h += '</table></div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率は学習DB実績（10走以上）、実績不足の馬は保存済みAI確率から倍率換算（連対×2.1・複勝×3.3）。荒れ度は<b>レースLv（基本の強さ）とコースLv（適性・騎手）の乖離</b>から判定（両方高い馬が上位に固まれば堅実・強さと適性が食い違えば荒れ要素。Lvが測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（印の◎はAI勝率と市場を50:50ブレンドした順位のため、AIと市場の評価が割れたレースでは軸と◎が別の馬になります）・<b>高確実＝学習DB実績勝率28%以上</b>（10走未満の馬はAI確率換算）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝0以上・×落＝0未満。特記への追記：勝負度+1.0以上は「調教◎」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記。調教データ未取得の馬は「—」。</b>本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝0以上・×落＝0未満。特記への追記：勝負度+1.0以上は「調教◎」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   return h;
 }
 function aiExportPdfHTML(model, d8){
@@ -58019,6 +58171,14 @@ var rec = {
   top3: null, /* 3着内有無（結果確定時に更新） */
   recordedAt: new Date().toISOString()
 };
+/* ★第297弾: 鉄板軸フラグ（p101 teppanOf・呼べない環境では付けない） */
+try {
+  if (typeof teppanOf === 'function'){
+    var tp = teppanOf(res);
+    rec.teppan = !!(tp && tp.flag);
+    rec.p3 = (tp && tp.p3 != null) ? tp.p3 : null;
+  }
+} catch(e){}
 /* ★修正: 既に結果確定済みのレースなら即座に着順を紐付け（過去レース対応） */
 try {
   var immediate = fwFindFinish(rec);
@@ -58199,6 +58359,8 @@ function fwSummary(){
   var done = races.filter(function(r){ return r.result!= null;});
   var gap5 = done.filter(function(r){ return r.gap5;});
   var gapLt5 = done.filter(function(r){ return!r.gap5;});
+  var tep = done.filter(function(r){ return r.teppan === true;});       /* ★第297弾 */
+  var tepKnown = done.filter(function(r){ return r.teppan != null;});   /* ★第297弾: teppan記録がある確定分 */
   var hitRate = function(arr){
     if (!arr.length) return null;
     var h = arr.filter(function(r){ return r.top3;}).length;
@@ -58215,7 +58377,12 @@ return {
   hitGapLt5: hitRate(gapLt5),
   hitAllN: done.filter(function(r){ return r.top3;}).length,
   hitGap5N: gap5.filter(function(r){ return r.top3;}).length,
-  hitGapLt5N: gapLt5.filter(function(r){ return r.top3;}).length
+  hitGapLt5N: gapLt5.filter(function(r){ return r.top3;}).length,
+  /* ★第297弾: 鉄板軸の分離集計（旧レコードは teppan 無し＝分母に入れない） */
+  teppanCount: tep.length,
+  teppanKnown: tepKnown.length,
+  hitTeppan: hitRate(tep),
+  hitTeppanN: tep.filter(function(r){ return r.top3;}).length
 };
 }
 
@@ -58272,7 +58439,8 @@ function fwRenderCard(){
     sumErr = e;
     if (typeof console !== 'undefined') console.log('[fwRender] fwSummary error: ' + e);
     fwSum = { total: 0, determined: 0, pending: 0, gap5Count: 0, gapLt5Count: 0,
-      hitAll: null, hitGap5: null, hitGapLt5: null, hitAllN: 0, hitGap5N: 0, hitGapLt5N: 0 };
+      hitAll: null, hitGap5: null, hitGapLt5: null, hitAllN: 0, hitGap5N: 0, hitGapLt5N: 0,
+      teppanCount: 0, teppanKnown: 0, hitTeppan: null, hitTeppanN: 0 };
   }
   var fwPct = function(v){ return v == null ? '—' : (v * 100).toFixed(1) + '%'; };
   var html = '';
@@ -58283,6 +58451,7 @@ function fwRenderCard(){
     html += '記録レース数: <b>' + fwSum.total + '</b>（確定: ' + fwSum.determined + ' / 未確定: ' + fwSum.pending + '）<br>';
     html += 'ギャップ5%以上: <b>' + fwSum.gap5Count + 'レース</b>・的中率 ' + fwPct(fwSum.hitGap5) + '（' + fwSum.hitGap5N + '/' + fwSum.gap5Count + '）<br>';
     html += 'ギャップ5%未満: <b>' + fwSum.gapLt5Count + 'レース</b>・的中率 ' + fwPct(fwSum.hitGapLt5) + '（' + fwSum.hitGapLt5N + '/' + fwSum.gapLt5Count + '）<br>';
+    if (fwSum.teppanKnown > 0) html += '鉄板軸（p3≥70%）: <b>' + fwSum.teppanCount + 'レース</b>・的中率 ' + fwPct(fwSum.hitTeppan) + '（' + fwSum.hitTeppanN + '/' + fwSum.teppanCount + '）<br>';
     html += '全体: 的中率 ' + fwPct(fwSum.hitAll) + '（' + fwSum.hitAllN + '/' + fwSum.determined + '）';
     html += '</div>';
     html += '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px">';
@@ -58327,6 +58496,338 @@ function fwRenderCard(){
   } catch(e){
     if (typeof console !== 'undefined') console.log('[fwRender] button bind error: ' + e);
   }
+}
+
+/* =========================================================
+★第297弾: 鉄板軸フラグ（軸の信頼度表示＋フォワード記録）
+★第298弾: AI展開予測タブ（p66）とHTML出力表（p64）にも表示
+---------------------------------------------------------
+目的: 軸（◎＝AI勝率1位）は全レースに出し続ける。そのうえで
+「軸が本当に信用できるレース」だけに 🔒鉄板軸 フラグを付ける。
+・条件: 軸馬の p3（第75弾・AI勝率から Harville で導出した3着内率）>= 0.70
+・根拠: 学習DB 10,018R の検証（2021-24で条件検討→2025-26で検証）。
+  全レースの軸3着内率 65.0% に対し、p3>=0.70 のレース（カバー37.3%）では
+  80.3%（2026: 81.3%）。ギャップ条件との併用は改善が小さく、p3単独で保つ。
+  詳細は selection_opt/REPORT.md・TEPPAN_PLAN.md。
+・表示と記録のみ。予想・印・買い目・学習DB には一切影響しない（決定性維持）。
+・スナップショット（保存済み予想）には p3 が保存されないため、snap rows の
+  prob から Harville で再計算する（cbHarville と同一式・照合済み）。
+  予想時点の prob を使うので第102弾規約（確定後の再ランク付け禁止）にも反しない。
+========================================================= */
+
+var TEPPAN_P3_MIN = 0.70; /* ★第297弾: 鉄板軸の p3 閾値 */
+
+/* Harville式で win確率ベクトルから idx の馬の3着内率を出す（cbHarville と同一式） */
+function teppanHarvilleTop3(probs, idx){
+  try {
+    var pi = probs[idx];
+    if (pi == null || !(pi > 0)) return null;
+    var s2 = 0, s3 = 0;
+    for (var j = 0; j < probs.length; j++){
+      if (j === idx) continue;
+      var pj = probs[j] || 0;
+      if (!(pj > 0) || (1 - pj) <= 0) continue;
+      s2 += pj * pi / (1 - pj);
+      for (var k = 0; k < probs.length; k++){
+        if (k === idx || k === j) continue;
+        var pk = probs[k] || 0;
+        if (!(pk > 0)) continue;
+        var den = 1 - pj - pk;
+        if (den <= 0) continue;
+        s3 += pj * (pk / (1 - pj)) * (pi / den);
+      }
+    }
+    return pi + s2 + s3;
+  } catch(e){ return null; }
+}
+
+/* 共通コア: list = [{no, name, prob, p3}]（p3は無ければnull）
+   戻り値: { flag, p3, prob1, gap, axisNo, axisName } */
+function teppanCore(list){
+  var none = { flag: false, p3: null, prob1: null, gap: null, axisNo: null, axisName: '' };
+  try {
+    if (!list || !list.length) return none;
+    var topIdx = -1;
+    for (var i = 0; i < list.length; i++){
+      if (topIdx < 0){ topIdx = i; continue; }
+      var d = (list[i].prob || 0) - (list[topIdx].prob || 0);
+      if (d > 0) topIdx = i;
+      else if (d === 0){
+        var na = parseInt(list[i].no, 10) || 999, nb = parseInt(list[topIdx].no, 10) || 999;
+        if (na < nb) topIdx = i;
+      }
+    }
+    if (topIdx < 0) return none;
+    var top1 = list[topIdx];
+    var prob1 = (typeof top1.prob === 'number') ? top1.prob : null;
+    var prob2 = null;
+    for (var j2 = 0; j2 < list.length; j2++){
+      if (j2 === topIdx) continue;
+      var pj2 = (typeof list[j2].prob === 'number') ? list[j2].prob : null;
+      if (pj2 != null && (prob2 == null || pj2 > prob2)) prob2 = pj2;
+    }
+    var p3 = (typeof top1.p3 === 'number' && !isNaN(top1.p3)) ? top1.p3 : null;
+    if (p3 != null && p3 > 1) p3 = p3 / 100; /* 0..100 表記にも耐える（p99と同じ正規化） */
+    if (p3 == null){
+      var probs = list.map(function(x){ return (typeof x.prob === 'number' && x.prob > 0) ? x.prob : 0; });
+      p3 = teppanHarvilleTop3(probs, topIdx);
+    }
+    return {
+      flag: (p3 != null && p3 >= TEPPAN_P3_MIN),
+      p3: p3,
+      prob1: prob1,
+      gap: (prob1 != null && prob2 != null) ? (prob1 - prob2) : null,
+      axisNo: (top1.no != null ? top1.no : null),
+      axisName: top1.name || ''
+    };
+  } catch(e){ return none; }
+}
+
+/* res（analyzeRace結果）から鉄板判定を返す。rows は {h:{no,name}, prob, p3} 形式 */
+function teppanOf(res){
+  var none = { flag: false, p3: null, prob1: null, gap: null, axisNo: null, axisName: '' };
+  try {
+    if (!res || !res.rows || !res.rows.length) return none;
+    var list = res.rows.map(function(r){
+      var h = r.h || {};
+      return {
+        no: (h.no != null ? h.no : (r.no != null ? r.no : null)),
+        name: h.name || r.name || '',
+        prob: (typeof r.prob === 'number') ? r.prob : null,
+        p3: (typeof r.p3 === 'number') ? r.p3 : null
+      };
+    });
+    return teppanCore(list);
+  } catch(e){ return none; }
+}
+
+/* スナップショット rows（{no, name, prob}・p3無し）から鉄板判定を返す ★第298弾
+   p64 HTML出力表・p66 AI展開予測タブが、保存済み予想に対して使う */
+function teppanOfSnapRows(rows){
+  var none = { flag: false, p3: null, prob1: null, gap: null, axisNo: null, axisName: '' };
+  try {
+    if (!rows || !rows.length) return none;
+    var list = rows.map(function(x){
+      return {
+        no: (x.no != null ? x.no : null),
+        name: x.name || '',
+        prob: (x.prob != null && isFinite(x.prob)) ? Number(x.prob) : null,
+        p3: (typeof x.p3 === 'number') ? x.p3 : null
+      };
+    });
+    return teppanCore(list);
+  } catch(e){ return none; }
+}
+
+/* 鉄板バッジの span HTML。フラグなしなら ''。
+   info は teppanOf / teppanOfSnapRows の戻り値。メイン結果テーブルの軸馬名セル用 */
+function teppanBadgeHTML(info){
+  try {
+    if (!info || !info.flag) return '';
+    var p3pct = (info.p3 != null) ? (info.p3 * 100).toFixed(1) : '—';
+    var gapTxt = (info.gap != null) ? '・勝率ギャップ' + (info.gap * 100).toFixed(1) + 'pt' : '';
+    return '<span title="鉄板軸：AI勝率1位の3着内率（p3）' + p3pct + '%' + gapTxt + '。検証（2025-26）では該当レースの軸3着内率80.3%。AI勝率軸の鉄板判定（展開予測タブの軸とは別）" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:#b71c1c;color:#fff;font-size:.62rem;font-weight:800;">🔒鉄板軸</span>';
+  } catch(e){ return ''; }
+}
+
+/* =========================================================
+★第299弾: 出力表の選定フレーム統一（波乱度p3化・軸ゲート・見出し・単穴シグナル）
+---------------------------------------------------------
+背景: 軸/対抗/単穴/紐の選定が主観頼みで、出力表（p64）でも
+「どの馬を主体にすればいいか分からない」という問題があった。
+検証で固まった物差しを、表示専用で出力表に載せる（予想・印の
+確率計算・買い目・学習DBには触れない。◎統一だけは p5 側）。
+
+1) 波乱度 = 軸（AI勝率1位）の p3 で5段階（selWaveFromP3）
+   旧判定（Lv乖離主体）は 2025-26 検証で A（堅実）の1番人気3着内率
+   60.2% < E（大波乱）68.2% と逆転しており壊れていた。
+   p3版は 85.5/74.1/65.7/56.4/46.2% と単調で各約620Rと均等。
+   境界は学習期間（2021-24）の5分位点 [0.773, 0.689, 0.613, 0.54]。
+   詳細: selection_opt/wave_validation.py / REPORT 参照。
+
+2) 特記「軸」のゲート: p3 >= 0.65 のレースだけ表示する
+   （軸ティア測定: p3>=0.65 で軸3着内率77.2%・カバー49.1%。
+    ◎印そのものは全レースに出る。鉄板軸 p3>=0.70 は第297弾のまま）
+
+3) 見出し1行（selHeadline）: 種別（重賞/新馬）＋厚み＋紐目安。
+   標準レース（p3 0.50〜0.70・平場）は空文字＝行自体を出さない。
+
+4) 単穴シグナル（selSignalsFor）: 学習DBをレース日より前だけ見て判定
+   （第102弾規約: 未来の成績は使わない）。
+   ・去勢明け2〜3戦目: 性別表記の 牡→セ の変化を検出。
+     自DB検証（n=1,850）で単勝回収率117.2%/複勝107.0%・全人気帯で
+     3着内率が基準超え。詳細: external_factor_validation/REPORT.md
+   ・前走上がり最速×前走1〜3着: 自DB検証で前走1着群の次走3着内
+     +7.4pt（人気帯内でも+5pt前後）。回収率ではなく当たりやすさ型。
+   馬の照合は馬名ベース（出力表の行に馬IDが無いため）。同名馬の
+   誤認があり得るが、表示専用の注記として許容する。
+========================================================= */
+
+var SEL_AXIS_P3_MIN = 0.65;                 /* 特記「軸」を出す p3 下限 */
+var SEL_WAVE_CUTS = [0.773, 0.689, 0.613, 0.54];  /* 波乱度 A/B/C/D の p3 下限 */
+
+/* 軸p3 → 波乱度 {lv, key, name, score, fromP3}。p3 が無ければ null */
+function selWaveFromP3(p3){
+  try {
+    if (p3 == null || !isFinite(p3)) return null;
+    var keys = (typeof AI_WAVE_KEYS !== 'undefined') ? AI_WAVE_KEYS : ['A', 'B', 'C', 'D', 'E'];
+    var names = (typeof AI_WAVE_NAMES !== 'undefined') ? AI_WAVE_NAMES
+      : ['堅実（配当は安くなりやすい）', 'やや堅実', '平均的', '波乱傾向', '大波乱傾向'];
+    var lv = (p3 >= SEL_WAVE_CUTS[0]) ? 1 : (p3 >= SEL_WAVE_CUTS[1]) ? 2
+           : (p3 >= SEL_WAVE_CUTS[2]) ? 3 : (p3 >= SEL_WAVE_CUTS[3]) ? 4 : 5;
+    return { lv: lv, key: keys[lv - 1], name: names[lv - 1], score: Math.round(p3 * 100) / 100, fromP3: 1 };
+  } catch(e){ return null; }
+}
+
+/* 見出し1行: grade（G1/G2/G3/L/OP等）・レース名・軸p3 から作る。標準レースは '' */
+function selHeadline(grade, raceName, p3){
+  try {
+    var parts = [];
+    var g = String(grade || '');
+    if (g === 'G1' || g === 'G2' || g === 'G3') parts.push('重賞');
+    else if (g === 'L') parts.push('リステッド');
+    else if (g === 'OP') parts.push('オープン');
+    var nm = String(raceName || '');
+    var shinba = nm.indexOf('新馬') >= 0;
+    if (shinba) parts.push('新馬戦');
+    if (p3 != null && isFinite(p3)){
+      if (p3 >= 0.70) parts.push('軸厚め・紐は4〜5頭に絞る');
+      else if (p3 < 0.50) parts.push('混戦・軸薄め・紐広め／単穴中心');
+    }
+    if (shinba) parts.push('前走データなし');
+    return parts.join('｜');
+  } catch(e){ return ''; }
+}
+
+/* --- 単穴シグナル用: 学習DBの馬別戦績インデックス（遅延構築・件数変化で再構築） --- */
+var _selSigIdx = null;
+function selSigIndex(){
+  try {
+    var db = (typeof diLs === 'function') ? diLs() : null;
+    var races = (db && db.races) || {};
+    var n = Object.keys(races).length;
+    if (_selSigIdx && _selSigIdx.n === n) return _selSigIdx;
+    var idx = { n: n, byName: {}, races: {} };
+    for (var rid in races){
+      var rec = races[rid];
+      if (!rec || !rec.rows) continue;
+      idx.races[rid] = rec;
+      var d8 = String((rec.meta && rec.meta.date8) || '');
+      if (!/^\d{8}$/.test(d8)) continue;
+      rec.rows.forEach(function(r){
+        if (!r || !r.name) return;
+        var a = idx.byName[r.name] || (idx.byName[r.name] = []);
+        a.push({ d8: d8, rid: rid, sex: String(r.sexAge || '').charAt(0),
+                 order: parseInt(r.order, 10) || 0,
+                 last3: (r.last3 == null || r.last3 === '') ? NaN : parseFloat(r.last3) });
+      });
+    }
+    for (var nm in idx.byName){
+      idx.byName[nm].sort(function(a, b){ return a.d8 < b.d8 ? -1 : (a.d8 > b.d8 ? 1 : 0); });
+    }
+    _selSigIdx = idx;
+    return idx;
+  } catch(e){ return { n: -1, byName: {}, races: {} }; }
+}
+
+/* 馬名とレース日（YYYYMMDD）→ シグナル注記の配列（発火したものだけ） */
+function selSignalsFor(name, raceD8){
+  var out = [];
+  try {
+    if (!name || !/^\d{8}$/.test(String(raceD8 || ''))) return out;
+    var idx = selSigIndex();
+    var all = idx.byName[name] || [];
+    var hist = [];
+    for (var i = 0; i < all.length; i++){ if (all[i].d8 && all[i].d8 < raceD8) hist.push(all[i]); }
+    if (!hist.length) return out;
+    /* 去勢明け: 直近戦績の末尾にある「セ」の連続数が1〜2で、その直前が「牡」なら
+       今回が去勢後の2戦目（連続1）/3戦目（連続2） */
+    var run = 0;
+    for (var j = hist.length - 1; j >= 0; j--){
+      if (hist[j].sex === 'セ') run++;
+      else break;
+    }
+    if (run >= 1 && run <= 2){
+      var before = hist[hist.length - 1 - run];
+      if (before && before.sex === '牡') out.push('去勢明け' + (run + 1) + '戦目');
+    }
+    /* 前走上がり最速×前走1〜3着: 前走レースの全頭中で上がり最速（同点含む） */
+    var prev = hist[hist.length - 1];
+    if (prev && prev.order >= 1 && prev.order <= 3 && isFinite(prev.last3)){
+      var rec = idx.races[prev.rid];
+      if (rec && rec.rows){
+        var mn = null;
+        rec.rows.forEach(function(r){
+          var v = (r && r.last3 != null && r.last3 !== '') ? parseFloat(r.last3) : NaN;
+          if (isFinite(v) && (mn == null || v < mn)) mn = v;
+        });
+        if (mn != null && Math.abs(prev.last3 - mn) < 1e-9) out.push('前走上がり最速');
+      }
+    }
+  } catch(e){}
+  return out;
+}
+
+/* ================= ★第301弾: 出力表の率（勝率/連対率/複勝率）をAI確率に統一 =================
+   旧仕様は「10走以上は学習DBの実績率／未満はAI確率の倍率換算（連対×2.1・複勝×3.3）」で、
+   同じ欄に意味の違う数字が混ざっていた。特に×3.3換算は強い馬ほど大きく盛れていた
+   （検証2025-26: 表示71.9%→実際58.5%、93.6%→75.1%）。
+   新仕様: 保存済みAI勝率から Harville式（cbHarvilleと同一式）で連対率・複勝率を導出し、
+   3つの率すべてに「実績とのズレの補正表」を当てる。補正表は学習期間2021-24で
+   帯ごとの実績率を測って作り、2025-26で検証: 1頭あたりの誤差は
+   勝率12.06→11.87pt・連対20.62→20.07pt・複勝26.92→26.27pt と改善。
+   補正表は [確率, 補正後の率] の点列で、間は直線でつなぐ（単調性は作成時に保証済み）。
+   ※ Harvilleの式は cbHarville（p74）と同一。分母の 1-qj / 1-qj-qk を取り違えると
+     確率が1を超える等の異常が出るため、式を変えるときは必ず照合すること。 */
+var SEL_CAL_P1 = [[0.025,0.015],[0.075,0.069],[0.125,0.132],[0.175,0.209],[0.225,0.263],[0.275,0.313],[0.325,0.413],[0.375,0.462],[0.425,0.533],[0.475,0.626],[0.525,0.626],[0.575,0.626],[0.625,0.626],[0.675,0.626],[0.725,0.626],[0.775,0.626],[0.825,0.626],[0.875,0.626],[0.925,0.626],[0.975,0.626]];
+var SEL_CAL_P2 = [[0.025,0.016],[0.075,0.053],[0.125,0.123],[0.175,0.189],[0.225,0.253],[0.275,0.311],[0.325,0.371],[0.375,0.419],[0.425,0.463],[0.475,0.505],[0.525,0.538],[0.575,0.644],[0.625,0.658],[0.675,0.735],[0.725,0.763],[0.775,0.763],[0.825,0.763],[0.875,0.763],[0.925,0.763],[0.975,0.763]];
+var SEL_CAL_P3 = [[0.025,0.017],[0.075,0.049],[0.125,0.104],[0.175,0.178],[0.225,0.249],[0.275,0.307],[0.325,0.366],[0.375,0.407],[0.425,0.472],[0.475,0.505],[0.525,0.549],[0.575,0.604],[0.625,0.635],[0.675,0.669],[0.725,0.729],[0.775,0.771],[0.825,0.817],[0.875,0.871],[0.925,0.871],[0.975,0.871]];
+function selCalib(pts, x){
+  if (x == null || isNaN(x)) return null;
+  if (x <= pts[0][0]) return pts[0][1];
+  if (x >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
+  for (var i = 1; i < pts.length; i++){
+    if (x <= pts[i][0]){
+      var x0 = pts[i - 1][0], y0 = pts[i - 1][1], x1 = pts[i][0], y1 = pts[i][1];
+      return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+/* snap rows（prob付き）から馬番→ {wr, pr, sr}（補正済み）を返す。prob不足なら null */
+function selRatesOfSnapRows(rows){
+  try {
+    if (!rows || rows.length < 2) return null;
+    var ps = [], nos = [];
+    for (var i = 0; i < rows.length; i++){
+      var p = rows[i] && rows[i].prob;
+      if (p == null || isNaN(p)) return null;
+      ps.push(+p); nos.push(rows[i].no);
+    }
+    var sum = 0; ps.forEach(function(p){ sum += p; });
+    var n = ps.length;
+    var q = ps.map(function(p){ return sum > 0 ? p / sum : 1 / n; });
+    var byNo = {};
+    for (var a = 0; a < n; a++){
+      var p2 = q[a], p3 = q[a];
+      for (var j = 0; j < n; j++){
+        if (j === a) continue;
+        var pij2 = q[j] * (q[a] / Math.max(1e-9, 1 - q[j]));
+        p2 += pij2; p3 += pij2;
+        for (var k = 0; k < n; k++){
+          if (k === a || k === j) continue;
+          p3 += q[j] * (q[k] / Math.max(1e-9, 1 - q[j])) * (q[a] / Math.max(1e-9, 1 - q[j] - q[k]));
+        }
+      }
+      var wr = selCalib(SEL_CAL_P1, q[a]);
+      var pr = selCalib(SEL_CAL_P2, Math.min(1, p2));
+      var sr = selCalib(SEL_CAL_P3, Math.min(1, p3));
+      if (pr < wr) pr = wr;
+      if (sr < pr) sr = pr;
+      byNo[nos[a]] = { wr: wr, pr: pr, sr: sr };
+    }
+    return byNo;
+  } catch(e){ return null; }
 }
 
 /* =========================================================
