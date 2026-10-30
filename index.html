@@ -1822,6 +1822,35 @@ html[data-theme="light"] .page-top-hero{
     <div id="jdbRaceTable" style="margin-top:6px"></div>
   </div>
 
+  <!-- ★第305弾: 🧬 血統DB（学習DBのレース結果に出走した馬の血統を専用ストアへ記録） -->
+  <div class="card" id="pedDbCard">
+    <b>🧬 血統DB（結果の血統を記録）</b>
+    <div class="muted small">学習DBに記録済みのレース結果に出走した馬の血統（父・母・母父）を netkeiba から取得し、この端末の<b>血統DB専用ストア</b>に記録します。記録は馬単位で、<b>記録済みの馬は二度取得しません</b>。予想・印には影響しません（記録専用）。</div>
+    <div id="pedDbStat" class="small" style="margin-top:6px"></div>
+    <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
+      <select id="pedDbYear" class="inp" style="max-width:130px"><option value="">全期間</option></select>
+      <button id="pedDbStart" class="btn">▶ 未記録の血統を記録</button>
+      <button id="pedDbStop" class="btn ghost" disabled>⏹ 停止</button>
+      <button id="pedDbRefresh" class="btn ghost">状況を更新</button>
+    </div>
+    <div id="pedDbProg" class="muted small" style="margin-top:4px"></div>
+    <div class="progbar" style="margin-top:6px;height:8px;background:var(--line2);border-radius:4px;overflow:hidden;display:none" id="pedDbProgBar"><div id="pedDbProgFill" style="height:100%;width:0;background:var(--ok-ink);transition:width .2s"></div></div>
+    <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+      <button id="pedDbExp" class="btn ghost">💾 血統DBを書き出し</button>
+      <button id="pedDbImp" class="btn ghost">📥 血統DBを読み込み</button>
+      <input type="file" id="pedDbFile" accept=".json,application/json" style="display:none">
+    </div>
+    <div id="pedDbMsg" class="small" style="margin-top:4px"></div>
+    <div style="border-top:1px dashed var(--line2);margin:10px 0 2px;padding-top:8px">
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <b class="small">🔎 記録済み血統の検索:</b>
+        <input id="pedDbQuery" class="inp" placeholder="馬名の一部を入力" style="flex:1;min-width:140px">
+        <button id="pedDbSearchBtn" class="btn ghost">検索</button>
+      </div>
+      <div id="pedDbSearchOut" style="margin-top:6px"></div>
+    </div>
+  </div>
+
   <details class="card tbhelp">
     <summary><b>ℹ このタブの仕組み・取得できる項目</b></summary>
     <div style="padding:6px 2px;line-height:1.7">
@@ -28106,13 +28135,23 @@ function ckCompareWithPastBest(horseName, currentSeriousness){
    - 高：勝負度+1.0以上 →「調教◎（勝負度+○○・過去最高時との比較）」
    - 低：勝負度-0.5以下 →「調教×（勝負度-○○・過去最高時との比較）」
    - それ以外 → ''（特記追記なし）
-   うましる・netkeibaのランクは含まない。AI独自評価のみ。 */
-function ckExportNote(horseName, seriousness){
+   うましる・netkeibaのランクは含まない。AI独自評価のみ。
+   ★第302弾: 信憑性検証（9,323件・アプリ定義をas-of再現）に基づくゲート追加:
+   - 履歴が3件未満の馬には特記を出さない（履歴1〜2件の勝負度はノイズが大きく、
+     勝負度の帯別成績が非単調になる主因だった。履歴>=3では人気馬の調教×が-9.3ptと明確）。
+   - 調教◎は今回評価がAかBの時だけ（勝負度+1.0でも今回がC/D評価の馬=弱い馬の
+     底上げは逆効果だった: 7人気以下で3着内12.6% vs 平均15.3%）。
+   履歴件数は CHOKYO_HISTORY[馬名][1] を見る。件数が確認できない馬は特記なし。 */
+function ckExportNote(horseName, seriousness, currentEval){
   try {
     if (seriousness == null || typeof seriousness !== 'number' || isNaN(seriousness)) return '';
+    var hist = (typeof CHOKYO_HISTORY !== 'undefined') ? CHOKYO_HISTORY[horseName] : null;
+    var nHist = (hist && typeof hist[1] === 'number') ? hist[1] : 0;
+    if (nHist < 3) return '';
     var cmp = ckCompareWithPastBest(horseName, seriousness);
     var sStr = (seriousness >= 0 ? '+' : '') + seriousness.toFixed(1);
     if (seriousness >= 1.0){
+      if (currentEval !== 'A' && currentEval !== 'B') return '';
       var t = '調教◎(勝負度' + sStr + ')';
       if (cmp) t += '・' + cmp;
       return t;
@@ -42203,6 +42242,9 @@ function aiDayExportModel(){
         }
       } catch(e){}
       var raceD8_299 = String((b.snap && b.snap.d8) || (b.rec && b.rec.meta && b.rec.meta.date8) || AI_DAY_D8 || '');
+      /* ★第304弾: 今回のレースのクラス順位（格下げ判定用。判定できなければ null で出さない） */
+      var curCls304 = null;
+      try { if (typeof selClassRank === 'function') curCls304 = selClassRank(it.name, (b.rec && b.rec.meta && b.rec.meta.grade) || ''); } catch(e){}
       /* ★第301弾: 率はAI確率（Harville＋実績補正）に統一。snap の全頭probから計算（レース単位で1回） */
       var selRates = null;
       try { if (typeof selRatesOfSnapRows === 'function' && b.snap && b.snap.rows) selRates = selRatesOfSnapRows(b.snap.rows); } catch(e){}
@@ -42224,7 +42266,7 @@ function aiDayExportModel(){
         var ckNote = '';
         try {
           if (typeof ckRankOf === 'function') ckRank = ckRankOf(ckSer);
-          if (typeof ckExportNote === 'function') ckNote = ckExportNote(r.name, ckSer);
+          if (typeof ckExportNote === 'function') ckNote = ckExportNote(r.name, ckSer, (r.ckEval != null ? r.ckEval : null));
         } catch(e){}
         /* ★第299弾: 特記「軸」はp3>=0.65のレースだけ（p3不明のときは従来どおり）
            ★第300弾: 高確実はAI勝率（pr0）>=28%で判定。pr0が無い古い予想だけ従来の実績判定 */
@@ -42241,7 +42283,7 @@ function aiDayExportModel(){
         /* ★第299弾: 単穴シグナル（去勢明け2〜3戦目／前走上がり最速。発火した馬だけ） */
         try {
           if (typeof selSignalsFor === 'function'){
-            var sg299 = selSignalsFor(r.name, raceD8_299);
+            var sg299 = selSignalsFor(r.name, raceD8_299, curCls304);
             if (sg299 && sg299.length) fullNote = fullNote ? (fullNote + '・' + sg299.join('・')) : sg299.join('・');
           }
         } catch(e){}
@@ -42344,7 +42386,7 @@ function aiExportXlsHTML(model){
     }
     h += '<tr><td colspan="12"></td></tr>';
   });
-  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝軸馬（AI勝率1位）の3着内率（p3）から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースはオッズの偏りで判定）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>指数＝多要素評価（★第131弾・1-99点）: 【コア】レース質+対戦馬のその後／馬場点(クッション値×含水率)／コース適性(競馬場×距離×好走パターン)【追加】持ちタイム・上り3F・距離適性・該当レースの好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順（測定不能の馬は最後）。要素が取れない馬は旧式(CL+RL)または「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）</b>・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
+  h += '</table><div style="font-size:9.5pt;color:#555;margin-top:4px;line-height:1.6">荒れ度＝軸馬（AI勝率1位）の3着内率（p3）から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースはオッズの偏りで判定）。コースLv／レースLv＝<b>同じ出走馬の中での順位</b>（1が最高評価＝<b>数値が小さいほど信用できる</b>。15頭立てなら最高評価の馬が1・最低評価の馬が15。同点は同順位。実績不足の馬は「—」）。予想時点の学習DBで計算・保存した値で、結果確定後の再計算はありません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。<b>指数＝多要素評価（★第131弾・1-99点）: 【コア】レース質+対戦馬のその後／馬場点(クッション値×含水率)／コース適性(競馬場×距離×好走パターン)【追加】持ちタイム・上り3F・距離適性・該当レースの好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順（測定不能の馬は最後）。要素が取れない馬は旧式(CL+RL)または「—」。同点回避（★第110弾）: 同点は0.1点刻みで強い方を上に振り分け</b>。編成=レースのクラス表記。<br>特記の基準: <b>軸＝AI勝率1位の馬（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）</b>・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。</div></body></html>';
   return h;
 }
 /* 印刷（PDF保存）用HTML */
@@ -42391,7 +42433,13 @@ function aiExportPdfCSS(scoped){
       P + '.pdf-tback{background:#fff;color:#1a73e8}' +
       P + '.pdf-tprint{background:#fbbc04;color:#202124}' +
       P + '.pdf-thowto{margin-top:8px;font-size:12.5px;line-height:1.8;background:rgba(255,255,255,.16);border-radius:6px;padding:8px 10px}' +
-      '@media print{' + P + '.pdf-toolbar{display:none!important}}';
+      '@media print{' + P + '.pdf-toolbar{display:none!important}}' +
+      /* ★第303弾: 画面表示（スマホのプレビュー等）では表を横スクロール可能にして崩れを防ぐ。
+         印刷には一切影響させない（@media screen 内だけ・printでは table 表示に戻す） */
+      '@media screen{' + R + '{padding:10px}' +
+      P + 'table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}' +
+      P + '.rh{flex-wrap:wrap}}' +
+      '@media print{' + P + 'table{display:table}}';
   }
   return css;
 }
@@ -42403,6 +42451,12 @@ var AI_PDF_TOOLBAR_HTML =
   '</div><div class="pdf-thowto">📱 <b>iPhoneでPDF保存する手順</b><br>' +
   '① Safari下部の「共有」ボタン → ②「プリント」を選択 → ③プレビューを2本指でピンチアウト（拡大）→ ④右上の共有ボタンから「ファイルに保存」<br>' +
   '💡 上の「🖨 印刷 / PDF保存」ボタンを押しても印刷プレビューが開きます。</div></div>';
+/* ★第303弾: 保存ファイル用のツールバー（「アプリに戻る」はファイル内では機能しないため付けない） */
+var AI_PDF_FILE_TOOLBAR_HTML =
+  '<div class="pdf-toolbar"><div class="pdf-trow">' +
+  '<span style="font-weight:700;font-size:15px">📄 印刷用ページ（保存したファイル）</span>' +
+  '<button class="pdf-tbtn pdf-tprint" onclick="window.print()">🖨 印刷 / PDF保存</button>' +
+  '</div><div class="pdf-thowto">これはアプリから保存した印刷用HTMLです。PDFにするには Safari でこのファイルを開いて「共有 → プリント → プレビューをピンチアウト → ファイルに保存」。アプリに戻るにはこのファイルを閉じてください（アプリの画面はそのまま残っています）。</div></div>';
 function aiExportPdfBodyHTML(model, d8){
   function td(t, s){ return '<td' + (s ? ' class="' + s + '"' : '') + '>' + String(t == null ? '' : t) + '</td>'; }
   var wcol = { A: '#c8e6c9', B: '#dcedc8', C: '#fff9c4', D: '#ffe0b2', E: '#ffcdd2' };
@@ -42434,6 +42488,9 @@ function aiExportPdfBodyHTML(model, d8){
         td(r.score == null ? '—' : r.score.toFixed(1), 'wr') +
         (rc.settled ? td(resNo ? resNo + '着' : '—') : '') + '</tr>';
     });
+    /* ★第303弾: giTxt/story の div を table の中に入れるとブラウザが表の外へ
+       ずらして描画し、プレビュー表示が崩れることがあるため、先に table を閉じる */
+    h += '</table>';
     if (rc.giTxt){
       h += '<div style="margin-top:5px;padding:5px 8px;background:#eef7ee;border-left:3px solid #66a26b;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0">' + esc(rc.giTxt) + '</div>';
     }
@@ -42441,18 +42498,20 @@ function aiExportPdfBodyHTML(model, d8){
       h += '<div class="story"><b>🔮 展開予想（実況風）</b>' +
         rc.story.map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
     }
-    h += '</table></div>';
+    h += '</div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝0以上・×落＝0未満。特記への追記：勝負度+1.0以上は「調教◎」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝0以上・×落＝0未満。特記への追記：勝負度+1.0以上は「調教◎」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記（★第302弾：過去の調教履歴が3件以上ある馬だけに出す。調教◎は今回の調教評価自体が良い馬に限る——検証で、履歴が薄い馬や弱い馬の底上げは逆効果だったため）。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   return h;
 }
-function aiExportPdfHTML(model, d8){
+function aiExportPdfHTML(model, d8, opts){
   /* ★第173弾: タイトル=対象日(YYYYMMDD) → 印刷ダイアログのファイル名初期値が「20261012.pdf」になる */
   var ttl = /^\d{8}$/.test(String(d8 || '')) ? String(d8) : '競馬AIラボ｜その日の全レース';
-  var h = '<!doctype html><html><head><meta charset="utf-8"><title>' + ttl + '</title><style>' +
+  /* ★第303弾: viewport を入れる（無いとスマホのプレビューで画面幅に合わず小さく崩れて見える）。
+     opts.file のときは保存ファイル用ツールバーに差し替える */
+  var h = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + ttl + '</title><style>' +
     aiExportPdfCSS(false) +
     '</style></head><body>';
-  h += AI_PDF_TOOLBAR_HTML;
+  h += (opts && opts.file) ? AI_PDF_FILE_TOOLBAR_HTML : AI_PDF_TOOLBAR_HTML;
   h += aiExportPdfBodyHTML(model, d8);
   h += '</body></html>';
   return h;
@@ -42481,17 +42540,41 @@ function aiExportExcel(){
    Blobダウンロード方式はExcel出力でPWA実機動作を確認済み。
    日本語はブラウザがレンダリングするため文字化けなし。保存後にSafariアプリで開いて
    「共有→プリント」からPDF保存できる。 */
+function aiExportHTMLBlobSave(html, fname){
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
+  aiSettleMsg('📄 印刷用HTML（' + fname + '）を保存しました。Safariアプリで開いて「共有→プリント→ピンチアウト」でPDF保存できます。');
+}
 function aiExportHTMLDownload(model, d8){
+  var fname = 'keiba_' + (d8 || AI_DAY_D8 || 'export') + '.html';
+  var html;
+  try { html = aiExportPdfHTML(model, d8, { file: true }); }
+  catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); return; }
+  /* ★第303弾: まず共有シート方式を試す。従来の Blob ダウンロードは iOS の PWA では
+     プレビューがアプリ画面を乗っ取り、戻るとトップ画面から再起動してしまうため。
+     共有シートならアプリの画面を保ったまま「ファイルに保存」できる。
+     共有が使えない環境では従来の Blob 保存にフォールバックする。 */
   try {
-    var html = aiExportPdfHTML(model, d8);
-    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'keiba_' + (d8 || AI_DAY_D8 || 'export') + '.html';
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
-    aiSettleMsg('📄 印刷用HTML（keiba_' + (d8 || AI_DAY_D8 || '') + '.html）を保存しました。Safariアプリで開いて「共有→プリント→ピンチアウト」でPDF保存できます。');
-  } catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); }
+    if (typeof File !== 'undefined' && typeof navigator !== 'undefined' && navigator.canShare && navigator.share){
+      var file = new File([html], fname, { type: 'text/html' });
+      if (navigator.canShare({ files: [file] })){
+        navigator.share({ files: [file] }).then(function(){
+          aiSettleMsg('📄 印刷用HTMLを共有しました。「ファイルに保存」を選ぶと保存できます。');
+        }, function(err){
+          if (err && err.name === 'AbortError'){ aiSettleMsg('共有をキャンセルしました（保存されていません）。'); return; }
+          try { aiExportHTMLBlobSave(html, fname); }
+          catch(e2){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e2 && e2.message) || e2))); }
+        });
+        return;
+      }
+    }
+  } catch(e){}
+  try { aiExportHTMLBlobSave(html, fname); }
+  catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); }
 }
 function aiExportPDF(){
   var model = aiExportNeed();
@@ -58699,6 +58782,25 @@ function selHeadline(grade, raceName, p3){
   } catch(e){ return ''; }
 }
 
+/* ★第304弾: レースのクラス順位（検証 retest の class_rank と同じ物差し）。
+   レース名の表記から読み、重賞等は grade でも補う。判定できなければ null。
+   G1=8 > G2=7 > G3=6 > OP/L=5 > 3勝=4 > 2勝=3 > 1勝=2 > 未勝利=1 > 新馬=0 */
+function selClassRank(name, grade){
+  try {
+    var n = String(name || ''), g = String(grade || '');
+    if (n.indexOf('(GI)') >= 0 || g === 'G1') return 8;
+    if (n.indexOf('(GII)') >= 0 || g === 'G2') return 7;
+    if (n.indexOf('(GIII)') >= 0 || g === 'G3') return 6;
+    if (n.indexOf('(L)') >= 0 || n.indexOf('(OP)') >= 0 || g === 'L' || g === 'OP') return 5;
+    if (n.indexOf('3勝') >= 0) return 4;
+    if (n.indexOf('2勝') >= 0) return 3;
+    if (n.indexOf('1勝') >= 0) return 2;
+    if (n.indexOf('未勝利') >= 0) return 1;
+    if (n.indexOf('新馬') >= 0) return 0;
+    return null;
+  } catch(e){ return null; }
+}
+
 /* --- 単穴シグナル用: 学習DBの馬別戦績インデックス（遅延構築・件数変化で再構築） --- */
 var _selSigIdx = null;
 function selSigIndex(){
@@ -58714,12 +58816,15 @@ function selSigIndex(){
       idx.races[rid] = rec;
       var d8 = String((rec.meta && rec.meta.date8) || '');
       if (!/^\d{8}$/.test(d8)) continue;
+      /* ★第304弾: そのレースのクラス順位（格下げ判定で前走側に使う） */
+      var rCls = selClassRank(rec.meta && rec.meta.name, rec.meta && rec.meta.grade);
       rec.rows.forEach(function(r){
         if (!r || !r.name) return;
         var a = idx.byName[r.name] || (idx.byName[r.name] = []);
         a.push({ d8: d8, rid: rid, sex: String(r.sexAge || '').charAt(0),
                  order: parseInt(r.order, 10) || 0,
-                 last3: (r.last3 == null || r.last3 === '') ? NaN : parseFloat(r.last3) });
+                 last3: (r.last3 == null || r.last3 === '') ? NaN : parseFloat(r.last3),
+                 cls: rCls });
       });
     }
     for (var nm in idx.byName){
@@ -58730,8 +58835,9 @@ function selSigIndex(){
   } catch(e){ return { n: -1, byName: {}, races: {} }; }
 }
 
-/* 馬名とレース日（YYYYMMDD）→ シグナル注記の配列（発火したものだけ） */
-function selSignalsFor(name, raceD8){
+/* 馬名とレース日（YYYYMMDD）→ シグナル注記の配列（発火したものだけ）
+   curCls（★第304弾・任意）: 今回のレースのクラス順位（selClassRank）。格下げ判定に使う */
+function selSignalsFor(name, raceD8, curCls){
   var out = [];
   try {
     if (!name || !/^\d{8}$/.test(String(raceD8 || ''))) return out;
@@ -58764,6 +58870,10 @@ function selSignalsFor(name, raceD8){
         if (mn != null && Math.abs(prev.last3 - mn) < 1e-9) out.push('前走上がり最速');
       }
     }
+    /* ★第304弾: 格下げ出走（前走より格下のレース）。検証の最終判定（全1,834頭・
+       8,896件）で「人気の割に走らない（期待超え −0.058 vs +0.022）」が繰り返し
+       再現した弱い割引材料。今回・前走どちらかのクラスが判定できない場合は出さない */
+    if (curCls != null && prev && prev.cls != null && curCls < prev.cls) out.push('格下げ出走');
   } catch(e){}
   return out;
 }
@@ -58828,6 +58938,320 @@ function selRatesOfSnapRows(rows){
     }
     return byNo;
   } catch(e){ return null; }
+}
+
+/* =========================================================
+   103 血統DB（レース結果の血統を記録）★第305弾
+   ---------------------------------------------------------
+   - 学習DB(diLs)に記録済みのレース結果から出走馬（netkeiba馬ID）を集め、
+     血統（父・母・母父）を netkeiba 血統AJAX から取得して記録する。
+   - 保存先は専用ストア localStorage 'khl_peddb_v1'
+     （{ ped: { <馬ID>: {name, sire, dam, msire, at} } }）。
+     予想フロー用キャッシュ khl_ped_v1 とは完全分離し、書き込みは専用ストアのみ。
+     取得・解析だけ pgFetchRaw / pgParseData（p29）を再利用する
+     （pgFetchHorse のキャッシュ書き込みには依存しない）。
+   - 記録は馬単位で重複排除し、記録済みの馬は二度取得しない。
+   - 年指定（または全期間）で対象を絞って順次取得する。
+   - バックアップは専用ファイル {app:'keiba-pedigree-db', v:1, ...} で
+     書き出し/読み込み（ID単位マージ）できる。
+   - 予想・印・ファクター計算には一切触れない（記録専用）。
+   ========================================================= */
+var PEDDB_LS = 'khl_peddb_v1';
+var PEDDB_GAP_MS = 700;   /* 取得の間隔（ms） */
+var PEDDB_FAIL_STOP = 10; /* 連続失敗がこの頭数に達したら自動停止 */
+
+/* ---------- 専用ストア ---------- */
+function pedDbLoad(){
+  try {
+    var o = JSON.parse(cmpUnpack(localStorage.getItem(PEDDB_LS)) || '{"ped":{}}');
+    if (!o || typeof o !== 'object' || !o.ped || typeof o.ped !== 'object') return { ped: {} };
+    return o;
+  } catch(e){ return { ped: {} }; }
+}
+function pedDbSave(o){
+  try { localStorage.setItem(PEDDB_LS, cmpPack(JSON.stringify(o))); return true; } catch(e){ return false; }
+}
+
+/* ---------- 学習DBの走査（年・カバー集計・対象抽出） ---------- */
+function pedDbRaceYear(rec, rid){
+  var d8 = (rec && rec.meta && rec.meta.date8) ? String(rec.meta.date8) : '';
+  if (/^\d{8}$/.test(d8)) return d8.slice(0, 4);
+  var r = String(rid || '');
+  return /^\d{4}/.test(r) ? r.slice(0, 4) : '';
+}
+function pedDbYears(db){
+  var seen = {}, out = [];
+  if (!db || !db.races) return out;
+  Object.keys(db.races).forEach(function(rid){
+    var y = pedDbRaceYear(db.races[rid], rid);
+    if (y && !seen[y]){ seen[y] = 1; out.push(y); }
+  });
+  return out.sort();
+}
+/* 指定範囲（year='' は全期間）の出走馬を馬IDで集計する。
+   戻り値: { map: { <馬ID>: 馬名 }, noIdRows: 馬IDなし行数, races: 対象レース数 } */
+function pedDbCollect(db, year){
+  var map = {}, noId = 0, races = 0;
+  if (!db || !db.races) return { map: map, noIdRows: 0, races: 0 };
+  Object.keys(db.races).forEach(function(rid){
+    var rec = db.races[rid];
+    if (year && pedDbRaceYear(rec, rid) !== String(year)) return;
+    races++;
+    var rows = (rec && rec.rows) || [];
+    for (var i = 0; i < rows.length; i++){
+      var row = rows[i];
+      var id = '';
+      if (row && !Array.isArray(row) && row.id != null) id = String(row.id).trim();
+      if (!id){ noId++; continue; }
+      if (!(id in map)) map[id] = (row && row.name) ? String(row.name) : '';
+    }
+  });
+  return { map: map, noIdRows: noId, races: races };
+}
+function pedDbCoverage(db, ped, year){
+  var c = pedDbCollect(db, year);
+  var ids = Object.keys(c.map), rec = 0;
+  for (var i = 0; i < ids.length; i++){ if (ped && ped[ids[i]]) rec++; }
+  return { total: ids.length, recorded: rec, missing: ids.length - rec, noIdRows: c.noIdRows, races: c.races };
+}
+/* 未記録の馬だけを対象リストにする（記録済みは絶対に含めない） */
+function pedDbTargets(db, ped, year){
+  var c = pedDbCollect(db, year);
+  var out = [];
+  Object.keys(c.map).forEach(function(id){
+    if (!ped || !ped[id]) out.push({ id: id, name: c.map[id] || '' });
+  });
+  return out;
+}
+
+/* ---------- 1頭分の取得→専用ストアへ記録 ---------- */
+function pedDbFetchOne(nk, name){
+  if (typeof pgFetchRaw !== 'function' || typeof pgParseData !== 'function')
+    return Promise.reject(new Error('血統取得モジュール(p29)が読み込まれていません'));
+  return pgFetchRaw(nk).then(function(t){
+    var o = null;
+    try { o = JSON.parse(t); } catch(e){}
+    if (!o || o.status !== 'OK') throw new Error('血統API応答不正 (' + nk + ')');
+    var ped = pgParseData(o.data || '');
+    if (!ped.sire && !ped.msire) throw new Error('血統を解析できません (' + nk + ')');
+    var store = pedDbLoad();
+    store.ped[nk] = { name: name || '', sire: ped.sire || '', dam: ped.dam || '', msire: ped.msire || '', at: new Date().toISOString() };
+    if (!pedDbSave(store)) throw new Error('保存に失敗しました（保存領域不足の可能性）');
+    return store.ped[nk];
+  });
+}
+
+/* ---------- バックアップ（専用ファイル） ---------- */
+function pedDbBackupObj(store){
+  var ped = (store && store.ped) || {};
+  return { app: 'keiba-pedigree-db', v: 1, exported: new Date().toISOString(), count: Object.keys(ped).length, ped: ped };
+}
+/* ID単位マージ: 既存を残し、取り込み側で上書き可 */
+function pedDbMergePed(curPed, impPed){
+  var out = {}, added = 0, updated = 0, id;
+  var cur = curPed || {}, imp = impPed || {};
+  for (id in cur){ if (Object.prototype.hasOwnProperty.call(cur, id)) out[id] = cur[id]; }
+  for (id in imp){
+    if (!Object.prototype.hasOwnProperty.call(imp, id)) continue;
+    if (out[id]) updated++; else added++;
+    out[id] = imp[id];
+  }
+  return { ped: out, added: added, updated: updated };
+}
+
+/* ---------- 簡易検索（記録済み血統を馬名の一部で） ---------- */
+function pedDbSearch(store, q){
+  var ped = (store && store.ped) || {};
+  var query = String(q == null ? '' : q).trim();
+  var out = [];
+  if (!query) return out;
+  Object.keys(ped).forEach(function(id){
+    var e = ped[id] || {};
+    var nm = e.name || '';
+    if (nm.indexOf(query) >= 0 || id.indexOf(query) >= 0){
+      out.push({ id: id, name: nm, sire: e.sire || '', dam: e.dam || '', msire: e.msire || '' });
+    }
+  });
+  out.sort(function(a, b){ return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0); });
+  return out.slice(0, 50);
+}
+
+/* ---------- 記録ループ（順次取得・停止・自動停止） ---------- */
+var pedDbRunning = false;
+var pedDbStopReq = false;
+function pedDbSleep(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+/* targets: [{id, name}]。hooks: { progress(text, frac), isStop() }
+   戻り値: { done, failed: [{id, name, msg}], stopped, autoStopped, total } */
+function pedDbRun(targets, hooks){
+  hooks = hooks || {};
+  var progress = hooks.progress || function(){};
+  var isStop = hooks.isStop || function(){ return pedDbStopReq; };
+  var done = 0, failList = [], consec = 0, autoStopped = false, stopped = false;
+  var seq = Promise.resolve();
+  targets.forEach(function(t, i){
+    seq = seq.then(function(){
+      if (stopped || autoStopped) return;
+      if (isStop()){ stopped = true; return; }
+      progress('取得中 ' + (i + 1) + '/' + targets.length + '：' + (t.name || t.id) + '…', targets.length ? (i / targets.length) : 0);
+      return pedDbFetchOne(t.id, t.name).then(function(){
+        done++; consec = 0;
+      }).catch(function(e){
+        consec++;
+        failList.push({ id: t.id, name: t.name || '', msg: (e && e.message) || '取得失敗' });
+        if (consec >= PEDDB_FAIL_STOP) autoStopped = true;
+      }).then(function(){
+        if (i + 1 < targets.length && !stopped && !autoStopped) return pedDbSleep(PEDDB_GAP_MS);
+      });
+    });
+  });
+  return seq.then(function(){
+    return { done: done, failed: failList, stopped: stopped, autoStopped: autoStopped, total: targets.length };
+  });
+}
+
+/* ---------- UI（データベースタブのカード） ---------- */
+function pedDbMsg(msg, isErr){
+  var el = $('pedDbMsg'); if (!el) return;
+  el.innerHTML = (isErr ? '⚠ ' : '') + esc(msg);
+  el.style.color = isErr ? '#b3261e' : '';
+}
+function pedDbSetProg(msg, frac){
+  var t = $('pedDbProg'); if (t) t.textContent = msg || '';
+  var bar = $('pedDbProgBar'), fill = $('pedDbProgFill');
+  if (bar && fill){
+    if (frac == null){ bar.style.display = 'none'; }
+    else { bar.style.display = ''; fill.style.width = Math.round(frac * 100) + '%'; }
+  }
+}
+function pedDbYearSel(){
+  var s = $('pedDbYear');
+  return s ? String(s.value || '') : '';
+}
+function pedDbFillYears(){
+  var sel = $('pedDbYear');
+  if (!sel || typeof diLs !== 'function') return;
+  var cur = String(sel.value || '');
+  var years = [];
+  try { years = pedDbYears(diLs()); } catch(e){}
+  var html = '<option value="">全期間</option>';
+  years.forEach(function(y){ html += '<option value="' + y + '">' + y + '年</option>'; });
+  sel.innerHTML = html;
+  sel.value = cur;
+  if (String(sel.value || '') !== cur) sel.value = '';
+}
+function pedDbCoverageText(cov, label){
+  return label + ': 出走馬（馬IDあり）<b>' + cov.total + '</b>頭 ／ 記録済み <b>' + cov.recorded + '</b>頭 ／ 未記録 <b>' + cov.missing + '</b>頭' +
+    '（対象 ' + cov.races + ' レース・馬IDなしで記録できない行 ' + cov.noIdRows + ' 件）';
+}
+function pedDbRenderStat(){
+  var el = $('pedDbStat');
+  if (!el || typeof diLs !== 'function') return;
+  var db, store;
+  try { db = diLs(); store = pedDbLoad(); } catch(e){ return; }
+  var lines = [ pedDbCoverageText(pedDbCoverage(db, store.ped, ''), '全体') ];
+  var y = pedDbYearSel();
+  if (y) lines.push(pedDbCoverageText(pedDbCoverage(db, store.ped, y), y + '年'));
+  el.innerHTML = lines.join('<br>');
+}
+function pedDbStart(){
+  if (pedDbRunning) return;
+  if (typeof diLs !== 'function'){ pedDbMsg('学習DBが読み込まれていません', true); return; }
+  var db = diLs(), store = pedDbLoad();
+  var year = pedDbYearSel();
+  var targets = pedDbTargets(db, store.ped, year);
+  if (!targets.length){ pedDbMsg('未記録の馬はいません（選択範囲は記録完了済みです）'); return; }
+  pedDbRunning = true; pedDbStopReq = false;
+  var bS = $('pedDbStart'), bP = $('pedDbStop'), bY = $('pedDbYear');
+  if (bS) bS.disabled = true;
+  if (bP) bP.disabled = false;
+  if (bY) bY.disabled = true;
+  pedDbMsg('');
+  pedDbSetProg('記録を開始します（対象 ' + targets.length + '頭）…', 0);
+  pedDbRun(targets, {
+    progress: function(msg, frac){ pedDbSetProg(msg, frac); },
+    isStop: function(){ return pedDbStopReq; }
+  }).then(function(res){
+    pedDbRunning = false;
+    if (bS) bS.disabled = false;
+    if (bP) bP.disabled = true;
+    if (bY) bY.disabled = false;
+    pedDbSetProg('', null);
+    var txt = '記録しました: ' + res.done + '頭';
+    if (res.stopped) txt += '（停止ボタンで中断しました。残りは次回つづきから記録できます）';
+    if (res.autoStopped) txt += '（' + PEDDB_FAIL_STOP + '頭連続で取得に失敗したため自動停止しました。通信状態を確認してください）';
+    if (res.failed.length){
+      var names = res.failed.slice(0, 20).map(function(f){ return f.name || f.id; }).join('、');
+      txt += ' ／ 失敗 ' + res.failed.length + '頭: ' + names + (res.failed.length > 20 ? ' 他' + (res.failed.length - 20) + '頭' : '');
+    }
+    pedDbMsg(txt, res.failed.length > 0 && res.done === 0);
+    pedDbRenderStat();
+  });
+}
+function pedDbStop(){ pedDbStopReq = true; }
+function pedDbExport(){
+  var obj = pedDbBackupObj(pedDbLoad());
+  var blob;
+  try { blob = new Blob([JSON.stringify(obj)], { type: 'application/json' }); }
+  catch(e){ pedDbMsg('バックアップの生成に失敗しました: ' + (e && e.message || e), true); return; }
+  try {
+    var a = document.createElement('a');
+    var d = new Date();
+    var fname = 'keiba_pedigree_backup_' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.json';
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    pedDbMsg('💾 血統DBバックアップを保存しました（' + obj.count + '頭）。ダウンロードが始まります。');
+  } catch(e){ pedDbMsg('ダウンロードに失敗しました: ' + (e && e.message || e), true); }
+}
+function pedDbImportFile(file){
+  if (!file) return;
+  var rd = new FileReader();
+  rd.onload = function(){
+    try {
+      var o = JSON.parse(String(rd.result || ''));
+      if (!o || o.app !== 'keiba-pedigree-db' || !o.ped || typeof o.ped !== 'object'){
+        pedDbMsg('血統DBバックアップの形式が違います', true); return;
+      }
+      var store = pedDbLoad();
+      var mg = pedDbMergePed(store.ped, o.ped);
+      store.ped = mg.ped;
+      if (!pedDbSave(store)){ pedDbMsg('読み込み後の保存に失敗しました（保存領域不足の可能性）', true); return; }
+      pedDbMsg('📥 血統DBを読み込みました: 追加 ' + mg.added + '頭 ／ 上書き ' + mg.updated + '頭（合計 ' + Object.keys(store.ped).length + '頭）');
+      pedDbRenderStat();
+    } catch(e){ pedDbMsg('読み込みに失敗しました: ' + (e && e.message || e), true); }
+  };
+  rd.onerror = function(){ pedDbMsg('ファイルを読み込めませんでした', true); };
+  rd.readAsText(file);
+}
+function pedDbDoSearch(){
+  var q = $('pedDbQuery'), out = $('pedDbSearchOut');
+  if (!out) return;
+  var hits = pedDbSearch(pedDbLoad(), q ? q.value : '');
+  if (!hits.length){ out.innerHTML = '<div class="small muted">該当する記録済みの血統がありません</div>'; return; }
+  var h = ['<table class="lr-tbl"><thead><tr><th>馬名</th><th>父</th><th>母</th><th>母父</th></tr></thead><tbody>'];
+  hits.forEach(function(x){
+    h.push('<tr><td>' + esc(x.name || '(馬名不明)') + '</td><td>' + esc(x.sire || '−') + '</td><td>' + esc(x.dam || '−') + '</td><td>' + esc(x.msire || '−') + '</td></tr>');
+  });
+  h.push('</tbody></table>');
+  out.innerHTML = h.join('');
+}
+function pedDbOnShow(){
+  pedDbFillYears();
+  pedDbRenderStat();
+}
+function initPedDb(){
+  var s = $('pedDbStart'); if (s) s.addEventListener('click', pedDbStart);
+  var p = $('pedDbStop'); if (p) p.addEventListener('click', pedDbStop);
+  var r = $('pedDbRefresh'); if (r) r.addEventListener('click', function(){ pedDbFillYears(); pedDbRenderStat(); });
+  var y = $('pedDbYear'); if (y) y.addEventListener('change', pedDbRenderStat);
+  var e = $('pedDbExp'); if (e) e.addEventListener('click', pedDbExport);
+  var im = $('pedDbImp'); if (im) im.addEventListener('click', function(){ var f = $('pedDbFile'); if (f) f.click(); });
+  var fi = $('pedDbFile'); if (fi) fi.addEventListener('change', function(){ pedDbImportFile(fi.files && fi.files[0]); fi.value = ''; });
+  var sb = $('pedDbSearchBtn'); if (sb) sb.addEventListener('click', pedDbDoSearch);
+  var q = $('pedDbQuery'); if (q) q.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') pedDbDoSearch(); });
+  pedDbFillYears();
+  pedDbRenderStat();
 }
 
 /* =========================================================
@@ -58908,6 +59332,8 @@ function goTab(id){
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブを開いたら登録簿・キャッシュの状況を更新 */
   if (id === 't-database' && typeof jockeyDbOnShow === 'function'){ try { jockeyDbOnShow(); } catch(e){} }
+  /* ★第305弾: 🧬血統DBカードを開いたら年セレクタとカバー状況を更新 */
+  if (id === 't-database' && typeof pedDbOnShow === 'function'){ try { pedDbOnShow(); } catch(e){} }
   /* ★第170弾: 🔎データ検索タブを開いたら学習DBを引き直して候補を再生成 */
   if (id === 't-dbsearch' && typeof dbsOnTab === 'function'){ try { dbsOnTab(); } catch(e){} }
   if (id === 't-aiprop' && typeof aiProposalRender === 'function'){ try { aiProposalRender(); } catch(e){} }
@@ -59163,6 +59589,7 @@ function boot(){
   idleInit('initPg', function(){ if (typeof initPg === 'function') safeInit('initPg', initPg); });
   idleInit('initBf', function(){ if (typeof initBf === 'function') safeInit('initBf', initBf); });
   idleInit('initDi', function(){ if (typeof initDi === 'function') safeInit('initDi', initDi); });
+  idleInit('initPedDb', function(){ if (typeof initPedDb === 'function') safeInit('initPedDb', initPedDb); });   // ★第305弾: 🧬血統DB記録カード
   idleInit('initRk', function(){ if (typeof initRk === 'function') safeInit('initRk', initRk); });
   idleInit('initHd', function(){ if (typeof initHd === 'function') safeInit('initHd', initHd); });
   idleInit('initBb', function(){ if (typeof initBb === 'function') safeInit('initBb', initBb); });
