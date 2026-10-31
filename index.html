@@ -42434,12 +42434,14 @@ function aiExportPdfCSS(scoped){
       P + '.pdf-tprint{background:#fbbc04;color:#202124}' +
       P + '.pdf-thowto{margin-top:8px;font-size:12.5px;line-height:1.8;background:rgba(255,255,255,.16);border-radius:6px;padding:8px 10px}' +
       '@media print{' + P + '.pdf-toolbar{display:none!important}}' +
-      /* ★第303弾: 画面表示（スマホのプレビュー等）では表を横スクロール可能にして崩れを防ぐ。
-         印刷には一切影響させない（@media screen 内だけ・printでは table 表示に戻す） */
-      '@media screen{' + R + '{padding:10px}' +
-      P + 'table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}' +
-      P + '.rh{flex-wrap:wrap}}' +
-      '@media print{' + P + 'table{display:table}}';
+      /* ★第303弾→★第306弾で仕様変更: 画面表示でも表は横スクロールさせず、
+         幅100%の通常テーブルとして全体を一度に表示する（第303弾の display:block 化は
+         テーブル構造が崩れて文字が改行され見づらかったため廃止。オーナー要望 2026-10-31）。
+         画面時だけフォントと余白を少し詰めてスマホ幅に収める。印刷には一切影響させない。 */
+      '@media screen{' + R + '{padding:8px}' +
+      P + 'table{display:table;width:100%;font-size:9px}' +
+      P + 'th,' + P + 'td{padding:2px 3px}' +
+      P + '.rh{flex-wrap:wrap}}';
   }
   return css;
 }
