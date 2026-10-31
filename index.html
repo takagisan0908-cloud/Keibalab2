@@ -42330,7 +42330,9 @@ function aiDayExportModel(){
         }
       } catch(e){}
       out.push({
-        d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || ''), rnum: String(it.rnum || ''),
+        /* ★第308弾: 開催場所は一覧アイテム(it.place)が空のとき予想レコードのメタ(rec.meta.place)へ
+           フォールバックする（一覧側の場名が取れない取得経路だと見出しから開催場所が消えていた） */
+        d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || (b.rec && b.rec.meta && b.rec.meta.place) || ''), rnum: String(it.rnum || (b.rec && b.rec.meta && b.rec.meta.rnum) || ''),
         name: String(it.name || ''), rid: String(it.rid || ''), wave: wave, rows: rows,
         headline: headline, axisP3: axisP3,
         rl: rl, giTxt: giTxt, story: (story && story.lines) ? story.lines : null, geom: geom,
@@ -42427,7 +42429,10 @@ function aiExportPdfCSS(scoped){
   if (!scoped){
     /* 別タブで開いた印刷用ページ用のツールバー（印刷時は非表示） */
     css +=
-      P + '.pdf-toolbar{background:#1a73e8;color:#fff;padding:10px 12px;position:sticky;top:0;z-index:999}' +
+      /* ★第307弾: ツールバーを固定（sticky）にしない。固定だとスマホで画面の半分が隠れてしまうため、
+         通常の流れに置いてスクロールで流れ去るようにする＋「✕ 閉じる」ボタンで即消せるようにした */
+      P + '.pdf-toolbar{background:#1a73e8;color:#fff;padding:10px 12px}' +
+      P + '.pdf-tclose{background:transparent;color:#fff;border:1px solid #fff}' +
       P + '.pdf-toolbar .pdf-trow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}' +
       P + '.pdf-tbtn{font-size:15px;padding:10px 18px;border-radius:8px;border:0;cursor:pointer;font-weight:700}' +
       P + '.pdf-tback{background:#fff;color:#1a73e8}' +
@@ -42450,6 +42455,7 @@ var AI_PDF_TOOLBAR_HTML =
   '<div class="pdf-toolbar"><div class="pdf-trow">' +
   '<button class="pdf-tbtn pdf-tback" onclick="try{window.close()}catch(e){}setTimeout(function(){try{history.back()}catch(e2){try{alert(&quot;このタブを閉じてアプリに戻ってください&quot;)}catch(e3){}}},300)">← アプリに戻る</button>' +
   '<button class="pdf-tbtn pdf-tprint" onclick="window.print()">🖨 印刷 / PDF保存</button>' +
+  '<button class="pdf-tbtn pdf-tclose" onclick="this.parentNode.parentNode.style.display=\'none\'">✕ 閉じる</button>' +
   '</div><div class="pdf-thowto">📱 <b>iPhoneでPDF保存する手順</b><br>' +
   '① Safari下部の「共有」ボタン → ②「プリント」を選択 → ③プレビューを2本指でピンチアウト（拡大）→ ④右上の共有ボタンから「ファイルに保存」<br>' +
   '💡 上の「🖨 印刷 / PDF保存」ボタンを押しても印刷プレビューが開きます。</div></div>';
@@ -42458,6 +42464,7 @@ var AI_PDF_FILE_TOOLBAR_HTML =
   '<div class="pdf-toolbar"><div class="pdf-trow">' +
   '<span style="font-weight:700;font-size:15px">📄 印刷用ページ（保存したファイル）</span>' +
   '<button class="pdf-tbtn pdf-tprint" onclick="window.print()">🖨 印刷 / PDF保存</button>' +
+  '<button class="pdf-tbtn pdf-tclose" onclick="this.parentNode.parentNode.style.display=\'none\'">✕ 閉じる</button>' +
   '</div><div class="pdf-thowto">これはアプリから保存した印刷用HTMLです。PDFにするには Safari でこのファイルを開いて「共有 → プリント → プレビューをピンチアウト → ファイルに保存」。アプリに戻るにはこのファイルを閉じてください（アプリの画面はそのまま残っています）。</div></div>';
 function aiExportPdfBodyHTML(model, d8){
   function td(t, s){ return '<td' + (s ? ' class="' + s + '"' : '') + '>' + String(t == null ? '' : t) + '</td>'; }
