@@ -2278,13 +2278,15 @@ html[data-theme="light"] .page-top-hero{
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <!-- ★第164弾: 「📥 その日の結果を取得」(aiSettle)と「🔄 表示を更新」(aiRefresh)を廃止。
            ① 出馬表一括取得は日付入力とセットでこの一番上へ昇格(旧: 下の折りたたみカードの中にあった)
-           ② 結果取得+表示更新+未発走再予想を1つの🔄ボタンへ統合(終わったレースは結果を取得し、未発走は出馬表ごと引き直して再予想) -->
+           ② 結果取得+表示更新+未発走再予想を1つの🔄ボタンへ統合(終わったレースは結果を取得し、未発走は出馬表ごと引き直して再予想)
+           ★第310弾: その🔄ボタン(aiRepred)も廃止し、📥一括取得(preBtn)へ統合。すでに取得済みの日なら
+           一括取得の続けて「結果取得→未発走の再予想」まで自動で実行される(preRunフェーズ2)。
+           あわせて馬柱データ取得はデフォルトON＋チェック状態を記憶し、一括取得した日は📋出馬表タブにも自動登録される -->
       <input type="date" id="preDate" title="出馬表を取得する開催日" aria-label="出馬表を取得する開催日" style="font-size:.9rem;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)">
-      <button id="preBtn" class="btn primary" title="選んだ日の全レースの出馬表をnetkeibaからまとめて取得し、1レースずつAI印を計算して事前予想として保存します（📌=レース前の予想。結果が出たら自動で照合して学習します）">📥 その日の出馬表を一括取得</button>
-      <button id="aiRepred" class="btn primary" title="①表示とオッズを更新 ②終わったレースは結果(着順・払戻・展開)を取得して学習に反映 ③まだ発走していないレースは出馬表とオッズを取り直して当日バイアス反映の予想に付け直します。結果が確定しているレースの予想は絶対に上書きしません。終了後のExcel/PDFも新しい印で出ます">🔄 結果を取得・未発走を再予想</button>
+      <button id="preBtn" class="btn primary" title="選んだ日の全レースの出馬表をnetkeibaからまとめて取得し、1レースずつAI印を計算して事前予想として保存します（📌=レース前の予想。結果が出たら自動で照合して学習します）。すでに取得済みの日なら、続けて ①表示とオッズを更新 ②終わったレースは結果(着順・払戻・展開)を取得して学習に反映 ③まだ発走していないレースは出馬表とオッズを取り直して当日バイアス反映の予想に付け直します。結果が確定しているレースの予想は絶対に上書きしません。終了後のExcel/PDFも新しい印で出ます">📥 その日の出馬表を一括取得</button>
       <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
       <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
-      <span class="muted small">📅日付を選んで「📥 その日の出馬表を一括取得」→レース後に「🔄 結果を取得・未発走を再予想」。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
+      <span class="muted small">📅日付を選んで「📥 その日の出馬表を一括取得」を押すと、出馬表＋馬柱データを取得してAI印を保存します（📋出馬表タブにもその日が登録されます）。すでに取得済みの日なら、続けて終わったレースの結果取得＋未発走の再予想まで実行します。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
     </div>
     <div class="small" style="margin-top:6px">その日の全レースに馬柱の印（◎○▲☆△）を並べ、結果が付いたレースは着順・払戻・展開（ペース／通過順位／バイアス）と突き合わせて1レースずつAIが振り返ります。緑＝印の馬が馬券内。用語: <span class="khelp" data-tip="人気乖離＝AIの評価と人気（オッズ）のズレの大きさ。プラスなら市場（人気）よりAIが上に評価している馬です">人気乖離ⓘ</span>／<span class="khelp" data-tip="EV＝期待値。AI勝率×オッズで概算し、1を超えると期待払戻が金額を上回る計算になります">EVⓘ</span></div>
     <!-- ★第164弾・追伸: 旧preCard（📥その日の出馬表を一括取得→事前予想を保存）はトップ行の📥ボタンと同じことを二重に持っていたため統合。
@@ -2292,8 +2294,8 @@ html[data-theme="light"] .page-top-hero{
          説明文は機能削減しないよう折りたたみ(preCard)で残置。 -->
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
       <span class="chip" id="preCount" style="font-weight:400">まだ事前予想はありません</span>
-      <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="各馬の馬柱（プロフィール＋全戦績）も取得します。🏇馬柱AI評価・バ場好走率・洋芝/コース適性・騎手成績/鉄砲 が使えるようになります。1頭1〜3秒かかるので全レースだと時間がかかります（取得済みはキャッシュで高速）">
-        <input type="checkbox" id="preChkDetail"> 各馬の馬柱データも取得する（時間がかかります）
+      <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="各馬の馬柱（プロフィール＋全戦績）も取得します。🏇馬柱AI評価・バ場好走率・洋芝/コース適性・騎手成績/鉄砲 が使えるようになります。1頭1〜3秒かかるので全レースだと時間がかかります（取得済みはキャッシュで高速）。標準はON。チェックを外すと次回もその状態を覚えます">
+        <input type="checkbox" id="preChkDetail" checked> 各馬の馬柱データも取得する（時間がかかります）
       </label>
       <label class="small" style="display:inline-flex;align-items:center;gap:4px" title="すでに事前予想を保存済みのレースも取り直します（オッズが動いた後などに）。出馬表HTMLも強制再取得します">
         <input type="checkbox" id="preChkForce"> 保存済みも取り直す
@@ -5156,6 +5158,41 @@ function analyzeRace(){
      スナップ保存に使う（「AI勝率＝市場75%ブレンド値」であることを分離して見せる） */
   var pMktN = hs.map(function(h, i2){ return (pMkt[i2] != null && pMktSum > 0) ? (pMkt[i2] / pMktSum) : null; });
 
+  /* ★第309弾: model_v1（候補C・オーナー採用 2026-11-04）を AI勝率の生成に使う。
+     仕様は p104_modelv1.js のヘッダ参照（市場確率の温度較正 γ=0.85 ＋ 学習DB
+     部品5点）。全頭の単勝オッズがそろったレースでのみ適用し、prob を丸ごと
+     差し替える（下流の連対率・複勝率・印・買い目はこの確率から従来どおり
+     導出される）。印順位も検証時と同じく「この確率の順位」そのものにする
+     （markOrder の分岐を参照）。
+     改善モデルv2（帯別倍率）が手動採用されていても、model_v1 が較正済み
+     モデルのため二重に掛けない（res.calibV2 はここで無効化する）。 */
+  var mv1 = null, mv1On = false;
+  try {
+    if (typeof mv1Compute === 'function'){
+      var mv1D8 = '';
+      try { mv1D8 = (typeof hfCurD8 === 'function') ? hfCurD8() : ''; } catch(e){}
+      var mv1Surf = '';
+      try { mv1Surf = (typeof aihCurSurf === 'function') ? (aihCurSurf() || '') : ''; } catch(e){}
+      if (!mv1Surf){
+        var dsMv1 = String((raceMeta && raceMeta.dist) || '');
+        mv1Surf = /ダ/.test(dsMv1) ? 'ダ' : (/芝/.test(dsMv1) ? '芝' : '');
+      }
+      if (mv1Surf === 'ダ') mv1Surf = 'ダート';
+      var mv1Cls = null;
+      try { if (typeof selClassRank === 'function') mv1Cls = selClassRank(raceMeta.name, raceMeta.grade); } catch(e){}
+      if (mv1Cls == null){
+        try { if (typeof mv1ClassRank === 'function') mv1Cls = mv1ClassRank(raceMeta.name, raceMeta.grade, /障害/.test(String(raceMeta.name || ''))); } catch(e){}
+      }
+      mv1 = mv1Compute(hs, { d8: mv1D8, curSurf: mv1Surf, curCls: mv1Cls });
+    }
+  } catch(e){ mv1 = null; }
+  if (mv1 && mv1.prob && mv1.prob.length === hs.length){
+    prob = mv1.prob;
+    mv1On = true;
+    res.modelV1 = mv1.info;
+    if (res.calibV2) res.calibV2 = null;   /* v2帯別補正より model_v1 が優先（二重較正の回避） */
+  }
+
   var order = hs.map(function(h,i){ return i; }).sort(function(a,b){ return prob[b]-prob[a]; });
 
   /* ★2026-09-20 第50弾: 第45弾の「印=純モデル順位（人気を抜く）」を改訂 — ユーザー指摘
@@ -5247,12 +5284,15 @@ function analyzeRace(){
         return (rankKey[b1] - rankKey[a1]) || (prob[b1] - prob[a1]) || ((oRankOf[a1] || 99) - (oRankOf[b1] || 99));
       })
     : order;
+  /* ★第309弾: model_v1 適用時は印順位 = model_v1 確率の順位そのもの
+     （検証時の物差しと同一。rankKey による並べ替えは行わない） */
+  if (mv1On) markOrder = order.slice();
   /* ★第299弾: ◎統一 — 印順位の先頭はAI確率1位（軸）に固定する。
      従来は◎（rankKey順位1位）と軸（AI確率1位）が別々に決まり、10,018R測定で12.5%のレースでズレ、
      ズレたレースでは確率1位が勝率+7.5pt・3着内+7.8pt上回った（2025-26でも同方向）。
      主体を確率1位に一本化し、2位以下は従来のrankKey順（軸の馬を除く）をそのまま維持する。
      確率・order・他ファクターには一切触れない（印順位の並べ替えのみ）。 */
-  if (modelFirst && order && order.length){
+  if (!mv1On && modelFirst && order && order.length){
     var axIdx299 = order[0];
     var mi299 = markOrder.indexOf(axIdx299);
     if (mi299 > 0){ markOrder.splice(mi299, 1); markOrder.unshift(axIdx299); }
@@ -5343,7 +5383,7 @@ function analyzeRace(){
   } catch(e){}
   res.order = order;
   res.modelOrder = mOrder;
-  res.markSrc = modelFirst ? 'model' : 'market';
+  res.markSrc = mv1On ? 'modelv1' : (modelFirst ? 'model' : 'market');
   res.facN = facN;
   res.ok = true;
   /* ★第293弾: 軸ギャップ基準のフォワードテスト自動記録（表示・予想には影響なし）。 */
@@ -5353,6 +5393,16 @@ function analyzeRace(){
   if (!hs.some(function(h){ return num(h.odds) != null; })) res.note = '単勝オッズが未入力のため、人気要素は使われていません。';
   if (!hs.some(function(h){ return h.style; })) res.note += ' 脚質が未入力のため展開適性は全馬均等扱いです。';
   if (!timeUsable && hs.some(function(h){ return h.time; })) res.note += ' 距離が未入力のため持ちタイム比較をスキップしました。';
+  /* ★第309弾: model_v1 の適用状況を必ず画面に出す（黙って差し替えない） */
+  if (mv1On && res.modelV1){
+    var mc309 = res.modelV1.counts || {};
+    res.note += ' 🧮 予想モデル: model_v1（第309弾・市場較正γ=0.85＋学習DB部品）を適用。印は model_v1 確率順。' +
+      (res.modelV1.dbUsed
+        ? ('部品発火: 去勢明け2-3戦目 ' + (mc309.geld23 || 0) + '頭 / 格下げ ' + (mc309.classDown || 0) +
+           '頭 / 騎手期待比ワースト ' + (mc309.jkQ1 || 0) + '頭 / 反転上位 ' + (mc309.reversalTop || 0) +
+           '頭 / 芝ダ替わり・休み明け ' + (mc309.surfRest || 0) + '頭。')
+        : '（学習DBが無いため今回は較正のみ＝部品は未発火）');
+  }
   res.colsAvail = { odds: colO.some(function(v){return v!==0.25 && v!==0.5;}), yobi: colY.some(function(v){return v!==0.25&&v!==0.5;}), time: timeUsable, baba: babaOn, yoso: yosoOn };
   res.yosoOn = yosoOn;
   res.yosoTimeBased = yoUsable;   // 持ちタイム列が「馬柱の最速持ちタイム」基準になったか
@@ -34751,6 +34801,9 @@ function preDayFetch(date8, opt, progress){
   return diNetkeibaRaces(d8).then(function(items){
     result.total = items.length;
     if (!items.length) throw new Error('この日のレース一覧をnetkeibaに見つけられませんでした');
+    /* ★第310弾: 一括取得した日を📋出馬表タブの日付リストにも登録する（opt-in: opt.sbDay）。
+       従来は登録されず、AI提案タブだけで取得した日は出馬表タブに一切出なかった */
+    try { if (opt.sbDay && typeof sbNoteDay === 'function') sbNoteDay(d8); } catch(e){}
     preLog(progress, items.length + ' レースを検出しました。出走前に出馬表を1レースずつ取得してAI予想を保存します…');
     var seq = Promise.resolve();
     items.forEach(function(it){
@@ -34866,11 +34919,13 @@ function preRun(){
      対象日がこの日付に追従する（旧は一覧の先頭=古い取得日のままだった） */
   try { localStorage.setItem('khl_ai_day_v1', JSON.stringify({ d8: d8, at: Date.now() })); } catch(e){}
   var force = !!($('preChkForce') && $('preChkForce').checked);
+  var detail = !!($('preChkDetail') && $('preChkDetail').checked);
   var opt = {
     odds: true,
-    detail: !!($('preChkDetail') && $('preChkDetail').checked),
+    detail: detail,
     force: force,
-    forceCard: force   /* ★第164弾: 「保存済みも取り直す」では出馬表HTMLも強制再取得（当日ぶんのカードキャッシュは終日有効のため、forceCardなしでは出馬表が更新されなかった） */
+    forceCard: force,   /* ★第164弾: 「保存済みも取り直す」では出馬表HTMLも強制再取得（当日ぶんのカードキャッシュは終日有効のため、forceCardなしでは出馬表が更新されなかった） */
+    sbDay: true   /* ★第310弾: 📋出馬表タブの日付リストにもこの日を登録する */
   };
   preBusy(true);
   preMsg('');
@@ -34880,13 +34935,39 @@ function preRun(){
     preStat(esc(msg));
     if (isErr) preMsg('', false);
   }).then(function(res){
-    preBusy(false);
-    preMsg('');
-    preStat('✅ 完了: 事前予想を保存 <b>' + res.ok + '</b> レース / 保存済みスキップ ' + res.skipHave +
-      ' / 結果確定済みスキップ ' + res.skipDone + ' / 失敗 ' + res.fail +
-      (res.detailN ? ' / 馬柱 ' + res.detailN + ' 頭' : ''));
-    try { if (typeof apRender === 'function') apRender(); } catch(e){}
-    try { if (typeof apdPaint === 'function') apdPaint(); } catch(e){}
+    /* ★第310弾フェーズ2: 旧「🔄 結果を取得・未発走を再予想」ボタン(aiRepred)をこのボタンへ統合。
+       すでに取得済みの日（保存済み/結果確定済みでスキップしたレースがある）なら、
+       続けて aiUpdateDay（結果取得→未発走の再予想）まで実行する。
+       全レースが新規取得だけだった初回はフェーズ2を省略する（結果も再予想対象もまだ無いため）。 */
+    res = res || {};
+    var phase2 = ((res.skipHave || 0) > 0 || (res.skipDone || 0) > 0);
+    var head = '✅ 一括取得 完了: 事前予想を保存 <b>' + (res.ok || 0) + '</b> レース / 保存済みスキップ ' + (res.skipHave || 0) +
+      ' / 結果確定済みスキップ ' + (res.skipDone || 0) + ' / 失敗 ' + (res.fail || 0) +
+      (res.detailN ? ' / 馬柱 ' + res.detailN + ' 頭' : '');
+    var finish = function(extra){
+      /* busy解除はチェーン全体が終わってから（フェーズ2の間も二重実行を防ぐ） */
+      preBusy(false);
+      preMsg('');
+      preStat(head + (extra || '') +
+        (phase2 ? '' : '<br>※ 初回取得のため、結果取得・未発走の再予想は省略しました。レース後に同じ📥ボタンを押すと、続けて実行されます。'));
+      try { if (typeof apRender === 'function') apRender(); } catch(e){}
+      try { if (typeof apdPaint === 'function') apdPaint(); } catch(e){}
+      try { if (typeof aiProposalRender === 'function') aiProposalRender(); } catch(e){}
+      try { if (typeof sbRender === 'function') sbRender(); } catch(e){}
+    };
+    if (!phase2){ finish(''); return null; }
+    var canUpd = false;
+    try {
+      canUpd = (typeof aiUpdateDay === 'function') &&
+        !(typeof AI_REPRED !== 'undefined' && AI_REPRED && AI_REPRED.busy) &&
+        !(typeof AI_SETTLE !== 'undefined' && AI_SETTLE && AI_SETTLE.busy);
+    } catch(e){ canUpd = false; }
+    if (!canUpd){ finish('<br>🔄 結果取得・未発走の再予想は、実行中（または未実装）のため省略しました。'); return null; }
+    preStat(head + '<br>🔄 続けて、終わったレースの結果取得と未発走の再予想を実行します…（AI提案タブ側に進捗が出ます）');
+    return Promise.resolve()
+      .then(function(){ return aiUpdateDay({ detail: detail }); })
+      .then(function(){ finish('<br>🔄 結果取得・未発走の再予想まで完了しました。'); },
+            function(){ finish('<br>⚠ 結果取得・再予想でエラーがありました（AI提案タブのメッセージを確認してください）。'); });
   }).catch(function(e){
     preBusy(false);
     preMsg((e && e.message) || String(e), true);
@@ -34895,6 +34976,21 @@ function preRun(){
 function initPre(){
   var b = $('preBtn');
   if (b) b.addEventListener('click', preRun);
+  /* ★第310弾: 「各馬の馬柱データも取得する」のチェック状態を記憶する。
+     標準はHTML側の checked（ON）。保存値('khl_pre_detail_v1' = '1'/'0')があればそちらへ復元し、
+     変更されたら保存する（外したら次回も外れたままになる）。 */
+  try {
+    var dc = $('preChkDetail');
+    if (dc){
+      var savedDetail = null;
+      try { savedDetail = localStorage.getItem('khl_pre_detail_v1'); } catch(e){}
+      if (savedDetail === '1') dc.checked = true;
+      else if (savedDetail === '0') dc.checked = false;
+      if (dc.addEventListener) dc.addEventListener('change', function(){
+        try { localStorage.setItem('khl_pre_detail_v1', dc.checked ? '1' : '0'); } catch(e){}
+      });
+    }
+  } catch(e){}
   // 日付の初期値＝今日
   try {
     var el = $('preDate');
@@ -40946,13 +41042,13 @@ function jockeyDbOnShow(){ try { jdbRefreshStat(); } catch(e){} }
    ============================================================ */
 var AI_HELP = [
   { k:'day',   t:'① その日の全レースの印',        d:'一括取得で保存したAI予想（◎○▲☆△）を、その日の全レースぶん一覧表示します。数値（EV等）は出さず、印とオッズだけ。' },
-  { k:'settle',t:'② その日の結果を取得',          d:'発走が過ぎたレースの着順・払戻・ペース・コーナー通過順を netkeiba 結果ページ(race.netkeiba)から取り込み、印と同じ表に並べます（払戻が確定すると同じボタンを再実行で更新）。※旧db.netkeibaページは2026-09から非会員に空ページを返すため、そちらは保険として残しています。' },
+  { k:'settle',t:'② その日の結果を取得',          d:'発走が過ぎたレースの着順・払戻・ペース・コーナー通過順を netkeiba 結果ページ(race.netkeiba)から取り込み、印と同じ表に並べます（払戻が確定したら「📥 その日の出馬表を一括取得」ボタンをもう一度押すと更新されます）。※旧db.netkeibaページは2026-09から非会員に空ページを返すため、そちらは保険として残しています。' },
   { k:'recap', t:'③ AI振り返りコメント',          d:'結果が揃ったレースごとに、展開予想（ペース・トラックバイアス）と実際の流れ、印の馬が来た／来なかった理由を1レースずつ自動でまとめます。' },
   { k:'hit',   t:'④ 印の的中カウント',            d:'◎〜△の5頭のうち馬券内（3着以内）に入った頭数をレースごと・当日合計で数えます。緑行＝印の馬券内、黄色行＝印を外した馬券内。★第99弾: 判定は<b>◎単独</b>（◎が馬券内なら✓的中・圏外なら✗ハズレ。○▲☆△が来ても◎不的中はハズレ）をチップ・当日合計・Excel/PDFの見出しに表示し、◎を外したレースは「🔍 なぜ◎は外れたか／💡 どう考えてたら勝ち馬が買えたか」を振り返りに自動で書きます。' },
-  { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「🔄 結果を取得・未発走を再予想」を押したときだけ動きます。' },
+  { k:'fresh', t:'⑤ 追加通信は押したときだけ',     d:'タブを開いても通信はしません。結果の取り込みは「📥 その日の出馬表を一括取得」を押したときだけ動きます（★第310弾で旧🔄ボタンはこのボタンへ統合。すでに取得済みの日なら、一括取得の続けて結果取得・未発走の再予想まで実行されます）。' },
   { k:'export',t:'⑥ Excel / PDF 保存',            d:'「📤 Excel保存」でその日の全レース（番・馬名・印・オッズ・特記・勝率・連対率・複勝率・コースLv・レースLv・波乱度）を1枚のシートに、「🖨 PDF」で印刷ダイアログ（PDFに保存を選べます）に出します。馬ごとのコースLv／レースLvは<b>同じ出走馬の中での順位（1が最高評価＝数値が小さいほど信用できる。15頭立てなら最高評価の馬が1・最低評価の馬が15。実績不足は—）</b>で、レースLv=基本の強さ（過去クラス＋上がり3F・テンの時計裏付け）、コースLv=距離・コース適性＋騎手との相性・騎手の得手不得手コース。荒れ度はこの2値の<b>乖離</b>から判定します（両方とも順位が小さい馬が上位なら堅実・強さと適性が食い違う馬がいると荒れ要素として見出しに⚠表示。測れないレースは従来どおりオッズの偏り）。コースLv=今回と同じ面・距離帯・競馬場での複勝率から見る「この条件で出せる力」、レースLv=過去にどのクラスのレースで戦ってきたか（馬券内好走を重視）。レースLv／コースLvは<b>予想時点の学習DBで計算してスナップショットに保存</b>し、結果確定後に再ランク付けしません（★第102弾）。保存が無い古い予想はレース日以前の戦績だけで再現計算します（★第104弾）。' },
   { k:'story', t:'⑦ 実況風・展開予想',             d:'各レースに「🔮 展開予想（実況風）」を添えます：先発の競り合い→隊列→600m通過秒（学習DB基準時計から）→4コーナーの隊列→バイアス→予想入線（馬券はx-y-zで入線）までを、脚質・AI確率・ペース・バイアスから決定的に生成（乱数なし・保存データのみ）。' },
-  { k:'recomp',t:'⑧ 🔄未発走を再予想',       d:'★第98弾: その日の現在までの結果（トラックバイアス・コーナー通過順などのレース展開）と直前の単勝オッズで、まだ発走していないレースの予想を引き直して印を付け直します（出馬表とオッズを再取得します）。結果が確定しているレースは絶対に上書きしません。旧予想は履歴（最大5版）として残るので、どこで軌道修正したか後から追えます。再予想後の📤Excel保存・🖨PDF出力は新しい印の内容で出ます。' }
+  { k:'recomp',t:'⑧ 未発走を再予想（📥ボタンに統合）',       d:'★第98弾: その日の現在までの結果（トラックバイアス・コーナー通過順などのレース展開）と直前の単勝オッズで、まだ発走していないレースの予想を引き直して印を付け直します（出馬表とオッズを再取得します）。結果が確定しているレースは絶対に上書きしません。旧予想は履歴（最大5版）として残るので、どこで軌道修正したか後から追えます。再予想後の📤Excel保存・🖨PDF出力は新しい印の内容で出ます。★第310弾: 旧🔄専用ボタンは廃止され、「📥 その日の出馬表を一括取得」をもう一度押すと結果取得に続けてこの再予想まで実行されます。' }
 ];
 function aiProposalHelpHTML(){
   return '<details class="card"><summary style="cursor:pointer;padding:6px"><b>ℹ このタブの使い方（各項目の詳細）</b></summary>' +
@@ -41474,8 +41570,10 @@ function aiSettleDay(){
   seq.then(finish).catch(finish);
   });   /* ★第164弾: Promiseラップの閉じ */
 }
-/* ---------- ★第164弾: 統合更新ボタン（旧🔄表示を更新＋旧📥その日の結果を取得＋未発走再予想） ---------- */
-function aiUpdateDay(){
+/* ---------- ★第164弾: 統合更新ボタン（旧🔄表示を更新＋旧📥その日の結果を取得＋未発走再予想） ----------
+   ★第310弾: 🔄ボタン(aiRepred)は廃止され、📥一括取得(preRun)から呼ばれるのが主経路になった。
+   opt.detail（馬柱も取り直すか）を任意引数で受け取り、aiRepredDay へ引き継ぐ。 */
+function aiUpdateDay(opt){
   if (AI_REPRED.busy || AI_SETTLE.busy) return Promise.resolve(null);
   /* ① 旧「🔄 表示を更新」の機能: 表示用オッズの取得+再描画 */
   try { if (typeof nkOddsRefreshForView === 'function') nkOddsRefreshForView(true); } catch(e){}
@@ -41483,9 +41581,9 @@ function aiUpdateDay(){
   /* ② 旧「📥 その日の結果を取得」の機能: 終わったレースの結果を先に取得(未発走は「まだ結果なし」でスキップ) */
   return aiSettleDay().then(function(){
     /* ③ 未発走を再予想(出馬表も強制引き直し) */
-    return aiRepredDay();
+    return aiRepredDay(opt);
   }).catch(function(){
-    try { return aiRepredDay(); } catch(e){ return null; }
+    try { return aiRepredDay(opt); } catch(e){ return null; }
   });
 }
 /* ---------- 現在のレース（①で一括取得していないときだけの保険） ---------- */
@@ -41551,8 +41649,8 @@ function aiProposalRender(){
       '</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div>' +
       '<div class="muted small" style="margin-top:4px">印は①一括取得時に保存したAI予想のまま。' +
-      '「🔄 結果を取得・未発走を再予想」で終わったレースの着順・払戻・展開と突き合わせてAI振り返りを出します（追加取得はこのボタン時だけ）。' +
-      'レースが進んだら <b>「🔄 未発走を再予想」</b> で、当日バイアス（コーナー通過順などの展開）と直前オッズを反映して未発走レースの印を付け直せます（結果確定済みは上書きせず保護・旧予想は履歴保存。終了後のExcel/PDFも新しい印で出ます）。' +
+      '上の <b>「📥 その日の出馬表を一括取得」</b> ボタンをもう一度押すと、終わったレースの着順・払戻・展開の取得と突き合わせ（AI振り返り）まで続けて実行されます（追加取得はこのボタン時だけ）。' +
+      'レースが進んだら同じ📥ボタンをもう一度押せば、当日バイアス（コーナー通過順などの展開）と直前オッズを反映して未発走レースの印を付け直せます（結果確定済みは上書きせず保護・旧予想は履歴保存。終了後のExcel/PDFも新しい印で出ます）。' +
       '新馬戦・障害戦のレース名には「🧩 補正」チップを表示します。</div></div>';
     h += blocks;
     if (settled){
@@ -41579,7 +41677,7 @@ function aiProposalRender(){
     h += '<div class="card"><b>📅 その日の全レース</b>' +
       '<div class="muted" style="margin-top:6px">まだ一括取得されたレースがありません。<br>' +
       '下の <b>「📥 その日の出馬表を一括取得」</b> を押すと、その日の全レースの印がここに並びます（📋出馬表タブでも同じデータを見られます）。<br>' +
-      'レースが終了したら <b>「🔄 結果を取得・未発走を再予想」</b> で着順・払戻・展開を突き合わせ、AI振り返りが出ます。</div>' +
+      'レースが終了したら、上の <b>「📥 その日の出馬表を一括取得」</b> ボタンをもう一度押すと、結果取得・未発走の再予想まで続けて実行され、着順・払戻・展開を突き合わせたAI振り返りが出ます。</div>' +
       '<div id="aiSettleMsg" class="small" style="margin-top:4px">' + (AI_MSG ? '<span class="small">' + AI_MSG + '</span>' : '') + '</div></div>';
   }
   var cur = aiCurRaceBlock();
@@ -41631,7 +41729,9 @@ function aiProposalInit(){
     }
   } catch(e){}
   /* ★第98弾: 🔁再計算ボタン（aiRecompute・用途が被るため削除）→ 🔄未発走を再予想（aiRepred）へ置換
-     ★第164弾: さらに表示更新・結果取得も統合し aiUpdateDay から実行 */
+     ★第164弾: さらに表示更新・結果取得も統合し aiUpdateDay から実行
+     ★第310弾: aiRepredボタン要素自体は廃止され📥一括取得(preRun)へ統合された。
+     この配線は要素が無ければ no-op になる現行ガードのまま残置（互換のため） */
   var rp = $('aiRepred');
   if (rp) rp.addEventListener('click', function(){ try { aiUpdateDay(); } catch(e){ aiSettleMsg('⚠ 更新に失敗: ' + esc(String((e && e.message) || e))); } });
   /* 旧aiRecomputeDay（通信ゼロ再計算）はJS残存。ボタンは削除済み */
@@ -42782,7 +42882,7 @@ function aiRecomputeDay(){
      → 完了後に aiProposalRender() で🤖タブの当日シートを再描画 = Excel/PDFも新しい印で出る
    ============================================================ */
 var AI_REPRED = { busy: false };
-function aiRepredDay(){
+function aiRepredDay(opt){
   if (AI_REPRED.busy) return Promise.resolve(null);
   var items = aiDayItems();
   if (!items.length){ aiSettleMsg('⚠ 再予想対象がありません（①でその日の一括取得をしてください）。'); return Promise.resolve(null); }
@@ -42804,7 +42904,11 @@ function aiRepredDay(){
   return biasP.catch(function(){}).then(function(){
   /* ★第164弾バグ修正: forceCardをtrueに——当日取得ぶんの出馬表キャッシュは「その日の終わりまで」有効のため、
      forceCard:falseのままだと何度再予想しても出馬表HTMLがキャッシュから返され更新されなかった */
-  return preDayFetch(d8, { refresh: true, odds: true, force: false, forceCard: true }, function(msg){
+  /* ★第310弾: 馬柱も取り直すか(detail)は呼び出し側の指定を優先し、無ければ📥一括取得のチェック状態に追従。
+     sbDayも渡して📋出馬表タブの日付登録を欠かさない */
+  var detail = (opt && opt.detail != null) ? !!opt.detail :
+    ((typeof $ === 'function' && $('preChkDetail')) ? !!$('preChkDetail').checked : false);
+  return preDayFetch(d8, { refresh: true, odds: true, force: false, forceCard: true, detail: detail, sbDay: true }, function(msg){
     aiSettleMsg('🔄 ' + String(msg == null ? '' : msg).replace(/</g, '&lt;'));
   }).then(function(res){
     AI_REPRED.busy = false;
@@ -50447,6 +50551,20 @@ function sbAddDay(d8){
   });
 }
 
+/* ★第310弾: 取得だけして日付リストへ登録する（取得も描画もしない）。
+   AI提案タブの一括取得(preDayFetch・opt.sbDay)から呼ばれ、その日が📋出馬表タブにも出るようにする。
+   従来は sbAddDay（このタブで日付を開いたとき）でしか登録されず、AI提案タブだけで
+   一括取得した日は出馬表タブに一切表示されなかった。既にリストにあれば何もしない
+   （開閉状態を壊さない）。表示はタブ切替時に sbRender が呼ばれる既存配線に任せる。 */
+function sbNoteDay(d8){
+  d8 = sbD8Of(d8);
+  if (!/^\d{8}$/.test(d8)) return;
+  var ds = sbDays();
+  for (var i = 0; i < ds.length; i++){ if (ds[i] && ds[i].d8 === d8) return; }
+  ds.unshift({ d8: d8, open: false });
+  sbSave({ days: ds.slice(0, 14) });   /* sbAddDayと同じ上限14日（端末の軽量化） */
+}
+
 /* その日のレース一覧（preList優先・無ければ一括取得） */
 function sbEnsureDay(d8, force){
   var items = (typeof preListAll === 'function') ? preListAll().filter(function(it){ return it && it.d8 === d8; }) : [];
@@ -53905,7 +54023,7 @@ function rvSimDayFetch(){
   var btn = document.getElementById('rsBtn');
   if (btn) btn.disabled = true;
   if (st) st.innerHTML = '📄 その日のレース一覧を取得中…（回線によって数十秒かかることがあります）';
-  preDayFetch(d8, { odds: true }, function(msg, isErr){
+  preDayFetch(d8, { odds: true, sbDay: true }, function(msg, isErr){   /* ★第310弾: sbDay=📋出馬表タブにも日付登録（AI提案タブの一括取得ボタンと同じ扱い） */
     if (st) st.innerHTML = (isErr ? '<span style="color:var(--warn-ink)">⚠ ' : '') + esc(msg) + (isErr ? '</span>' : '');
   }).then(function(res){
     if (btn) btn.disabled = false;
@@ -59261,6 +59379,317 @@ function initPedDb(){
   var q = $('pedDbQuery'); if (q) q.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') pedDbDoSearch(); });
   pedDbFillYears();
   pedDbRenderStat();
+}
+
+/* =========================================================
+   ★第309弾: 予想モデル model_v1（候補C）の実装 — オーナー採用（2026-11-04）
+   ---------------------------------------------------------
+   出典（凍結仕様・採点前に確定したものだけを使う）:
+     ・model_lab/FINAL_REPORT.md (4)「model_v1 の確定仕様（Phase 5 で凍結）」
+     ・model_lab/tournament/SPECS.md「C『model_v1』」
+     ・生成ロジックは model_lab/phase6_build_preds.py と一致させる。
+       シグナル定義は phase6_build_signals.py、特徴量定義は
+       phase6_build_features.py が正本。
+
+   仕様:
+     qm(i) = (1 / 単勝オッズ_i) をレース内で正規化した市場確率
+     q(i) ∝ qm(i)^γ × Π(部品倍率)、γ = 0.85。再正規化したものが勝率。
+     部品（すべて「対象レースより前の出走」だけから判定。重なれば乗算）:
+       1. 去勢明け2-3戦目（geld_num ∈ {2,3}）              ×1.30
+       2. 格下げ出走（今回クラス < 前走クラス）               ×0.90
+       3. 騎手期待比の下位帯（jke365 ≤ −0.0178）            ×0.90
+       4. 反転族の最上位帯（exc3l5 ≥ 0.1665）               ×0.97
+       5. 芝⇄ダート替わり / 休み明け91日以上（どちらか一方）  ×0.90
+     連対率・複勝率は従来どおり Harville（cbHarville）＋決定的シムで
+     勝率から導出する（p5_engine 側・検証時の score.py と同一式）。
+     印は q の順位そのもの（検証時の物差しと同一）。
+
+   入力の対応（アプリ内で再現する材料）:
+     ・qm … 出馬表の単勝オッズ（全頭そろったときだけ model_v1 を適用。
+       検証は最終オッズ全頭完備が前提で、欠けたレースは従来経路に倒す）
+     ・部品1/2/5 … 学習DB（diLs）の馬別出走履歴（性別表記・クラス・
+       馬場・日付）。クラス尺度は検証側 class_rank と同一。
+     ・部品3 … 学習DB全レースから騎手別に直近365日の出走を集計し、
+       各出走の市場p3（そのレースの全頭オッズから Harville で算出）
+       との差の平均（jke365）。n≥20 のときだけ値を持つ（検証定義どおり）。
+     ・部品4 … 馬の過去走ごとに (3着内=1/0 − そのレースの市場p3) を作り、
+       p3 が取れた過去走が3走以上あるとき直近5走の平均（exc3l5）。
+     ・馬の照合は検証側ビルダーと完全に同じキー方式:
+       シグナル系（部品1/2/5）の履歴は馬IDでのみ引く（ID の無い出走は
+       履歴に存在しない扱い）。特徴量系（部品4）の履歴は「ID があれば ID、
+       無ければ馬名」の単一キーで引く（phase6_build_features.py の
+       hkey 方式）。部品3（騎手）は馬IDに依存しない。
+       ※学習DBに ID 欠け行がある期間（2026年9-10月分に実在）では、
+         検証側の凍結予想も同じ欠け方をしていることを照合で確認済み。
+
+   既存の「改善モデルv2（帯別倍率・手動採用）」とは二重に較正しない:
+   model_v1 が適用されるレースでは p5 側で v2 の帯別補正を無効化する
+   （model_v1 自体が較正済みモデルのため）。
+   ========================================================= */
+
+var MV1_GAMMA = 0.85;          /* 温度較正 γ（train で固定） */
+var MV1_JK_E = -0.0178;        /* 騎手期待比の下位帯端点（train 20%点） */
+var MV1_EXC_E = 0.1665;        /* 反転族の最上位帯端点（train 80%点） */
+var MV1_JK_MIN_N = 20;         /* jke365 が値を持つ最低出走数（検証定義） */
+var MV1_EXC_MIN_N = 3;         /* exc3l5 が値を持つ最低過去走数（検証定義） */
+
+/* ---------- 小物 ---------- */
+function mv1NameKey(s){ return String(s == null ? '' : s).replace(/[\s　]/g, ''); }
+function mv1Ord(d8){
+  var y = parseInt(d8.slice(0, 4), 10), m = parseInt(d8.slice(4, 6), 10), d = parseInt(d8.slice(6, 8), 10);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+}
+function mv1SexOf(sexAge){
+  var s = String(sexAge || '');
+  if (s.indexOf('セ') === 0) return 'セン';
+  if (s.indexOf('牡') === 0) return '牡';
+  if (s.indexOf('牝') === 0) return '牝';
+  return null;
+}
+function mv1SurfOf(surface){
+  var s = String(surface || '');
+  if (s === '芝') return '芝';
+  if (s === 'ダ' || s === 'ダート') return 'ダート';
+  return null;
+}
+/* クラス尺度: 検証側 class_rank と同一（G1=8>G2=7>G3=6>OP/L=5>
+   3勝=4>2勝=3>1勝=2>未勝利=1>新馬=0、障害は null） */
+var MV1_FW = { '１':'1', '２':'2', '３':'3', '４':'4', '５':'5', '６':'6', '７':'7', '８':'8', '９':'9', '０':'0' };
+function mv1ClassRank(name, grade, isJump){
+  if (isJump) return null;
+  var g = String(grade || '');
+  if (g === 'G1') return 8;
+  if (g === 'G2') return 7;
+  if (g === 'G3') return 6;
+  if (g === 'OP' || g === 'L') return 5;
+  var n = String(name || '').replace(/[１２３４５６７８９０]/g, function(c){ return MV1_FW[c] || c; });
+  if (n.indexOf('新馬') >= 0) return 0;
+  if (n.indexOf('未勝利') >= 0) return 1;
+  if (n.indexOf('1勝クラス') >= 0) return 2;
+  if (n.indexOf('2勝クラス') >= 0) return 3;
+  if (n.indexOf('3勝クラス') >= 0) return 4;
+  if (n.indexOf('オープン') >= 0) return 5;
+  return null;
+}
+function mv1OddsOf(h){
+  var v = parseFloat(String((h && h.odds) == null ? '' : h.odds).replace(/[^0-9.]/g, ''));
+  return (isFinite(v) && v > 1) ? v : null;
+}
+/* Harville: 勝率ベクトル → 3着内率ベクトル（score.py harville_p3 と同一式） */
+function mv1HarvilleP3(ps){
+  var n = ps.length, sum = 0, i, j, k;
+  for (i = 0; i < n; i++) sum += ps[i];
+  var q = ps.map(function(p){ return sum > 0 ? p / sum : 1 / n; });
+  var out = [];
+  for (i = 0; i < n; i++){
+    var p3 = q[i];
+    for (j = 0; j < n; j++){
+      if (j === i) continue;
+      var pij2 = q[j] * (q[i] / Math.max(1e-9, 1 - q[j]));
+      p3 += pij2;
+      for (k = 0; k < n; k++){
+        if (k === i || k === j) continue;
+        p3 += q[j] * (q[k] / Math.max(1e-9, 1 - q[j])) * (q[i] / Math.max(1e-9, 1 - q[j] - q[k]));
+      }
+    }
+    out.push(Math.min(1, p3));
+  }
+  return out;
+}
+
+/* ---------- 学習DBインデックス（diVer でメモ化） ----------
+   races: rid → { d8, ord, rowsAll:[{no, odds}] }
+   sigByHorse: 'I:<馬ID>' → 出走リスト（シグナル系・ID のある出走だけ）
+     [{ d8, ord, rid, no, order, sex, cls, surf, jump }]
+   featByHorse: 'I:<馬ID>' または 'N:<馬名>' → 出走リスト（特徴量系・
+     各出走は ID があれば ID キー、無ければ馬名キーへの単一登録）
+   byJockey: '<騎手名>' → [{ d8, ord, rid, no, order }]
+   p3cache: rid → { 馬番: p3 or null }（遅延計算） */
+var _mv1Idx = null, _mv1IdxVer = null;
+function mv1Index(){
+  var ver = null;
+  try { if (typeof diVer !== 'undefined') ver = diVer; } catch(e){}
+  if (_mv1Idx && ver !== null && _mv1IdxVer === ver) return _mv1Idx;
+  var idx = { races: {}, sigByHorse: {}, featByHorse: {}, byJockey: {}, p3cache: {} };
+  try {
+    var db = (typeof diLs === 'function') ? diLs() : null;
+    var races = (db && db.races) || {};
+    Object.keys(races).forEach(function(rid){
+      var rec = races[rid];
+      if (!rec || !rec.rows || !rec.rows.length) return;
+      var meta = rec.meta || {};
+      var d8 = String(rec.date8 || meta.date8 || '');
+      if (!/^\d{8}$/.test(d8)) return;
+      var surfRaw = String(meta.surface || '');
+      var jump = (surfRaw === '障');
+      var race = { d8: d8, ord: mv1Ord(d8), rowsAll: [] };
+      idx.races[rid] = race;
+      var cls = mv1ClassRank(meta.name, meta.grade, jump);
+      var surf = mv1SurfOf(surfRaw);
+      rec.rows.forEach(function(r){
+        if (!r) return;
+        var no = String(r.no == null ? '' : r.no);
+        if (!no) return;
+        race.rowsAll.push({ no: no, odds: mv1OddsOf(r) });
+        var order = parseInt(r.order, 10) || 0;
+        if (order < 1) return;   /* 着順の無い行（取消等）は履歴に数えない（検証側と同一） */
+        var st = { d8: d8, ord: race.ord, rid: rid, no: no, order: order,
+                   sex: mv1SexOf(r.sexAge), cls: cls, surf: surf, jump: jump };
+        var hid = String(r.id || '');
+        var nk2 = mv1NameKey(r.name);
+        if (hid) (idx.sigByHorse['I:' + hid] = idx.sigByHorse['I:' + hid] || []).push(st);
+        var fkey = hid ? ('I:' + hid) : (nk2 ? ('N:' + nk2) : '');
+        if (fkey) (idx.featByHorse[fkey] = idx.featByHorse[fkey] || []).push(st);
+        var jk = mv1NameKey(r.jockey);
+        if (jk) (idx.byJockey[jk] = idx.byJockey[jk] || []).push(
+          { d8: d8, ord: race.ord, rid: rid, no: no, order: order });
+      });
+    });
+    var cmp = function(a, b){ return (a.ord - b.ord) || (a.rid < b.rid ? -1 : (a.rid > b.rid ? 1 : 0)); };
+    Object.keys(idx.sigByHorse).forEach(function(k){ idx.sigByHorse[k].sort(cmp); });
+    Object.keys(idx.featByHorse).forEach(function(k){ idx.featByHorse[k].sort(cmp); });
+    Object.keys(idx.byJockey).forEach(function(k){ idx.byJockey[k].sort(cmp); });
+  } catch(e){}
+  _mv1Idx = idx;
+  _mv1IdxVer = ver;
+  return idx;
+}
+function mv1DropCache(){ _mv1Idx = null; _mv1IdxVer = null; }
+
+/* レース単位の市場p3（馬番→p3）。オッズの無い馬は null（検証側の qp3 と同じ扱い） */
+function mv1RaceP3(idx, rid){
+  if (idx.p3cache[rid]) return idx.p3cache[rid];
+  var out = {};
+  var race = idx.races[rid];
+  if (race){
+    var es = race.rowsAll.filter(function(r){ return r.odds != null; });
+    if (es.length >= 2){
+      var p3s = mv1HarvilleP3(es.map(function(r){ return 1 / r.odds; }));
+      es.forEach(function(r, i){ out[r.no] = p3s[i]; });
+    }
+    race.rowsAll.forEach(function(r){ if (!(r.no in out)) out[r.no] = null; });
+  }
+  idx.p3cache[rid] = out;
+  return out;
+}
+
+/* 馬の出走リストを引く（検証側ビルダーのキー方式と同一）:
+   シグナル系は馬IDのみ。特徴量系は「ID があれば ID、無ければ馬名」。 */
+function mv1SigStartsOf(idx, h){
+  var hid = String((h && (h.nk || h.id)) || '');
+  if (hid && idx.sigByHorse['I:' + hid]) return idx.sigByHorse['I:' + hid];
+  return [];
+}
+function mv1FeatStartsOf(idx, h){
+  var hid = String((h && (h.nk || h.id)) || '');
+  var key = hid ? ('I:' + hid) : ('N:' + mv1NameKey(h && h.name));
+  return idx.featByHorse[key] || [];
+}
+
+/* ---------- 1頭ぶんの部品判定 ----------
+   ctx = { d8, curCls, curSurf }。d8 が無いときは部品を一切発火させない
+   （いつのレースか分からない状態で履歴を引くと未来情報が混ざるため）。 */
+function mv1FlagsFor(idx, h, ctx){
+  var f = { geldNum: null, classDown: null, surfChg: null, restDays: null,
+            jke365: null, jkN: 0, exc3l5: null, excN: 0, prevN: 0 };
+  if (!ctx || !/^\d{8}$/.test(String(ctx.d8 || ''))) return f;
+  var curOrd = mv1Ord(String(ctx.d8));
+  var sigAll = mv1SigStartsOf(idx, h);
+  var sigPast = sigAll.filter(function(s){ return s.ord < curOrd; });
+  f.prevN = sigPast.length;
+  /* --- シグナル系（障害レースを履歴から除く: 検証側 phase2 と同一） --- */
+  var sig = sigPast.filter(function(s){ return !s.jump; });
+  /* 去勢明け戦目: 牡を見た後の セン 出走を 1,2,3… と数える（検証側と同一の遷移） */
+  var seenMale = false, senme = 0, i, s;
+  for (i = 0; i < sig.length; i++){
+    s = sig[i];
+    if (s.sex === '牡'){ seenMale = true; senme = 0; }
+    else if (s.sex === 'セン'){ if (seenMale || senme > 0) senme++; }
+    else { senme = 0; }
+  }
+  var todaySex = mv1SexOf(h && h.sexAge);
+  if (todaySex === 'セン'){
+    if (seenMale || senme > 0) f.geldNum = senme + 1;
+  } else if (todaySex == null){
+    /* 性別表記が取れないときは第304弾と同じ推論（末尾がセンで継続中なら今回もセン） */
+    if (sig.length && sig[sig.length - 1].sex === 'セン' && (seenMale || senme > 0)) f.geldNum = senme + 1;
+  }
+  var prev = sig.length ? sig[sig.length - 1] : null;
+  if (prev){
+    if (ctx.curCls != null && prev.cls != null) f.classDown = (ctx.curCls < prev.cls);
+    if (ctx.curSurf && prev.surf) f.surfChg = (prev.surf !== ctx.curSurf);
+    f.restDays = curOrd - prev.ord;
+  }
+  /* --- 特徴量系（障害含む全出走: 検証側 phase3 と同一） --- */
+  var featPast = mv1FeatStartsOf(idx, h).filter(function(s){ return s.ord < curOrd; });
+  var exc = [];
+  for (i = 0; i < featPast.length; i++){
+    s = featPast[i];
+    var p3map = mv1RaceP3(idx, s.rid);
+    var p3 = p3map ? p3map[s.no] : null;
+    if (p3 != null) exc.push((s.order <= 3 ? 1 : 0) - p3);
+  }
+  f.excN = exc.length;
+  if (exc.length >= MV1_EXC_MIN_N){
+    var tail = exc.slice(-5), sm = 0;
+    tail.forEach(function(v){ sm += v; });
+    f.exc3l5 = sm / tail.length;
+  }
+  var jkList = idx.byJockey[mv1NameKey(h && h.jockey)] || [];
+  var n = 0, t3 = 0, p3sum = 0;
+  for (i = 0; i < jkList.length; i++){
+    s = jkList[i];
+    if (s.ord < curOrd - 365 || s.ord >= curOrd) continue;
+    n++;
+    if (s.order <= 3) t3++;
+    var pm = mv1RaceP3(idx, s.rid);
+    var pv = pm ? pm[s.no] : null;
+    if (pv != null) p3sum += pv;   /* p3 が無い出走は n に数え、p3 は 0 として扱う（検証側 person_append と同一） */
+  }
+  f.jkN = n;
+  if (n >= MV1_JK_MIN_N) f.jke365 = (t3 - p3sum) / n;
+  return f;
+}
+
+/* ---------- model_v1 本体 ----------
+   hs: 出馬表の馬配列（p5 の hs と同じ並び）
+   ctx: { d8, curCls, curSurf }
+   戻り値: { prob: [勝率], info: { gamma, d8, dbUsed, counts, flags } }
+   オッズが1頭でも欠けたら null（検証前提が崩れるため従来経路に倒す）。 */
+function mv1Compute(hs, ctx){
+  try {
+    if (!hs || hs.length < 2) return null;
+    var odds = hs.map(mv1OddsOf);
+    for (var i = 0; i < odds.length; i++){ if (odds[i] == null) return null; }
+    var invSum = 0;
+    odds.forEach(function(o){ invSum += 1 / o; });
+    var idx = mv1Index();
+    var dbUsed = !!(ctx && /^\d{8}$/.test(String(ctx.d8 || '')) && Object.keys(idx.races).length);
+    var counts = { geld23: 0, classDown: 0, jkQ1: 0, reversalTop: 0, surfRest: 0 };
+    var flags = [], qs = [];
+    hs.forEach(function(h, ix){
+      var qm = (1 / odds[ix]) / invSum;
+      var f = mv1FlagsFor(idx, h, ctx || {});
+      var mul = 1, fired = [];
+      if (f.geldNum === 2 || f.geldNum === 3){ mul *= 1.30; fired.push('geld23'); counts.geld23++; }
+      if (f.classDown === true){ mul *= 0.90; fired.push('classDown'); counts.classDown++; }
+      if (f.jke365 != null && f.jke365 <= MV1_JK_E){ mul *= 0.90; fired.push('jkQ1'); counts.jkQ1++; }
+      if (f.exc3l5 != null && f.exc3l5 >= MV1_EXC_E){ mul *= 0.97; fired.push('reversalTop'); counts.reversalTop++; }
+      if (f.surfChg === true || (f.restDays != null && f.restDays >= 91)){ mul *= 0.90; fired.push('surfRest'); counts.surfRest++; }
+      qs.push(Math.pow(qm, MV1_GAMMA) * mul);
+      flags.push({ no: (h && h.no) || '', name: (h && h.name) || '', mul: mul, fired: fired,
+                   geldNum: f.geldNum, classDown: f.classDown, surfChg: f.surfChg,
+                   restDays: f.restDays, jke365: f.jke365, jkN: f.jkN,
+                   exc3l5: f.exc3l5, excN: f.excN, prevN: f.prevN });
+    });
+    var sum = 0;
+    qs.forEach(function(v){ sum += v; });
+    if (!(sum > 0)) return null;
+    var prob = qs.map(function(v){ return v / sum; });
+    return { prob: prob,
+             info: { gamma: MV1_GAMMA, d8: (ctx && ctx.d8) || '', dbUsed: dbUsed,
+                     counts: counts, flags: flags } };
+  } catch(e){ return null; }
 }
 
 /* =========================================================
