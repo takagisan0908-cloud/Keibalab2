@@ -4877,13 +4877,34 @@ function analyzeRace(){
   }
   var umOn = !!colUm;
   /* ★第291弾: 調教「勝負度」（netkeiba調教評価×履歴DB）。
-     勝負度 = 今回スコア − 過去平均スコア。>1.0→0.8、>0.5→0.65、>0→0.55、<=0→0.45。
+     勝負度 = 今回スコア − 過去平均スコア。
+     ★第313弾: スコア換算を全量検証に寄せて再設計（詳細は ckScoreOf のコメント参照）。
      データが無い馬は中立(0.5)。1頭も無ければファクター自体をOFF。 */
   var colCk = null;
   if ((w.chokyo||0) > 0 && typeof ckScoreOf === 'function'){
-    var cc = hs.map(function(h){
+    /* ★第313弾: 人気帯（レース内の単勝オッズ順位）を算出し、履歴件数・過去最高タイとあわせて ckScoreOf へ渡す */
+    var ckOrd = hs.map(function(h, i){ return i; });
+    ckOrd.sort(function(a, b){
+      var oa = num(hs[a] && hs[a].odds), ob = num(hs[b] && hs[b].odds);
+      oa = (oa != null && !isNaN(oa) && oa > 0) ? oa : Infinity;
+      ob = (ob != null && !isNaN(ob) && ob > 0) ? ob : Infinity;
+      return (oa - ob) || (a - b);
+    });
+    var ckBand = {};
+    for (var bi = 0; bi < ckOrd.length; bi++){ ckBand[ckOrd[bi]] = (bi < 3) ? 1 : ((bi < 6) ? 2 : 3); }
+    var cc = hs.map(function(h, i){
       var s = h && h.ckSeriousness;
-      return (typeof s === 'number' && !isNaN(s)) ? ckScoreOf(s) : null;
+      var hasS = (typeof s === 'number' && !isNaN(s));
+      var ev = h ? h.ckEval : null;
+      if (!hasS && !ev) return null;
+      var hist = (h && typeof CHOKYO_HISTORY !== 'undefined') ? CHOKYO_HISTORY[h.name] : null;
+      var ctx = {
+        ev: ev || null,
+        histN: (hist && typeof hist[1] === 'number') ? hist[1] : null,
+        band: (typeof ckBand[i] === 'number') ? ckBand[i] : null,
+        tieBest: !!(ev && hist && typeof hist[2] === 'number' && typeof CK_EVAL_SCORE !== 'undefined' && CK_EVAL_SCORE[ev] === hist[2])
+      };
+      return ckScoreOf(hasS ? s : null, ctx);
     });
     var anyC = false;
     for (var ci = 0; ci < cc.length; ci++){ if (cc[ci] != null){ anyC = true; break; } }
@@ -28126,32 +28147,46 @@ function ckSeriousnessOf(horseName, currentEval){
   return Math.round((cs - avg) * 100) / 100;
 }
 
-/* 勝負度→エンジン用スコア（0-1）。
-   >1.0→0.8（過去平均より1段階以上良い＝本気）/ >0.5→0.65 / >0→0.55 /
-   <=0→0.45（調子落ち）/ null→null（中立扱いは呼び出し側） */
-function ckScoreOf(seriousness){
-  if (seriousness == null || typeof seriousness !== 'number' || isNaN(seriousness)) return null;
-  if (seriousness > 1.0) return 0.8;
-  if (seriousness > 0.5) return 0.65;
-  if (seriousness > 0) return 0.55;
-  return 0.45;
+/* 勝負度→エンジン用スコア（0-1）。★第313弾: 全量検証（2024-2026・調教DB×学習DB・121,687頭）に寄せて再設計。
+   旧方式（勝負度>0で一律加点）は廃止: 勝負度>=+1.0は全人気帯で再現せず（1-3番人気 ±0pt / 4-6番人気 -1.0pt /
+   7番人気以下 -1.6pt、帯別では非単調）。検証で残った材料だけを残す:
+   - 減点0.45: 勝負度<=-0.5×履歴3件以上×1-6番人気（-4.5pt/-1.6pt）/ 評価D×7番人気以下（3着内3.4%・-4.3pt）
+   - 加点0.65: 評価A×1-3番人気（3着内61.8%・帯基準+8.3pt。検証で残った唯一の強い加点）
+   - 補助0.55: 勝負度+0.5〜+1.0×履歴3件以上（各帯+0.7〜+0.9pt）/ 過去最高タイ維持（+1.0pt前後）
+   - それ以外は中立0.5。データなし（勝負度も評価もなし）は null（従来どおり呼び出し側で中立扱い）。
+   ctx = { ev:今回評価(A-D), histN:調教履歴件数, band:人気帯(1=1-3番人気/2=4-6/3=7以下), tieBest:今回評価=過去最高評価 } */
+function ckScoreOf(seriousness, ctx){
+  ctx = ctx || {};
+  var ev = ctx.ev || null;
+  var histN = (typeof ctx.histN === 'number') ? ctx.histN : null;
+  var band = (typeof ctx.band === 'number') ? ctx.band : null;
+  var hasS = (seriousness != null && typeof seriousness === 'number' && !isNaN(seriousness));
+  if (!hasS && !ev) return null;
+  if (hasS && seriousness <= -0.5 && histN != null && histN >= 3 && band != null && band <= 2) return 0.45;
+  if (ev === 'D' && band === 3) return 0.45;
+  if (ev === 'A' && band === 1) return 0.65;
+  if (hasS && histN != null && histN >= 3 && seriousness >= 0.5 && seriousness < 1.0) return 0.55;
+  if (ctx.tieBest) return 0.55;
+  return hasS ? 0.5 : null;
 }
 
 /* =========================================================
    ★第294弾: HTMLエクスポート用・AI独自調教ランク評価
    - うましるS/A/B/Cやnetkeiba A-Dは表示しない。勝負度のみから判定するAI独自評価。
-   - ランク: +1.0以上→「◎勝負」/ +0.5以上→「○良」/ 0以上→「△並」/ 0未満→「×落」
+   - ランク: +1.0以上→「◎勝負」/ +0.5以上→「○良」/ それ以外→「△並」/ 「×落」は勝負度-0.5以下かつ調教履歴3件以上のみ（★第313弾: 全量検証で残った条件に統一）
    - 過去最高勝負度との比較: CHOKYO_HISTORY[馬名]=[平均,件数,最高] から
      過去最高勝負度 ≒ 最高 - 平均（平均に最高レースを含むためやや過小評価だが一貫性あり）
    ========================================================= */
 
-/* 勝負度→AI独自ランク文字列。データなしは '' */
-function ckRankOf(seriousness){
+/* 勝負度→AI独自ランク文字列。データなしは ''。
+   ★第313弾: 「×落」は全量検証で残った条件（勝負度<=-0.5 かつ調教履歴3件以上）に限定し、特記の調教×と発動条件を揃える。
+   それ以外のマイナス帯は「△並」（履歴が薄い馬のノイズで落とさない）。履歴件数は呼び出し側が CHOKYO_HISTORY から渡す。 */
+function ckRankOf(seriousness, histN){
   if (seriousness == null || typeof seriousness !== 'number' || isNaN(seriousness)) return '';
   if (seriousness >= 1.0) return '◎勝負';
   if (seriousness >= 0.5) return '○良';
-  if (seriousness >= 0) return '△並';
-  return '×落';
+  if (seriousness <= -0.5 && histN != null && histN >= 3) return '×落';
+  return '△並';
 }
 
 /* 過去最高勝負度（最高評価 - 過去平均）。データ不足時は null。
@@ -28182,7 +28217,7 @@ function ckCompareWithPastBest(horseName, currentSeriousness){
 }
 
 /* エクスポート特記追記用：勝負度の高低に応じた特記テキストを返す。
-   - 高：勝負度+1.0以上 →「調教◎（勝負度+○○・過去最高時との比較）」
+   - 高：勝負度+1.0以上 →「調教◎（重賞参考・勝負度+○○・過去最高時との比較）」
    - 低：勝負度-0.5以下 →「調教×（勝負度-○○・過去最高時との比較）」
    - それ以外 → ''（特記追記なし）
    うましる・netkeibaのランクは含まない。AI独自評価のみ。
@@ -28191,7 +28226,11 @@ function ckCompareWithPastBest(horseName, currentSeriousness){
      勝負度の帯別成績が非単調になる主因だった。履歴>=3では人気馬の調教×が-9.3ptと明確）。
    - 調教◎は今回評価がAかBの時だけ（勝負度+1.0でも今回がC/D評価の馬=弱い馬の
      底上げは逆効果だった: 7人気以下で3着内12.6% vs 平均15.3%）。
-   履歴件数は CHOKYO_HISTORY[馬名][1] を見る。件数が確認できない馬は特記なし。 */
+   履歴件数は CHOKYO_HISTORY[馬名][1] を見る。件数が確認できない馬は特記なし。
+   ★第315弾: 調教◎の文言格下げ。第302弾の検証母集団は重賞出走馬であり、ゲート完全形は
+   全レース母集団では再現しなかった（全量検証 training_eval_definition_20261109.md）ため、
+   調教◎は「重賞参考」と併記し、重賞文脈での参考材料として位置づける。
+   条件・ゲート自体は第302弾のまま変更しない（文言のみの変更）。 */
 function ckExportNote(horseName, seriousness, currentEval){
   try {
     if (seriousness == null || typeof seriousness !== 'number' || isNaN(seriousness)) return '';
@@ -28202,7 +28241,7 @@ function ckExportNote(horseName, seriousness, currentEval){
     var sStr = (seriousness >= 0 ? '+' : '') + seriousness.toFixed(1);
     if (seriousness >= 1.0){
       if (currentEval !== 'A' && currentEval !== 'B') return '';
-      var t = '調教◎(勝負度' + sStr + ')';
+      var t = '調教◎(重賞参考・勝負度' + sStr + ')';   /* ★第315弾: 文言格下げ（「重賞参考」を併記） */
       if (cmp) t += '・' + cmp;
       return t;
     }
@@ -36476,7 +36515,16 @@ function pkPicks(res){
     try {
       if (typeof myValueNew === 'function' && out.value){
         var nv = myValueNew(res, { axis: out.axis, value: null, hole: null });
-        if (nv && nv.ok){
+        if (nv && nv.belowThreshold){
+          /* ★第314弾（候補C）: 校正後スコアが閾値以下のレースは「妙味なし」とし、
+             旧選定（EV最大）へのフォールバックはしない（妙味なしを成立させるため）。
+             - out.valueOld には旧選定が従来どおり残る（比較・診断用）
+             - val は旧選定のまま据え置くので、穴馬の除外集合は従来フォールバック時と同一になる
+             - myValueNew が例外等で失敗した場合（belowThreshold でない ok:false）は、
+               従来どおり旧選定が残る（安全フォールバックは異常時専用として維持） */
+          out.value = null;
+          out.valueNone = { score: nv.score, logic: 'myValueNew' };
+        } else if (nv && nv.ok){
           var nvRow = rows.filter(function(r){ return String(r.h && r.h.no) === String(nv.no); })[0] || null;
           if (nvRow){
             var nvPk = pack(nvRow, '新妙味スコア ' + (Math.round(nv.score * 10) / 10) +
@@ -42299,6 +42347,43 @@ function aiSpecialNotes(no, mark, rate, picks, opts){
   return t.join('・');
 }
 /* その日のエクスポート用モデル（保存済み予想のみ・通信なし） */
+/* ★第312弾: 展開ブロック用の整形ヘルパー（番手は同着平均で x.5 になることがあるため末尾の .0 を落とす） */
+function aiTenkaiNum(v){
+  if (v == null || isNaN(v)) return '—';
+  return String(Math.round(v * 10) / 10).replace(/\.0$/, '');
+}
+/* ★第312弾: 区間の順位変動（+＝前に出た＝↑、-＝下がった＝↓） */
+function aiTenkaiMv(v){
+  if (v == null || isNaN(v)) return '';
+  var a = Math.round(Math.abs(v) * 10) / 10;
+  if (a === 0) return '±0';
+  return (v > 0 ? '↑' : '↓') + String(a).replace(/\.0$/, '');
+}
+/* ★第312弾: 展開ブロックの本文行（1レース分）。描画側（印刷HTML／Excel）で包み方が違うため行の生成だけ共通化する。
+   先頭行＝4Cポジション別複勝率（heat があるときだけ）、続く行＝4C番手順の全頭の動き */
+function aiTenkaiLines(rc){
+  var lines = [];
+  if (rc.tenkaiHeat && rc.tenkaiHeat.rows && rc.tenkaiHeat.rows.length){
+    var hline = '4Cポジション別複勝率' + (rc.tenkaiHeat.sub ? '（' + rc.tenkaiHeat.sub + '）' : '') + '：' +
+      rc.tenkaiHeat.rows.map(function(rw){
+        return rw.label + '（' + rw.cells.map(function(c){ return c.side + c.pct + '%'; }).join('・') + '）';
+      }).join('／');
+    if (rc.tenkaiHeat.notice) hline += ' ※集計期間：' + rc.tenkaiHeat.notice;
+    lines.push(hline);
+  }
+  rc.tenkai.slice().sort(function(a, b){ return a.c3 - b.c3; }).forEach(function(r){
+    var parts = [String(r.path || '').split('').join('→')];
+    var mv = [];
+    var m12 = aiTenkaiMv(r.mv12), m23 = aiTenkaiMv(r.mv23);
+    if (m12) mv.push('S→3C ' + m12);
+    if (m23) mv.push('3C→4C ' + m23);
+    if (mv.length) parts.push('区間 ' + mv.join('／'));
+    if (r.spds && r.spds.length) parts.push('矢印 ' + r.spds.join('・'));
+    lines.push(r.no + ' ' + r.name + '：スタート後' + aiTenkaiNum(r.c1) + '番手 → 3C' + aiTenkaiNum(r.c2) +
+      '番手 → 4C' + aiTenkaiNum(r.c3) + '番手（' + parts.join('・') + '）');
+  });
+  return lines;
+}
 function aiDayExportModel(){
   var out = [];
   try {
@@ -42380,7 +42465,7 @@ function aiDayExportModel(){
         var ckRank = '';
         var ckNote = '';
         try {
-          if (typeof ckRankOf === 'function') ckRank = ckRankOf(ckSer);
+          if (typeof ckRankOf === 'function') ckRank = ckRankOf(ckSer, (typeof CHOKYO_HISTORY !== 'undefined' && CHOKYO_HISTORY[r.name]) ? CHOKYO_HISTORY[r.name][1] : null);
           if (typeof ckExportNote === 'function') ckNote = ckExportNote(r.name, ckSer, (r.ckEval != null ? r.ckEval : null));
         } catch(e){}
         /* ★第299弾: 特記「軸」はp3>=0.65のレースだけ（p3不明のときは従来どおり）
@@ -42456,6 +42541,51 @@ function aiDayExportModel(){
           }
         }
       } catch(e){}
+      /* ★第312弾: 展開（netkeiba AI展開予測・全頭の動き）。保存済み出馬表HTMLから読み取り専用で付ける。
+         カードが無い／期限切れ／AI展開予測セクションが無いレースは tenkai=null で従来どおり何も出ない。
+         順位・遷移は既存の adKaiRows（p66展開解説と同一の純粋関数）を使い、矢印(spd)は variants.none の
+         各チェックポイント分を併記する（キーは馬番の数値文字列に正規化して引く） */
+      var tenkai = null, tenkaiHeat = null;
+      try {
+        if (typeof nkCardGet === 'function' && typeof aiDepParse === 'function' && typeof adKaiRows === 'function'){
+          var cardHtml312 = nkCardGet(String(it.rid));
+          var dd312 = cardHtml312 ? aiDepParse(cardHtml312) : null;
+          if (dd312){
+            var tkRows312 = adKaiRows(dd312);
+            if (tkRows312 && tkRows312.length){
+              var V312 = (dd312.variants && dd312.variants.none) || {};
+              var normSpd312 = function(tbl){
+                var o = {};
+                if (tbl) Object.keys(tbl).forEach(function(k){ o[String(parseInt(k, 10))] = (tbl[k] && tbl[k].spd) || ''; });
+                return o;
+              };
+              var SP312 = { C1: normSpd312(V312.C1), C2: normSpd312(V312.C2), C3: normSpd312(V312.C3) };
+              var spdLbl312 = function(ckName, s){
+                var m = String(s || '').match(/^Speed(Up|Down)_0(\d)$/);
+                if (!m) return '';
+                var lvTxt = ['', '少し', '普通', '大きく'][parseInt(m[2], 10)] || '';
+                var base = ckName + ':' + (m[1] === 'Up' ? 'UP' : 'DN') + m[2];
+                if (ckName === '4C') base += (m[1] === 'Up' ? '（直線' + lvTxt + '伸び）' : '（直線' + lvTxt + '失速）');
+                return base;
+              };
+              tenkai = tkRows312.map(function(r){
+                var spds = [];
+                var s1 = spdLbl312('S後', SP312.C1[r.no] || '');
+                var s2 = spdLbl312('3C', SP312.C2[r.no] || '');
+                var s3 = spdLbl312('4C', SP312.C3[r.no] || '');
+                if (s1) spds.push(s1);
+                if (s2) spds.push(s2);
+                if (s3) spds.push(s3);
+                return { no: r.no, name: r.name, c1: r.c1, c2: r.c2, c3: r.c3, path: r.path, mark: r.mark,
+                         mv12: (r.c1 != null && r.c2 != null) ? (r.c1 - r.c2) : null,
+                         mv23: (r.c2 != null && r.c3 != null) ? (r.c2 - r.c3) : null,
+                         spds: spds };
+              });
+              if (dd312.heat && dd312.heat.rows && dd312.heat.rows.length) tenkaiHeat = dd312.heat;
+            }
+          }
+        }
+      } catch(e){ tenkai = null; tenkaiHeat = null; }
       out.push({
         /* ★第308弾: 開催場所は一覧アイテム(it.place)が空のとき予想レコードのメタ(rec.meta.place)へ
            フォールバックする（一覧側の場名が取れない取得経路だと見出しから開催場所が消えていた） */
@@ -42463,6 +42593,7 @@ function aiDayExportModel(){
         name: String(it.name || ''), rid: String(it.rid || ''), wave: wave, rows: rows,
         headline: headline, axisP3: axisP3,
         rl: rl, giTxt: giTxt, story: (story && story.lines) ? story.lines : null, geom: geom,
+        tenkai: tenkai, tenkaiHeat: tenkaiHeat,
         settled: aiIsSettled(b),
         resultMap: (function(){ var m = {}; try { (b.res && b.res.rows ? b.res.rows : []).forEach(function(x){ if (x && x.no != null) m[String(x.no)] = (parseInt(x.order, 10) || 0); }); } catch(e){} return m; })()
       });
@@ -42512,6 +42643,11 @@ function aiExportXlsHTML(model){
     if (rc.story && rc.story.length){
       h += '<tr><td colspan="12" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
         rc.story.map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
+    }
+    /* ★第312弾: netkeiba AI展開予測（全頭の動き）。tenkai が無いレースでは何も出さない */
+    if (rc.tenkai && rc.tenkai.length){
+      h += '<tr><td colspan="12" style="text-align:left;background:#fdf6ec;font-size:9.5pt;line-height:1.6">🤖 netkeiba AI展開予測（全頭の動き）<br>' +
+        aiTenkaiLines(rc).map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
     }
     h += '<tr><td colspan="12"></td></tr>';
   });
@@ -42634,9 +42770,14 @@ function aiExportPdfBodyHTML(model, d8){
       h += '<div class="story"><b>🔮 展開予想（実況風）</b>' +
         rc.story.map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
     }
+    /* ★第312弾: netkeiba AI展開予測（全頭の動き）。tenkai が無いレースでは何も出さない */
+    if (rc.tenkai && rc.tenkai.length){
+      h += '<div class="story"><b>🤖 netkeiba AI展開予測（全頭の動き）</b>' +
+        aiTenkaiLines(rc).map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
+    }
     h += '</div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）・大型馬注意＝芝の新馬戦で馬体重500kg以上の人気馬（1〜6番人気）（★第311弾。自DB検証（新馬戦1,732R）で3着内率が中量級より約9pt低かった弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝0以上・×落＝0未満。特記への追記：勝負度+1.0以上は「調教◎」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記（★第302弾：過去の調教履歴が3件以上ある馬だけに出す。調教◎は今回の調教評価自体が良い馬に限る——検証で、履歴が薄い馬や弱い馬の底上げは逆効果だったため）。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）・大型馬注意＝芝の新馬戦で馬体重500kg以上の人気馬（1〜6番人気）（★第311弾。自DB検証（新馬戦1,732R）で3着内率が中量級より約9pt低かった弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝それ以外・×落＝勝負度-0.5以下かつ調教履歴3件以上（★第313弾）。特記への追記：勝負度+1.0以上は「調教◎（重賞参考）」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記（★第302弾：過去の調教履歴が3件以上ある馬だけに出す。調教◎は今回の調教評価自体が良い馬に限る——検証で、履歴が薄い馬や弱い馬の底上げは逆効果だったため）。調教◎は重賞出走馬を母集団とした検証に基づく材料のため、全レース向けの強い材料ではなく重賞文脈での参考として扱う（★第315弾で文言格下げ）。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   return h;
 }
 function aiExportPdfHTML(model, d8, opts){
@@ -42660,16 +42801,41 @@ function aiExportNeed(){
 function aiExportExcel(){
   var model = aiExportNeed();
   if (!model) return;
+  var fname = 'keiba_' + (AI_DAY_D8 || 'export') + '.xls';
+  var html;
+  try { html = aiExportXlsHTML(model); }
+  catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); return; }
+  /* ★第312弾: まず共有シート方式を試す（第303弾・印刷用HTMLと同じ対策の横展開）。
+     従来の Blob ダウンロードは iOS の PWA ではプレビューがアプリ画面を乗っ取り、
+     戻るとトップ画面から再起動してしまうため、過去日を続けて保存できなかった。
+     共有が使えない環境では従来の Blob 保存にフォールバックする。 */
   try {
-    var html = aiExportXlsHTML(model);
-    var blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'keiba_' + (AI_DAY_D8 || 'export') + '.xls';
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
-    aiSettleMsg('✅ Excel（keiba_' + (AI_DAY_D8 || '') + '.xls）を保存しました。開けない場合はブラウザの「この種のダウンロードを保存」を許可してください。');
-  } catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); }
+    if (typeof File !== 'undefined' && typeof navigator !== 'undefined' && navigator.canShare && navigator.share){
+      var file = new File(['\uFEFF' + html], fname, { type: 'application/vnd.ms-excel;charset=utf-8' });
+      if (navigator.canShare({ files: [file] })){
+        navigator.share({ files: [file] }).then(function(){
+          aiSettleMsg('✅ Excel（' + fname + '）を共有しました。「ファイルに保存」を選ぶと保存できます。');
+        }, function(err){
+          if (err && err.name === 'AbortError'){ aiSettleMsg('共有をキャンセルしました（保存されていません）。'); return; }
+          try { aiExportExcelBlobSave(html, fname); }
+          catch(e2){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e2 && e2.message) || e2))); }
+        });
+        return;
+      }
+    }
+  } catch(e){}
+  try { aiExportExcelBlobSave(html, fname); }
+  catch(e){ aiSettleMsg('⚠ Excel保存に失敗: ' + esc(String((e && e.message) || e))); }
+}
+/* 従来の Blob ダウンロード保存（共有が使えない環境向けフォールバック。第312弾で分離） */
+function aiExportExcelBlobSave(html, fname){
+  var blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ try { URL.revokeObjectURL(a.href); document.body.removeChild(a); } catch(e){} }, 4000);
+  aiSettleMsg('✅ Excel（' + fname + '）を保存しました。開けない場合はブラウザの「この種のダウンロードを保存」を許可してください。');
 }
 /* ★第290弾追加4:PWA/スタンドアロンモード用。iOSのPWAでは window.print() が動作しないため、
    印刷ダイアログに頼らず印刷用HTMLをファイルとしてダウンロードする。
@@ -47500,6 +47666,34 @@ try { if (typeof document !== 'undefined' && document.getElementById('t-paydb'))
    軸（AI勝率1位）と同じ馬は現行と同じ規則で除外する。
    戻り値に reasons[]（なぜこの馬を推すか）を必ず持たせて説明可能にする。
    ============================================================ */
+/* ============================================================
+   ★第314弾（候補C）: 妙味スコアの確率校正（較正補正＋閾値）
+   - 人気帯（単勝オッズ順位）ごとに AI勝率を帯倍率で割って校正する。
+     帯倍率は学習DB全期間（2018-2026・平地26,905レース）の実測で、
+     帯ごとに ΣAI勝率 ÷ 実績1着数 で推定した値（1番人気は過小評価のため持ち上げ側）。
+   - 校正後の確率で AI評価順位とスコア全成分を計算し直す。再正規化はしない。
+   - 最高スコアが minScore(10) を超えないレースは「妙味なし」(belowThreshold を返す)。
+   - 戻し方: MYVALUE_CAL.on=false の1行で従来動作に完全復帰する。
+   ============================================================ */
+var MYVALUE_CAL = {
+  on: true,
+  minScore: 10,
+  mult: { '1': 0.8598, '23': 0.9588, '46': 1.0846, '79': 1.2130, '10p': 1.5428 }
+};
+function myvalueCalBand(orank){
+  if (!(orank >= 1)) return null;
+  if (orank === 1) return '1';
+  if (orank <= 3) return '23';
+  if (orank <= 6) return '46';
+  if (orank <= 9) return '79';
+  return '10p';
+}
+function myvalueCalProb(p, orank){
+  if (!MYVALUE_CAL.on || !(p > 0)) return p;
+  var b = myvalueCalBand(orank);
+  var m = b ? MYVALUE_CAL.mult[b] : 1;
+  return (m && m > 0) ? p / m : p;
+}
 function myValueNew(res, picksOut){
   var out = { ok:false, no:'', name:'', score:0, reasons: [], odds:null, prob:null, mi:null, edge:null, ev:null, oddsRank:0, probRank:0, n:0 };
   try {
@@ -47517,6 +47711,21 @@ function myValueNew(res, picksOut){
     var wp = rows.slice().sort(function(a, b){ return (b.prob || 0) - (a.prob || 0); });
     wp.forEach(function(r, i){ r._nvPr = i + 1; });
     var axisNo = (picksOut && picksOut.axis && picksOut.axis.no != null) ? String(picksOut.axis.no) : '';
+    /* ★第314弾（候補C）: 校正後確率 _nvPc を全馬に持たせ、校正ON時は
+       AI評価順位 _nvPr を校正後確率で付け直し、校正後のAI1位 calAxisNo を求める。
+       校正OFF時は _nvPc=生確率・順位は従来どおりで、以降の処理は完全に従来動作 */
+    rows.forEach(function(r){
+      var p0 = (r.prob != null) ? Number(r.prob) : 0;
+      r._nvPc = myvalueCalProb(p0, r._nvOr || 0);
+    });
+    var calAxisNo = '';
+    if (MYVALUE_CAL.on){
+      var wpc = rows.slice().sort(function(a, b){ return (b._nvPc || 0) - (a._nvPc || 0); });
+      wpc.forEach(function(r, i){ r._nvPr = i + 1; });
+      var topC = wpc[0] || null;
+      if (topC && topC.h && topC.h.no != null) calAxisNo = String(topC.h.no);
+    }
+    var pLbl = MYVALUE_CAL.on ? 'AI勝率（校正後）' : 'AI勝率';   /* ★第314弾: 理由文の確率表記 */
     /* 当日バイアス（BT・データ無し時は中立=全候補に同じ係数なので比較は歪まない） */
     var bm = null, bvTxt = '';
     try { bm = (typeof biasStyleMul === 'function') ? biasStyleMul() : null; } catch(e){}
@@ -47533,13 +47742,16 @@ function myValueNew(res, picksOut){
       var p = (r.prob != null) ? Number(r.prob) : 0;
       if (!(p > 0)) return;
       if (axisNo && String(h.no) === axisNo) return;   /* 軸と同じ馬は外す（現行と同じ規則） */
+      if (calAxisNo && String(h.no) === calAxisNo) return;   /* ★第314弾: 校正後のAI1位も外す（候補Cの除外規則・設計B。校正OFF時は空文字で無効） */
+      var pRaw = p;
+      p = (r._nvPc != null) ? Number(r._nvPc) : p;   /* ★第314弾: 以降のスコア計算（乖離・EV・大穴ガード）は校正後確率で */
       var mi = (1 / o) / inv;
       var ev = o * p;
       var sc = 0, rs = [];
       /* 1) AI勝率と市場期待の乖離（中心シグナル・オッズの高さそのものではない） */
       var gap = p - mi;
       sc += 30 * cl(gap * 10, -1, 1);
-      if (gap >= 0.01) rs.push('AI勝率' + pc(p) + 'に対し市場期待' + pc(mi) + '（AIが約' + (Math.round(gap * 1000) / 10) + 'pt高く評価）');
+      if (gap >= 0.01) rs.push(pLbl + pc(p) + 'に対し市場期待' + pc(mi) + '（AIが約' + (Math.round(gap * 1000) / 10) + 'pt高く評価）');
       /* 2) AI内部評価が市場人気より上（p56 holeGapと同じ向き: 正＝市場よりAIが高く評価） */
       var rr = (r._nvOr || 99) - (r._nvPr || 99);
       if (rr >= 1){ sc += 12 * cl(rr / 5, 0, 1); rs.push('人気' + r._nvOr + '番に対しAI評価' + r._nvPr + '番'); }
@@ -47566,18 +47778,34 @@ function myValueNew(res, picksOut){
       /* 7) 期待値は僅差の最終材料としてだけ */
       sc += 6 * cl(ev - 1, -1, 1);
       /* 8) 大穴ガード（オッズが高いだけの馬を妙味としない） */
-      if (p < 0.05){ sc -= 25; rs.push('※AI勝率' + pc(p) + 'と低い'); }
+      if (p < 0.05){ sc -= 25; rs.push('※' + pLbl + pc(p) + 'と低い'); }
       if (o >= 50 && p < 0.08){ sc -= 15; rs.push('※単勝' + o + '倍と高いがAI勝率が伴わない'); }
       if (p < 0.03) sc -= 15;
-      if (!best || sc > best.sc) best = { sc: sc, r: r, h: h, o: o, p: p, mi: mi, ev: ev, rs: rs };
+      if (!best || sc > best.sc) best = { sc: sc, r: r, h: h, o: o, p: p, pRaw: pRaw, mi: mi, ev: ev, rs: rs };
     });
     if (!best) return out;
+    /* ★第314弾（候補C）: 校正後スコアが閾値を超えないレースは「妙味なし」を返す。
+       判定は丸め前の生スコアで行う（丸めたスコアで判定すると検証時の件数と一致しない）。
+       戻り値の prob / edge は表示・互換のため生確率ベースのまま（校正後は probCal に併記） */
+    if (MYVALUE_CAL.on && !(best.sc > MYVALUE_CAL.minScore)){
+      return {
+        ok: false, belowThreshold: true,
+        no: String(best.h.no == null ? '' : best.h.no), name: String(best.h.name || ''),
+        score: Math.round(best.sc * 10) / 10, reasons: [],
+        odds: best.o, prob: Math.round(best.pRaw * 10000) / 10000,
+        probCal: Math.round(best.p * 10000) / 10000,
+        mi: Math.round(best.mi * 10000) / 10000, edge: Math.round((best.pRaw / best.mi) * 100) / 100,
+        ev: Math.round(best.ev * 100) / 100,
+        oddsRank: (best.r._nvOr || 0), probRank: (best.r._nvPr || 0), n: rows.length
+      };
+    }
     return {
       ok: true,
       no: String(best.h.no == null ? '' : best.h.no), name: String(best.h.name || ''),
       score: Math.round(best.sc * 10) / 10, reasons: best.rs,
-      odds: best.o, prob: Math.round(best.p * 10000) / 10000,
-      mi: Math.round(best.mi * 10000) / 10000, edge: Math.round((best.p / best.mi) * 100) / 100,
+      odds: best.o, prob: Math.round(best.pRaw * 10000) / 10000,
+      probCal: Math.round(best.p * 10000) / 10000,
+      mi: Math.round(best.mi * 10000) / 10000, edge: Math.round((best.pRaw / best.mi) * 100) / 100,
       ev: Math.round(best.ev * 100) / 100,
       oddsRank: (best.r._nvOr || 0), probRank: (best.r._nvPr || 0), n: rows.length
     };
@@ -59480,6 +59708,11 @@ var MV1_JK_E = -0.0178;        /* 騎手期待比の下位帯端点（train 20%�
 var MV1_EXC_E = 0.1665;        /* 反転族の最上位帯端点（train 80%点） */
 var MV1_JK_MIN_N = 20;         /* jke365 が値を持つ最低出走数（検証定義） */
 var MV1_EXC_MIN_N = 3;         /* exc3l5 が値を持つ最低過去走数（検証定義） */
+/* ★第316弾: 調教部品の凍結倍率（候補1採用・training_engine_readjust_20261109.md）。
+   推定は最大窓 2024+2025年。無効化する場合はこの3定数を 1.0 に戻すだけでよい。 */
+var MV1_CK_A = 1.242;          /* 評価A×1-3番人気 */
+var MV1_CK_D1 = 0.886;         /* 勝負度<=-0.5×履歴3件以上×1-6番人気 */
+var MV1_CK_D2 = 0.528;         /* 評価D×7番人気以下 */
 
 /* ---------- 小物 ---------- */
 function mv1NameKey(s){ return String(s == null ? '' : s).replace(/[\s　]/g, ''); }
@@ -59703,7 +59936,14 @@ function mv1FlagsFor(idx, h, ctx){
    hs: 出馬表の馬配列（p5 の hs と同じ並び）
    ctx: { d8, curCls, curSurf }
    戻り値: { prob: [勝率], info: { gamma, d8, dbUsed, counts, flags } }
-   オッズが1頭でも欠けたら null（検証前提が崩れるため従来経路に倒す）。 */
+   オッズが1頭でも欠けたら null（検証前提が崩れるため従来経路に倒す）。
+   ★第316弾: 調教部品3点（評価A×1-3番人気／勝負度<=-0.5×履歴3件以上×1-6番人気／
+   評価D×7番人気以下）を凍結仕様と同じ乗算部品として追加（倍率は MV1_CK_* 定数）。
+   検証は 8,923レース・推定2024年／評価2025-2026年の walk-forward で、確率較正
+   （log-loss）が全分割で改善・悪化指標なし（training_engine_readjust_20261109.md）。
+   人気帯は検証（BT）の学習DB確定人気の代用として、レース内の単勝オッズ順位で
+   判定する。材料は第291弾で馬オブジェクトに付与済みの ckEval・ckSeriousness と
+   CHOKYO_HISTORY の履歴件数（学習DB由来ではないため d8 の有無に依存しない）。 */
 function mv1Compute(hs, ctx){
   try {
     if (!hs || hs.length < 2) return null;
@@ -59713,8 +59953,14 @@ function mv1Compute(hs, ctx){
     odds.forEach(function(o){ invSum += 1 / o; });
     var idx = mv1Index();
     var dbUsed = !!(ctx && /^\d{8}$/.test(String(ctx.d8 || '')) && Object.keys(idx.races).length);
-    var counts = { geld23: 0, classDown: 0, jkQ1: 0, reversalTop: 0, surfRest: 0 };
+    var counts = { geld23: 0, classDown: 0, jkQ1: 0, reversalTop: 0, surfRest: 0, ckA: 0, ckD1: 0, ckD2: 0 };
     var flags = [], qs = [];
+    /* ★第316弾: 人気帯 = レース内の単勝オッズ順位（1-3位=帯1 / 4-6位=帯2 / 7位以下=帯3）。
+       第313弾 colCk の帯判定と同一方式（同オッズは元の並び順で安定化）。 */
+    var mv1CkOrder = hs.map(function(_, i){ return i; });
+    mv1CkOrder.sort(function(a, b){ return (odds[a] - odds[b]) || (a - b); });
+    var mv1CkBand = [];
+    mv1CkOrder.forEach(function(hIx, r){ mv1CkBand[hIx] = (r < 3) ? 1 : ((r < 6) ? 2 : 3); });
     hs.forEach(function(h, ix){
       var qm = (1 / odds[ix]) / invSum;
       var f = mv1FlagsFor(idx, h, ctx || {});
@@ -59724,11 +59970,25 @@ function mv1Compute(hs, ctx){
       if (f.jke365 != null && f.jke365 <= MV1_JK_E){ mul *= 0.90; fired.push('jkQ1'); counts.jkQ1++; }
       if (f.exc3l5 != null && f.exc3l5 >= MV1_EXC_E){ mul *= 0.97; fired.push('reversalTop'); counts.reversalTop++; }
       if (f.surfChg === true || (f.restDays != null && f.restDays >= 91)){ mul *= 0.90; fired.push('surfRest'); counts.surfRest++; }
+      /* ★第316弾: 調教部品。3フラグは構造上互いに排他。調教データが無い馬は不変。 */
+      var ckEv = (h && h.ckEval) || null;
+      var ckSer = (h && typeof h.ckSeriousness === 'number' && !isNaN(h.ckSeriousness)) ? h.ckSeriousness : null;
+      var ckHist = (typeof CHOKYO_HISTORY !== 'undefined' && h) ? CHOKYO_HISTORY[h.name] : null;
+      var ckHistN = (ckHist && typeof ckHist[1] === 'number') ? ckHist[1] : null;
+      var ckBand = mv1CkBand[ix];
+      var ckA = (ckEv === 'A' && ckBand === 1);
+      var ckD1 = (ckSer != null && ckSer <= -0.5 && ckHistN != null && ckHistN >= 3 && ckBand <= 2);
+      var ckD2 = (ckEv === 'D' && ckBand === 3);
+      if (ckA){ mul *= MV1_CK_A; fired.push('ckA'); counts.ckA++; }
+      if (ckD1){ mul *= MV1_CK_D1; fired.push('ckD1'); counts.ckD1++; }
+      if (ckD2){ mul *= MV1_CK_D2; fired.push('ckD2'); counts.ckD2++; }
       qs.push(Math.pow(qm, MV1_GAMMA) * mul);
       flags.push({ no: (h && h.no) || '', name: (h && h.name) || '', mul: mul, fired: fired,
                    geldNum: f.geldNum, classDown: f.classDown, surfChg: f.surfChg,
                    restDays: f.restDays, jke365: f.jke365, jkN: f.jkN,
-                   exc3l5: f.exc3l5, excN: f.excN, prevN: f.prevN });
+                   exc3l5: f.exc3l5, excN: f.excN, prevN: f.prevN,
+                   ckEv: ckEv, ckSer: ckSer, ckHistN: ckHistN, ckBand: ckBand,
+                   ckA: ckA, ckD1: ckD1, ckD2: ckD2 });
     });
     var sum = 0;
     qs.forEach(function(v){ sum += v; });
