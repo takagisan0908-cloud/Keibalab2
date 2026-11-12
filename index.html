@@ -1231,7 +1231,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第337弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第338弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1998,9 +1998,10 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
       <span class="small muted">index.html と同じ場所の moko_data フォルダから読みます</span>
     </div>
     <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:6px">
-      もこ（予想運用側）が集めた在庫を表示します。対戦表は、アプリ側の旧対戦表（jradb.com から取得する方式）を廃止し、もこの対戦表（直接対戦・橋渡し・前走レベル）に置き換えたものです。重賞分析は数字を自前DBで再計算した記事のまとめと考察、展開予想は金曜の重賞準備で作る見立てです。供給ファイルが無い項目は「データなし」と表示されます。表示だけで、予想エンジン・学習DB・印には影響しません。
+      もこ（予想運用側）が集めた在庫を表示します。対戦表は、アプリ側の旧対戦表（jradb.com から取得する方式）を廃止し、もこの対戦表（直接対戦・橋渡し・前走レベル）に置き換えたものです。重賞分析は数字を自前DBで再計算した記事のまとめと考察、展開予想は金曜の重賞準備で作る見立てです。供給は日付ごとに貯まる形で、日付を選ぶと過去分にも遡れます。供給ファイルが無い項目は「データなし」と表示されます。表示だけで、予想エンジン・学習DB・印には影響しません。
     </div></details>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">
+      <select id="mokoDateSel" style="min-width:150px;font-size:.9rem;padding:3px 6px"></select>
       <select id="mokoRaceSel" style="flex:1;min-width:260px;font-size:.9rem;padding:3px 6px"></select>
       <button type="button" class="btn primary" data-mokokind="taisen">⚔️ 対戦表</button>
       <button type="button" class="btn" data-mokokind="graded">📊 重賞分析・考察</button>
@@ -2946,7 +2947,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第337弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第338弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -51503,6 +51504,9 @@ function mv1Compute(hs, ctx){
      moko_graded.json  重賞データ分析記事のまとめと考察（レース単位）
      moko_tenkai.json  展開予想（レース単位・金曜準備で実データが入る）
      moko_taisen.json  対戦表（レース単位・直接対戦と橋渡しと前走レベル）
+   ★第338弾: 供給3種（対戦表・重賞分析・展開予想）は日付ごとに貯まる
+   累積形になり、カードに日付セレクタを追加した（選ぶとレース選択が
+   その日の分に絞られる。既定は「すべて」で従来の見え方は不変）。
    ========================================================= */
 var MOKO_BASE = 'moko_data/';
 var MOKO_MEM = {};    /* name -> 取得済みオブジェクト（成功分だけ保持） */
@@ -51649,7 +51653,38 @@ function mokoMd(md){
 
 /* ---------- レース単位カード（対戦表・重賞分析・展開予想） ---------- */
 var MOKO_KIND = 'taisen';
+var MOKO_DATE = '';   /* ★第338弾: 日付セレクタの選択（'' = すべて） */
 var MOKO_DATA = { taisen: null, graded: null, tenkai: null };
+function mokoDates(){
+  var seen = {}, dates = [];
+  ['taisen', 'graded', 'tenkai'].forEach(function(k){
+    var d = MOKO_DATA[k];
+    if (d && d.races) d.races.forEach(function(r){
+      if (r.date && !seen[r.date]){ seen[r.date] = 1; dates.push(r.date); }
+    });
+  });
+  dates.sort(); dates.reverse();
+  return dates;
+}
+function mokoRaceDateOf(name){
+  var hit = '';
+  ['graded', 'taisen', 'tenkai'].some(function(k){
+    var r = mokoFind(MOKO_DATA[k], name);
+    if (r && r.date){ hit = r.date; return true; }
+    return false;
+  });
+  return hit;
+}
+function mokoFillDateSel(){
+  var sel = $('mokoDateSel');
+  if (!sel) return;
+  var dates = mokoDates();
+  if (dates.indexOf(MOKO_DATE) < 0) MOKO_DATE = '';
+  sel.innerHTML = '<option value="">すべて（日付指定なし）</option>' + dates.map(function(d){
+    return '<option value="' + esc(d) + '">' + esc(d) + '</option>';
+  }).join('');
+  sel.value = MOKO_DATE;
+}
 function mokoRaceNames(){
   var names = [], seen = {};
   function add(n){ if (n && !seen[n]){ seen[n] = 1; names.push(n); } }
@@ -51662,6 +51697,7 @@ function mokoRaceNames(){
   }
   var k = MOKO_DATA.tenkai;
   if (k && k.races) k.races.forEach(function(r){ add(r.name); });
+  if (MOKO_DATE) names = names.filter(function(n){ return mokoRaceDateOf(n) === MOKO_DATE; });
   return names;
 }
 function mokoFind(list, name){
@@ -51692,7 +51728,7 @@ function mokoTableHtml(tb){
 function mokoTaisenHtml(r){
   var h = '<div style="font-weight:700;font-size:1rem;margin-top:4px">' + esc(r.name) +
     (r.grade ? ' <span class="chip">' + esc(r.grade) + '</span>' : '') + '</div>' +
-    '<div class="small muted">' + esc(r.meta || '') + (r.group ? '（' + esc(r.group) + '）' : '') + '</div>';
+    '<div class="small muted">' + (r.date ? esc(r.date) + ' ' : '') + esc(r.meta || '') + (r.group ? '（' + esc(r.group) + '）' : '') + '</div>';
   var pl = r.prevLevel || {};
   var plNames = Object.keys(pl).filter(function(k){ return pl[k]; });
   h += '<div style="margin:6px 0"><b>前走レベル:</b> ';
@@ -51765,10 +51801,11 @@ function mokoRender(){
 function mokoFillRaceSel(){
   var sel = $('mokoRaceSel');
   if (!sel) return;
+  var cur = sel.value || '';
   var names = mokoRaceNames();
   sel.innerHTML = names.map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
   if (names.length){
-    sel.value = names[0];
+    sel.value = (names.indexOf(cur) >= 0) ? cur : names[0];
     /* 選んだレースに今の種別の供給が無ければ、供給のある種別へ寄せる */
     if (!mokoHas(MOKO_KIND, sel.value)){
       ['taisen', 'graded', 'tenkai'].some(function(k){
@@ -51803,12 +51840,22 @@ function mokoInit(){
     }
     mokoRender();
   });
+  var dsel = $('mokoDateSel');
+  if (dsel && !dsel._mokoWired){
+    dsel._mokoWired = 1;
+    dsel.addEventListener('change', function(){
+      MOKO_DATE = dsel.value || '';
+      mokoFillRaceSel();
+      mokoRender();
+    });
+  }
   mokoMsgSet('もこ在庫を読み込み中…');
   Promise.all([mokoFetch('moko_taisen.json'), mokoFetch('moko_graded.json'), mokoFetch('moko_tenkai.json')])
     .then(function(rs){
       MOKO_DATA.taisen = rs[0];
       MOKO_DATA.graded = rs[1];
       MOKO_DATA.tenkai = rs[2];
+      mokoFillDateSel();
       mokoFillRaceSel();
       mokoRender();
       var parts = [];
