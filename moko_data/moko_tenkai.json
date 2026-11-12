@@ -1,0 +1,27 @@
+{
+ "kind": "moko_tenkai",
+ "version": 2,
+ "generated": "2026-11-12T10:34:13.950803+00:00",
+ "source": "展開の採点表 tenkai_scorecard.md の明細（金曜の重賞準備が予想行を追記）から生成",
+ "schema": {
+  "key": "レースの識別子（例 qe2-2026）",
+  "date": "開催日 YYYY-MM-DD",
+  "venue": "開催場",
+  "name": "レース名",
+  "grade": "グレード",
+  "course": "コース表記",
+  "frontThird": [
+   "前方1/3の想定（馬名の配列）"
+  ],
+  "paceShape": "隊列と流れの見立て（文章）",
+  "benefit": [
+   "得をする馬（馬名）"
+  ],
+  "suffer": [
+   "潰れる馬（馬名）"
+  ],
+  "collapse": "想定が崩れる条件（文章）",
+  "note": "補足（文章）"
+ },
+ "races": []
+}
