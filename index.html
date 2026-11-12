@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="dark">
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>競馬AIラボ｜展開予想・AI印・netkeiba AI展開予測</title>
 <meta name="description" content="競馬AIラボ — 展開予想・AI印・netkeiba AI展開予測ビュー。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
-<meta name="theme-color" content="#0b0e13">
-<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0b3a2a">
+<meta name="color-scheme" content="light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,45 +25,29 @@
 <meta name="twitter:card" content="summary_large_image">
 <style>
 :root{
-  /* ===== B案ダーク（既定） ★第326弾: UI刷新サンプルのB案（黒基調・数字が浮き立つ・アクセントはティール） ===== */
-  --bg:#0b0e13; --bg-top:#10141b;
-  --card:#151a22; --card2:#1c212b; --tint:#1a2029; --tint2:#232a36;
-  --ink:#f1f5f9; --mut:#94a3b8;
-  --line:#232a36; --line2:#2a3342;
-  --green:#14b8a6; --green2:#2dd4bf; --green3:#12211f;
-  --on-accent:#ffffff;      /* 色付き背景の上の文字（マーク・バッジ等） */
-  --on-green:#04201c;       /* ティールボタンの上の文字（サンプルB案のロゴ色と対） */
-  --ok-ink:#2dd4bf; --warn-ink:#f2c46b; --err-ink:#ff7b72; --info-ink:#79c0ff; --acc-ink:#d2a8ff;
-  --gold:#f2c46b; --goldbg:#2b2415;
-  --red:#ff7b72; --blue:#79c0ff; --orange:#ffa657;
-  /* 重賞グレードの色（G1=青 / G2=赤 / G3=緑 / Jpn=紫）※2026-09-11にG1とG2を入れ替え */
-  --g1:#3b82f6; --g1-bd:#60a5fa; --g2:#e5484d; --g2-bd:#ff6b6f;
-  --g3:#22a45d; --g3-bd:#3ecf7a; --gpn:#a855d6; --gpn-bd:#c07ce8;
-  --shadow:0 10px 28px rgba(0,0,0,.5);
-  --sidebar:#0f1319; --topbar:rgba(11,14,19,.85); --topbar-ink:#f1f5f9;
-  --hd-btn-bg:#1c212b; --hd-btn-bd:#262c38; --hd-btn-hover:#232a36;
-  --savest:#5eead4;
-  --row-alt:#10141b; --row-hover:#1a2029; --thead:#171c25;
-  --radius:16px; --radius-sm:12px;
-}
-html[data-theme="light"]{
-  /* ===== 従来のライトテーマ（右上の ☀️ で切替） ===== */
-  --bg:#eef3ec; --bg-top:#e4ede2;
-  --card:#ffffff; --card2:#f6faf4; --tint:#f1f5ef; --tint2:#e7efe4;
-  --ink:#23311f; --mut:#6b7a6c;
-  --line:#d6e0d2; --line2:#c3d2c2;
-  --green:#0d8f4e; --green2:#16a05c; --green3:#e3f2e6;
-  --on-accent:#ffffff; --on-green:#ffffff;
-  --ok-ink:#0d6a3c; --warn-ink:#8a5a1a; --err-ink:#b3261e; --info-ink:#0f6fc2; --acc-ink:#6d45b8;
-  --gold:#c8860a; --goldbg:#fdf3d7;
+  /* ★第354弾: テーマは「芝グリーン」1本（サンプル「アプリの見た目サンプル」3案目）。
+     明るい芝色の地（#e9f0e2）に深緑 #0b3a2a の差し色。旧ダーク（第326弾B案）と
+     ライト/ダーク切替は廃止し、変数はこの1セットだけが正本。
+     機械コントラスト（4.5以上）を通すため、--mut はサンプルの #5b6f60 から一段濃い
+     #51655a に、緑の差し色（--green2/--ok-ink）は #125c39 に寄せた（理由は検証メモ）。 */
+  --bg:#e9f0e2; --bg-top:#dbe7cd;
+  --card:#fbfdf7; --card2:#eff5e6; --tint:#eff5e6; --tint2:#dbe7cd;
+  --ink:#14231b; --mut:#51655a;
+  --line:#b3c6a4; --line2:#7d9a6c;
+  --green:#0b3a2a; --green2:#125c39; --green3:#a9d69a;
+  --on-accent:#fff;
+  --on-green:#ffffff;
+  --ok-ink:#125c39; --warn-ink:#8a5a1a; --err-ink:#b3261e; --info-ink:#0f6fc2; --acc-ink:#6d45b8;
+  --gold:#b8860b; --goldbg:#ffd94d;
   --red:#c93c30; --blue:#0f6fc2; --orange:#e07a1f;
   --g1:#1d4ed8; --g1-bd:#1d4ed8; --g2:#c2332b; --g2-bd:#c2332b;
   --g3:#1d7a4a; --g3-bd:#1d7a4a; --gpn:#7b3fa0; --gpn-bd:#7b3fa0;
-  --shadow:0 1px 2px rgba(20,40,24,.06),0 6px 18px rgba(20,40,24,.08);
-  --sidebar:#ffffff; --topbar:linear-gradient(135deg,#0a7a40,#12a05c 55%,#0f8f4e); --topbar-ink:#ffffff;
+  --shadow:0 1px 3px rgba(11,58,42,.12);
+  --sidebar:#fbfdf7; --topbar:#0b3a2a; --topbar-ink:#ffffff;
   --hd-btn-bg:rgba(255,255,255,.16); --hd-btn-bd:rgba(255,255,255,.45); --hd-btn-hover:rgba(255,255,255,.30);
-  --savest:#d9f5e2;
-  --row-alt:#f8fbf7; --row-hover:#f0f7f1; --thead:#e9f3e9;
+  --savest:#d3e4c8;
+  --row-alt:#eff5e6; --row-hover:#e2edd3; --thead:#dbe7cd;
+  --radius:16px; --radius-sm:12px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;color-scheme:light}
@@ -436,13 +420,12 @@ table{max-width:100%}
 .kai-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .kai-rbtn{border:1px solid var(--line2);background:var(--card);color:var(--ok-ink);border-radius:8px;min-width:42px;padding:5px 8px;font-weight:800;font-size:.83rem;cursor:pointer;font-family:inherit}
 .kai-rbtn:hover{background:var(--card2)}
-.kai-rbtn.on{background:linear-gradient(135deg,#14b8a6,#0f766e);color:var(--on-green);border-color:transparent}
+.kai-rbtn.on{background:linear-gradient(135deg,#0b3a2a,#125c39);color:var(--on-green);border-color:transparent}
 .kai-rbtn.done::after{content:'✓';margin-left:1px}
 .kai-detail{border:1px solid var(--line2);background:linear-gradient(180deg,var(--card),var(--card));border-radius:12px;padding:10px 14px;margin-top:10px}
 .kai-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px;margin:8px 0;font-size:.87rem;line-height:1.7}
 .kai-meta b{color:var(--ok-ink)}
-.kai-log{background:#0f141c;color:var(--mut);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-top:10px;line-height:1.9}
-html[data-theme="light"] .kai-log{background:#0f2417}
+.kai-log{background:#0c231a;color:#d3e4c8;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-top:10px;line-height:1.9}
 .kai-hist .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line2);border-radius:10px;padding:6px 10px;margin:6px 0;background:var(--card)}
 .kai-hist .hd{flex:1 1 260px;min-width:200px}
 /* ★2026-09-13 第24弾③: トラックバイアスの説明文を折り込む（常時4段落ぶんの高さを取らない） */
@@ -666,7 +649,7 @@ html[data-theme="light"] .kai-log{background:#0f2417}
 <style>
 /* ===== netkeiba風 配色(データ表・モーダル・出馬表) ===== */
 table.htbl thead th, .lr-tbl thead th, .nkm-table thead th{
-  background:linear-gradient(180deg,#178a6b,#0e6b52);
+  background:linear-gradient(180deg,#157d60,#0e6b52); /* ★第354弾: 明側を一段濃くして白文字のコントラスト4.5超えに */
   color:var(--on-accent);border-color:#0e6b52;font-weight:700;white-space:nowrap;
 }
 table.htbl tbody tr:nth-child(even), .lr-tbl tbody tr:nth-child(even){background:var(--card)}
@@ -674,15 +657,13 @@ table.htbl tbody tr:hover, .lr-tbl tbody tr:hover{background:var(--card2)}
 table.htbl th, table.htbl td{border:1px solid var(--line2);padding:4px 7px}
 .lr-tbl thead th{font-size:.76rem}
 /* 馬情報モーダルの見出しはnetkeibaの馬名カード風に */
-#modalBody .nkm-head{background:linear-gradient(180deg,#0d9488,#115e59)}
+#modalBody .nkm-head{background:linear-gradient(180deg,#125c39,#0b3a2a)}
 /* ============================================================================
    Spotify風テーマ層（2026-09-11）
-   ・既定＝ダーク（#121212 / カード #181818 / アクセント #1DB954）
-   ・html[data-theme="light"] で従来のライトテーマ（右上の ☀️/🌙 で切替・記憶）
+   ・テーマは★第354弾で「芝グリーン」1本に統一（旧ダーク既定・ライト切替は廃止。変数は冒頭 :root が正本）
    ・1024px以上：左メニューを常時表示（Spotifyのサイドバー風）、タブバーは非表示
    ========================================================================== */
 html{color-scheme:light}
-html[data-theme="light"]{color-scheme:light}
 body{
   background:var(--bg);
   color:var(--ink);
@@ -709,9 +690,6 @@ header.topbar{
 .savest{color:var(--savest)}
 .nbtn{border-radius:999px;background:var(--hd-btn-bg);color:var(--topbar-ink)}
 .nbtn:hover{background:var(--hd-btn-hover)}
-#btnTheme{border-radius:999px;background:var(--hd-btn-bg);border:1px solid var(--hd-btn-bd);color:var(--topbar-ink);
-  padding:6px 12px;cursor:pointer;font-size:.9rem;font-weight:700}
-#btnTheme:hover{background:var(--hd-btn-hover)}
 
 /* --- 左サイドバー（1024px以上で常時表示） --- */
 .drawer{background:var(--sidebar);border-right:1px solid var(--line);box-shadow:none}
@@ -772,7 +750,7 @@ details.card.fold>summary.foldhead .foldhint{color:var(--mut)}
 
 /* --- 入力 --- */
 select,input,textarea{background:var(--tint);border:1px solid var(--line2);color:var(--ink);border-radius:8px}
-select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(20,184,166,.22)}
+select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(18,92,57,.25)}
 select option{background:var(--card);color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--mut);opacity:.75}
 label{color:var(--mut)}
@@ -818,12 +796,11 @@ table.ktbl .kt-p{color:var(--ok-ink)}
 /* --- トップページ（ヒーロー＋タイル） --- */
 .page-top-hero{
   background:
-    radial-gradient(700px 260px at 88% -20%, rgba(45,212,191,.20) 0%, transparent 62%),
-    radial-gradient(520px 240px at 4% 120%, rgba(121,192,255,.16) 0%, transparent 60%),
-    linear-gradient(160deg,#2a2a2a 0%,#171717 60%,#121212 100%);
+    radial-gradient(700px 260px at 88% -20%, rgba(18,92,57,.16) 0%, transparent 62%),
+    radial-gradient(520px 240px at 4% 120%, rgba(255,217,77,.18) 0%, transparent 60%),
+    linear-gradient(160deg,#f7fbf1 0%,#e9f0e2 60%,#dbe7cd 100%);
   border:1px solid var(--line);color:var(--ink);
 }
-html[data-theme="light"] .page-top-hero{border:none}
 .page-top-hero h1{font-size:2rem;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
 .page-top-hero .sub{color:var(--mut)}
 .page-top-hero .quick .btn{background:var(--green);border-color:transparent;color:var(--on-green);font-weight:800}
@@ -851,25 +828,17 @@ footer{color:var(--mut)}
 .slider input[type=range]{accent-color:var(--green)}
 .bkset .bk{border-radius:999px}
 hr.hr{border-color:var(--line)}
-/* --- ライトテーマ時の補正（ヒーローは緑グラデーションなので文字は白に戻す） --- */
-html[data-theme="light"] .page-top-hero{color:#fff}
-html[data-theme="light"] .page-top-hero h1{color:#fff}
-html[data-theme="light"] .page-top-hero .sub{color:#e9f8ee}
-html[data-theme="light"] .page-top-hero .quick .btn{background:rgba(255,255,255,.92);border-color:#fff;color:#0b7039}
-html[data-theme="light"] .page-top-hero .quick .btn:hover{background:#fff}
-html[data-theme="light"] .drawer{box-shadow:6px 0 30px rgba(10,30,18,.22)}
-html[data-theme="light"] .card{box-shadow:var(--shadow)}
-html[data-theme="light"] .hm-tile{box-shadow:0 1px 3px rgba(20,40,24,.08)}
-html[data-theme="light"] .btn{border-color:var(--line2)}
-html[data-theme="light"] .btn.primary{border-color:transparent}
-html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#0d8f4e;border-color:var(--line2);box-shadow:0 -2px 8px rgba(30,70,40,.10)}
+/* --- ★第354弾: 旧ライト補正のうち土台として必要なもの（テーマ1本化で無条件化） --- */
+.drawer{box-shadow:6px 0 30px rgba(10,30,18,.22)}
+.card{box-shadow:var(--shadow)}
+.hm-tile{box-shadow:0 1px 3px rgba(20,40,24,.08)}
+.btn{border-color:var(--line2)}
 /* 上部にほんのり明るさ（Spotifyのメインビュー風） */
 body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repeat,var(--bg)}
 /* 🌍海外競馬: 検索候補 */
 .ovcand{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:6px}
 .ovcbtn{display:block;width:100%;padding:10px 12px;line-height:1.5;white-space:normal;height:auto}
 .ovcbtn:hover{border-color:var(--g3);background:var(--green3)}
-html[data-theme="light"] .ovcbtn:hover{background:#f2fbf5}
 /* =========================================================
    ★第54弾: UIスキン（デザインのみ・挙動不変）— スマホ中心
    ・タブバーがヘッダーに隠れていた不具合を解消（--hd-h はJSで計測）
@@ -947,36 +916,23 @@ nav.tabs .tab:focus-visible{outline:2px solid var(--green2);outline-offset:2px}
    ★第55弾: netkeiba風スキン（実測palette #dc2b05/#fccc37/#edece7/#d2d1cb/#333）
    デザインのみ。ID・結線・機能・⑤書出CSSは不変。第54弾の利便性（44px・粘着・折り畳み）は維持。
    ========================================================= */
-html[data-theme="light"]{
-  --bg:#f2f1ec; --bg-top:#faf8f4;
-  --card:#ffffff; --card2:#faf8f4; --tint:#f4f2ea; --tint2:#edece7;
-  --ink:#333333; --mut:#666666;
-  --line:#dedcd4; --line2:#c9c7bd;
-  --green:#dc2b05; --green2:#e36a5c; --green3:#fdeee9;
-  --ok-ink:#0a7a3f; --warn-ink:#8a5a1a; --err-ink:#c0392b; --info-ink:#1a4f8f; --acc-ink:#6d45b8;
-  --gold:#c8860a; --goldbg:#fdf3d7;
-  --topbar:#ffffff; --topbar-ink:#333333;
-  --hd-btn-bg:#f1efe9; --hd-btn-bd:#c9c7bd; --hd-btn-hover:#e8e5dc;
-  --shadow:none;
-  --row-alt:#faf9f5; --row-hover:#fdf1ec; --thead:#edece7;
-}
 /* ★第326弾: このブロックのテーマ無条件ルールは第55弾当時ライト前提の色だったため、
-   ダーク（B案）前提の値へ書き換えた。ライト時の見た目は html[data-theme="light"] スコープ
-   （このブロック末尾の保持行＋第56弾ブロック）で従来どおり保持する。 */
-/* ヘッダー: ダーク地にティールのロゴ（サンプルB案の logo-mark と対） */
+   ダーク（B案）前提の値へ書き換えた。
+   ★第354弾: テーマは芝グリーン1本化。ライト時の保持行と第56弾ブロックは全廃し、
+   ここの無条件ルールの色は :root の芝グリーン変数で決まる。 */
+/* ヘッダー: 深緑の地に白抜きロゴ（★第354弾で芝グリーンへ。ロゴの形は不変） */
 header.topbar{border-bottom:1px solid var(--line);box-shadow:none}
-header.topbar .brand .logo{background:#14b8a6;color:#04201c;box-shadow:none;border-radius:12px}
+header.topbar .brand .logo{background:#0b3a2a;color:#ffffff;box-shadow:none;border-radius:12px}
 header.topbar .b1{color:var(--topbar-ink)}
 header.topbar .savest{color:var(--savest)}
 header.topbar .nbtn,header.topbar .hd .btn{color:var(--topbar-ink);border:1px solid var(--hd-btn-bd)}
 header.topbar .nbtn:hover,header.topbar .hd .btn:hover{background:var(--hd-btn-hover);border-color:var(--line2)}
-/* タブ: ダーク地・アクティブはティール */
+/* タブ: カード地・アクティブは深緑 */
 nav.tabs{background:var(--card);border-bottom:1px solid var(--line);box-shadow:none;padding:2px 10px 0}
 nav.tabs .tab{color:var(--mut);font-weight:700;padding:11px 14px}
 nav.tabs .tab:hover{color:var(--ink);background:var(--tint)}
 nav.tabs .tab.active{color:var(--green2);background:var(--green3)}
-html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#dc2b05;border-bottom:4px solid #dc2b05;box-shadow:inset 0 2px 0 #dc2b05}
-/* ボタン: ピル型・ティールがアクセント */
+/* ボタン: ピル型・深緑がアクセント */
 .btn{border-radius:999px;background:var(--tint);color:var(--ink);border:1px solid transparent;font-weight:700}
 .btn:hover{background:var(--tint2);border-color:transparent}
 .btn.primary{background:var(--green);border-color:transparent;color:var(--on-green)}
@@ -984,15 +940,12 @@ html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#dc2b05;bord
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
 .btn.ghost:hover{background:var(--tint)}
 .btn.dashed{background:transparent;color:var(--mut);border-color:var(--line2)}
-/* 入力: フォーカスでティール */
+/* 入力: フォーカスで深緑 */
 select,input,textarea{border-radius:8px;border-color:var(--line2);background:var(--tint)}
-select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(20,184,166,.22)}
+select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(18,92,57,.25)}
 /* カード: 角を落とし細枠に（影なし） */
-html[data-theme="light"] .card{border:1px solid #dedcd4;border-radius:4px;box-shadow:none}
 .card>h2{border-left:4px solid var(--green);padding-left:9px;color:var(--ink);font-weight:800}
-html[data-theme="light"] .hm-tile{border:1px solid #dedcd4;border-radius:4px;box-shadow:none;background:#fff}
-html[data-theme="light"] .hm-tile:hover{border-color:#dc2b05}
-/* 表: ダークの方眼・ヘッダー */
+/* 表: 方眼・ヘッダー */
 table{border-collapse:collapse;border:1px solid var(--line)}
 th,td{border:1px solid var(--line)}
 thead th{background:var(--thead);color:var(--mut);border-bottom:2px solid var(--line2)}
@@ -1003,112 +956,17 @@ tbody tr:hover td{background:var(--row-hover)}
 .kfold>summary::before{color:var(--green2)}
 .chip{border-radius:999px}
 body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repeat,var(--bg)}
-/* トップページhero: ダーク地にティールの光（第55弾の白紙版はライト側で保持） */
+/* トップページhero: 芝グリーンの淡いグラデーション（★第354弾） */
 .page-top-hero{
   background:
-    radial-gradient(700px 260px at 88% -20%, rgba(45,212,191,.20) 0%, transparent 62%),
-    radial-gradient(520px 240px at 4% 120%, rgba(121,192,255,.10) 0%, transparent 60%),
-    linear-gradient(160deg,#171c25 0%,#10141b 60%,#0b0e13 100%);
+    radial-gradient(700px 260px at 88% -20%, rgba(18,92,57,.16) 0%, transparent 62%),
+    radial-gradient(520px 240px at 4% 120%, rgba(255,217,77,.18) 0%, transparent 60%),
+    linear-gradient(160deg,#f7fbf1 0%,#e9f0e2 60%,#dbe7cd 100%);
   border:1px solid var(--line);color:var(--ink);
 }
-html[data-theme="light"] .page-top-hero{color:#333}
-html[data-theme="light"] .page-top-hero h1{color:#2f2f2f}
-html[data-theme="light"] .page-top-hero .sub{color:#4a4a4a}
-html[data-theme="light"] .page-top-hero .quick .btn{background:#f1efe9;border:1px solid #c9c7bd;color:#333;font-weight:800}
-html[data-theme="light"] .page-top-hero .quick .btn:hover{background:#e8e5dc;border-color:#dc2b05;color:#b3220a}
 .bstamp{color:var(--mut);background:var(--tint);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
 .bstamp b{color:var(--ink)}
-/* ★第326弾: ライト時の保持（第55弾当時の値。第56弾ブロック側の定義が後勝ちする箇所はそちらが正） */
-html[data-theme="light"] .bstamp{color:#666;background:#f6f4ee;border-color:#dedcd4}
-html[data-theme="light"] .bstamp b{color:#333}
-html[data-theme="light"] .kfold{background:#faf8f4;border-color:#dedcd4}
-html[data-theme="light"] .kfold>summary{color:#333}
-html[data-theme="light"] .kfold>summary::before{color:#dc2b05}
-/* =========================================================
-   ★第56弾: netkeiba実測準拠スキン（本家ページをheadless実描画してcomputed style・色頻度を計測し移植）
-   実測値: グロナビ #3251bc(白反転active) / 枠 #d9d8ce / ボックス地 #f4f2ec / 表ヘッダ #f1f2f3
-           本文メイリオ14px #444 / リンク #0033aa / 強調青 #3178e1 / hover赤 #e36a5c / 白地フラット
-   デザインのみ。結線・機能・⑤書出CSS・第54弾の利便性（44px/粘着/折り畳み）は維持。
-   ========================================================= */
-html[data-theme="light"]{
-  --bg:#ffffff; --bg-top:#ffffff;
-  --card:#ffffff; --card2:#f7f6f1; --tint:#f1f2f3; --tint2:#f4f2ec;
-  --ink:#444444; --mut:#777777;
-  --line:#d9d8ce; --line2:#c8c7bc;
-  --green:#3178e1; --green2:#2461c4; --green3:#eaf1fd;
-  --on-accent:#ffffff; --on-green:#ffffff;
-  --ok-ink:#0f7a3d; --warn-ink:#8a5a1a; --err-ink:#c0392b; --info-ink:#0033aa; --acc-ink:#6d45b8;
-  --gold:#c8860a; --goldbg:#fdf6df;
-  --red:#d33f31; --blue:#0033aa; --orange:#b45319;
-  --topbar:#ffffff; --topbar-ink:#444444;
-  --hd-btn-bg:#ffffff; --hd-btn-bd:#d7d8d9; --hd-btn-hover:#f6f6f6;
-  --shadow:none;
-  --row-alt:#f7f8f9; --row-hover:#f4f8ff; --thead:#f1f2f3;
-  --radius:4px; --radius-sm:3px;
-}
-html[data-theme="light"] body{
-  font-size:14px; background:#fff; color:var(--ink);
-  font-family:Meiryo,"メイリオ",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
-}
-/* ヘッダー: 本家と同じ「白・細罫・左ロゴ」構成（黄色帯は廃止） */
-html[data-theme="light"] header.topbar{background:#fff;border-bottom:1px solid #d7d8d9;box-shadow:none}
-html[data-theme="light"] header.topbar .brand .logo{background:#3251bc}
-html[data-theme="light"] header.topbar .b1{color:#333;font-size:1.2rem}
-html[data-theme="light"] header.topbar .savest{color:#777}
-html[data-theme="light"] header.topbar .nbtn,
-html[data-theme="light"] header.topbar .hd .btn{background:#fff;border:1px solid #d7d8d9;color:#444;border-radius:4px;font-weight:700}
-html[data-theme="light"] header.topbar .nbtn:hover,
-html[data-theme="light"] header.topbar .hd .btn:hover{background:#f6f6f6;border-color:#c8c7bc}
-/* グローバルナビ: 青地に文字白・activeは白タブ反転（netkeibaの顔） */
-html[data-theme="light"] nav.tabs{background:#3251bc;border-bottom:none;box-shadow:none;gap:2px;padding:4px 10px 0}
-html[data-theme="light"] nav.tabs .tab{
-  background:transparent;border:none;border-radius:0;color:rgba(255,255,255,.92);
-  padding:10px 16px;font-size:.93rem;font-weight:700;
-}
-html[data-theme="light"] nav.tabs .tab:hover{background:rgba(255,255,255,.14);color:#fff}
-html[data-theme="light"] nav.tabs .tab.active{
-  background:#fff;color:#3251bc;border-radius:6px 6px 0 0;box-shadow:none;
-  border-bottom:0 solid transparent;
-}
-/* ボタン: netkeiba実測「白地細枠・角3〜4px」中心。CTAは青 */
-html[data-theme="light"] .btn{background:#f7f7f7;border:1px solid #d5d2c8;color:#444;border-radius:4px;padding:7px 14px}
-html[data-theme="light"] .btn:hover{background:#efeeea;border-color:#c8c5ba}
-html[data-theme="light"] .btn.primary{background:#3178e1;border-color:#2461c4;color:#fff;font-weight:800}
-html[data-theme="light"] .btn.primary:hover{background:#2461c4}
-html[data-theme="light"] .btn.red{background:#fff;color:#d33f31;border-color:#d8d5ca}
-html[data-theme="light"] .btn.red:hover{background:#fdf0ee;border-color:#d33f31}
-html[data-theme="light"] .btn.ghost{background:#fff;color:#444;border-color:#d5d2c8}
-html[data-theme="light"] .btn.ghost:hover{background:#f6f6f6}
-html[data-theme="light"] .btn.dashed{background:#faf9f5;color:#777;border-color:#d5d2c8}
-/* 入力: 細枠灰・フォーカス青 */
-html[data-theme="light"] select,html[data-theme="light"] input,html[data-theme="light"] textarea{
-  border-color:#d7d8d9;border-radius:3px;background:#fff;
-}
-html[data-theme="light"] select:focus,html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{
-  border-color:#3178e1;box-shadow:0 0 0 2px rgba(49,120,225,.15);
-}
-/* カード: 白箱+細枠。見出しは本家の箱ヘッダ風ベージュ帯 */
-html[data-theme="light"] .card{border:1px solid #d9d8ce;border-radius:4px}
-html[data-theme="light"] .card>h2{
-  background:#f4f2ec;color:#444;font-size:.98rem;font-weight:700;
-  border-left:none;padding:7px 10px;border-radius:4px;margin:0 0 10px;
-}
-/* 表: 方眼#d9d8ce・ヘッダ#f1f2f3 */
-html[data-theme="light"] table{border-color:#d9d8ce}
-html[data-theme="light"] th,html[data-theme="light"] td{border-color:#e3e2da}
-html[data-theme="light"] thead th{background:#f1f2f3;color:#555;border-bottom:1px solid #d9d8ce;font-weight:700}
-html[data-theme="light"] tbody tr:hover td{background:#f4f8ff}
-/* リンク: #03a（本家 computed 実測） */
-html[data-theme="light"] a{color:#0033aa}
-html[data-theme="light"] a:hover{text-decoration:underline}
-/* 折り畳みとhero */
-html[data-theme="light"] .kfold{background:#f7f6f1;border-color:#dedcd4}
-html[data-theme="light"] .kfold>summary{color:#444}
-html[data-theme="light"] .kfold>summary::before{color:#3178e1}
-html[data-theme="light"] .page-top-hero{
-  background:radial-gradient(560px 200px at 90% -14%, rgba(49,120,225,.10), transparent 62%),#fff;
-  border:1px solid #d9d8ce;border-top:3px solid #3251bc;box-shadow:none;
-}
+/* ★第56弾の netkeiba実測スキン（ライト上書き）は第354弾で廃止 */
 
 
 
@@ -1116,10 +974,10 @@ html[data-theme="light"] .page-top-hero{
 
 /* =========================================================
    ★第326弾: UI刷新（デザインのみ・挙動不変）
-   ・テーマの土台をサンプルB案のダークへ（:root変数を #0b0e13/#151a22/ティールに置換済み）
-   ・線画アイコン（inline SVG）の整列と、ダークで沈む直書き色の持ち上げ
+   ・テーマの土台をサンプルB案のダークへ（:root変数をB案ダークの値に置換済み）
+     ★第354弾で芝グリーン1本へ置換済み（:root の変数が正本。旧ダーク/ライトの上書きは全廃）
+   ・線画アイコン（inline SVG）の整列
    ========================================================= */
-html[data-theme="dark"]{color-scheme:dark}
 /* 線画アイコンの整列（タブ・ドロワー・ホームタイル・目次ボタン・ロゴ） */
 nav.tabs .tab svg{width:17px;height:17px;flex:0 0 auto}
 nav.tabs .tab{display:inline-flex;align-items:center;gap:6px}
@@ -1138,20 +996,9 @@ nav.tabs .tab{display:inline-flex;align-items:center;gap:6px}
 .page>h2{display:flex;align-items:center;gap:8px;font-size:1.05rem}
 .page>h2 svg{width:19px;height:19px;flex:0 0 auto;color:var(--green2)}
 .page-top-hero .hb svg{width:52px;height:52px;color:var(--ink);filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
-html[data-theme="light"] .page-top-hero .hb svg{color:#fff}
 /* カードの余白をB案寄りに（スマホは第54弾の指定を尊重して控えめに） */
 .card{padding:18px 20px}
 @media (max-width:880px){ .card{padding:14px 13px} }
-/* ダークで沈む直書き色の持ち上げ */
-html[data-theme="dark"] table.htbl thead th,
-html[data-theme="dark"] .lr-tbl thead th,
-html[data-theme="dark"] .nkm-table thead th{
-  background:linear-gradient(180deg,#0d9488,#115e59);border-color:#115e59;
-}
-html[data-theme="dark"] .tltag.prev{color:#8fb7ff}
-html[data-theme="dark"] .vtadv{border-color:#155e52}
-html[data-theme="dark"] #vtCard .foldhead h2{color:var(--green2)}
-html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-color:rgba(20,184,166,.55)}
 
 /* 第281弾: 折りたたみ端末を含む可変ビューポート。機種の固定解像度に依存しない。 */
 #rvBox { min-width:0; container-type:inline-size; }
@@ -1202,9 +1049,12 @@ details.kfold[open]>div{animation:foldIn .22s ease-out}
 main{touch-action:pan-y pinch-zoom}
 /* ドラッグ中の隣ページ: 画面（タブバーの下）に固定して覗かせる。寸法と transform は JS が与える */
 .page.khl-peek{display:block;position:fixed;z-index:64;overflow:hidden;background:var(--bg);animation:none;box-shadow:0 0 28px rgba(0,0,0,.28);will-change:transform}
-/* ★第342弾: ドラッグ中の現ページ。pageIn 実行中にスワイプを始めても transform を
-   奪われないよう animation を止め、合成レイヤーに乗せて追随の再描画を抑える */
-.page.khl-drag{animation:none;will-change:transform}
+/* ドラッグ中の現ページ。合成レイヤーに乗せて追随の再描画を抑える。
+   ★第348弾: 第342弾で付けた animation:none は外した。animation-name が
+   none→pageIn へ戻る瞬間に pageIn が最初から再生され、着地開始時に現ページが
+   吸着でなく入場アニメーションで動いてしまう（離した後に1回ぶれる主因）。
+   animation-name はジェスチャを通して変えないのが正で、残すのは will-change のみ */
+.page.khl-drag{will-change:transform}
 /* 吸着・復帰の滑らかさ（減速イージング） */
 .page.khl-settle{transition:transform .38s cubic-bezier(.22,.9,.26,1)}
 /* スワイプで切り替わった直後の1回だけ pageIn を止める（二重アニメーション防止） */
@@ -1216,6 +1066,56 @@ html.khl-swnav .page{animation:none !important}
 }
 html.khl-nomotion .page,html.khl-nomotion details.card.fold[open]>.foldbody,html.khl-nomotion details.kfold[open]>div{animation:none !important}
 html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,html.khl-nomotion nav.tabs .tab,html.khl-nomotion .khl-toast,html.khl-nomotion .kfold>summary::before,html.khl-nomotion .page.khl-settle{transition:none !important}
+/* =========================================================
+   ★第355弾: 配置のデザイン刷新（見た目サンプル「配置の見直し案」の方向・オーナー決定）
+   ・ナビゲーション: 1024px未満では画面下固定のタブバーへ（アイコン上＋ラベル下・
+     選択中は淡い緑の地）。1024px以上は従来の左サイドバーのまま無変更。
+     タブ構成・data-t・スワイプ切替・第350弾の復元には触れていない（見た目だけ）。
+     バーの高さは p35_nav.js の navSyncSticky が --bar-h へ実測を出す。
+   ・AI提案タブのレース画面（#aipropBody）: レース＝カードの基調のまま、
+     印の表（table.airt）を1頭＝1行のリスト基調へ（印は円バッジ・馬名と
+     オッズを大きく・区切りは薄い線だけ）。列と中身は従来どおり全部ある。
+   ・色は第354弾の芝グリーン変数だけを使う。機能・確率・印の計算は不変。
+   ========================================================= */
+:root{--bar-h:66px}
+@media (max-width:1023px){
+  nav.tabs{
+    position:fixed;top:auto;bottom:0;left:0;right:0;z-index:90;
+    max-width:none;margin:0;flex-wrap:nowrap;overflow:visible;
+    background:var(--card);border-top:1px solid var(--line);border-bottom:none;
+    box-shadow:0 -2px 14px rgba(11,58,42,.12);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));gap:2px;
+  }
+  nav.tabs #navBtn,nav.tabs .tab{
+    flex:1 1 0;min-width:0;min-height:52px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:4px 0;border-radius:12px;font-size:11px;line-height:1.2;text-align:center;
+    white-space:normal;border-bottom:none;
+  }
+  nav.tabs #navBtn{position:static;margin:0;background:transparent;border-color:transparent;color:var(--mut)}
+  nav.tabs #navBtn .ic svg{width:20px;height:20px;display:block}
+  nav.tabs .tab svg{width:20px;height:20px}
+  nav.tabs .tab .tsub{display:none}
+  nav.tabs .tab.active{background:var(--green3);color:var(--green);box-shadow:none}
+  main{padding-bottom:calc(var(--bar-h,66px) + 16px)}
+  .khl-toast{bottom:calc(var(--bar-h,66px) + 12px)}
+}
+/* --- AI提案タブ: レース見出しと主ボタンを大きく --- */
+#aipropBody details.card>summary{padding-top:13px;padding-bottom:13px}
+#aipropBody details.card>summary b{font-size:1.12rem}
+#preBtn,#aiExcel,#aiPdf{min-height:48px;padding:10px 18px;border-radius:14px;font-size:.98rem}
+/* --- AI提案タブ: 印の表をカード内リスト基調へ（列・中身は不変） --- */
+#aipropBody table.airt{border:none;font-size:.95rem}
+#aipropBody table.airt th{background:transparent;color:var(--mut);font-size:.72rem;border-bottom:1px solid var(--line);padding:6px 8px}
+#aipropBody table.airt td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+#aipropBody table.airt tbody tr:last-child td{border-bottom:none}
+#aipropBody table.airt tr.airt-top:not([style]) td{background:var(--card2)}
+#aipropBody table.airt td.mkc{width:52px;text-align:center}
+#aipropBody table.airt td.mkc b{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--tint);color:var(--green);font-size:1.3rem;font-weight:800}
+#aipropBody table.airt tr.airt-top td.mkc b{background:var(--green);color:#fff}
+#aipropBody table.airt td.mkc b:empty{background:transparent;border:1.5px dashed var(--line)}
+#aipropBody table.airt td.nmc{font-weight:700;font-size:1.02rem}
+#aipropBody table.airt td.odc{font-size:1.08rem;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 </style>
 
 </head><body>
@@ -1242,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第346弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第356弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2958,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第346弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第356弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -3284,6 +3184,29 @@ function storeIsSafeKey(k){
   if (typeof storeDescOf === 'function'){ try { return storeDescOf(k)[2] === 'safe'; } catch(e){} }
   for (var i = 0; i < STORE_SAFE_KEYS.length; i++) if (k.indexOf(STORE_SAFE_KEYS[i]) === 0) return true;
   return false;
+}
+/* ★第347弾: storeUse() が未定義のまま呼び出されていた潜在不具合の修正。
+   storeMakeRoom／safeSetItem（ここ）と p12 の使用量UI が使う実測関数が無く、
+   storeMakeRoom は先頭で例外→自前の try/catch に握られて無言で何もせず、
+   容量不足時の「♻️また取り直せるキャッシュの自動削除」が一切動いていなかった
+   （馬ノートの「もこ在庫で更新」が保存領域不足で失敗した主因）。
+   ここに置くのは第12弾の設計どおり（p12 未読込環境でも動くようにするため）。
+   戻り値: { bytes: 合計（容量換算バイト＝文字数×2）, keys: [{k, n}] 大きい順 } */
+function storeUse(){
+  var keys = [], bytes = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if (!k) continue;
+      var v = '';
+      try { v = localStorage.getItem(k) || ''; } catch(e){}
+      var n = (k.length + v.length) * 2;
+      keys.push({ k: k, n: n });
+      bytes += n;
+    }
+  } catch(e){}
+  keys.sort(function(a, b){ return b.n - a.n; });
+  return { bytes: bytes, keys: keys };
 }
 function storeMakeRoom(needBytes){
   var freed = 0, removed = [];
@@ -8767,8 +8690,21 @@ function storeDiWhere(){
   try {
     var mode = (typeof diMode !== 'undefined') ? diMode : '';
     var n = 0;
-    try { if (typeof diCount === 'function') n = diCount(); } catch(e){}
-    if (!n && typeof diLs === 'function'){ try { n = Object.keys(diLs().races || {}).length; } catch(e){} }
+    /* ★統合確認(2026-11-13): diCount()/diLs() は使わない。diLs は第23弾⑥でメモ化され、
+       起動直後の表示で呼ぶと、その時点の localStorage を正として固定してしまう。
+       第347弾で storeUseRender が完走するようになり、boot→initUrlImport→
+       storeUseRender→storeDiWhere→diCount→diLs の経路で起動時スナップショットが
+       作られるようになった（mk131 が第347弾以降落ちた原因＝本物の退行と判定）。
+       ここは表示専用なので、メモを汚さない生の数え方にする:
+       idb は diMem の件数、ls は diLsAll()＋旧形式(DI_LS)の合算（diLs の ls 側と同じ意味）。 */
+    try {
+      if (mode === 'idb' && typeof diMem !== 'undefined' && diMem) n = Object.keys(diMem).length;
+      else if (typeof diLsAll === 'function'){
+        var rr = diLsAll(); n = Object.keys(rr).length;
+        var leg2 = (typeof diLegacy === 'function') ? diLegacy() : null;
+        if (leg2 && leg2.races){ for (var rid2 in leg2.races){ if (!rr[rid2]) n++; } }
+      }
+    } catch(e){}
     if (mode === 'idb'){
       return '🥇 <b>学習DBの保存先: IndexedDB（大容量）</b> — 保存済み <b>' + n + ' レース</b>。' +
         'IndexedDB は localStorage の 5MB 制限の対象外（<b>ディスクの空き次第で数百MB〜GB級</b>）なので、' +
@@ -8795,6 +8731,17 @@ function storeMsg(t, err){
   var el = $('storeUse'); if (!el) return;
   el.innerHTML = t;
   el.style.color = err ? 'var(--bad-ink,#c00)' : '';
+}
+/* ★第347弾: storeText() も storeUse() と同じく未定義のまま呼ばれていた（使用量UIの
+   先頭文）。storeUse（p3_core・第347弾で実装）の実測から合計と残りの目安を返す。 */
+function storeText(){
+  try {
+    var u = storeUse();
+    var lim = (typeof STORE_LIMIT !== 'undefined' && STORE_LIMIT) ? STORE_LIMIT : 5 * 1048576;
+    var left = Math.max(0, lim - u.bytes);
+    return '💾 保存領域: 合計 <b>' + (u.bytes / 1048576).toFixed(2) + 'MB</b>（' + u.keys.length + ' 件）／ ' +
+      '上限の目安 ' + (lim / 1048576).toFixed(0) + 'MB（あと約 ' + (left / 1048576).toFixed(2) + 'MB）';
+  } catch(e){ return ''; }
 }
 function storeUseRender(){
   var box = $('storeTbl');
@@ -23300,7 +23247,7 @@ function navClose(){
 /* ★第54弾: ヘッダー実測高さをCSS変数へ（タブバーがヘッダーに隠れないため・デザイン専用）。
    initNav（idle遅延）を待たず、DOM準備完了直後・リサイズ・ヘッダー高さ変化で即反映する。
    ヘッダーが非粘着（スマホ幅）の時は --hd-h=0 → タブバーは画面最上部に固定（旧仕様踏襲）。 */
-var _khlHdPx = -1, _khlNvPx = -1;
+var _khlHdPx = -1, _khlNvPx = -1, _khlBarPx = -1;   /* ★第355弾: _khlBarPx は下部タブバーの高さ（--bar-h）用 */
 var _khlLastActive = null;   /* ★第65弾②: 「アクティブタブが変わった時だけ」中央へ寄せる（手動スライドの自動復帰防止） */
 function navSyncSticky(){
   try {
@@ -23309,8 +23256,15 @@ function navSyncSticky(){
     if (hd && window.getComputedStyle && getComputedStyle(hd).position === 'sticky') h1 = hd.offsetHeight;
     var nv = document.querySelector('nav.tabs');
     var h2 = nv ? nv.offsetHeight : 52;
+    /* ★第355弾: タブバーは画面下固定（1024px未満）になったため、その高さは上部の
+       貼り付きオフセット（--nav-h）には数えず、--bar-h へ出す（main の下余白と
+       トースト位置が CSS 変数で参照）。1024px以上ではバー自体が非表示
+       （サイドバー方式）なので --bar-h=0・--nav-h は従来どおり */
+    var barH = 0;
+    if (nv && window.matchMedia && window.matchMedia('(max-width:1023px)').matches){ barH = h2; h2 = 0; }
     if (h1 !== _khlHdPx){ _khlHdPx = h1; document.documentElement.style.setProperty('--hd-h', h1 + 'px'); }
     if (h2 !== _khlNvPx){ _khlNvPx = h2; document.documentElement.style.setProperty('--nav-h', h2 + 'px'); }
+    if (barH !== _khlBarPx){ _khlBarPx = barH; document.documentElement.style.setProperty('--bar-h', barH + 'px'); }
     /* ★第65弾②: アクティブタブが「変わった時だけ」見切れていれば中央へ。
        以前は1.5秒周期で毎回直していたため、ユーザーがタブバーを横スライドすると
        勝手に元へ戻された。変更時のみなら手動スライドは尊重される。 */
@@ -23394,6 +23348,16 @@ function initNav(){
        1フレームに1回。rAF が無い環境では同期書き込みにフォールバック）。
      ・方向反転時の再 Prepare で、現ページの rect が適用中 transform の分だけ
        ずれている問題を、適用済み移動量 ax を差し引いて基底位置に戻すよう修正。
+   ★第348弾: 実機で「離した後に1回ぶれて止まる」報告への追跡修正。
+     ・第342弾で .khl-drag に付けた animation:none を撤回（p1_head.html）。
+       着地開始で khl-drag が外れると animation-name が pageIn に戻り、入場
+       アニメーションが再生されて吸着 transition を上書きしていた。あわせて
+       khlSwipeSettle では khl-drag を外さず Strip まで保持する。
+     ・確定の着地では goTab の直前に即時スクロールで先頭へ寄せ、goTab 末尾の
+       smooth スクロールが着地直後に位置を流さないようにした（peek 表示は
+       先頭から見せているため、着地位置は先頭で一致させるのが継ぎ目の正）。
+     ・着地アニメーション中の次のタッチでは、旧 settle を畳むのでなく
+       khlSwipeFinish で完了させる（確定済みの切替を取りこぼさない）。
    ========================================================= */
 var _khlSwipe = null;      /* 進行中のジェスチャ */
 var _khlSettle = null;     /* 吸着・復帰アニメーション中のジェスチャ */
@@ -23500,8 +23464,10 @@ function khlSwipeStrip(s){
   }
 }
 function khlSwipeStart(e){
-  /* 吸着アニメーションの最中に次のタッチが来たら、先に表示だけ畳む（切替はしない） */
-  if (_khlSettle){ try { clearTimeout(_khlSettleTimer); } catch(e0){} var old = _khlSettle; _khlSettle = null; khlSwipeStrip(old); }
+  /* 吸着アニメーションの最中に次のタッチが来たら、旧 settle を完了させてから始める。
+     ★第348弾: 以前は表示だけ畳んでいたため、確定済みの切替が静かに消えていた。
+     確定分は khlSwipeFinish で goTab まで完了させ、復帰分は畳むだけ（従来どおり） */
+  if (_khlSettle){ try { clearTimeout(_khlSettleTimer); } catch(e0){} var old = _khlSettle; _khlSettle = null; khlSwipeFinish(old, !!old.commit); }
   _khlSwipe = null;
   if (!e.touches || e.touches.length !== 1) return;
   var dr = $('drawer'); if (dr && dr.classList && dr.classList.contains('open')) return;
@@ -23546,8 +23512,12 @@ function khlSwipeSettle(s, commit){
   khlSwipeCancelRaf(s);
   if (!s.nbEl || !s.curEl){ khlSwipeStrip(s); return; }
   _khlSettle = s;
+  s.commit = !!commit;   /* ★第348弾: 着地中に次のタッチが来た時の完了判定に使う */
   try {
-    s.curEl.classList.remove('khl-drag'); s.curEl.classList.add('khl-settle');
+    /* ★第348弾: khl-drag は Strip まで外さない。着地の途中で外す理由は無く、
+       クラス側の animation 事情（第342弾の animation:none 撤回と対）として、
+       ジェスチャを通して現ページの状態を一定に保つ */
+    s.curEl.classList.add('khl-settle');
     s.nbEl.classList.add('khl-settle');
     s.curEl.style.transform = 'translateX(' + (commit ? (s.dir === 1 ? -s.w : s.w) : 0) + 'px)';
     s.nbEl.style.transform = 'translateX(' + (commit ? 0 : (s.dir === 1 ? s.w : -s.w)) + 'px)';
@@ -23559,6 +23529,10 @@ function khlSwipeFinish(s, commit){
   var target = commit ? s.nbId : '';
   khlSwipeStrip(s);
   if (target && typeof goTab === 'function'){
+    /* ★第348弾: goTab の直前に即時スクロールで先頭へ寄せる。peek は対象ページを
+       先頭から見せていたので、着地位置は先頭で一致させる。goTab 末尾の smooth な
+       scrollTo(top) は、既に先頭なら何もしないため、着地直後に位置が流れない */
+    try { window.scrollTo(0, 0); } catch(e){}
     /* 追随で既に見えているページへ goTab の pageIn が二重に掛からないよう、この切替だけ止める */
     try { document.documentElement.classList.add('khl-swnav'); } catch(e){}
     try { goTab(target); } catch(e){}
@@ -23603,36 +23577,17 @@ function khlSwipeInit(){
 }
 
 /* =========================================================
-   テーマ切替（2026-09-11追加）
-   - 既定＝Spotify風ダーク（html に data-theme を付けない）
-   - html[data-theme="light"] で従来のライトテーマ
-   - 選択は localStorage に記憶（端末ごと）
+   テーマ（★第354弾: 「芝グリーン」1本に統一・切替は廃止）
+   - 旧ライト/ダーク切替（khl_theme_v1）は廃止。端末に旧設定（dark/light）が
+     残っていても読み込まず、常に芝グリーンで開く（吸収）。
+   - initTheme は p10 の起動列から呼ばれるため名前だけ残し、ステータスバーの
+     色（meta theme-color）を深緑 #0b3a2a にそろえるだけにする。
    ========================================================= */
-var THEME_KEY = 'khl_theme_v1';
-function themeGet(){
-  /* ★第326弾: 既定テーマをB案ダークへ（未保存時はダーク。保存済みの選択は従来どおり優先） */
-  try { return (localStorage.getItem(THEME_KEY) === 'light') ? 'light' : 'dark'; }
-  catch(e){ return 'dark'; }
-}
-function themeApply(mode){
-  var m = (mode === 'light') ? 'light' : 'dark';
-  try {
-    document.documentElement.setAttribute('data-theme', m);
-    safeSetItem(THEME_KEY, m);   /* 🎨テーマ設定 */
-  } catch(e){}
-  var b = $('btnTheme');
-  if (b){
-    b.textContent = (m === 'light') ? '🌙 ダークにする' : '☀️ ライトにする';
-    b.title = 'いまは' + (m === 'light' ? 'ライト' : 'ダーク') + 'テーマです（クリックで切替・記憶されます）';
-  }
-  var tc = document.querySelector && document.querySelector('meta[name="theme-color"]');
-  if (tc) tc.setAttribute('content', m === 'light' ? '#0b3a2a' : '#121212');
-}
-function themeToggle(){ themeApply(themeGet() === 'dark' ? 'light' : 'dark'); }
 function initTheme(){
-  themeApply(themeGet());
-  var b = $('btnTheme');
-  if (b) b.addEventListener('click', function(e){ e.preventDefault(); themeToggle(); });
+  try {
+    var tc = document.querySelector && document.querySelector('meta[name="theme-color"]');
+    if (tc) tc.setAttribute('content', '#0b3a2a');
+  } catch(e){}
 }
 
 /* =========================================================
@@ -40308,7 +40263,9 @@ function aiExportStrict(rc){
 function aiIsSettled(b){ return !!(b && b.res && b.res.rows && b.res.rows.length >= 3); }
 /* 印と結果を同じ表に（馬番/馬名/印/オッズ/結果） */
 function aiRowsTable(rows){
-  var h = '<div style="overflow-x:auto"><table class="grid"><thead><tr>' +
+  /* ★第355弾: 配置の刷新で専用クラス（airtw／airt／mkc／nmc／odc）を付けただけ。
+     列・中身・行の色付け（インラインスタイル）は従来どおり */
+  var h = '<div class="airtw" style="overflow-x:auto"><table class="grid airt"><thead><tr>' +
     '<th>馬番</th><th>馬名</th><th>印</th><th>オッズ</th><th>結果</th></tr></thead><tbody>';
   (rows || []).forEach(function(r){
     var hit = r.mark && r.order >= 1 && r.order <= 3;
@@ -40316,8 +40273,9 @@ function aiRowsTable(rows){
     var st = hit ? ' style="background:var(--green3);color:var(--ok-ink);font-weight:700"' : (in3 ? ' style="background:var(--goldbg)"' : '');
     var rc = r.order ? (r.order + '着' + (r.pop ? ' <span class="muted small">(' + esc(r.pop) + ')</span>' : ''))
                      : '<span class="muted small">未確定</span>';
-    h += '<tr' + st + '><td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
-      '<td><b>' + esc(r.mark || '') + '</b></td><td>' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td>' +
+    var cls = (r.mark === '◎') ? ' class="airt-top"' : '';
+    h += '<tr' + cls + st + '><td>' + esc(r.no) + '</td><td class="nmc" style="white-space:nowrap">' + esc(r.name) + '</td>' +
+      '<td class="mkc"><b>' + esc(r.mark || '') + '</b></td><td class="odc">' + (r.odds == null ? '-' : r.odds.toFixed(1)) + '</td>' +
       '<td>' + rc + '</td></tr>';
   });
   return h + '</tbody></table></div>';
@@ -41214,7 +41172,166 @@ function aiStoryYard(hs, d8, surfKey){
     return { order: order, front: front, leaders: leaders };
   } catch(e){ return null; }
 }
-/* 展開予想（実況風）: b→{ lines:[..], top3:'9-1-5', m, surf } / 3頭未満は null */
+/* ---------- ★第352弾: 実況風の材料集計（学習DBの実績から） ----------
+   物差し（aiStoryYard）と同じ学習DBを、馬名キーで「近走の実績」まで集計する。
+   各走について: 上がり3Fとそのレース内順位、前半ペース実測（着時計−上がり3Fを
+   600m換算し、その条件の典型値との差）、3コーナー位置、同場・同面・同距離帯での
+   着時計。対象日より前のレースだけを使う（未来情報防止は物差しと同方式）。
+   学習DBが空の時だけ、メモリに載っている年別DB（DBS_JV.map）を代替源にする
+   （混ぜない＝二重集計の防止）。作れなければ null で、実況風は従来材料だけで書く。 */
+var AI_STORY_IDX = { sig: '', byName: null };
+function aiStoryParseTime(t){
+  var s = String(t == null ? '' : t).trim();
+  var mm = /^(\d+):(\d{1,2}(?:\.\d+)?)$/.exec(s);
+  if (mm) return parseInt(mm[1], 10) * 60 + parseFloat(mm[2]);
+  if (/^\d+(?:\.\d+)?$/.test(s)){ var f = parseFloat(s); if (f > 0) return f; }
+  return null;
+}
+function aiStoryMedian(a){
+  if (!a || !a.length) return null;
+  var s = a.slice().sort(function(x, y){ return x - y; });
+  var n = s.length;
+  return (n % 2) ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+}
+function aiStoryHistIndex(){
+  var sig = '';
+  try { sig = aiYardDbSig(); } catch(e){ sig = ''; }
+  var jvN = 0;
+  try { if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.map) jvN = Object.keys(DBS_JV.map).length; } catch(e){}
+  var fullSig = sig + '|jv' + jvN;
+  if (AI_STORY_IDX.byName && AI_STORY_IDX.sig === fullSig) return AI_STORY_IDX.byName;
+  var byName = null;
+  try {
+    var races = null;
+    try {
+      var all = (typeof diLs === 'function') ? diLs() : null;
+      if (all && all.races && Object.keys(all.races).length)
+        races = Object.keys(all.races).map(function(k){ return all.races[k]; });
+    } catch(e){}
+    if (!races && jvN){
+      try { races = Object.keys(DBS_JV.map).map(function(k){ return DBS_JV.map[k]; }); } catch(e){}
+    }
+    if (!races || !races.length) return null;
+    /* 1パス目: レース単位の材料（前半ペース中央値・上がり順位） */
+    var recs = [];
+    var typMap = {};
+    races.forEach(function(r){
+      if (!r || !r.rows || r.rows.length < 5) return;
+      var meta = r.meta || {};
+      var sf = meta.surface || '';
+      if (sf !== '芝' && sf !== 'ダ'){
+        var nmx = String((meta.name || '') + (meta.dist || ''));
+        if (/障/.test(nmx)) return;
+        if (sf) return;
+        sf = /ダ/.test(nmx) ? 'ダ' : '芝';
+      }
+      var d8 = String(r.date8 || meta.date8 || '');
+      if (!/^\d{8}$/.test(d8)) return;
+      var m = parseInt(meta.m, 10) || parseInt((String(meta.dist || '').match(/(\d{3,4})/) || [])[1] || 0, 10) || 0;
+      if (!m) return;
+      var venue = String(meta.place || '');
+      var rows = [];
+      var earlies = [];
+      r.rows.forEach(function(row){
+        if (!row) return;
+        var name = String(row.name || '').replace(/\s+/g, ' ').trim(); if (!name) return;
+        var t = aiStoryParseTime(row.time);
+        var l3 = parseFloat(row.last3); if (!isFinite(l3)) l3 = null;
+        var early = null;
+        if (t != null && l3 != null && m > 600 && t > l3) early = (t - l3) / ((m - 600) / 600);
+        if (early != null) earlies.push(early);
+        var vals = aiYardParsePassing(row.passing);
+        var refFrac = null;
+        if (vals){ var ri = aiYardRefIdx(vals.length); if (ri < vals.length) refFrac = vals[ri] / r.rows.length; }
+        rows.push({ name: name, t: t, l3: l3, refFrac: refFrac, order: parseInt(row.order, 10) || 0 });
+      });
+      if (!rows.length) return;
+      var l3s = rows.filter(function(x){ return x.l3 != null; }).map(function(x){ return x.l3; })
+                    .sort(function(a, b){ return a - b; });
+      rows.forEach(function(x){
+        x.l3rank = null;
+        if (x.l3 != null && l3s.length >= 5){
+          var rk = 1;
+          for (var i = 0; i < l3s.length; i++){ if (l3s[i] < x.l3 - 1e-9) rk++; else break; }
+          x.l3rank = rk;
+        }
+      });
+      var medEarly = (earlies.length >= 5) ? aiStoryMedian(earlies) : null;
+      var band = Math.round(m / 200) * 200;
+      var key1 = sf + '|' + venue + '|' + band, key2 = sf + '||' + band;
+      if (medEarly != null){
+        (typMap[key1] = typMap[key1] || []).push(medEarly);
+        (typMap[key2] = typMap[key2] || []).push(medEarly);
+      }
+      recs.push({ d8: d8, venue: venue, sf: sf, m: m, n: r.rows.length, rows: rows,
+                  medEarly: medEarly, key1: key1, key2: key2 });
+    });
+    if (!recs.length) return null;
+    var typ = {};
+    Object.keys(typMap).forEach(function(k){ if (typMap[k].length >= 8) typ[k] = aiStoryMedian(typMap[k]); });
+    /* 2パス目: 馬名キーへ（直近14走まで保持） */
+    byName = {};
+    recs.forEach(function(rc){
+      var base = (typ[rc.key1] != null) ? typ[rc.key1] : typ[rc.key2];
+      var er = (rc.medEarly != null && base != null) ? Math.round((base - rc.medEarly) * 100) / 100 : null;
+      rc.rows.forEach(function(x){
+        var a = byName[x.name] || (byName[x.name] = []);
+        a.push({ d: rc.d8, v: rc.venue, s: rc.sf, m: rc.m, o: x.order, n: rc.n,
+                 f: (x.refFrac != null) ? Math.round(x.refFrac * 100) / 100 : null,
+                 l3: x.l3, lr: x.l3rank, er: er, t: x.t });
+      });
+    });
+    Object.keys(byName).forEach(function(k){
+      var a = byName[k];
+      a.sort(function(x, y){ return x.d < y.d ? -1 : (x.d > y.d ? 1 : 0); });
+      if (a.length > 14) byName[k] = a.slice(a.length - 14);
+    });
+  } catch(e){ return null; }
+  AI_STORY_IDX = { sig: fullSig, byName: byName };
+  return byName;
+}
+/* 馬の近走材料（対象日より前だけ）。無ければ null */
+function aiStoryHist(name, d8){
+  try {
+    var idx = aiStoryHistIndex(); if (!idx) return null;
+    var key = String(name || '').replace(/\s+/g, ' ').trim();
+    var all = idx[key]; if (!all || !all.length) return null;
+    var runs = all.filter(function(r){ return r.d < String(d8 || ''); });
+    if (!runs.length) return null;
+    var last6 = runs.slice(-6), last5 = runs.slice(-5);
+    var ag = { n: 0, top3: 0, best: null };
+    last5.forEach(function(r){
+      if (r.lr != null){ ag.n++; if (r.lr <= 3) ag.top3++; if (ag.best == null || r.lr < ag.best) ag.best = r.lr; }
+    });
+    var fast = { n: 0, top3: 0 }, slowR = { n: 0, top3: 0 };
+    last6.forEach(function(r){
+      if (r.er == null) return;
+      if (r.er >= 0.25){ fast.n++; if (r.o >= 1 && r.o <= 3) fast.top3++; }
+      else if (r.er <= -0.25){ slowR.n++; if (r.o >= 1 && r.o <= 3) slowR.top3++; }
+    });
+    return { runs: runs, nRuns: runs.length, agari: ag, fast: fast, slowR: slowR };
+  } catch(e){ return null; }
+}
+/* 同場・同面・同距離帯での最速時計（持ちタイム相当）。無ければ null */
+function aiStoryCourseBest(hist, venue, surfKey, m){
+  try {
+    if (!hist || !hist.runs) return null;
+    var best = null;
+    hist.runs.forEach(function(r){
+      if (r.v !== venue || r.s !== surfKey || r.t == null) return;
+      if (Math.abs(r.m - m) > 100) return;
+      if (!best || r.t < best.sec) best = { sec: r.t, d: r.d, m: r.m };
+    });
+    return best;
+  } catch(e){ return null; }
+}
+/* 展開予想（実況風）: b→{ lines:[..], top3:'9-1-5', m, surf } / 3頭未満は null
+   ★第352弾: 叙述の組み立て直し。隊列（物差し or 脚質）→ペース→4角→バイアス→
+   得する馬・厳しい馬（名指し＋入力データに追跡できる理由）→崩れる条件→結論。
+   理由の材料は、保存済み予想（脚質・AI確率・ペース・バイアス・出遅れ率）に加えて
+   学習DBの近走実績（上がり順位・流れの速さの中での着順・同場同距離の持ち時計）。
+   結論の順位は確率を土台に、叙述で使った得・不利の点数だけで補正する
+   （補正は 0.78〜1.30 倍に制限し、確率の大勢と矛盾させない）。 */
 function aiStorySim(b){
   try {
     var mm = (b.rec && b.rec.meta) || {};
@@ -41226,29 +41343,33 @@ function aiStorySim(b){
     var d8 = String(b.snap.d8 || mm.date8 || '');
     var probBy = {};
     ((b.snap && b.snap.rows) || []).forEach(function(x){ if (x && x.no != null) probBy[String(x.no)] = (x.prob != null ? Number(x.prob) : 0); });
+    var snapBy = {};
+    ((b.snap && b.snap.rows) || []).forEach(function(x){ if (x && x.no != null) snapBy[String(x.no)] = x; });
     var hs = (b.rows || []).map(function(r, i){
       var cls = (typeof styleClass === 'function') ? styleClass(r.style) : '';
-      return { no: String(r.no), name: String(r.name || ''), cls: cls, prob: probBy[String(r.no)] || (0.24 / (i + 1)) };
+      var sn = snapBy[String(r.no)] || {};
+      var slowPct = parseFloat(sn.slow); if (!isFinite(slowPct)) slowPct = null;
+      return { no: String(r.no), name: String(r.name || ''), cls: cls, stTxt: String(r.style || ''),
+               prob: probBy[String(r.no)] || (0.24 / (i + 1)), slowPct: slowPct };
     }).sort(function(x, y){ return y.prob - x.prob; });
     if (hs.length < 3) return null;
-    /* ★第319弾: 隊列の土台をもこの物差しにそろえる（この欄の隊列だけ）。
-       物差しで隊列が作れるレースは、確率順＝想定の隊列とし、上位1/3を
-       前方1/3、先発候補はそのうち前方確率0.5以上の馬（最大3頭）とする。
-       作れないレースは従来どおり脚質ベースで組む。 */
+    hs.forEach(function(x, i){ x.probRank = i + 1; });
+    var nm = function(x){ return x.no + ' ' + x.name; };
+    /* ★第319弾の隊列（物差し or 脚質ベース）は従来どおり */
     var yard = null;
     try { yard = aiStoryYard(hs, d8, surfKey); } catch(e){ yard = null; }
-    var leaders, midPack, tailPack;
+    var leaders, midPack, tailPack, formOrder;
     if (yard){
       leaders = yard.leaders;
-      var lset = {};
-      leaders.forEach(function(x){ lset[x.no] = 1; });
-      var restY = yard.order.filter(function(x){ return !lset[x.no]; });
+      formOrder = yard.order;
+      var lsetY = {};
+      leaders.forEach(function(x){ lsetY[x.no] = 1; });
+      var restY = formOrder.filter(function(x){ return !lsetY[x.no]; });
       midPack = restY.slice(0, 4);
       var msetY = {};
       midPack.forEach(function(x){ msetY[x.no] = 1; });
       tailPack = restY.filter(function(x){ return !msetY[x.no]; });
     } else {
-      /* 先発候補: 逃げ馬（無ければ先行上位1頭）、2〜3頭まで */
       leaders = hs.filter(function(x){ return x.cls === 'E'; }).slice(0, 3);
       if (!leaders.length) leaders = hs.filter(function(x){ return x.cls === 'S'; }).slice(0, 1);
       var lset = {};
@@ -41258,74 +41379,18 @@ function aiStorySim(b){
       var mset = {};
       midPack.forEach(function(x){ mset[x.no] = 1; });
       tailPack = rest.filter(function(x){ return !mset[x.no]; });
+      formOrder = leaders.concat(midPack, tailPack);
     }
-    /* 前方扱いの判定（4角ドリフトと結論の補正で共用）: 物差し時は前方1/3、
-       従来時は脚質の逃げ・先行 */
     var isFront = function(x){ return yard ? !!yard.front[String(x.no)] : (x.cls === 'E' || x.cls === 'S'); };
-    /* ペース */
+    var isBack = function(x){ return x.cls === 'K' || x.cls === 'C'; };
+    /* ペース（保存済み予想が土台。無ければ隊列の形だけで扱う） */
     var pd = b.snap.pace || null;
     var s0 = (pd && pd.score != null) ? Number(pd.score) : null;
     var paceTxt = pd && pd.label ? String(pd.label) : '';
     var fast = s0 != null && s0 >= 0.60, slow = s0 != null && s0 <= 0.40;
-    /* 基準時計→600m通過 */
-    var baseSec = null;
-    try { if (typeof tlBaseSec === 'function') baseSec = tlBaseSec(surfKey, m, raceName, venue, d8); } catch(e){}
-    var t600 = null;
-    if (baseSec && s0 != null){
-      var avgF = baseSec / (m / 200);
-      t600 = aiClamp(avgF * 3 + 0.15 - (s0 - 0.5) * 1.1, 32.8, 39.5);
-    }
-    /* 1行目: スタート・隊列 */
-    var l1;
-    var ln = leaders.map(function(x){ return x.no; });
-    if (ln.length >= 2){
-      var rival = (probBy[ln[0]] || 0) <= (probBy[ln[1]] || 0) * 1.65;
-      l1 = 'スタートから' + (rival ? (ln[0] + 'と' + ln[1] + 'が競り合って逃げ、') : (ln[0] + 'が単騎で逃げ、')) +
-        (midPack.length ? 'その後ろに' + midPack.map(function(x){ return x.no; }).join('と') + 'の塊、' : '') +
-        (tailPack.length ? 'やや離れて' + tailPack.slice(0, 4).map(function(x){ return x.no; }).join('と') + 'が追う展開を予想' : '');
-    } else if (ln.length === 1){
-      l1 = 'スタートは' + ln[0] + 'が楽にハナを切り、' +
-        (midPack.length ? '2番手以降に' + midPack.map(function(x){ return x.no; }).join('・') + '、' : '') +
-        (tailPack.length ? '後続は' + tailPack.slice(0, 4).map(function(x){ return x.no; }).join('・') + '一团' : '') + 'と予想';
-    } else {
-      l1 = 'ハナを主張しそうな馬が少なく、' + hs.slice(0, 2).map(function(x){ return x.no; }).join('と') + 'あたりが早目に押して先団を作る予想';
-    }
-    /* 2行目: ペース・600m */
-    var l2;
-    if (s0 != null){
-      l2 = 'ペースは' + (paceTxt || (fast ? 'ハイ' : (slow ? 'スロー' : '平均'))) + '想定';
-      if (t600 != null) l2 += '。' + m + 'm戦の600mは' + t600.toFixed(1) + '秒程度で通過と予想（基準勝ち時計 ' + aiClockTxt(baseSec) + '）';
-      else l2 += '（基準時計が未取得のため通過秒数は省略）';
-      if (pd && pd.manual) l2 += '※手動設定';
-    } else {
-      l2 = 'ペースの事前予想が未保存のため、隊列の崩れは中立ちで計算';
-    }
-    /* 3行目: 4角隊列（ペース差で決定的にドリフト） */
-    var posOf = {}, slot = 0;
-    hs.forEach(function(x){ if (lset[x.no]) posOf[x.no] = ++slot; });
-    midPack.forEach(function(x){ posOf[x.no] = ++slot; });
-    tailPack.forEach(function(x){ posOf[x.no] = ++slot; });
-    var drift = s0 == null ? 0 : Math.round((s0 - 0.5) * 3);
-    var fin = {};
-    hs.forEach(function(x){
-      var d2 = isFront(x) ? Math.floor(drift / 2) : Math.ceil(-drift / 2);
-      fin[x.no] = Math.max(1, (posOf[x.no] || slot) + d2);
-    });
-    var byPos = hs.slice().sort(function(x, y){ return (fin[x.no] - fin[y.no]) || (y.prob - x.prob); });
-    var groups = [];
-    byPos.forEach(function(x){
-      var last = groups[groups.length - 1];
-      if (last && fin[x.no] - last.lastP <= 1){ last.nos.push(x.no); last.lastP = fin[x.no]; }
-      else groups.push({ nos: [x.no], firstP: fin[x.no], lastP: fin[x.no] });
-    });
-    var gtxt = groups.slice(0, 5).map(function(g, i){
-      var head = g.nos.slice(0, 3).join('-') + (g.nos.length > 3 ? '…' : '');
-      if (i === 0) return head;
-      var gap = g.firstP - groups[i - 1].lastP;
-      return (gap >= 3 ? '、離れて' : '、') + head;
-    });
-    var l3 = '4コーナー通過隊列は ' + gtxt.join('') + ' の想定';
-    /* 4行目: バイアス */
+    var paceFast = fast || (s0 == null && leaders.length >= 3);
+    var paceSlow = slow || (s0 == null && leaders.length <= 1);
+    /* バイアス */
     var bs = b.snap.bias || null;
     var fs = null, biasTxt = '';
     if (bs && (bs.posLabel || bs.frontScore != null)){
@@ -41333,23 +41398,218 @@ function aiStorySim(b){
       biasTxt = 'トラックバイアス想定: ' + (bs.posLabel ? String(bs.posLabel) : '—') +
         (fs != null ? '（先行傾向 ' + fs.toFixed(2) + '）' : '');
     }
-    /* 5行目: 結論・予想入線 */
-    var scored = hs.map(function(x){
-      var adj = 0;
-      if (s0 != null) adj += (s0 - 0.5) * ((x.cls === 'E' || x.cls === 'S') ? -0.42 : 0.42);
-      if (fs != null && isFinite(fs)){
-        var front2 = isFront(x);
-        if (fs >= 0.55) adj += front2 ? 0.10 : -0.04;
-        else if (fs <= 0.45) adj += front2 ? -0.04 : 0.10;
+    /* 近走材料の付与 */
+    var histCovered = 0;
+    hs.forEach(function(x){
+      x.hist = aiStoryHist(x.name, d8);
+      if (x.hist && x.hist.nRuns >= 2) histCovered++;
+      x.cBest = x.hist ? aiStoryCourseBest(x.hist, venue, surfKey, m) : null;
+    });
+    var cbList = hs.filter(function(x){ return x.cBest; }).sort(function(a, z){ return a.cBest.sec - z.cBest.sec; });
+    cbList.forEach(function(x, i){ x.cBestRank = i + 1; });
+    var thin = !yard && histCovered < Math.ceil(hs.length / 2);
+    /* 得・不利の材料（文中の主張はすべてここの根拠に追跡できる） */
+    hs.forEach(function(x){
+      x.ben = 0; x.suf = 0; x.benWhy = []; x.sufWhy = []; x.benTag = ''; x.sufTag = '';
+      var front = isFront(x), back = isBack(x);
+      var ag = x.hist ? x.hist.agari : null;
+      var agStrong = !!(ag && ag.n >= 3 && ag.top3 >= 2);
+      var agWeak = !!(ag && ag.n >= 3 && ag.top3 === 0);
+      if (back && (paceFast || leaders.length >= 2) && agStrong){
+        x.ben += 2; x.benTag = '近走の上がりの裏付け';
+        x.benWhy.push('近走' + ag.n + '戦で上がり3位以内が' + ag.top3 + '回と末脚が確かで、前が苦しくなる流れが向けば差し切りまであっていい');
       }
-      return { no: x.no, name: x.name, sc: (x.prob || 0) * (1 + adj) };
-    }).sort(function(a, y){ return y.sc - a.sc; });
-    var l4 = '展開結論: ' + (fast ? 'ハイで前が苦しくなりやすく、' : (slow ? '前が残りやすい流れ、' : '実力関係がそのまま出やすい流れ、')) +
-      '予想入線は ' + scored.slice(0, 3).map(function(x){ return x.no + ' ' + x.name; }).join(' → ') +
-      '。馬券予想は ' + scored.slice(0, 3).map(function(x){ return x.no; }).join('-') + ' で入線';
+      if (back && paceFast && x.hist && x.hist.fast.n >= 2 && x.hist.fast.top3 >= 1){
+        x.ben += 1; if (!x.benTag) x.benTag = '速い流れでの実績';
+        x.benWhy.push('速い流れの近走でも崩れていない');
+      }
+      if (front && leaders.length === 1 && leaders[0] === x && (paceSlow || s0 == null)){
+        x.ben += 2; x.benTag = '単騎の形';
+        x.benWhy.push('単騎でハナを切れれば、楽に運んでそのまま粘り込める形');
+      } else if (front && leaders.length === 1 && leaders[0] === x && !fast){
+        x.ben += 1; if (!x.benTag) x.benTag = '単騎の形';
+        x.benWhy.push('競り合う相手がおらず、自分のペースで運べる形');
+      }
+      if (front && leaders.length <= 1 && leaders[0] !== x && (paceSlow || s0 == null)){
+        x.ben += 1; if (!x.benTag) x.benTag = '好位を取りやすい形';
+        x.benWhy.push('先行勢が少なく、好位を楽に取れる形');
+      }
+      if (front && fs != null && fs >= 0.55){ x.ben += 1; if (!x.benTag) x.benTag = 'バイアスの追い風'; x.benWhy.push('トラックバイアスも前に有利'); }
+      if (back && fs != null && fs <= 0.45){ x.ben += 1; if (!x.benTag) x.benTag = 'バイアスの追い風'; x.benWhy.push('トラックバイアスも差し寄り'); }
+      if (x.cBest && x.cBestRank === 1){
+        x.ben += 1.5; x.benTag = '同場・同距離の持ち時計が最速級';
+        x.benWhy.push('同場・同距離の持ち時計 ' + aiClockTxt(x.cBest.sec) + ' はこのメンバーの最速級');
+      } else if (x.cBest && x.cBestRank === 2){
+        x.ben += 0.75; if (!x.benTag) x.benTag = '持ち時計が上位';
+        x.benWhy.push('同場・同距離の持ち時計もメンバー上位');
+      }
+      if (front && paceSlow && x.hist && x.hist.slowR.n >= 1 && x.hist.slowR.top3 >= 1){
+        x.ben += 1; if (!x.benTag) x.benTag = '前残りの実績';
+        x.benWhy.push('遅い流れで前に残した近走がある');
+      }
+      if (front && leaders.length >= 2 && (paceFast || leaders.length >= 3)){
+        x.suf += 2;
+        if (leaders.indexOf(x) >= 0){
+          x.sufTag = '競り合い';
+          x.sufWhy.push(leaders.map(function(z){ return z.no; }).join('・') + ' でハナを争えば共倒れのリスクがある');
+        } else {
+          x.sufTag = '競り合いの余波';
+          x.sufWhy.push('前の競り合いが激しくなれば、好位からでも脚を使わされやすい');
+        }
+      }
+      if (front && paceFast && x.hist && x.hist.fast.n >= 2 && x.hist.fast.top3 === 0){
+        x.suf += 1; if (!x.sufTag) x.sufTag = '速い流れで崩れた近走';
+        x.sufWhy.push('速い流れの近走では馬券内がなく、同じ流れでは苦しい実績');
+      }
+      if (back && paceSlow){
+        x.suf += 1.5; if (!x.sufTag) x.sufTag = '前残りで届きにくい';
+        x.sufWhy.push('前が止まらない流れでは、後方からでは届きにくい');
+        if (agWeak){ x.suf += 0.5; x.sufWhy.push('近走の上がりも平凡で、末脚の裏付けが薄い'); }
+      }
+      if (back && fs != null && fs >= 0.55){ x.suf += 1; if (!x.sufTag) x.sufTag = 'バイアスが逆風'; x.sufWhy.push('トラックバイアスも前に有利で逆風'); }
+      if (front && fs != null && fs <= 0.45){ x.suf += 1; if (!x.sufTag) x.sufTag = 'バイアスが逆風'; x.sufWhy.push('トラックバイアスは差し寄りで、前には逆風'); }
+    });
+    /* 1行目: 隊列（全頭がどこかに現れる。馬名つき） */
+    var shown = {};
+    leaders.forEach(function(x){ shown[x.no] = 1; });
+    var seg1;
+    if (leaders.length >= 2) seg1 = 'スタートから' + leaders.map(nm).join('と') + 'が競り合って逃げ、';
+    else if (leaders.length === 1) seg1 = 'スタートは' + nm(leaders[0]) + 'がハナを切り、';
+    else seg1 = 'ハナを主張する馬がおらず、' + (formOrder.length ? nm(formOrder[0]) : '') + 'あたりが押して先団を作る形で、';
+    var restAll = formOrder.filter(function(x){ return !shown[x.no]; });
+    var frontRest = restAll.filter(isFront);
+    var frontShown = frontRest.slice(0, 3);
+    frontShown.forEach(function(x){ shown[x.no] = 1; });
+    if (frontShown.length)
+      seg1 += '好位に' + frontShown.map(nm).join('、') + (frontRest.length > frontShown.length ? 'ら' : '') + '、';
+    var midRest = formOrder.filter(function(x){ return !shown[x.no] && midPack.indexOf(x) >= 0; });
+    var midShown = midRest.slice(0, 3);
+    midShown.forEach(function(x){ shown[x.no] = 1; });
+    if (midShown.length)
+      seg1 += '中団に' + midShown.map(nm).join('、') + (midRest.length > midShown.length ? 'ら' : '') + '、';
+    var tailRest = formOrder.filter(function(x){ return !shown[x.no]; });
+    var tailByProb = tailRest.slice().sort(function(a, z){ return z.prob - a.prob; });
+    var tailShown = tailByProb.slice(0, 2);
+    if (tailShown.length)
+      seg1 += '後方に' + tailShown.map(nm).join('、') + (tailRest.length > tailShown.length ? 'ら' + tailRest.length + '頭' : '') + '、';
+    seg1 += 'という隊列を予想';
+    var l1 = (thin ? '履歴が薄く脚質ベースの想定。' : '') + seg1;
+    /* 2行目: ペース・600m */
+    var baseSec = null;
+    try { if (typeof tlBaseSec === 'function') baseSec = tlBaseSec(surfKey, m, raceName, venue, d8); } catch(e){}
+    var t600 = null;
+    if (baseSec && s0 != null){
+      var avgF = baseSec / (m / 200);
+      t600 = aiClamp(avgF * 3 + 0.15 - (s0 - 0.5) * 1.1, 32.8, 39.5);
+    }
+    var l2;
+    if (s0 != null){
+      l2 = 'ペースは' + (paceTxt || (fast ? 'ハイ' : (slow ? 'スロー' : '平均'))) + '想定';
+      if (t600 != null) l2 += '。' + m + 'm戦の600mは' + t600.toFixed(1) + '秒程度で通過と予想（基準勝ち時計 ' + aiClockTxt(baseSec) + '）';
+      else l2 += '（基準時計が未取得のため通過秒数は省略）';
+      if (pd && pd.manual) l2 += '※手動設定';
+    } else {
+      var frontCount = hs.filter(isFront).length;
+      l2 = 'ペースの事前予想は未保存。逃げ・先行は' + frontCount + '頭' +
+        (leaders.length >= 2 ? 'で、ハナの競り合いが隊列の鍵になる形' :
+         (leaders.length === 1 ? '、ハナは' + nm(leaders[0]) + 'の単騎濃厚の形' : 'で、隊列自体が決まりにくい形'));
+    }
+    /* 3行目: 4角隊列（隊列順を土台にペース差で寄せる） */
+    var posOf = {}, slot = 0;
+    formOrder.forEach(function(x){ posOf[x.no] = ++slot; });
+    var drift = s0 == null ? 0 : Math.round((s0 - 0.5) * 3);
+    var fin = {};
+    hs.forEach(function(x){
+      var d2 = isFront(x) ? Math.floor(drift / 2) : Math.ceil(-drift / 2);
+      fin[x.no] = Math.max(1, (posOf[x.no] || slot) + d2);
+    });
+    var byPos = hs.slice().sort(function(x, y){ return (fin[x.no] - fin[y.no]) || (y.prob - x.prob); });
+    var l3 = '4コーナーは ' + byPos.slice(0, 5).map(nm).join('、') + ' が先団で通過する想定' +
+      (byPos.length > 5 ? '（以下は隊列なり）' : '');
+    /* 4行目: 得する馬 */
+    var benPicks = hs.filter(function(x){
+      return x.ben >= 1.5 && (x.prob >= 0.03 || x.probRank <= 7 || x.cBestRank === 1);
+    }).sort(function(a, z){ return (z.ben - a.ben) || (z.prob - a.prob); });
+    var sufPicks = hs.filter(function(x){
+      return x.suf >= 1.5 && (x.prob >= 0.02 || x.probRank <= 8);
+    }).sort(function(a, z){ return (z.suf - a.suf) || (z.prob - a.prob); });
+    /* 得・不利の両方に載る馬は、重い方だけに残す */
+    benPicks = benPicks.filter(function(x){ return !(x.suf > x.ben && sufPicks.indexOf(x) >= 0); });
+    sufPicks = sufPicks.filter(function(x){ return !(x.ben >= x.suf && benPicks.indexOf(x) >= 0); });
+    benPicks = benPicks.slice(0, 3);
+    sufPicks = sufPicks.slice(0, 3);
+    var l4;
+    if (benPicks.length){
+      l4 = '展開で得をするのは' + benPicks.map(function(x, i){
+        if (i === 0) return nm(x) + '。' + x.benWhy[0] + '。';
+        return nm(x) + 'も、' + (x.benTag ? '「' + x.benTag + '」の材料がある' : x.benWhy[0]) + '。';
+      }).join('');
+    } else {
+      l4 = '展開で大きく得をする馬は見当たらず、力勝負の色が濃い。';
+    }
+    /* 5行目: 厳しい馬（いなければ行ごと省く） */
+    var l5 = null;
+    if (sufPicks.length){
+      l5 = '逆に厳しいのは' + sufPicks.map(function(x, i){
+        if (i === 0) return nm(x) + '。' + x.sufWhy[0] + '。';
+        return nm(x) + 'も、' + (x.sufTag ? '「' + x.sufTag + '」の割引材料がある' : x.sufWhy[0]) + '。';
+      }).join('');
+    }
+    /* 6行目: 崩れる条件 */
+    var branches = [];
+    var slowFront = hs.filter(function(x){ return isFront(x) && x.slowPct != null && x.slowPct >= 15; })
+                      .sort(function(a, z){ return z.slowPct - a.slowPct; })[0];
+    if (slowFront){
+      var nextFront = formOrder.filter(function(x){ return x !== slowFront && isFront(x); })[0];
+      if (leaders.length === 1 && leaders[0] === slowFront && nextFront)
+        branches.push(nm(slowFront) + 'が出遅れると（出遅れ率' + slowFront.slowPct + '%）、ハナは' + nm(nextFront) + 'に替わって隊列が組み替わる');
+      else if (leaders.indexOf(slowFront) >= 0 && leaders.length >= 2)
+        branches.push(nm(slowFront) + 'が出遅れると（出遅れ率' + slowFront.slowPct + '%）、競り合いが解消して残った先行馬が楽になる');
+      else
+        branches.push(nm(slowFront) + 'は出遅れ癖があり（出遅れ率' + slowFront.slowPct + '%）、後手を踏むと想定の位置が取れない');
+    }
+    if (leaders.length >= 2){
+      var strongLeader = leaders.slice().sort(function(a, z){ return z.prob - a.prob; })[0];
+      branches.push('競り合いが早めに決着すれば、' + nm(strongLeader) + 'が単騎に持ち込んで押し切る分岐もある');
+    }
+    if (s0 != null && fast){
+      var pf = hs.filter(isFront).sort(function(a, z){ return z.prob - a.prob; })[0];
+      if (pf) branches.push('想定より流れが落ち着けば、先行の' + nm(pf) + 'が残り、差し勢は届かなくなる');
+    } else if (s0 != null && slow){
+      var pb = hs.filter(isBack).sort(function(a, z){ return z.prob - a.prob; })[0];
+      if (pb) branches.push('想定より流れが速くなれば、後方の' + nm(pb) + 'にも届く展開に変わる');
+    }
+    if (!leaders.length && formOrder.length){
+      branches.push('誰も主張しなければ、好位から運べる' + nm(formOrder[0]) + 'が隊列を支配する');
+    }
+    var l6 = branches.length
+      ? '崩れる条件: ' + branches.slice(0, 2).join('。') + '。'
+      : '崩れる条件: 大きな分岐材料は見当たらず、想定の隊列どおりに進む公算が大きい。';
+    /* 7行目: 結論・予想入線（確率は土台、補正は得・不利の点数だけ） */
+    var scored = hs.map(function(x){
+      var fit = aiClamp(1 + 0.09 * ((x.ben || 0) - (x.suf || 0)), 0.78, 1.30);
+      return { no: x.no, name: x.name, sc: (x.prob || 0) * fit, x: x };
+    }).sort(function(a, z){ return z.sc - a.sc; });
+    var anyAgari = hs.some(function(x){ return x.hist && x.hist.agari.n >= 3 && x.hist.agari.top3 >= 2; });
+    var shapeTxt = paceFast
+      ? (anyAgari ? '前が苦しくなりやすく、末脚の確かな馬に展開が向く流れ' : '前が苦しくなりやすい流れ')
+      : (paceSlow ? '前が残りやすい流れ'
+        : (leaders.length >= 2 ? '競り合いの決着と隊列の落ち着きどころが鍵の流れ' : '隊列がすんなり決まれば力勝負の流れ'));
+    var l7 = '展開結論: ' + shapeTxt + '。予想入線は ' +
+      scored.slice(0, 3).map(function(x){ return x.no + ' ' + x.name; }).join(' → ') + '。';
+    var probTop = hs[0];
+    if (scored[0].x !== probTop && probTop.sufTag){
+      l7 += 'AI確率1位の' + nm(probTop) + 'は「' + probTop.sufTag + '」の割引材料があり、入線想定では一歩譲る。';
+    } else if (scored[0].x === probTop && (probTop.suf || 0) >= 2){
+      l7 += 'AI確率1位の' + nm(probTop) + 'は展開の不利を抱えるが、確率の裏付けが厚く中心に残す。';
+    }
+    l7 += '馬券予想は ' + scored.slice(0, 3).map(function(x){ return x.no; }).join('-') + ' で入線';
     var lines = [l1, l2, l3];
     if (biasTxt) lines.push(biasTxt);
     lines.push(l4);
+    if (l5) lines.push(l5);
+    lines.push(l6);
+    lines.push(l7);
     return { lines: lines, top3: scored.slice(0, 3).map(function(x){ return x.no; }).join('-'), m: m, surf: surfKey };
   } catch(e){ return null; }
 }
@@ -41695,8 +41955,14 @@ function aiDayExportModel(){
          （記録のある馬だけ。組み立ては p105 の mokoExportNotePack・同期） */
       var hnote341 = null;
       try { if (typeof mokoExportNotePack === 'function') hnote341 = mokoExportNotePack(rows.map(function(r){ return r.name; })); } catch(e){ hnote341 = null; }
+      /* ★第349弾: 印刷用HTMLの表直後インライン表示は馬ノート・回顧とも全文を出すため、
+         回顧の上限を外したパックも束ねる（モーダル・Excel・末尾一覧が使う hnote は
+         従来どおり回顧10件上限のまま変えない） */
+      var hnoteFull349 = null;
+      try { if (typeof mokoExportNotePack === 'function') hnoteFull349 = mokoExportNotePack(rows.map(function(r){ return r.name; }), { retroCap: 0 }); } catch(e){ hnoteFull349 = null; }
       out.push({
         hnote: hnote341,
+        hnoteFull: hnoteFull349,
         /* ★第308弾: 開催場所は一覧アイテム(it.place)が空のとき予想レコードのメタ(rec.meta.place)へ
            フォールバックする（一覧側の場名が取れない取得経路だと見出しから開催場所が消えていた） */
         d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || (b.rec && b.rec.meta && b.rec.meta.place) || ''), rnum: String(it.rnum || (b.rec && b.rec.meta && b.rec.meta.rnum) || ''),
@@ -41854,14 +42120,42 @@ function aiHnote341List(model){
   });
   return s + '</div>';
 }
-/* 単体文書の末尾に足す一覧＋モーダル＋データ＋スクリプト（記録のある馬が無い文書では空） */
-function aiHnote341Tail(model){
+/* ★第349弾: 印刷用HTMLで各レースの印の表の直後に置く静的ブロック。
+   第343弾のアンカー方式（馬名タップ→末尾一覧へジャンプ）でも、オーナー実機の
+   iOS「ファイル」アプリのプレビューでは一覧まで辿れなかったための方向転換で、
+   そのレースの出走馬のうち記録のある馬だけを、馬名の見出し＋馬ノート（短評・メモ）
+   ＋回顧判定を、タップもジャンプも無しでそのまま読める形に書き出す。
+   中身は rc.hnoteFull（回顧の上限なし）を使い、馬ノート・回顧とも全文を入れる
+   （オーナー意向 2026-11-13「できれば全部見たい」。回顧は entries と total が
+   一致するので aiHnote341RetroSec の「ほか N 件」行は自然に出ない）。
+   各アイテムにはモーダル用添字の id（hnote-<添字>）を付け、馬名セルのアンカーの
+   飛び先も兼ねる。記録のある馬が1頭も居ないレースでは空。 */
+function aiHnote349Inline(model, rc){
+  var pk = (rc && (rc.hnoteFull || rc.hnote)) || null;
+  if (!pk || !pk.list || !pk.list.length) return '';
+  var s = '<div class="hn-inline"><div class="hn-inline-h">📒 馬ノート・回顧</div>';
+  pk.list.forEach(function(en){
+    var gi = -1;
+    try { if (typeof aiHnote341IdxOf === 'function') gi = aiHnote341IdxOf(model, en.name); } catch(e){ gi = -1; }
+    s += '<div class="hn-item"' + (gi >= 0 ? ' id="hnote-' + gi + '"' : '') + '><div class="hn-item-h">' + esc(en.name || '') + '</div>' +
+      aiHnote341NotesSec('📒 馬ノート', en.app) +
+      aiHnote341NotesSec('📥 馬ノート（もこ在庫）', en.supply) +
+      aiHnote341RetroSec(en.retro) +
+      '</div>';
+  });
+  return s + '</div>';
+}
+/* 単体文書の末尾に足す一覧＋モーダル＋データ＋スクリプト（記録のある馬が無い文書では空）
+   ★第349弾: 印刷用HTMLは表直後のインライン表示（aiHnote349Inline）に一本化したため、
+   末尾の一覧は opts.skipList で外す（中身の二重書き出しを避ける）。
+   Excel保存は従来どおり一覧つき。モーダル＋データ＋スクリプトはどちらも残す */
+function aiHnote341Tail(model, opts){
   var h = aiHnote341(model);
   if (!h.data.length) return '';
   var json = '';
   try { json = JSON.stringify(h.data).replace(/</g, '\\u003c'); } catch(e){ return ''; }
   if (!json) return '';
-  return aiHnote341List(model) +
+  return ((opts && opts.skipList) ? '' : aiHnote341List(model)) +
     '<div id="hnModal" class="hn-modal" style="display:none"><div class="hn-back" onclick="hnClose341()"></div>' +
     '<div class="hn-box"><div class="hn-head"><span id="hnTitle"></span>' +
     '<button type="button" class="hn-x" onclick="hnClose341()">✕ 閉じる</button></div>' +
@@ -41916,15 +42210,14 @@ function aiExportXlsHTML(model){
     if (rc.giTxt){
       h += '<tr><td colspan="12" style="text-align:left;background:#eef7ee;font-size:9.5pt;line-height:1.6">' + esc(rc.giTxt) + '</td></tr>';
     }
+    /* ★第356弾: 展開予想（実況風）の行を復活（オーナー訂正 2026-11-13：消すのは netkeiba ブロックだけ。
+       代わりに第352弾で改善した新しい展開予想を入れる。第351弾で外した行を新版で戻す形） */
     if (rc.story && rc.story.length){
       h += '<tr><td colspan="12" style="text-align:left;background:#f3f6fb;font-size:9.5pt;line-height:1.6">🔮 展開予想（実況風）　' +
         rc.story.map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
     }
-    /* ★第312弾: netkeiba AI展開予測（全頭の動き）。tenkai が無いレースでは何も出さない */
-    if (rc.tenkai && rc.tenkai.length){
-      h += '<tr><td colspan="12" style="text-align:left;background:#fdf6ec;font-size:9.5pt;line-height:1.6">🤖 netkeiba AI展開予測（全頭の動き）<br>' +
-        aiTenkaiLines(rc).map(function(ln){ return esc(ln); }).join('<br>') + '</td></tr>';
-    }
+    /* ★第353弾: netkeiba AI展開予測（全頭の動き）の行は生成物から外した（オーナー指示。第351弾で実況風を外した流れ）。
+       tenkai データの読み取りとアプリ画面側（③AI展開予測タブ等）での利用は従来どおり残す */
     h += '<tr><td colspan="12"></td></tr>';
   });
   /* ★第341弾: 馬名タップ用モーダル＋埋め込みデータ＋スクリプト（記録のある馬が無ければ空） */
@@ -41967,6 +42260,19 @@ function aiExportPdfCSS(scoped){
     P + '.muted{color:#7b8698;font-weight:400;font-size:9.5px}' +
     P + '.story{margin-top:5px;padding:5px 8px;background:#f4f6fd;border-left:3px solid #7986cb;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0}' +
     P + '.foot{color:#7b8698;font-size:9px;margin-top:6px}' +
+    /* ★第349弾: 表直後インライン表示（aiHnote349Inline）の見た目。アプリ内オーバーレイ
+       （scoped）でも本文に入るため、AI_HNOTE341_CSS（単体文書用）と同じ値を
+       こちらの共通部にも置く（単体文書では二重定義になるが同値なので無害） */
+    P + '.hn-inline{margin-top:6px}' +
+    P + '.hn-inline-h{font-weight:700;font-size:12.5px;margin:0 0 4px}' +
+    P + '.hn-item{border:1px solid #c6cfdd;border-radius:8px;padding:8px 10px;margin:0 0 8px;background:#fff;font-size:12.5px;line-height:1.65}' +
+    P + '.hn-item-h{font-weight:700;font-size:13.5px;margin-bottom:2px}' +
+    P + '.hn-h{font-weight:700;margin:10px 0 2px}' +
+    P + '.hn-n{padding:4px 0;border-bottom:1px dashed #c6cfdd}' +
+    P + '.hn-k{font-size:10.5px;background:#eef2f8;border:1px solid #b9c4d6;border-radius:8px;padding:0 6px}' +
+    P + '.hn-m{color:#7b8698;font-size:11px}' +
+    P + '.hn-w{background:#fdf1e3;color:#a05a13;border:1px solid #e3c491;border-radius:8px;padding:0 6px;font-size:10.5px}' +
+    P + '.hn-t{white-space:pre-wrap}' +
     '@media print{' + P + '.race{box-shadow:none}}';
   if (!scoped){
     /* 別タブで開いた印刷用ページ用のツールバー（印刷時は非表示） */
@@ -42053,21 +42359,23 @@ function aiExportPdfBodyHTML(model, d8){
     /* ★第303弾: giTxt/story の div を table の中に入れるとブラウザが表の外へ
        ずらして描画し、プレビュー表示が崩れることがあるため、先に table を閉じる */
     h += '</table>';
+    /* ★第349弾: 印の表の直後に、そのレースの記録のある馬の馬ノート・回顧を静的に置く
+       （スクリプトもジャンプも効かない閲覧環境でも、そのまま読める形にする） */
+    try { if (typeof aiHnote349Inline === 'function') h += aiHnote349Inline(model, rc); } catch(e){}
     if (rc.giTxt){
       h += '<div style="margin-top:5px;padding:5px 8px;background:#eef7ee;border-left:3px solid #66a26b;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0">' + esc(rc.giTxt) + '</div>';
     }
+    /* ★第356弾: 展開予想（実況風）の div を復活（オーナー訂正 2026-11-13・Excel側と同弾で統一。
+       第352弾で改善した新しい展開予想を入れる。第351弾で外した div を新版で戻す形） */
     if (rc.story && rc.story.length){
       h += '<div class="story"><b>🔮 展開予想（実況風）</b>' +
         rc.story.map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
     }
-    /* ★第312弾: netkeiba AI展開予測（全頭の動き）。tenkai が無いレースでは何も出さない */
-    if (rc.tenkai && rc.tenkai.length){
-      h += '<div class="story"><b>🤖 netkeiba AI展開予測（全頭の動き）</b>' +
-        aiTenkaiLines(rc).map(function(ln){ return '<div>' + esc(ln) + '</div>'; }).join('') + '</div>';
-    }
+    /* ★第353弾: netkeiba AI展開予測（全頭の動き）の div は生成物から外した（オーナー指示・Excel側と同弾で統一）。
+       tenkai データの読み取りとアプリ画面側（③AI展開予測タブ等）での利用は従来どおり残す */
     h += '</div>';
   });
-  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。展開予想は脚質・AI確率・ペース・バイアスからの決定的シミュレーション（乱数なし）です。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）・大型馬注意＝芝の新馬戦で馬体重500kg以上の人気馬（1〜6番人気）（★第311弾。自DB検証（新馬戦1,732R）で3着内率が中量級より約9pt低かった弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝それ以外・×落＝勝負度-0.5以下かつ調教履歴3件以上（★第313弾）。特記への追記：勝負度+1.0以上は「調教◎（重賞参考）」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記（★第302弾：過去の調教履歴が3件以上ある馬だけに出す。調教◎は今回の調教評価自体が良い馬に限る——検証で、履歴が薄い馬や弱い馬の底上げは逆効果だったため）。調教◎は重賞出走馬を母集団とした検証に基づく材料のため、全レース向けの強い材料ではなく重賞文脈での参考として扱う（★第315弾で文言格下げ）。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
+  h += '<div class="foot">勝率・連対率・複勝率はAI確率から算出（★第301弾。AI勝率をHarville式で連対・複勝に展開し、実績とのズレの補正表を適用。検証2025-26では従来の倍率換算より実績に近い。確率が無い古い予想だけ学習DB実績／倍率換算）。荒れ度は<b>軸馬（AI勝率1位）の3着内率（p3）</b>から判定（★第299弾。A=77%以上・B=69%以上・C=61%以上・D=54%以上・E=54%未満。検証2025-26ではAのレースで1番人気3着内率85.5%・3連複中央値1,670円、Eでは46.2%・9,760円。p3が測れないレースは市場オッズの偏りで判定）。<b>コースLv／レースLvは同じ出走馬の中での順位（1が最高評価・数値が小さいほど信用できる。実績不足は—）</b>。予想時点の学習DBで計算・保存した値で、結果確定後の再ランク付けは行いません。保存が無い古い予想は、レース日より前の戦績だけで再現計算します（未来の成績は使いません）。日付不明の戦績しか無い場合は従来の計算に戻します（★第105弾）。コースLv=同面×距離帯×競馬場の複勝率blend、レースLv=過去に戦ったクラス（馬券内好走を重視）。指数＝多要素評価（★第131弾・1-99点）: コア3要素(レース質+対戦馬のその後・馬場点=クッション値×含水率・コース適性)+持ちタイム・上り3F・距離適性・好走年齢・騎手・厩舎・テン・脚質・レース間隔。過去検証(19,050R)で上位3頭カバー87.6%。行並びは指数の高い順。要素が取れない馬は旧式(CL+RL)または「—」。特記の基準: <b>軸＝AI勝率1位の馬</b>（3着内率p3が65%以上見込めるレースだけ表示・★第299弾。印の◎もAI勝率1位に統一済み）・<b>高確実＝AI勝率28%以上</b>（★第300弾で一本化。検証2025-26では該当馬の3着内率79%。旧基準「学習DB実績勝率28%以上」は該当馬の3着内率27%と弱かったため廃止）・妙味＝期待値（AI勝率×オッズ）最大・穴＝市場人気順位よりAI評価順位が大きく上の馬・去勢明け2〜3戦目＝去勢後の2・3走目（自DB検証で単勝回収率117%・複勝107%）・前走上がり最速＝前走で上がり最速かつ3着以内だった馬（次走の3着内率が上がる傾向）・格下げ出走＝前走より格下のレースへの出走（★第304弾。自DB検証で人気の割に走らない傾向が繰り返し確認された弱い割引材料）・大型馬注意＝芝の新馬戦で馬体重500kg以上の人気馬（1〜6番人気）（★第311弾。自DB検証（新馬戦1,732R）で3着内率が中量級より約9pt低かった弱い割引材料）。見出しの✓◎馬券内／✗◎圏外は◎単独の厳格判定（★第99弾）。<b>調教欄（★第294弾）＝AI独自の勝負度評価（うましる・netkeibaのランクではない）。勝負度＝今回調教評価−過去平均（A=4/B=3/C=2/D=1）。◎勝負＝勝負度+1.0以上・○良＝+0.5以上・△並＝それ以外・×落＝勝負度-0.5以下かつ調教履歴3件以上（★第313弾）。特記への追記：勝負度+1.0以上は「調教◎（重賞参考）」、-0.5以下は「調教×」として過去最高勝負度との比較付きで追記（★第302弾：過去の調教履歴が3件以上ある馬だけに出す。調教◎は今回の調教評価自体が良い馬に限る——検証で、履歴が薄い馬や弱い馬の底上げは逆効果だったため）。調教◎は重賞出走馬を母集団とした検証に基づく材料のため、全レース向けの強い材料ではなく重賞文脈での参考として扱う（★第315弾で文言格下げ）。調教データ未取得の馬は「—」。</b>・<b>🔒鉄板軸＝軸馬の3着内率（AI勝率から導出・p3）が70%以上</b>（検証2025-26では該当レースの軸3着内率80.3%・★第297弾）。本紙は参考情報であり的中・配当を保証するものではありません。</div>';
   return h;
 }
 function aiExportPdfHTML(model, d8, opts){
@@ -42080,14 +42388,18 @@ function aiExportPdfHTML(model, d8, opts){
     '</style></head><body>';
   h += (opts && opts.file) ? AI_PDF_FILE_TOOLBAR_HTML : AI_PDF_TOOLBAR_HTML;
   h += aiExportPdfBodyHTML(model, d8);
-  /* ★第341弾: 馬名タップ用モーダル＋埋め込みデータ＋スクリプト（記録のある馬が無ければ空） */
-  try { if (typeof aiHnote341Tail === 'function') h += aiHnote341Tail(model); } catch(e){}
+  /* ★第341弾: 馬名タップ用モーダル＋埋め込みデータ＋スクリプト（記録のある馬が無ければ空）
+     ★第349弾: 本文に表直後のインライン表示が入ったため、末尾の一覧は付けない */
+  try { if (typeof aiHnote341Tail === 'function') h += aiHnote341Tail(model, { skipList: true }); } catch(e){}
   h += '</body></html>';
   return h;
 }
 function aiExportNeed(){
   var model = aiDayExportModel();
   if (!model.length){ aiSettleMsg('⚠ エクスポート対象がありません。①で「📥 その日の出馬表を一括取得」してから開いてください。'); return null; }
+  /* ★第350弾: 書き出し（Excel・印刷用HTML・PDF の全経路の共通入口）で現在地を
+     記録し、保存に伴う再起動でも元のタブ・スクロールへ戻れるようにする */
+  try { if (typeof khlArmResume === 'function') khlArmResume(); } catch(e){}
   return model;
 }
 /* ★第343弾: 書き出し前に、もこ在庫（馬ノート・回顧）の読み込み完了を保証する。
@@ -52007,8 +52319,16 @@ var MOKO_FLY = {};    /* name -> 進行中 Promise */
 function mokoFetch(name){
   if (MOKO_MEM[name]) return Promise.resolve(MOKO_MEM[name]);
   if (MOKO_FLY[name]) return MOKO_FLY[name];
-  var p = fetch(MOKO_BASE + name)
-    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+  /* ★統合確認(2026-11-13・オーナー承認): 供給JSONの正の置き場所は index.html と
+     同じ階層（ルート）。まずルートを読み、無ければ従来の moko_data/ へ落とす
+     （moko_data/ だけの現在のデプロイも従来どおり読める）。 */
+  var get = function(url){
+    return fetch(url)
+      .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(o){ if (o == null) throw new Error('empty'); return o; });
+  };
+  var p = get(name)
+    .catch(function(){ return get(MOKO_BASE + name); })
     .then(function(o){ MOKO_MEM[name] = o; delete MOKO_FLY[name]; return o; })
     .catch(function(){ delete MOKO_FLY[name]; return null; });
   MOKO_FLY[name] = p;
@@ -52047,7 +52367,10 @@ function mokoPackNotesOf(entry){
   if (!ns.length && !memo) return null;
   return { notes: ns, memo: memo };
 }
-function mokoExportNotePack(names){
+function mokoExportNotePack(names, opts){
+  /* ★第349弾: 回顧の上限は既定10件（従来どおり）。印刷用HTMLの表直後インライン表示は
+     全文が要るため、呼び出し側が { retroCap: 0 } を渡した時だけ上限を外す */
+  var retroCap349 = (opts && opts.retroCap != null) ? opts.retroCap : 10;
   var out = { list: [], idx: {} };
   try {
     if (!Array.isArray(names) || typeof hbNorm !== 'function') return out;
@@ -52076,7 +52399,7 @@ function mokoExportNotePack(names){
         var rec = retroDb ? mokoRetroFind(retroDb, name) : null;
         if (rec && rec.entries && rec.entries.length){
           retro = { total: rec.entries.length, watch: rec.watchCount || 0,
-            entries: rec.entries.slice(0, 10).map(function(e){
+            entries: rec.entries.slice(0, retroCap349 > 0 ? retroCap349 : rec.entries.length).map(function(e){
               return { date: e.date || '', race: e.race || '', finish: e.finish || '', verdict: e.verdict || '',
                        watch: !!e.watch, trouble: e.trouble || '', note: e.note || '', source: e.source || '' };
             }) };
@@ -52143,7 +52466,7 @@ function mokoUmanoteImport(){
   mokoHbStat('もこ在庫を読み込み中…');
   mokoFetch('moko_umanote.json').then(function(d){
     if (!d || !Array.isArray(d.horses) || !d.horses.length){
-      mokoHbStat('供給ファイル（moko_data/moko_umanote.json）が無いか空のため、馬ノートは変更しませんでした', true);
+      mokoHbStat('供給ファイル（moko_umanote.json）が無いか空のため、馬ノートは変更しませんでした', true);
       return;
     }
     if (typeof hbLoad !== 'function' || typeof hbCommit !== 'function'){
@@ -52156,7 +52479,32 @@ function mokoUmanoteImport(){
     var aNotes = d.horses.reduce(function(a, h){ return a + ((h.notes || []).length); }, 0);
     var ok = hbCommit({ horses: d.horses });
     if (!ok){
-      mokoHbStat('保存に失敗しました（保存領域不足の可能性）。馬ノートは変更されていません', true);
+      /* ★第347弾: 失敗を無言にせず、端末の保存領域の内訳（合計・必要な量・
+         いまの馬ノート・大きなデータの名前）を出して、整理の目安を示す。
+         内訳は hbCommit 失敗後（自動整理が試された後）の状態で測る。 */
+      var diag = '';
+      try {
+        if (typeof storeUse === 'function'){
+          var u = storeUse();
+          var need = 0;
+          try {
+            var pj = JSON.stringify({ horses: d.horses });
+            need = ((typeof cmpPack === 'function') ? cmpPack(pj) : pj).length * 2;
+          } catch(e){}
+          var hbNow = 0;
+          try { hbNow = String(localStorage.getItem((typeof HB_LS !== 'undefined' ? HB_LS : 'khl_horsebook_v1')) || '').length * 2; } catch(e){}
+          var tops = u.keys.slice(0, 3).map(function(x){
+            var nm = x.k;
+            try { if (typeof storeDescOf === 'function') nm = storeDescOf(x.k)[1]; } catch(e){}
+            return nm + ' ' + (x.n / 1048576).toFixed(2) + 'MB';
+          });
+          diag = ' 端末の保存領域は合計 ' + (u.bytes / 1048576).toFixed(2) + 'MB 使用中（上限の目安は約5MB）で、' +
+            'この取込には約 ' + (need / 1048576).toFixed(2) + 'MB が必要です（いまの馬ノートは約 ' + (hbNow / 1048576).toFixed(2) + 'MB）。' +
+            (tops.length ? '大きなデータ: ' + tops.join('、') + '。' : '') +
+            '①の「💾 使用量を確認」で内訳を見て、不要なデータを整理してからもう一度お試しください。';
+        }
+      } catch(e){}
+      mokoHbStat('保存に失敗しました（保存領域不足の可能性）。馬ノートは変更されていません。' + diag, true);
       return;
     }
     var msg = 'もこ在庫で馬ノートを更新しました: ' + bHorses.length + '頭 → ' + d.horses.length +
@@ -52426,7 +52774,7 @@ function mokoInit(){
       if (rs[0]) parts.push('対戦表 ' + ((rs[0].races || []).length) + '件');
       if (rs[1]) parts.push('重賞分析 ' + ((rs[1].races || []).length) + '件');
       if (rs[2]) parts.push('展開予想 ' + ((rs[2].races || []).length) + '件');
-      mokoMsgSet(parts.length ? ('供給: ' + parts.join('／')) : '供給ファイルが置かれていません（moko_data フォルダ）');
+      mokoMsgSet(parts.length ? ('供給: ' + parts.join('／')) : '供給ファイルが置かれていません（アプリと同じ階層、または moko_data フォルダ）');
     });
 }
 
@@ -52844,6 +53192,67 @@ function goTab(id){
   }
   window.scrollTo({ top:0, behavior:'smooth' });
 }
+/* ---------- ★第350弾: ファイル保存後のタブ・スクロール復帰 ----------
+   iOS の PWA では Blob ダウンロードのプレビューがアプリ画面を乗っ取り、戻ると
+   アプリが再起動して先頭タブ（t-sim）から始まってしまう（第303・312弾で共有
+   シート方式を入れたが、共有が使えない環境では Blob 保存へフォールバックし、
+   別タブ経路でも戻り時に再読込され得るため、まだ起きていた）。保存の動作自体は
+   変えず、保存の入口で現在地（タブ＋スクロール）を記録しておき、再起動が
+   「記録した起動の次の起動・5分以内」のときだけ元の場所へ戻す。通常の起動は
+   従来どおり t-sim から始まる（起動回数と鮮度の二重ガードで誤復帰しない）。 */
+var KHL_RESUME_KEY = 'khl_resume_v1', KHL_BOOTN_KEY = 'khl_bootn_v1';
+var KHL_BOOTN = 0;
+try {
+  KHL_BOOTN = (parseInt(localStorage.getItem(KHL_BOOTN_KEY) || '0', 10) || 0) + 1;
+  localStorage.setItem(KHL_BOOTN_KEY, String(KHL_BOOTN));
+} catch(e){}
+function khlArmResume(){
+  try {
+    var y = 0;
+    try { y = window.scrollY || (document.documentElement && document.documentElement.scrollTop) || 0; } catch(e){}
+    localStorage.setItem(KHL_RESUME_KEY, JSON.stringify({ tab: _curTab, y: y, at: Date.now(), boot: KHL_BOOTN }));
+  } catch(e){}
+}
+function khlTakeResume(){
+  var rec = null;
+  try {
+    var raw = localStorage.getItem(KHL_RESUME_KEY);
+    if (raw){ rec = JSON.parse(raw); localStorage.removeItem(KHL_RESUME_KEY); }
+  } catch(e){}
+  if (!rec || !rec.tab) return null;
+  if (rec.boot !== KHL_BOOTN - 1) return null;                 /* 記録した起動の次の起動だけ */
+  if (!rec.at || (Date.now() - rec.at) > 5 * 60 * 1000) return null;   /* 5分以内だけ */
+  try { if (!document.getElementById(rec.tab)) return null; } catch(e){ return null; }
+  return rec;
+}
+function khlResumeScroll(y){
+  y = parseInt(y, 10) || 0;
+  if (y <= 0) return;
+  var jump = function(){ try { window.scrollTo(0, y); } catch(e){} };
+  setTimeout(jump, 60);
+  setTimeout(jump, 500);   /* 遅延描画で縦が伸びた後の保険 */
+}
+function khlInstallResumeHooks(){
+  try {
+    if (window.__khlResumeHooked) return;
+    window.__khlResumeHooked = true;
+    /* 別タブ経路（p64 の PDF 別タブ・p27 の外部リンク）: 戻り時の再読込に備える */
+    var _open = window.open;
+    if (typeof _open === 'function'){
+      window.open = function(){ try { khlArmResume(); } catch(e){} return _open.apply(window, arguments); };
+    }
+    /* Blob ダウンロード保存は全モジュール共通で「download 属性＋blob: の
+       アンカーを click()」が引き金。そこだけを包んで記録する（通常リンクや
+       fflate 等の内部処理はアンカーを使わないので巻き込まない） */
+    if (typeof HTMLAnchorElement !== 'undefined' && HTMLAnchorElement.prototype && HTMLAnchorElement.prototype.click){
+      var _click = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function(){
+        try { if (this.download && /^blob:/.test(String(this.href || ''))) khlArmResume(); } catch(e){}
+        return _click.apply(this, arguments);
+      };
+    }
+  } catch(e){}
+}
 /* ---------- エクスポート/インポート ----------
 /* ★第339弾: 単体レースJSONの保存/読込（doExport/doImport）とヘッダーボタン配線は削除し removed_339/p10_header_buttons.js へ退避。
    バックアップ・移行は p12 の まるごと保存/読み込み が代替（作業状態は saveNow で自動保存される）。 */
@@ -52877,6 +53286,7 @@ function idleInit(name, fn){
   setTimeout(kick, 80);
 }
 function boot(){
+  khlInstallResumeHooks();   /* ★第350弾: 保存後の復帰フック（別タブ・Blob保存） */
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブの配線（★第44弾: 重い初期化は idleInit へ移動） */
   idleInit('jockeyDbInit', function(){ if (typeof jockeyDbInit === 'function') jockeyDbInit(); });
   idleInit('aiProposalInit', function(){ if (typeof aiProposalInit === 'function') aiProposalInit(); });
@@ -53020,7 +53430,10 @@ function boot(){
   var loaded = loadFromLS();
   syncRaceDomFromState(); refreshRaceLine(); rebuildHorseTable();
   var rl0 = $('urlRelayInp'); if (rl0) rl0.value = state.urlRelay || '';
-  goTab('t-sim');
+  /* ★第350弾: 保存直後の再起動なら保存前のタブ・スクロールへ復帰し、それ以外は従来どおり先頭タブ */
+  var _resume350 = khlTakeResume();
+  if (_resume350){ goTab(_resume350.tab); khlResumeScroll(_resume350.y); }
+  else goTab('t-sim');
   if (!loaded){
     var s = $('saveState'); if (s) s.textContent = '初回起動: 📋出馬表タブの日付選択で出馬表を開くか、🤖AI提案の「📥 その日の出馬表を一括取得」で試せます';
   }
