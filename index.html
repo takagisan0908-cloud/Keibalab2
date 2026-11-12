@@ -1214,7 +1214,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第324弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第329弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2995,7 +2995,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第324弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第329弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -18522,7 +18522,11 @@ function apStoredRaceList(){
         var r = db.races[ks[qi]];
         if (!r) continue;
         var rows = ((r && r.rows) || []).filter(function(x){ return x && x.order >= 1 && x.no; });
-        if (rows.length >= 3) pushRid(ks[qi], { rows: rows, payout: (r && r.payout) || null, payouts: (r && r.payouts) || null,
+        /* ★第328弾: allRows は着順なし（中止・除外・失格＝order 0）を含む全出走馬。
+           rows（着順ありだけ）の意味は従来どおり変えず、出走馬の再現が要る用途
+           （バックテストの出走馬）だけが allRows を使う。 */
+        var allRows328 = ((r && r.rows) || []).filter(function(x){ return x && x.no; });
+        if (rows.length >= 3) pushRid(ks[qi], { rows: rows, allRows: allRows328, payout: (r && r.payout) || null, payouts: (r && r.payouts) || null,
           // ★第17弾: 学習DBに保存されている日付・メタを渡す（これが無いと race_id から日付を捏造していた）
           date8: (r && (r.date8 || (r.meta && r.meta.date8))) || '', meta: (r && r.meta) || null });
       }
@@ -18534,7 +18538,8 @@ function apStoredRaceList(){
       var rec = done[di];
       if (!rec || byRid[rec.rid]) continue;
       var rows2 = (((rec.result && rec.result.rows) || [])).filter(function(x){ return x && x.order >= 1 && x.no; });
-      if (rows2.length >= 3) pushRid(rec.rid, { rows: rows2, payout: rec.result ? rec.result.payout : null, payouts: rec.result ? rec.result.payouts : null,
+      var allRows2_328 = (((rec.result && rec.result.rows) || [])).filter(function(x){ return x && x.no; });
+      if (rows2.length >= 3) pushRid(rec.rid, { rows: rows2, allRows: allRows2_328, payout: rec.result ? rec.result.payout : null, payouts: rec.result ? rec.result.payouts : null,
         date8: (rec.meta && rec.meta.date8) || '', meta: rec.meta || null });   // ★第17弾: 日付・メタを引き継ぐ
     }
   } catch(e){}
@@ -18781,6 +18786,7 @@ function bfParseDbResult(html){
   var trs = seg.split(/<tr[^>]*>/i);
   var labelIdx = null;
   var rows = [];
+  var nfRows = [];   /* ★第328弾: 競走中止・除外・失格（着順なし）の出走馬。着順ありの後ろに order=0 で残す */
   trs.forEach(function(tr){
     if (!/<t[dh]/i.test(tr)) return;
     var hasTh = /<th[^>]*>/i.test(tr);
@@ -18807,16 +18813,28 @@ function bfParseDbResult(html){
     }
     var order = parseInt(c('着順'), 10);
     var name = c('馬名');
-    if (isNaN(order) || !name) return;   // データ行のみ（取消等は着順なし）
+    if (!name) return;
+    var nf = false;
+    if (isNaN(order)){
+      /* ★第328弾: 中止・除外・失格は「出走したのに着順が付かなかった」馬で、出走取消とは違う。
+         従来は着順なしとして一律に落としていたため、取り込んだ学習DBから出走馬が欠落し、
+         そのDBから作る出馬表・バックテストの出走馬・出力表から馬が消えた
+         （実例: 2026-11-08 福島4R 障害未勝利の2頭）。order=0 で末尾に残す。
+         取消は出走していないので従来どおり落とす。 */
+      if (!/中止|除外|失格/.test(c('着順'))) return;
+      order = 0; nf = true;
+    }
     var idM = (tds[labelIdx['馬名']] || '').match(/\/horse\/([0-9a-z]{8,})\//);
-    rows.push({
+    var row328 = {
       order: order, frame: c('枠番'), no: c('馬番'), name: name, id: idM ? idM[1] : '',
       sexAge: c('性齢'), weight: c('斤量'), jockey: c('騎手'), time: c('タイム'),
       margin: c('着差'), passing: c('通過'), last3: c('上り') || c('後3F'),
       odds: c('単勝'), pop: c('人気'), weightChg: c('馬体重'), trainer: c('調教師')
-    });
+    };
+    if (nf) nfRows.push(row328); else rows.push(row328);
   });
   rows.sort(function(a, b){ return a.order - b.order; });
+  if (nfRows.length) rows = rows.concat(nfRows);
   out.rows = rows;
   out.n = rows.length;
   // 払戻金(単勝/複勝/枠連/ワイド/馬連/馬単/3連複/3連単)。結果確定後のページにのみ載る
@@ -23171,20 +23189,34 @@ function drDbConvRace(rec){
 }
 function drDbRace(rid){
   rid = String(rid || '');
+  var base = null, jv = null;
   try {
     if (typeof diLs === 'function'){
       var db = diLs();
       var rec = db && db.races && db.races[rid];
-      if (rec && rec.rows && rec.rows.length) return drDbConvRace(rec);
+      if (rec && rec.rows && rec.rows.length) base = rec;
     }
   } catch(e){}
   try {
     if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.map){
-      var jv = DBS_JV.map[rid];
-      if (jv && jv.rows && jv.rows.length) return drDbConvRace(jv);
+      var jv0 = DBS_JV.map[rid];
+      if (jv0 && jv0.rows && jv0.rows.length) jv = jv0;
     }
   } catch(e){}
-  return null;
+  if (!base && !jv) return null;
+  if (!base) return drDbConvRace(jv);
+  if (!jv) return drDbConvRace(base);
+  /* ★第328弾: 学習DB側のコピーが欠けている出走馬を、年別データ側のコピーから補う。
+     従来は学習DBにレースがあれば年別データを見なかったため、学習DBの取り込みで
+     落ちた着順なし出走馬（中止・除外等）がレースデータから丸ごと消えた
+     （実例: 2026-11-08 福島4R は学習DB 9頭／年別データ 11頭）。馬番で突き合わせ、
+     学習DB側の行を正として、無い馬番だけを末尾に足す。 */
+  var have = {};
+  (base.rows || []).forEach(function(r){ if (r && r.no != null) have[String(r.no)] = 1; });
+  var extra = (jv.rows || []).filter(function(r){ return r && r.no != null && !have[String(r.no)]; });
+  if (!extra.length) return drDbConvRace(base);
+  var merged = { rid: base.rid || rid, date8: base.date8, meta: base.meta, rows: (base.rows || []).concat(extra) };
+  return drDbConvRace(merged);
 }
 var DR_DB_HIDX = null, DR_DB_HIDX_KEY = '';
 function drDbHidx(){
@@ -33508,11 +33540,67 @@ function preOneRace(rid, d8, opt){
   });
 }
 
+/* ★第329弾: ③AI展開予測タブ用の総仕上げ。
+   一括取得の本体は「出馬表HTMLが端末に保存されているか」までしか見ておらず、
+   netkeiba のAIセクション（レース前日14時頃公開）が含まれているかは見ていなかった。
+   そのため公開前に一括取得した日は、公開後にもう一度 📥 を押しても（取り直し
+   チェックなしでは）古い出馬表がキャッシュから返り続け、③タブが全レース
+   「AIセクション無し（⛔）」のままになっていた（③側では1レースずつの🔄でしか直せない）。
+   ここでは当日の全レースについて、保存済み出馬表にAIセクションの目印
+   （aiDepParse の受理条件と同じ DevelopImg01 / PositionMapBlock）があるかを確認し、
+   無いレースだけを取得し直して、aiDepParse が読める形で保存し直す。
+   実行するのはボタンの手動フロー（preRun・opt.aiCards）のときだけ。
+   自動マクロ等の他の呼び出し元の挙動は変えない。 */
+function preCardHasAiSec(html){
+  if (!html) return false;
+  var s = String(html);
+  return s.indexOf('DevelopImg01') >= 0 || s.indexOf('PositionMapBlock') >= 0;
+}
+function preAiCardSweep(d8, items, opt, progress, result){
+  opt = opt || {};
+  var list = (items || []).map(function(it){ return String((it && (it.rid || it.id)) || ''); })
+    .filter(function(rid){ return !!rid; });
+  if (!list.length || typeof nkFetchCardText !== 'function' || typeof nkCardGet !== 'function'){
+    return Promise.resolve(result);
+  }
+  preLog(progress, '🧩 ③AI展開予測用に、出馬表のAIセクションを全 ' + list.length + ' レース確認します…');
+  var seq = Promise.resolve();
+  list.forEach(function(rid){
+    seq = seq.then(function(){
+      var cur = null;
+      try { cur = nkCardGet(rid); } catch(e){ cur = null; }
+      if (preCardHasAiSec(cur)){ result.aiHave++; return; }
+      /* カード自体が無ければ通常取得、あるが目印が無ければ強制で取り直す。
+         取得後は保存ストアから読み直して目印を確認する（③タブが読む実物で判定）。 */
+      return nkFetchCardText(rid, { d8: d8 || '', force: !!cur }).then(function(){
+        var got = null;
+        try { got = nkCardGet(rid); } catch(e){ got = null; }
+        if (preCardHasAiSec(got)){
+          result.aiGot++;
+          preLog(progress, '🧩 ' + rid + ' → AIセクション入りの出馬表を保存しました（③タブで表示できます）');
+        } else {
+          result.aiNone++;
+          preLog(progress, '・ ' + rid + ' → AIセクションはまだ入っていません（netkeibaの公開はレース前日14時頃です。公開後にもう一度押すと入ります）');
+        }
+      }).catch(function(e){
+        result.aiFail++;
+        result.errors.push(rid + '(AI用): ' + ((e && e.message) || e));
+        preLog(progress, '⚠ ' + rid + ' → AIセクション用の出馬表取得に失敗: ' + ((e && e.message) || e), true);
+      }).then(function(){ return preSleep(opt.delay || PRE_DELAY); });
+    });
+  });
+  return seq.then(function(){
+    preLog(progress, '🧩 ③AI展開予測の材料: AIセクションあり ' + (result.aiHave + result.aiGot) + ' レース' +
+      '（今回そろえた ' + result.aiGot + '）／まだ無い ' + result.aiNone + '／取得失敗 ' + result.aiFail);
+    return result;
+  });
+}
+
 /* その日の全レースを一括取得 */
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
-  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, ckN: 0, errors: [] };   /* ★第97弾: refreshed=引き直し件数 */   /* ★第295弾: ckN=調教反映頭数 */
+  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, ckN: 0, errors: [], aiHave: 0, aiGot: 0, aiNone: 0, aiFail: 0 };   /* ★第97弾: refreshed=引き直し件数 */   /* ★第295弾: ckN=調教反映頭数 */   /* ★第329弾: ai*=③AI展開予測用の総仕上げ件数 */
   var d8 = String(date8 || '').replace(/[^0-9]/g, '');
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
@@ -33597,6 +33685,11 @@ function preDayFetch(date8, opt, progress){
       });
     });
     return seq.then(function(){
+      /* ★第329弾: ボタンの手動フロー（opt.aiCards）のときだけ、③AI展開予測の材料まで総仕上げする。
+         総仕上げ自体の失敗で一括取得全体を失敗扱いにはしない。 */
+      if (!opt.aiCards) return null;
+      return preAiCardSweep(d8, items, opt, progress, result).then(function(){ return null; }, function(){ return null; });
+    }).then(function(){
       // 事前予想のスナップショットは学習DBのインデックスを変えるので作り直しておく
       try { if (typeof hfDropCache === 'function') hfDropCache(); } catch(e){}
       try { if (typeof pfSchedule === 'function') pfSchedule(); } catch(e){}
@@ -33606,7 +33699,10 @@ function preDayFetch(date8, opt, progress){
         ' / 結果確定済みでスキップ ' + result.skipDone + ' / 失敗 ' + result.fail +
         ' ／📄 出馬表は ' + result.total + ' レースぶん端末に保存済み（この日のレースはどれを選んでも通信せず即表示されます）' +
         (result.oddsN ? '（オッズ取得 ' + result.oddsN + ' レース）' : '（※オッズは発売前だと取得できないことがあります）') +
-        (result.detailN ? '（馬柱 ' + result.detailN + ' 頭）' : ''));
+        (result.detailN ? '（馬柱 ' + result.detailN + ' 頭）' : '') +
+        (opt.aiCards ? ' ／🧩 ③AI展開予測は ' + (result.aiHave + result.aiGot) + ' レースぶん表示できます' +
+          (result.aiNone ? '（AIセクション未公開など ' + result.aiNone + ' レース）' : '') +
+          (result.aiFail ? '（取得失敗 ' + result.aiFail + ' レース）' : '') : ''));
       return result;
     });
   });
@@ -33644,7 +33740,8 @@ function preRun(){
     detail: detail,
     force: force,
     forceCard: force,   /* ★第164弾: 「保存済みも取り直す」では出馬表HTMLも強制再取得（当日ぶんのカードキャッシュは終日有効のため、forceCardなしでは出馬表が更新されなかった） */
-    sbDay: true   /* ★第310弾: 📋出馬表タブの日付リストにもこの日を登録する */
+    sbDay: true,   /* ★第310弾: 📋出馬表タブの日付リストにもこの日を登録する */
+    aiCards: true   /* ★第329弾: ③AI展開予測の材料（AIセクション入り出馬表）まで総仕上げする（ボタンの手動フローだけ） */
   };
   preBusy(true);
   preMsg('');
@@ -33662,7 +33759,10 @@ function preRun(){
     var phase2 = ((res.skipHave || 0) > 0 || (res.skipDone || 0) > 0);
     var head = '✅ 一括取得 完了: 事前予想を保存 <b>' + (res.ok || 0) + '</b> レース / 保存済みスキップ ' + (res.skipHave || 0) +
       ' / 結果確定済みスキップ ' + (res.skipDone || 0) + ' / 失敗 ' + (res.fail || 0) +
-      (res.detailN ? ' / 馬柱 ' + res.detailN + ' 頭' : '');
+      (res.detailN ? ' / 馬柱 ' + res.detailN + ' 頭' : '') +
+      ' / 🧩 ③AI展開予測 ' + ((res.aiHave || 0) + (res.aiGot || 0)) + ' レース表示可能' +   /* ★第329弾 */
+        (res.aiNone ? '（AIセクション未公開など ' + res.aiNone + '）' : '') +
+        (res.aiFail ? '（取得失敗 ' + res.aiFail + '）' : '');
     var finish = function(extra){
       /* busy解除はチェーン全体が終わってから（フェーズ2の間も二重実行を防ぐ） */
       preBusy(false);
@@ -33791,7 +33891,8 @@ function preBtTargets(opt){
     list.forEach(function(x){
       try {
         if (!x || !x.rid || !x.p) return;
-        var rows = x.p.rows || [];
+        /* ★第328弾: 出走馬は着順なし（中止等）を含む allRows を優先（無ければ従来の rows） */
+        var rows = (x.p.allRows && x.p.allRows.length) ? x.p.allRows : (x.p.rows || []);
         if (rows.length < BT_MIN_ROWS) return;
         var d8 = String(x.p.date8 || (x.p.meta && x.p.meta.date8) || '').replace(/[^0-9]/g, '');
         if (!/^\d{8}$/.test(d8)) return;
@@ -33861,7 +33962,8 @@ function preBacktestOne(t){
   var m = parseInt(meta.m, 10) || 0;
   if (!m && meta.dist){ var dm = String(meta.dist).match(/(\d{3,4})/); if (dm) m = parseInt(dm[1], 10); }
   var band = m ? hfBand(m) : '';
-  var hs = preBtHorses(p.rows, d8, band);
+  /* ★第328弾: 出走馬は着順なし（中止・除外・失格）を含む allRows から再現する */
+  var hs = preBtHorses((p.allRows && p.allRows.length) ? p.allRows : p.rows, d8, band);
   if (hs.length < 2) return null;
   // レース名は apMetaCur() が日付・場・R・距離を拾える形にしておく（📚実績ファクターが正しく引けるように）
   var ymd = d8.slice(0, 4) + '年' + (parseInt(d8.slice(4, 6), 10)) + '月' + (parseInt(d8.slice(6, 8), 10)) + '日';
@@ -41374,6 +41476,10 @@ function aiDayExportModel(){
         rl: rl, giTxt: giTxt, story: (story && story.lines) ? story.lines : null, geom: geom,
         tenkai: tenkai, tenkaiHeat: tenkaiHeat,
         settled: aiIsSettled(b),
+        /* ★第328弾: バックテスト予想（preBt）から作ったレースは見出しで明示する。
+           preBt は仕様上、調教・指数内訳・Lv保存値・バイアス想定を持たない簡略版で、
+           事前予想（pre）と同じ見た目で出すと「壊れた」ように見えるため。 */
+        bt: !!(b.snap && (b.snap.synthetic || b.snap.src === 'backtest')),
         resultMap: (function(){ var m = {}; try { (b.res && b.res.rows ? b.res.rows : []).forEach(function(x){ if (x && x.no != null) m[String(x.no)] = (parseInt(x.order, 10) || 0); }); } catch(e){} return m; })()
       });
     });
@@ -41398,7 +41504,7 @@ function aiExportXlsHTML(model){
     var label = [rc.d8, (rc.place + ' ' + (rc.rnum ? rc.rnum + 'R' : '')), rc.name].filter(Boolean).join('　');
     h += '<tr class="rh">' + td(label) + '<td colspan="3" style="text-align:left">' + esc(rc.wave.key ? ('波乱度: ' + rc.wave.key + '（' + rc.wave.name + '）') : String(rc.wave.name)) + '</td>' +
       '<td colspan="4" style="text-align:left">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</td>' +
-      '<td colspan="4" style="text-align:left">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</td></tr>';
+      '<td colspan="4" style="text-align:left">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + (rc.bt ? ' ※バックテスト予想（簡略版）' : '') + '</td></tr>';
     if (rc.headline){
       h += '<tr><td colspan="12" style="text-align:left;background:#e8f5e9;font-size:10pt;font-weight:700">🎯 ' + esc(rc.headline) + '</td></tr>';
     }
@@ -41518,7 +41624,7 @@ function aiExportPdfBodyHTML(model, d8){
     h += '<div class="race"><div class="rh"><span>' + esc(label) + '</span>' +
       '<span class="wave" style="background:' + (wcol[rc.wave.key] || '#eee') + '">波乱度 ' + esc(rc.wave.key || '-') + '（' + esc(rc.wave.name) + '）</span>' +
       '<span class="wave" style="background:#ede7f6">編成: ' + esc((rc.rl && rc.rl.note) || '—') + '</span>' +
-      '<span class="muted">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + '</span></div>';
+      '<span class="muted">' + (rc.settled ? ('結果つき' + aiExportStrict(rc)) : '出走前') + (rc.bt ? ' ※バックテスト予想（簡略版）' : '') + '</span></div>';
     if (rc.headline){
       h += '<div style="margin:2px 0 4px;font-size:10px;font-weight:700;color:#1b5e20;background:#e8f5e9;padding:3px 6px;border-radius:4px">🎯 ' + esc(rc.headline) + '</div>';
     }
