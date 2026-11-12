@@ -1200,7 +1200,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第333弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第335弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1559,6 +1559,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
       <span class="small muted">※ 1日分＝数十レース。長時間かかるため、中断して分けて実行できます。</span>
     </div>
     <div id="diYearMsg" class="small" style="margin-top:6px"></div>
+    <div id="diYearFixSave" style="margin-top:4px"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
       <b class="small">🏇 渡されたデータファイルから読み込む（過去分）:</b>
       <button type="button" class="btn" id="diJvBtn">🏇 選択中の年のデータファイルを読み込む</button>
@@ -1567,6 +1568,13 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
       <span class="small muted">jravan_db_&lt;年&gt;.json（渡されたJRA-VAN成績CSVから生成・1年約3,450レース）を読み込みます。端末の学習DBへは保存せず、そのまま検索・参照に使えます。</span>
     </div>
     <div id="diJvMsg" class="small" style="margin-top:4px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <b class="small">🔍 欠落の点検と部分修復:</b>
+      <button type="button" class="btn" id="diFixBtn">🔍 学習DBの欠落を点検して埋める</button>
+      <span class="small muted">保存済みレースを年ファイルと突き合わせ、欠けた出走馬と空欄の項目（馬場・天候など）だけを埋めます。既にある値は年ファイルと違っていても上書きしません・netkeiba への通信はしません。出走取消の馬は復活させません。</span>
+    </div>
+    <div id="diFixMsg" class="small" style="margin-top:4px"></div>
+    <div id="diFixSave" style="margin-top:4px"></div>
     <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <b>🎓 タイム換算の学習（⏱前走タイムのレベルの判定基準を自動アップデート）</b>
@@ -2905,7 +2913,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第333弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第335弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -17901,6 +17909,54 @@ function apBtCount(){
   return n;
 }
 
+/* ★第334弾: apAggAddPre の差し引き版。バックテスト済みレースを「頭数が変わった」ために
+   作り直すとき（p53 preBtTargets の redo）、旧い照合結果の集計ぶんを先に差し引いてから
+   新しい結果を加算し直すためのもの。バケット自体が無い（クリア済み等）場合は何もしない。
+   加算と対になるよう、集計材料は加算時とまったく同じ marks から同じ手順で計算する。 */
+function apAggSubPre(ym, marks, key){
+  try {
+    if (!ym) return;
+    var b = apMB(ym);
+    if (!b) return;
+    var BK = (key === 'preBt') ? 'bt' : 'pre';
+    var cb = b[BK];
+    if (!cb) return;
+    var ms = (marks || []).filter(function(m){ return m && m.order >= 1; });
+    if (!ms.length) return;
+    cb.n--;
+    var winFlag = false, top3Flag = false;
+    ms.forEach(function(m){
+      cb.horseN--;
+      var o = m.order;
+      if (o === 1){ cb.horseWin--; winFlag = true; }
+      if (o <= 3){ cb.horseTop3--; top3Flag = true; }
+      var g = cb.byMark[m.mark] = cb.byMark[m.mark] || { n: 0, win: 0, top3: 0 };
+      g.n--; if (o === 1) g.win--; if (o <= 3) g.top3--;
+      var mi = (typeof m.mi === 'number' && isFinite(m.mi)) ? m.mi : 0;
+      if (m.aiRank && m.oddsRank && m.aiRank < m.oddsRank){
+        cb.boostN--; if (o <= 3) cb.boostTop3--;
+        if (o === 1) cb.boostWin--; cb.boostExp -= mi;
+      } else if (m.aiRank && m.oddsRank && m.aiRank > m.oddsRank){
+        cb.dropN--; if (o <= 3) cb.dropTop3--;
+        if (o === 1) cb.dropWin--; cb.dropExp -= mi;
+      } else {
+        cb.sameN--; if (o <= 3) cb.sameTop3--;
+        if (o === 1) cb.sameWin--; cb.sameExp -= mi;
+      }
+    });
+    if (winFlag) cb.winR--;
+    if (top3Flag) cb.top3R--;
+    var pl = apBetPlan(ms);
+    if (pl){
+      cb.costU -= 10000;
+      for (var wi = 0; wi < ms.length; wi++){
+        if (ms[wi].order === 1) cb.grossU -= pl.stakeOf(ms[wi].no) * ((ms[wi].odds > 1) ? ms[wi].odds : 0);
+      }
+    }
+    apMBSave(b);
+  } catch(e){}
+}
+
 /* 事前予想ぶんの集計（3モデルとは別に b.pre として持つ。学習パラメータは動かさない＝計測専用） */
 function apAggAddPre(ym, marks, key){
   try {
@@ -21615,7 +21671,24 @@ function diYearBuild(){
          年指定取込の完了時に勝ち時計から学習し直す処理は廃止した（旧コードは removed_324 参照）。
          基準の更新は基準タイムファイルの差し替えで行う。 */
       if (typeof dbMacroRun === 'function'){ try { dbMacroRun(); } catch(e){ diYearMsgSet('⚠ 自動検証・学習マクロでエラー: ' + (e && e.message || e), true); } }
-      if (typeof diCount === 'function'){ var cur = diCount(); diYearMsgSet('累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / 旧データを全券種払戻つきへ更新 ' + tot.upg + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'); }
+      var base = '';
+      if (typeof diCount === 'function'){ var cur = diCount(); base = '累計保存レース数: ' + cur + '（この回: 追加 ' + tot.ok + ' / 旧データを全券種払戻つきへ更新 ' + tot.upg + ' / スキップ ' + tot.dup + ' / 失敗 ' + tot.fail + '）'; }
+      diYearMsgSet(base);
+      /* ★第335弾: 取込が終わった年の分だけ、年ファイルと照合して欠落を自動で補完する
+         （第334弾の点検・修復をその年だけに絞って続けて実行。通信は年ファイルの読み込みだけ。
+           中断した場合は走らせない＝独立ボタンから後で実行できる） */
+      diFixSaveBtnSet('diYearFixSave', null);
+      if (DI_YEAR_CANCEL){ diYearMsgSet(base + ' 中断したため、欠落の照合・補完は行っていません（「🔍 学習DBの欠落を点検して埋める」から後で実行できます）。'); return; }
+      diYearMsgSet(base + ' 🔍 ' + y + ' 年の欠落を照合しています（年ファイルと突き合わせます・通信はしません）…');
+      diFixCore([String(y)], null).then(function(det){
+        if (!det){ diYearMsgSet(base + ' 欠落の照合・補完は実行できませんでした（点検が実行中か、年ファイル読み込みモジュールが未読込です）。'); return; }
+        DI_FIX_LAST = det;
+        try { diRenderStat(); } catch(e){}
+        diYearMsgSet(base + ' 🔍 ' + y + ' 年の欠落の照合・補完が終わりました: ' + diFixHeadText(det) + diFixNotesText(det));
+        diFixSaveBtnSet('diYearFixSave', det);
+      }).catch(function(e){
+        diYearMsgSet(base + ' ⚠ 欠落の照合・補完の途中で止まりました: ' + ((e && e.message) || e) + '（修復済みのレースは保存されています）', true);
+      });
     });
   });
   var stp = $('diYearStop');
@@ -21624,6 +21697,8 @@ function diYearBuild(){
   });
   /* ★第320弾→第325弾: データファイル読み込みボタン (渡されたJRA-VANのCSVから生成した年別ファイル・読み込むだけ) */
   var jvb = $('diJvBtn'); if (jvb) jvb.addEventListener('click', function(){ diJvFetchYear(); });
+  /* ★第334弾: 欠落の点検と部分修復ボタン */
+  var fxb = $('diFixBtn'); if (fxb) fxb.addEventListener('click', function(){ diFixRun(); });
   var jfb = $('diJvFileBtn'); if (jfb) jfb.addEventListener('click', function(){ var f = $('diJvFile'); if (f) f.click(); });
   var jfi = $('diJvFile'); if (jfi) jfi.addEventListener('change', function(){
     /* ★第325弾: ファイルからも「読み込むだけ」(メモリ保持・学習DBへは保存しない) */
@@ -21909,6 +21984,309 @@ function diJvFetchYear(){
       diJvMsgSet('🏇 ' + y + ' 年のデータファイルを読み込みました（新規 ' + added + ' レース・端末の学習DBへは保存しません。そのまま検索・参照に使えます）');
     }
   });
+}
+
+/* =========================================================
+   ★第334弾: 学習DBの欠落の点検と部分修復
+   ---------------------------------------------------------
+   保存済みレコードと、横に置かれた年ファイル（jravan_db_<年>.json）の同じ
+   レースを突き合わせ、欠けている部分だけを年ファイル側から補って保存し直す。
+   ・馬番ごと欠けた出走馬は行ごと足す（行の形は保存レコードの既存行にそろえ、
+     馬IDは年側の血統登録番号 jv から入れる）。
+   ・両方にいる馬は、保存側で空の項目だけを年側の値で埋める。保存側に値が
+     ある項目は年側と違っていても絶対に上書きしない（保存側には着差・ラップ・
+     払戻など年側に無い情報があるため）。払戻・追加情報(xd)には触らない。
+   ・レース単位の項目（馬場・天候・距離・グレード等）も同じ規則で埋める。
+   ・出走取消の馬は復活させない。年ファイル生成時に異常区分が落ちているため、
+     「着順なし×オッズ・人気・馬体重が全て空」の行を取消とみなして除外する
+     （元CSVで検証済み: 取消は全行がこの形・競走中止は全行にオッズと人気があり、
+      競走除外は大半に馬体重がある。馬体重の無い競走除外は保守側に倒して除外）。
+   ・年側にも値が無い欠落は直せないので件数だけ数える（取得はしない）。
+   ・修復で頭数が変わったレースの保存済みバックテスト予想(preBt)は、
+     p53 の頭数照合で未実施扱いになり、次回のバックテストで作り直される。
+   ========================================================= */
+var DI_FIX_ROW_FIELDS = ['frame', 'name', 'sexAge', 'weight', 'jockey', 'time', 'margin', 'passing', 'last3', 'odds', 'pop', 'weightChg', 'trainer'];
+var DI_FIX_META_FIELDS = ['name', 'grade', 'surface', 'dist', 'baba', 'tenko'];
+var DI_FIX_BUSY = false;
+
+function diFixEmptyV(v){
+  return v == null || (typeof v === 'string' && v.replace(/\s/g, '') === '');
+}
+/* 年側の着順なし行が出走取消かどうか（オッズ・人気・馬体重が全て空なら取消とみなす） */
+function diFixIsScratch(yr){
+  if ((parseInt(yr && yr.order, 10) || 0) !== 0) return false;
+  return diFixEmptyV(yr.odds) && diFixEmptyV(yr.pop) && diFixEmptyV(yr.weightChg);
+}
+/* 年側の行を、保存レコードの既存行と同じ形へそろえる（id は血統登録番号 jv から） */
+function diFixConvRow(yr){
+  return {
+    order: parseInt(yr.order, 10) || 0, frame: yr.frame || '', no: String(yr.no),
+    name: yr.name || '', id: String(yr.jv || yr.id || ''),
+    sexAge: yr.sexAge || '', weight: yr.weight || '', jockey: yr.jockey || '',
+    time: yr.time || '', margin: '', passing: yr.passing || '', last3: yr.last3 || '',
+    odds: (yr.odds == null ? '' : yr.odds), pop: (yr.pop == null ? '' : yr.pop),
+    weightChg: (yr.weightChg == null ? '' : yr.weightChg), trainer: yr.trainer || ''
+  };
+}
+/* 保存レコードと年側コピーを比べ、修復後のレコード（変更が無ければ null）と内訳を返す。
+   保存はしない（保存は diFixRun 側で diSet を使う）。 */
+function diFixApply(srec, yrec){
+  /* ★第335弾: fillBy（項目別の穴埋め件数）・unfixBy（項目別の直せなかった件数）・
+     addNos（追加した馬番）を内訳として残す（HTMLレポート用）。集計の意味は第334弾と不変。 */
+  var stat = { add: 0, rowFill: 0, metaFill: 0, unfix: 0, scratchSkip: 0, fillBy: {}, unfixBy: {}, addNos: [] };
+  var out = { rec: null, stat: stat };
+  function fill(key){ stat.fillBy[key] = (stat.fillBy[key] || 0) + 1; }
+  function unfix(key){ stat.unfix++; stat.unfixBy[key] = (stat.unfixBy[key] || 0) + 1; }
+  if (!srec || !yrec || !Array.isArray(srec.rows) || !Array.isArray(yrec.rows)) return out;
+  for (var i = 0; i < srec.rows.length; i++){
+    var r0 = srec.rows[i];
+    if (!r0 || typeof r0 !== 'object' || Array.isArray(r0) || r0.no == null) return out;   // 旧形式（配列行）は対象外
+  }
+  var rec = JSON.parse(JSON.stringify(srec));
+  var ymap = {};
+  yrec.rows.forEach(function(yr){ if (yr && yr.no != null) ymap[String(yr.no)] = yr; });
+  var have = {}, origNos = {};
+  rec.rows.forEach(function(r){ have[String(r.no)] = r; origNos[String(r.no)] = 1; });
+  var changed = false;
+  /* 1) 馬番ごと欠けた出走馬を行ごと足す（取消と判定した行は復活させない） */
+  yrec.rows.forEach(function(yr){
+    if (!yr || yr.no == null || have[String(yr.no)]) return;
+    if (diFixIsScratch(yr)){ stat.scratchSkip++; return; }
+    var nr = diFixConvRow(yr);
+    rec.rows.push(nr);
+    have[String(nr.no)] = nr;
+    stat.add++; stat.addNos.push(String(nr.no)); changed = true;
+  });
+  /* 2) 両方にいる馬: 保存側で空の項目だけを埋める（既存値は絶対に上書きしない） */
+  rec.rows.forEach(function(r){
+    if (!origNos[String(r.no)]) return;   // 足したばかりの行は年側そのものなので対象外
+    var yr = ymap[String(r.no)]; if (!yr) return;
+    DI_FIX_ROW_FIELDS.forEach(function(f){
+      if (diFixEmptyV(r[f])){
+        if (!diFixEmptyV(yr[f])){ r[f] = yr[f]; stat.rowFill++; fill(f); changed = true; }
+        else unfix(f);
+      }
+    });
+    if (diFixEmptyV(r.id)){
+      var yid = yr.jv || yr.id || '';
+      if (!diFixEmptyV(yid)){ r.id = String(yid); stat.rowFill++; fill('id'); changed = true; }
+      else unfix('id');
+    }
+  });
+  /* 3) レース単位の項目（馬場・天候など）も同じ規則で埋める */
+  var sm = rec.meta || {}, ym = yrec.meta || {};
+  DI_FIX_META_FIELDS.forEach(function(f){
+    var key = (f === 'name') ? 'metaName' : f;   /* 馬の name（馬名）と区別する */
+    if (diFixEmptyV(sm[f])){
+      if (!diFixEmptyV(ym[f])){ sm[f] = ym[f]; stat.metaFill++; fill(key); changed = true; }
+      else unfix(key);
+    }
+  });
+  if (diFixEmptyV(sm.m) || !(parseFloat(sm.m) > 0)){
+    if (parseFloat(ym.m) > 0){ sm.m = ym.m; stat.metaFill++; fill('m'); changed = true; }
+    else if (diFixEmptyV(sm.m)) unfix('m');
+  }
+  if (changed){
+    if (srec.meta || stat.metaFill) rec.meta = sm;
+    rec.n = rec.rows.length;
+    rec.h = diHash(rec);
+    rec.at = new Date().toISOString();
+    out.rec = rec;
+  }
+  return out;
+}
+function diFixMsgSet(t, err){
+  var e = $('diFixMsg');
+  if (e) e.innerHTML = t ? '<span' + (err ? ' style="color:var(--err-ink)"' : '') + '>' + t + '</span>' : '';
+}
+/* =========================================================
+   ★第335弾: 点検・修復の本体を「年を指定できる形（diFixCore）」に組み替え、
+   年指定取込の完了後にも、その年の分だけ自動で続けて走らせる。
+   あわせて結果を単独で開けるHTMLレポートとして保存できるようにする
+   （diFixReportHtml が生成・どちらの結果表示からも同じ保存ボタンを使う）。
+   ========================================================= */
+var DI_FIX_FIELD_LABEL = { frame: '枠番', name: '馬名', sexAge: '性齢', weight: '斤量', jockey: '騎手', time: 'タイム', margin: '着差', passing: '通過順', last3: '上がり3F', odds: '単勝オッズ', pop: '人気', weightChg: '馬体重', trainer: '調教師', id: '馬ID', metaName: 'レース名', grade: 'グレード', surface: '芝・ダート', dist: '距離表記', m: '距離（m）', baba: '馬場状態', tenko: '天候' };
+var DI_FIX_FIELD_ORDER = ['metaName', 'grade', 'surface', 'dist', 'm', 'baba', 'tenko', 'frame', 'name', 'id', 'sexAge', 'weight', 'jockey', 'trainer', 'time', 'margin', 'passing', 'last3', 'odds', 'pop', 'weightChg'];
+var DI_FIX_LAST = null;   /* 直近の点検・修復の結果（HTML保存用） */
+
+function diFixNewDetail(years){
+  return { years: years.slice(), label: (years.length === 1 ? years[0] + '年' : '全期間（' + years.join('・') + '年）'),
+    checked: 0, noYear: 0, fixed: 0, add: 0, addRaces: 0, rowFill: 0, metaFill: 0, unfix: 0,
+    scratchSkip: 0, errors: 0, fillBy: {}, unfixBy: {}, races: [] };
+}
+/* 1レースぶんの修復内容の要約文（レポートの一覧用） */
+function diFixRaceSummary(st){
+  var g = [];
+  if (st.add) g.push('欠けていた出走馬を追加: ' + st.addNos.map(function(n){ return n + '番'; }).join('・') + '（' + st.add + '頭）');
+  var fs = [];
+  DI_FIX_FIELD_ORDER.forEach(function(k){ if (st.fillBy[k]) fs.push(DI_FIX_FIELD_LABEL[k] + ' ' + st.fillBy[k] + '件'); });
+  if (fs.length) g.push('空欄の穴埋め: ' + fs.join('・'));
+  return g.join('／');
+}
+/* 点検と修復の本体: 指定した年だけ、保存済みレースを年ファイルと突き合わせる（通信は年ファイルの読み込みだけ）。
+   prog(year, det) で進捗を通知する。結果の詳細オブジェクトを返す（実行中・モジュール未読込なら null）。 */
+function diFixCore(years, prog){
+  if (DI_FIX_BUSY) return Promise.resolve(null);
+  if (typeof DBS_JV_FETCH !== 'function' || typeof DBS_JV === 'undefined') return Promise.resolve(null);
+  DI_FIX_BUSY = true;
+  var det = diFixNewDetail(years);
+  var db = diLs();
+  var races = (db && db.races) || {};
+  var rids = Object.keys(races);
+  var seq = Promise.resolve();
+  years.forEach(function(y){
+    seq = seq.then(function(){
+      if (prog) prog(y, det);
+      return DBS_JV_FETCH(y).then(function(added){
+        var yRids = rids.filter(function(rid){ return String((races[rid] && races[rid].date8) || rid).slice(0, 4) === y; });
+        if (added == null){ det.noYear += yRids.length; return; }
+        yRids.forEach(function(rid){
+          var yrec = (DBS_JV.map || {})[rid];
+          if (!yrec){ det.noYear++; return; }
+          det.checked++;
+          try {
+            var srec = races[rid];
+            var res = diFixApply(srec, yrec);
+            det.unfix += res.stat.unfix;
+            det.scratchSkip += res.stat.scratchSkip;
+            Object.keys(res.stat.fillBy).forEach(function(k){ det.fillBy[k] = (det.fillBy[k] || 0) + res.stat.fillBy[k]; });
+            Object.keys(res.stat.unfixBy).forEach(function(k){ det.unfixBy[k] = (det.unfixBy[k] || 0) + res.stat.unfixBy[k]; });
+            if (res.rec && diSet(rid, res.rec)){
+              det.fixed++;
+              det.add += res.stat.add;
+              if (res.stat.add) det.addRaces++;
+              det.rowFill += res.stat.rowFill; det.metaFill += res.stat.metaFill;
+              var sm = (res.rec && res.rec.meta) || (srec && srec.meta) || {};
+              det.races.push({ date8: String(srec.date8 || (srec.meta && srec.meta.date8) || ''), place: sm.place || '', rnum: sm.rnum || '', name: sm.name || '', summary: diFixRaceSummary(res.stat) });
+            }
+          } catch(e){ det.errors++; }
+        });
+      });
+    });
+  });
+  return seq.then(function(){
+    DI_FIX_BUSY = false;
+    det.races.sort(function(a, b){
+      if (a.date8 !== b.date8) return a.date8 < b.date8 ? -1 : 1;
+      return (parseInt(a.rnum, 10) || 0) - (parseInt(b.rnum, 10) || 0);
+    });
+    return det;
+  }).catch(function(e){
+    DI_FIX_BUSY = false;
+    throw e;
+  });
+}
+/* 結果の注記部分（取消・直せなかった欠落・点検できなかった分・エラー） */
+function diFixNotesText(det){
+  return (det.scratchSkip ? '出走取消と判定した ' + det.scratchSkip + ' 頭は復活させていません。' : '') +
+    (det.unfix ? '年ファイル側にも値が無く直せなかった欠落が ' + det.unfix + ' 件あります（取得はしていません）。' : '') +
+    (det.noYear ? '年ファイルに同じレースが無く点検できなかったレースが ' + det.noYear + ' 件あります。' : '') +
+    (det.errors ? '⚠ ' + det.errors + ' 件でエラーがあり、そのレースは元のままです。' : '');
+}
+function diFixHeadText(det){
+  return det.checked + ' レースを点検し、' + det.fixed + ' レースを修復しました（出走馬の追加 ' + det.add + ' 頭・項目の穴埋め ' + (det.rowFill + det.metaFill) + ' 件）。';
+}
+/* 点検と修復（独立ボタン）: 保存済み全レースを年ごとに突き合わせる */
+function diFixRun(){
+  if (DI_FIX_BUSY) return;
+  if (typeof DBS_JV_FETCH !== 'function' || typeof DBS_JV === 'undefined'){
+    diFixMsgSet('⚠ データファイル読み込みモジュールが読み込まれていません', true); return;
+  }
+  var btn = $('diFixBtn'); if (btn) btn.disabled = true;
+  diFixSaveBtnSet('diFixSave', null);
+  diFixMsgSet('🔍 欠落の点検を開始します（年ファイルと突き合わせます・netkeiba への通信はしません）…');
+  var db = diLs();
+  var races = (db && db.races) || {};
+  var years = {};
+  Object.keys(races).forEach(function(rid){ var y = String((races[rid] && races[rid].date8) || rid).slice(0, 4); if (/^\d{4}$/.test(y)) years[y] = 1; });
+  diFixCore(Object.keys(years).sort(), function(y, det){
+    diFixMsgSet('🔍 ' + y + ' 年を点検中…（これまで 点検 ' + det.checked + ' レース / 修復 ' + det.fixed + ' レース）');
+  }).then(function(det){
+    if (btn) btn.disabled = false;
+    if (!det){ diFixMsgSet('⚠ 点検を実行できませんでした', true); return; }
+    DI_FIX_LAST = det;
+    try { diRenderStat(); } catch(e){}
+    diFixMsgSet('✅ 点検が終わりました: ' + diFixHeadText(det) + diFixNotesText(det) +
+      '修復で頭数が変わったレースのバックテスト予想は、次回のバックテスト（実行済みスキップ）で作り直されます。');
+    diFixSaveBtnSet('diFixSave', det);
+  }).catch(function(e){
+    if (btn) btn.disabled = false;
+    diFixMsgSet('⚠ 点検の途中で止まりました: ' + ((e && e.message) || e) + '（修復済みのレースは保存されています）', true);
+  });
+}
+/* ---------- ★第335弾: 結果レポート（単独で開けるHTML）の生成と保存 ---------- */
+function diFixDateFmt(d8){
+  d8 = String(d8 || '');
+  return /^\d{8}$/.test(d8) ? d8.slice(0, 4) + '-' + d8.slice(4, 6) + '-' + d8.slice(6, 8) : d8;
+}
+function diFixFieldRows(map){
+  var h = '';
+  DI_FIX_FIELD_ORDER.forEach(function(k){ if (map[k]) h += '<tr><td>' + DI_FIX_FIELD_LABEL[k] + '</td><td class="num">' + map[k] + '</td></tr>'; });
+  return h;
+}
+function diFixReportHtml(det){
+  var now = new Date();
+  var gen = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2) + ' ' + ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+  var h = '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>学習DB 欠落の照合・補完レポート（' + esc(det.label) + '）</title>' +
+    '<style>body{margin:0;background:#f3efe6;color:#33302a;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;line-height:1.65}' +
+    '.sheet{background:#fffdf9;max-width:860px;margin:0 auto;padding:20px 16px 36px;box-shadow:0 0 12px rgba(60,50,20,.12)}' +
+    'h1{font-size:1.3rem;margin:0 0 4px}h2{font-size:1.05rem;margin:26px 0 8px;border-left:5px solid #b3964f;padding-left:8px}' +
+    '.muted{color:#7a7263;font-size:.85rem}table{width:100%;border-collapse:collapse;margin:6px 0 4px;font-size:.88rem}' +
+    'th,td{border:1px solid #ddd5bf;padding:5px 8px;text-align:left;vertical-align:top}th{background:#f3edda;font-weight:700}' +
+    'td.num,th.num{text-align:right;white-space:nowrap}.foot{margin-top:28px;border-top:1px dashed #cfc6ab;padding-top:10px;color:#7a7263;font-size:.82rem}' +
+    '</style></head><body><div class="sheet">';
+  h += '<h1>🔍 学習DB 欠落の照合・補完レポート</h1>';
+  h += '<div class="muted">対象: ' + esc(det.label) + '／生成: ' + gen + '／材料: 渡されたJRA-VANのCSVから生成した年ファイル（通信なしで照合）</div>';
+  h += '<h2>概要</h2><table>' +
+    '<tr><th>照合したレース数</th><td class="num">' + det.checked + '</td></tr>' +
+    '<tr><th>修復したレース数</th><td class="num">' + det.fixed + '</td></tr>' +
+    '<tr><th>馬番の欠落の補完（出走馬の行追加）</th><td class="num">' + det.addRaces + ' レース・' + det.add + ' 頭</td></tr>' +
+    '<tr><th>項目の穴埋め（合計）</th><td class="num">' + (det.rowFill + det.metaFill) + ' 件</td></tr>' +
+    (det.scratchSkip ? '<tr><th>出走取消と判定して復活させなかった頭数</th><td class="num">' + det.scratchSkip + ' 頭</td></tr>' : '') +
+    (det.noYear ? '<tr><th>年ファイルに同じレースが無く点検できなかったレース数</th><td class="num">' + det.noYear + '</td></tr>' : '') +
+    (det.errors ? '<tr><th>エラーで元のままのレース数</th><td class="num">' + det.errors + '</td></tr>' : '') +
+    '</table>';
+  var fr = diFixFieldRows(det.fillBy);
+  h += '<h2>項目別の補完件数</h2>' + (fr ? '<table><tr><th>項目</th><th class="num">件数</th></tr>' + fr + '</table>' : '<p>項目の穴埋めはありませんでした。</p>');
+  var ur = diFixFieldRows(det.unfixBy);
+  h += '<h2>埋められなかった欠落（年ファイル側にも値が無い分）</h2>' + (ur ? '<table><tr><th>項目</th><th class="num">件数</th></tr>' + ur + '</table>' : '<p>埋められなかった欠落はありませんでした。</p>');
+  h += '<h2>修復したレースの一覧（' + det.races.length + ' 件）</h2>';
+  if (det.races.length){
+    h += '<table><tr><th>日付</th><th>開催場</th><th>R</th><th>レース名</th><th>補った内容</th></tr>';
+    det.races.forEach(function(r){
+      h += '<tr><td style="white-space:nowrap">' + esc(diFixDateFmt(r.date8)) + '</td><td>' + esc(r.place || '') + '</td><td class="num">' + esc(r.rnum || '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.summary || '') + '</td></tr>';
+    });
+    h += '</table>';
+  } else {
+    h += '<p>修復したレースはありませんでした。</p>';
+  }
+  h += '<div class="foot">照合と補完の規則: 保存側で空の項目だけを年ファイルの値で埋め、既にある値は年ファイルと違っていても上書きしません。欠けていた出走馬は行ごと追加しますが、出走取消の馬（年側でオッズ・人気・馬体重が全て空の着順なし行）は復活させません。払戻と追加情報には触りません。この照合では通信は発生しません（年ファイルの読み込みだけ）。修復で頭数が変わったレースのバックテスト予想は、次回のバックテスト（実行済みスキップ）で作り直されます。</div>';
+  h += '</div></body></html>';
+  return h;
+}
+function diFixSaveHtml(det){
+  if (!det) return;
+  try {
+    var blob = new Blob([diFixReportHtml(det)], { type: 'text/html' });
+    var a = document.createElement('a');
+    var d = new Date();
+    a.download = 'keibalab_fix_report_' + (det.years.length === 1 ? det.years[0] : 'all') + '_' +
+      d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.html';
+    a.href = URL.createObjectURL(blob);
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e){} }, 4000);
+  } catch(e){}
+}
+/* 結果表示のそばに「結果をHTMLで保存」ボタンを出す（年指定取込側・独立ボタン側で共用） */
+function diFixSaveBtnSet(wrapId, det){
+  var w = $(wrapId); if (!w) return;
+  if (!det){ w.innerHTML = ''; return; }
+  w.innerHTML = '<button type="button" class="btn small">💾 結果をHTMLで保存</button>';
+  var b = w.querySelector ? w.querySelector('button') : null;
+  if (b) b.addEventListener('click', function(){ diFixSaveHtml(det); });
 }
 
 /* =========================================================
@@ -33418,8 +33796,15 @@ function preBtTargets(opt){
         if (typeof apScanDrop === 'function') apScanDrop();
         var haveBt = {};
         var allBt = (typeof apScan === 'function') ? (apScan() || {}) : {};
-        Object.keys(allBt).forEach(function(rid){ var r = allBt[rid]; if (r && r.preBt && r.preBtMarks) haveBt[String(rid)] = 1; });
-        out = out.filter(function(x){ return !haveBt[x.rid]; });
+        Object.keys(allBt).forEach(function(rid){ var r = allBt[rid]; if (r && r.preBt && r.preBtMarks) haveBt[String(rid)] = (r.preBt.rows && r.preBt.rows.length) || r.preBt.n || 0; });
+        /* ★第334弾: 保存済み preBt の頭数と現在の出走馬数が違うレースは「未実施」扱いにして
+           作り直しの対象へ戻す（学習DBの欠落修復で頭数が増えたレースを取りこぼさないため）。
+           redo 印を付け、preBacktestOne 側で旧い集計ぶんを差し引いてから加算し直す。 */
+        out = out.filter(function(x){
+          if (!(x.rid in haveBt)) return true;
+          if (haveBt[x.rid] !== x.n){ x.redo = true; return true; }
+          return false;
+        });
       } catch(e){}
     }
     if (opt.max && opt.max > 0 && out.length > opt.max) out = out.slice(out.length - opt.max);  // 新しい順に max 件
@@ -33464,6 +33849,16 @@ function preBtHorses(rows, d8, band){
 
 /* 1レースぶんをバックテストして rec.preBt に保存 → 結果と照合して b.bt へ集計 */
 function preBacktestOne(t){
+  /* ★第334弾: 頭数変化で作り直すレース（t.redo）は、旧い照合結果（preBtMarks）が
+     すでに b.bt へ加算済みなので、差し引き用にここで控えておく（apSnapPred で
+     preBt が新しいものに置き換わる前に取る）。 */
+  var oldBt334 = null;
+  if (t.redo){
+    try {
+      var rr334 = (typeof apGet === 'function') ? apGet(t.rid) : null;
+      if (rr334 && rr334.preBtMarks && rr334.preBtYm) oldBt334 = { ym: rr334.preBtYm, marks: rr334.preBtMarks };
+    } catch(e){}
+  }
   var p = t.p, meta = p.meta || {};
   var d8 = t.d8;
   var m = parseInt(meta.m, 10) || 0;
@@ -33506,6 +33901,8 @@ function preBacktestOne(t){
   }
   var rec = (typeof apSnapPred === 'function') ? apSnapPred(t.rid, res, mm, { bt: true }) : null;
   if (!rec || !rec.preBt) return null;
+  /* ★第334弾: 作り直しレースは、旧い集計ぶんを差し引いてから新しい結果を加算する（二重計上防止） */
+  if (oldBt334){ try { if (typeof apAggSubPre === 'function') apAggSubPre(oldBt334.ym, oldBt334.marks, 'preBt'); } catch(e){} }
   var ev = null;
   try { if (typeof apEvalBt === 'function') ev = apEvalBt(t.rid); } catch(e){}
   return {
