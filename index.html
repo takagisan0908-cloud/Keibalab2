@@ -1201,7 +1201,10 @@ details.kfold[open]>div{animation:foldIn .22s ease-out}
    要素は、その要素自身がスクローラになるため影響を受けない）。ピンチズームは残す */
 main{touch-action:pan-y pinch-zoom}
 /* ドラッグ中の隣ページ: 画面（タブバーの下）に固定して覗かせる。寸法と transform は JS が与える */
-.page.khl-peek{display:block;position:fixed;z-index:64;overflow:hidden;background:var(--bg);animation:none;box-shadow:0 0 28px rgba(0,0,0,.28)}
+.page.khl-peek{display:block;position:fixed;z-index:64;overflow:hidden;background:var(--bg);animation:none;box-shadow:0 0 28px rgba(0,0,0,.28);will-change:transform}
+/* ★第342弾: ドラッグ中の現ページ。pageIn 実行中にスワイプを始めても transform を
+   奪われないよう animation を止め、合成レイヤーに乗せて追随の再描画を抑える */
+.page.khl-drag{animation:none;will-change:transform}
 /* 吸着・復帰の滑らかさ（減速イージング） */
 .page.khl-settle{transition:transform .38s cubic-bezier(.22,.9,.26,1)}
 /* スワイプで切り替わった直後の1回だけ pageIn を止める（二重アニメーション防止） */
@@ -1239,7 +1242,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第341弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第346弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2955,7 +2958,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第341弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第346弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -23383,6 +23386,14 @@ function initNav(){
      touch-action:pan-y（p1_head.html）が捌く。
    - 停止ゲート（第336弾を維持）: KHL_MOTION=false では有効化せず、
      OS の prefers-reduced-motion でも有効化しない。
+   ★第342弾: 実機で「若干ブレる」報告への修正。
+     ・ロック時点の累積移動量を lockDx として差し引き、ページはロック位置から
+       1:1で付いてくるようにした（ロック瞬間に15〜25px飛ぶジャンプを解消）。
+       確定／フリック判定はしきい値を変えず実効移動量 ex 基準。
+     ・transform の書き込みを requestAnimationFrame に集約（最新分だけを
+       1フレームに1回。rAF が無い環境では同期書き込みにフォールバック）。
+     ・方向反転時の再 Prepare で、現ページの rect が適用中 transform の分だけ
+       ずれている問題を、適用済み移動量 ax を差し引いて基底位置に戻すよう修正。
    ========================================================= */
 var _khlSwipe = null;      /* 進行中のジェスチャ */
 var _khlSettle = null;     /* 吸着・復帰アニメーション中のジェスチャ */
@@ -23433,7 +23444,9 @@ function khlSwipePrepare(s){
   var rect = null;
   try { rect = s.curEl.getBoundingClientRect(); } catch(e){}
   var w = (rect && rect.width) ? rect.width : (window.innerWidth || 360);
-  var left = rect ? rect.left : 0;
+  /* ★第342弾: 反転時の再Prepareでは現ページに transform が付いており rect.left が
+     その分ずれている。適用済み移動量 ax を差し引いて基底位置に戻す */
+  var left = rect ? rect.left - (s.ax || 0) : 0;
   var topPx = 0;
   try {
     var nv = document.querySelector('nav.tabs');
@@ -23458,7 +23471,27 @@ function khlSwipeUnprepare(s){
     s.nbEl = null; s.nbId = '';
   }
 }
+/* ★第342弾: transform の書き込みは rAF に集約し、最新の実効移動量 ex だけを
+   1フレームに1回書く（バーストで何度も書かない）。適用済み量は s.ax に残す */
+function khlSwipeApply(s){
+  s.raf = 0;
+  s.ax = s.ex;
+  try {
+    s.curEl.style.transform = 'translateX(' + s.ex + 'px)';
+    if (s.nbEl) s.nbEl.style.transform = 'translateX(' + (s.ex + (s.dir === 1 ? s.w : -s.w)) + 'px)';
+  } catch(e){}
+}
+function khlSwipeQueue(s){
+  if (s.raf) return;
+  if (typeof requestAnimationFrame === 'function'){
+    s.raf = requestAnimationFrame(function(){ if (_khlSwipe === s) khlSwipeApply(s); });
+  } else khlSwipeApply(s);
+}
+function khlSwipeCancelRaf(s){
+  if (s && s.raf){ try { cancelAnimationFrame(s.raf); } catch(e){} s.raf = 0; }
+}
 function khlSwipeStrip(s){
+  khlSwipeCancelRaf(s);
   var nb = s.nbEl;
   if (nb){ try { nb.classList.remove('khl-settle'); } catch(e){} }
   khlSwipeUnprepare(s);
@@ -23479,7 +23512,8 @@ function khlSwipeStart(e){
   if (!curEl) return;
   var t = e.touches[0];
   _khlSwipe = { x0: t.clientX, y0: t.clientY, t0: Date.now(), locked: false, dead: false, dir: 0,
-    curEl: curEl, nbEl: null, nbId: '', w: 0, dx: 0, px: t.clientX, pt: Date.now() };
+    curEl: curEl, nbEl: null, nbId: '', w: 0, dx: 0, px: t.clientX, pt: Date.now(),
+    lockDx: 0, ex: 0, ax: 0, raf: 0 };
 }
 function khlSwipeMove(e){
   var s = _khlSwipe;
@@ -23490,24 +23524,26 @@ function khlSwipeMove(e){
     if (Math.abs(dy) > 18 && Math.abs(dy) > Math.abs(dx)){ s.dead = true; return; }
     if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.3){
       s.dir = dx < 0 ? 1 : -1;
+      /* ★第342弾: ロック時点の累積量を差し引く（ページはロック位置から動き出す） */
+      s.lockDx = dx;
       if (!khlSwipePrepare(s)){ s.dead = true; return; }
       s.locked = true;
     } else return;
   }
-  var wantDir = dx < -6 ? 1 : (dx > 6 ? -1 : s.dir);
+  var ex = dx - s.lockDx;
+  var wantDir = ex < -6 ? 1 : (ex > 6 ? -1 : s.dir);
   if (wantDir !== s.dir){
     khlSwipeUnprepare(s);
     s.dir = wantDir;
-    if (!khlSwipePrepare(s)){ s.dead = true; try { s.curEl.style.transform = ''; } catch(e){} return; }
+    if (!khlSwipePrepare(s)){ s.dead = true; khlSwipeCancelRaf(s); try { s.curEl.style.transform = ''; } catch(e){} return; }
   }
   s.dx = dx;
+  s.ex = ex;
   s.px = t.clientX; s.pt = Date.now();
-  try {
-    s.curEl.style.transform = 'translateX(' + dx + 'px)';
-    if (s.nbEl) s.nbEl.style.transform = 'translateX(' + (dx + (s.dir === 1 ? s.w : -s.w)) + 'px)';
-  } catch(e){}
+  khlSwipeQueue(s);
 }
 function khlSwipeSettle(s, commit){
+  khlSwipeCancelRaf(s);
   if (!s.nbEl || !s.curEl){ khlSwipeStrip(s); return; }
   _khlSettle = s;
   try {
@@ -23533,22 +23569,23 @@ function khlSwipeEnd(e){
   var s = _khlSwipe; _khlSwipe = null;
   if (!s) return;
   if (!s.locked || s.dead || !s.nbEl){ khlSwipeStrip(s); return; }
+  khlSwipeCancelRaf(s);
   var t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
   var dx = t ? (t.clientX - s.x0) : s.dx;
   var v = 0;
   if (t && s.pt){ var dt = Math.max(16, Date.now() - s.pt); v = (t.clientX - s.px) / dt; }
   s.dx = dx;
-  try {
-    s.curEl.style.transform = 'translateX(' + dx + 'px)';
-    s.nbEl.style.transform = 'translateX(' + (dx + (s.dir === 1 ? s.w : -s.w)) + 'px)';
-  } catch(e2){}
-  var adx = Math.abs(dx);
-  var commit = adx >= Math.min(140, s.w * 0.30) || (adx >= 44 && Math.abs(v) >= 0.4 && (v < 0) === (dx < 0));
+  /* ★第342弾: 最終位置も実効移動量 ex で書き、確定判定も ex 基準（しきい値は不変） */
+  s.ex = dx - s.lockDx;
+  khlSwipeApply(s);
+  var adx = Math.abs(s.ex);
+  var commit = adx >= Math.min(140, s.w * 0.30) || (adx >= 44 && Math.abs(v) >= 0.4 && (v < 0) === (s.ex < 0));
   khlSwipeSettle(s, commit);
 }
 function khlSwipeCancel(){
   var s = _khlSwipe; _khlSwipe = null;
   if (!s) return;
+  khlSwipeCancelRaf(s);
   if (s.locked && !s.dead && s.nbEl) khlSwipeSettle(s, false);
   else khlSwipeStrip(s);
 }
@@ -40276,7 +40313,7 @@ function aiRowsTable(rows){
   (rows || []).forEach(function(r){
     var hit = r.mark && r.order >= 1 && r.order <= 3;
     var in3 = r.order >= 1 && r.order <= 3;
-    var st = hit ? ' style="background:#c8e6c9;color:#1b5e20;font-weight:700"' : (in3 ? ' style="background:#fff8e1"' : '');
+    var st = hit ? ' style="background:var(--green3);color:var(--ok-ink);font-weight:700"' : (in3 ? ' style="background:var(--goldbg)"' : '');
     var rc = r.order ? (r.order + '着' + (r.pop ? ' <span class="muted small">(' + esc(r.pop) + ')</span>' : ''))
                      : '<span class="muted small">未確定</span>';
     h += '<tr' + st + '><td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
@@ -41715,6 +41752,12 @@ function aiHnote341IdxOf(model, name){
 /* ポップアップの見た目（生成HTML側の固定ライト配色に合わせる。印刷時は出さない） */
 var AI_HNOTE341_CSS =
   '.hn{cursor:pointer;text-decoration:underline dotted #7986cb;text-underline-offset:2px}' +
+  /* ★第343弾: アンカーでも色を変えない／末尾の一覧（スクリプト無しで読める経路）の見た目 */
+  'a.hn{color:inherit}' +
+  '.hn-list{margin-top:14px}' +
+  '.hn-list-h{font-weight:700;font-size:13px;margin:0 0 6px}' +
+  '.hn-item{border:1px solid #c6cfdd;border-radius:8px;padding:8px 10px;margin:0 0 8px;background:#fff;font-size:12.5px;line-height:1.65}' +
+  '.hn-item-h{font-weight:700;font-size:13.5px;margin-bottom:2px}' +
   '.hn-modal{position:fixed;inset:0;z-index:9999;font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif}' +
   '.hn-back{position:absolute;inset:0;background:rgba(10,15,25,.55)}' +
   '.hn-box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,560px);max-height:84vh;overflow:auto;background:#fff;color:#1c2430;border-radius:10px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:12.5px;line-height:1.65}' +
@@ -41726,7 +41769,7 @@ var AI_HNOTE341_CSS =
   '.hn-m{color:#7b8698;font-size:11px}' +
   '.hn-w{background:#fdf1e3;color:#a05a13;border:1px solid #e3c491;border-radius:8px;padding:0 6px;font-size:10.5px}' +
   '.hn-t{white-space:pre-wrap}' +
-  '@media print{.hn-modal{display:none!important}}';
+  '@media print{.hn-modal{display:none!important}.hn-list{display:none!important}}';
 /* ポップアップの挙動（生成ファイル単体で動く自己完結スクリプト） */
 var AI_HNOTE341_JS =
   '(function(){' +
@@ -41763,19 +41806,63 @@ var AI_HNOTE341_JS =
   'function close(){ var m = document.getElementById("hnModal"); if (m) m.style.display = "none"; }' +
   'document.addEventListener("click", function(ev){' +
   ' var t = ev.target;' +
-  ' while (t && t !== document){ if (t.getAttribute && t.getAttribute("data-hn") != null){ open(parseInt(t.getAttribute("data-hn"), 10)); return; } t = t.parentNode; }' +
+  /* ★第343弾: スクリプトが動く環境ではアンカーのジャンプを止めてモーダルを開く */
+  ' while (t && t !== document){ if (t.getAttribute && t.getAttribute("data-hn") != null){ if (ev.preventDefault) ev.preventDefault(); open(parseInt(t.getAttribute("data-hn"), 10)); return; } t = t.parentNode; }' +
   '});' +
   'document.addEventListener("keydown", function(ev){ if (ev.key === "Escape" || ev.keyCode === 27) close(); });' +
   'window.hnClose341 = close;' +
   '})();';
-/* 単体文書の末尾に足すモーダル＋データ＋スクリプト（記録のある馬が無い文書では空） */
+/* ★第343弾: スクリプトが動かない閲覧環境（iOS「ファイル」アプリのプレビュー等）でも
+   読める経路として、文書末尾に馬ごとのノート一覧を静的HTMLで置く。
+   馬名はこの一覧へのアンカーリンク（#hnote-<添字>）にし、モーダルはスクリプトが
+   動く環境での上乗せとして共存させる（ビューア側でジャンプを止めてモーダルを開く）。
+   中身の組み立てはビューアJSの notesSec／retroSec と同じ形・同じ上限にそろえる。 */
+function aiHnote341Kind(k){ return k === 'short' ? '📝 短評' : (k === 'adv' ? '⚖️ 有利不利' : '📌 メモ'); }
+function aiHnote341NotesSec(title, sec){
+  if (!sec) return '';
+  var h = '<div class="hn-h">' + title + '</div>';
+  (sec.notes || []).forEach(function(n){
+    h += '<div class="hn-n"><span class="hn-k">' + aiHnote341Kind(n.kind) + '</span> <span class="hn-m">' +
+      esc(n.date || '') + (n.race ? ' ' + esc(n.race) : '') + '</span><div class="hn-t">' + esc(n.text || '') + '</div></div>';
+  });
+  if (sec.memo) h += '<div class="hn-n"><span class="hn-k">📌 メモ</span><div class="hn-t">' + esc(sec.memo) + '</div></div>';
+  return h;
+}
+function aiHnote341RetroSec(rec){
+  if (!rec) return '';
+  var es = rec.entries || [];
+  var h = '<div class="hn-h">🗂 回顧判定（もこ在庫・' + rec.total + '件' + (rec.watch ? '／次走注目標記 ' + rec.watch + '件' : '') + '）</div>';
+  es.forEach(function(e){
+    h += '<div class="hn-n"><span class="hn-m">' + esc(e.date || '') + ' ' + esc(e.race || '') + (e.finish ? ' ' + esc(e.finish) : '') + '</span> <b>' +
+      esc(e.verdict || '') + '</b>' + (e.watch ? ' <span class="hn-w">次走注目</span>' : '') +
+      (e.trouble ? ' <span class="hn-m">不利: ' + esc(e.trouble) + '</span>' : '') +
+      '<div class="hn-t">' + esc(e.note || '') + '</div><div class="hn-m">' + esc(e.source || '') + '</div></div>';
+  });
+  if (rec.total > es.length) h += '<div class="hn-m">ほか ' + (rec.total - es.length) + ' 件（古い順に省略）</div>';
+  return h;
+}
+function aiHnote341List(model){
+  var h = aiHnote341(model);
+  if (!h.data.length) return '';
+  var s = '<div class="hn-list"><div class="hn-list-h">📒 馬ノート・回顧の一覧（記録のある馬だけ）</div>';
+  h.data.forEach(function(en, i){
+    s += '<div class="hn-item" id="hnote-' + i + '"><div class="hn-item-h">' + esc(en.name || '') + '</div>' +
+      aiHnote341NotesSec('📒 馬ノート', en.app) +
+      aiHnote341NotesSec('📥 馬ノート（もこ在庫）', en.supply) +
+      aiHnote341RetroSec(en.retro) +
+      '</div>';
+  });
+  return s + '</div>';
+}
+/* 単体文書の末尾に足す一覧＋モーダル＋データ＋スクリプト（記録のある馬が無い文書では空） */
 function aiHnote341Tail(model){
   var h = aiHnote341(model);
   if (!h.data.length) return '';
   var json = '';
   try { json = JSON.stringify(h.data).replace(/</g, '\\u003c'); } catch(e){ return ''; }
   if (!json) return '';
-  return '<div id="hnModal" class="hn-modal" style="display:none"><div class="hn-back" onclick="hnClose341()"></div>' +
+  return aiHnote341List(model) +
+    '<div id="hnModal" class="hn-modal" style="display:none"><div class="hn-back" onclick="hnClose341()"></div>' +
     '<div class="hn-box"><div class="hn-head"><span id="hnTitle"></span>' +
     '<button type="button" class="hn-x" onclick="hnClose341()">✕ 閉じる</button></div>' +
     '<div id="hnBody"></div></div></div>' +
@@ -41816,7 +41903,8 @@ function aiExportXlsHTML(model){
          ブラウザで開いた時は .hn の点線下線が目印になる */
       var hnIdxX341 = -1;
       try { if (typeof aiHnote341IdxOf === 'function') hnIdxX341 = aiHnote341IdxOf(model, r.name); } catch(e){ hnIdxX341 = -1; }
-      var nmX341 = (hnIdxX341 >= 0) ? ('<span class="hn" data-hn="' + hnIdxX341 + '">' + esc(r.name) + '</span>') : r.name;
+      /* ★第343弾: Excel 側も末尾一覧へのアンカーにする（リンク文字列は馬名だけ＝セル文字列は不変） */
+      var nmX341 = (hnIdxX341 >= 0) ? ('<a class="hn" href="#hnote-' + hnIdxX341 + '" data-hn="' + hnIdxX341 + '">' + esc(r.name) + '</a>') : r.name;
       h += '<tr>' + td(r.no) + td(nmX341, 'text-align:left') + td(r.mark, 'font-weight:700') +
         td(r.odds == null ? '' : Number(r.odds).toFixed(1)) + td(r.note, 'color:#b25000;font-weight:700') +
         td(aiPct1(r.wr), 'background:#fffde7') + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
@@ -41950,8 +42038,10 @@ function aiExportPdfBodyHTML(model, d8){
       /* ★第341弾: 記録のある馬だけ馬名をタップ対象にする（data-hn は aiHnote341 の添字） */
       var hnIdx341 = -1;
       try { if (typeof aiHnote341IdxOf === 'function') hnIdx341 = aiHnote341IdxOf(model, r.name); } catch(e){ hnIdx341 = -1; }
+      /* ★第343弾: 馬名は末尾一覧へのアンカーにする（スクリプト無しでも飛べる）。
+         スクリプトが動く環境では data-hn のモーダルが優先される */
       var nmCell341 = (hnIdx341 >= 0)
-        ? '<td class="nm"><span class="hn" data-hn="' + hnIdx341 + '">' + esc(r.name) + '</span> 📒</td>'
+        ? '<td class="nm"><a class="hn" href="#hnote-' + hnIdx341 + '" data-hn="' + hnIdx341 + '">' + esc(r.name) + '</a> 📒</td>'
         : '<td class="nm">' + esc(r.name) + '</td>';
       h += '<tr>' + td(r.no) + nmCell341 + td(r.mark) + td(r.odds == null ? '' : Number(r.odds).toFixed(1)) +
         td(r.note, 'note') + td(ckCell) + '<td class="wr">' + aiPct1(r.wr) + '</td>' + td(aiPct1(r.pr)) + td(aiPct1(r.sr)) +
@@ -42000,9 +42090,34 @@ function aiExportNeed(){
   if (!model.length){ aiSettleMsg('⚠ エクスポート対象がありません。①で「📥 その日の出馬表を一括取得」してから開いてください。'); return null; }
   return model;
 }
+/* ★第343弾: 書き出し前に、もこ在庫（馬ノート・回顧）の読み込み完了を保証する。
+   第341弾は aiProposalInit の先行読みが終わっている前提で、未完了のまま書き出すと
+   記録がほぼ入らず、生成HTMLでタップできる馬が1頭も出ないことがあった。
+   読み込み済みなら即実行し、未読なら読み終わってから実行する。読めなかった場合は
+   メッセージで明示する（黙って空にしない）。モデルは proceed の中で組み立てること
+   （モデル組み立て時にノートを束ねるため）。 */
+function aiExportEnsure343(proceed){
+  var loaded = false;
+  try { loaded = (typeof MOKO_MEM !== 'undefined') && !!MOKO_MEM['moko_umanote.json'] && !!MOKO_MEM['moko_retro.json']; } catch(e){}
+  if (loaded || typeof mokoEnsureNotesLoaded !== 'function'){ try { proceed(); } catch(e){} return; }
+  aiSettleMsg('📥 もこ在庫（馬ノート・回顧）を読み込んでいます…');
+  mokoEnsureNotesLoaded().then(function(st){
+    if (!st || (!st.umanote && !st.retro)){
+      aiSettleMsg('⚠ もこ在庫を読み込めなかったため、馬ノート（もこ在庫分）は書き出しに含まれていません。');
+    } else if (!st.umanote || !st.retro){
+      aiSettleMsg('⚠ もこ在庫の一部を読み込めませんでした。読み込めた分だけで書き出します。');
+    }
+    try { proceed(); } catch(e){}
+  });
+}
 function aiExportExcel(){
-  var model = aiExportNeed();
-  if (!model) return;
+  aiExportEnsure343(function(){
+    var model = aiExportNeed();
+    if (!model) return;
+    aiExportExcelNow(model);
+  });
+}
+function aiExportExcelNow(model){
   var fname = 'keiba_' + (AI_DAY_D8 || 'export') + '.xls';
   var html;
   try { html = aiExportXlsHTML(model); }
@@ -42081,8 +42196,6 @@ function aiExportHTMLDownload(model, d8){
   catch(e){ aiSettleMsg('⚠ HTML保存に失敗: ' + esc(String((e && e.message) || e))); }
 }
 function aiExportPDF(){
-  var model = aiExportNeed();
-  if (!model) return;
   var d8 = aiExportPdfD8();
   /* ★第290弾追加4:PWA/スタンドアロンモード検出。PWAでは別タブ・共有ボタン・window.print() が
      使えない（iOSの制限・実機で body置換方式もスクリーンショット方式も失敗を確認）ため、
@@ -42092,26 +42205,55 @@ function aiExportPDF(){
     isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    window.navigator.standalone === true;
   } catch(e){}
-  if (isStandalone){ aiExportHTMLDownload(model, d8); return; }
-  var html = aiExportPdfHTML(model, d8);
+  if (isStandalone){
+    /* ★第343弾: もこ在庫の読み込み完了を待ってからモデルを組み立てて保存する */
+    aiExportEnsure343(function(){
+      var model = aiExportNeed();
+      if (!model) return;
+      aiExportHTMLDownload(model, d8);
+    });
+    return;
+  }
   /* ★第290弾: iOS Safariでは iframe.contentWindow.print() が動作しないことが多い。
      iOSでは別タブに印刷用HTMLを開き、共有→プリント→PDF保存の手順を案内する。
      window.open はクリックハンドラ内から同期的に呼ぶ必要があるため、ここで直接呼ぶ。 */
   var isIOS = false;
   try { isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !window.MSStream; } catch(e){}
   if (isIOS){
-    try {
-      var w = window.open('', '_blank');
-      if (w && w.document){
-        w.document.write(html);
-        w.document.close();
-        aiSettleMsg('📄 別タブに印刷用ページを開きました。共有ボタン →「プリント」→ ピンチアウトで「PDFに保存」できます。');
-      } else {
-        aiSettleMsg('⚠ ポップアップがブロックされました。Safariの設定でこのサイトのポップアップを許可してください。');
-      }
-    } catch(e){ aiSettleMsg('⚠ PDF用ページを開けませんでした: ' + esc(String((e && e.message) || e))); }
+    /* ★第343弾: window.open はクリック直下でないとブロックされるため、もこ在庫の
+       読み込みを待つ前に空タブを開けておき、読み終わってから中身を書き込む */
+    var w = null;
+    try { w = window.open('', '_blank'); } catch(e){}
+    if (!w){
+      aiSettleMsg('⚠ ポップアップがブロックされました。Safariの設定でこのサイトのポップアップを許可してください。');
+      return;
+    }
+    aiExportEnsure343(function(){
+      var model = aiExportNeed();
+      if (!model){ try { w.close(); } catch(e){} return; }
+      var html = aiExportPdfHTML(model, d8);
+      try {
+        if (w && w.document){
+          w.document.write(html);
+          w.document.close();
+          aiSettleMsg('📄 別タブに印刷用ページを開きました。共有ボタン →「プリント」→ ピンチアウトで「PDFに保存」できます。');
+        } else {
+          aiSettleMsg('⚠ ポップアップがブロックされました。Safariの設定でこのサイトのポップアップを許可してください。');
+        }
+      } catch(e){ aiSettleMsg('⚠ PDF用ページを開けませんでした: ' + esc(String((e && e.message) || e))); }
+    });
     return;
   }
+  /* ★第343弾: デスクトップ経路も読み込み完了を待ってから印刷プレビューを作る */
+  aiExportEnsure343(function(){
+    var model = aiExportNeed();
+    if (!model) return;
+    aiExportPdfPrintNow(model, d8);
+  });
+}
+/* デスクトップ向け iframe 印刷（従来の aiExportPDF 後半。第343弾で読み込み保証の後段として分離） */
+function aiExportPdfPrintNow(model, d8){
+  var html = aiExportPdfHTML(model, d8);
   /* --- 以下、デスクトップ向け iframe 印刷（従来どおり） --- */
   /* ★第173弾: メイン文書のtitleも対象日へ一時付け替え(Firefox/Safari向け)して印刷後に戻す */
   var prevTitle = '';
@@ -43143,7 +43285,7 @@ function lkRenderDetail(rid){
     var myMark = mine[r.no] || '';
     var myCell = '<td title="クリックで ◎→○→▲→☆→△→消" style="cursor:pointer;font-weight:700;color:' + (myMark ? '#1b5e20' : '#999') +
       '" onclick="lkMarkCycle(\'' + esc(rid) + '\',\'' + esc(r.no) + '\')">' + (myMark ? esc(myMark) : '・') + '</td>';
-    var st = (r.aiMark && in3) ? ' style="background:#c8e6c9"' : (in3 ? ' style="background:#fff8e1"' : '');
+    var st = (r.aiMark && in3) ? ' style="background:var(--green3)"' : (in3 ? ' style="background:var(--goldbg)"' : '');
     h += '<tr' + st + '><td>' + esc(r.no) + '</td><td style="white-space:nowrap">' + esc(r.name) + '</td>' +
       '<td>' + aiCell + '</td>' + myCell +
       (hasManual ? '<td>' + (r.manualMark ? '<b>' + esc(r.manualMark) + '</b>' : '') + '</td>' : '') +
@@ -51888,6 +52030,14 @@ function mokoPrefetchNotes(){
   try { mokoFetch('moko_umanote.json'); } catch(e){}
   try { mokoFetch('moko_retro.json'); } catch(e){}
 }
+/* ★第343弾: 書き出し前に供給2ファイルの読み込み完了を待つための入口。
+   mokoFetch は進行中 Promise を共有するため、先行読みと二重取得にならない。
+   どちらが読めたかを返す（mokoFetch は失敗時に null を返すので例外にはならない）。 */
+function mokoEnsureNotesLoaded(){
+  return Promise.all([ mokoFetch('moko_umanote.json'), mokoFetch('moko_retro.json') ])
+    .then(function(r){ return { umanote: !!r[0], retro: !!r[1] }; })
+    .catch(function(){ return { umanote: false, retro: false }; });
+}
 function mokoPackNotesOf(entry){
   if (!entry) return null;
   var ns = (entry.notes || []).slice().sort(function(a, b){ return String(b.ts || '').localeCompare(String(a.ts || '')); })
@@ -52285,7 +52435,7 @@ function mokoInit(){
 ---------------------------------------------------------
 もこの内容評価レイヤー（付け直し）のうち、そのまま規則にできる
 ものを、エンジン出力の上に重なる評価レイヤーとして AI提案タブの
-レース表示（aiRaceBlock）へ「🐴 もこの見立て」欄で出す。
+レース表示（aiRaceBlock）へ「🐴 もこのルール補正」欄で出す。
 エンジンの確率・印そのものは一切変えない（表示専用の重ね合わせ）。
 元のエンジン印は各行に併記し、効いた規則と理由を馬ごとに追える。
 
@@ -52314,6 +52464,14 @@ function mokoInit(){
      単独では格下げにせず、2つ重なった時だけ R1 の格下げ材料になる。
  R24 前走大敗の制約: 前走6着以下は「単独では格下げ材料にしない」
      材料として分けて出し、格下げの材料数には数えない。
+
+★第344弾: 見出しを「🐴 もこの見立て」から「🐴 もこのルール補正」へ
+変更し、ルール分だけの自動の付け直しである旨の注記を追加（中身は
+もこの実際の印の全部ではない。オーナー指摘・承認 2026-11-13）。
+あわせて欄の見た目をテーマ変数で完結させた: 欄全体に var(--tint)
+の背景と var(--ink) の文字色、格下げ行に var(--goldbg)、追加行に
+var(--green3) を明示し、未定義変数 var(--muted) の使用をやめた。
+規則の計算は第340弾から一切変えていない。
 ========================================================= */
 
 var MOKO_SEQ = ['◎', '○', '▲', '△', '☆', '注'];
@@ -52536,12 +52694,13 @@ function mokoLayerHTML(b){
   try {
     var M = mokoLayerFor(b);
     if (!M) return '';
-    var h = '<div style="margin-top:8px;border-top:1px dashed var(--line2,#b9c4b4);padding-top:6px">';
-    h += '<div><b>🐴 もこの見立て</b> <span class="muted small">エンジン印に重ねる評価（確率・印そのものは変えていません）</span></div>';
+    var h = '<div style="margin-top:8px;background:var(--tint);border:1px solid var(--line2);border-radius:8px;padding:6px 8px;color:var(--ink)">';
+    h += '<div><b>🐴 もこのルール補正</b> <span class="muted small">エンジン印に重ねる評価（確率・印そのものは変えていません）</span></div>';
+    h += '<div class="muted small" style="margin-top:2px">これはルールにできた分だけの自動の付け直しです。もこの本当の印は予想ボードと当日の報告の方に出します。</div>';
     /* R18: 朝版ゲート */
     if (M.gate){
       var g = M.gate, col = (g.kind === 'strong' || g.kind === 'axis') ? 'var(--ok-ink)'
-        : (g.kind === 'exc') ? 'var(--warn-ink)' : 'var(--muted,#777)';
+        : (g.kind === 'exc') ? 'var(--warn-ink)' : 'var(--mut)';
       h += '<div class="small" style="margin-top:3px">軸の目安（朝時点）: <b style="color:' + col + '">' + mokoEsc(g.label) + '</b>';
       if (M.axis){
         h += '　◎ ' + mokoEsc(M.axis.no) + '番 ' + mokoEsc(M.axis.name) +
@@ -52565,7 +52724,10 @@ function mokoLayerHTML(b){
     }
     /* 馬ごとの効いた規則（R25 の序列順） */
     M.entries.forEach(function(e){
-      h += '<div class="small" style="margin-top:2px">';
+      var rowSt = 'margin-top:2px';
+      if (e.changed === 'down') rowSt += ';background:var(--goldbg);border-radius:6px;padding:2px 6px';
+      else if (e.changed === 'add') rowSt += ';background:var(--green3);border-radius:6px;padding:2px 6px';
+      h += '<div class="small" style="' + rowSt + '">';
       if (e.changed === 'down'){
         h += '<b>' + mokoEsc(e.mokoMark) + '</b> ' + mokoEsc(e.no) + '番 ' + mokoEsc(e.name) +
              ' <span class="muted">元の印 ' + mokoEsc(e.engMark) + ' から格下げ</span>: ' + mokoEsc(e.reasons.join('／'));
