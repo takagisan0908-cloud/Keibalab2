@@ -1231,7 +1231,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第336弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第337弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1437,6 +1437,8 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px">
         <button type="button" class="btn ghost" id="btnHbBackup" title="全馬ノートをJSONで出力（別端末への移行用）">出力(JSON)</button>
         <button type="button" class="btn ghost" id="btnHbRestore" title="出力したJSONを貼り付けて復元">復元</button>
+        <button type="button" class="btn ghost" id="btnHbMoko" title="もこ在庫（moko_data/moko_umanote.json）を正本として、保存済みの馬ノートを置き換えます（重複防止のリセット取込。アプリ内で書いた未書き出しのメモも置き換わるので注意）">📥 もこ在庫で更新</button>
+        <span class="small muted" id="hbMokoStat"></span>
         <span class="small muted">一覧は枠内でスクロールします（登録が増えてもページは伸びません）</span>
       </div>
       <div id="hbSum" class="small" style="font-weight:700;color:var(--ok-ink);margin:2px 0 8px"></div>
@@ -1987,25 +1989,25 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 
     </div>
   </details>
-  <!-- ===== ★第114弾: ⚔️ 対戦表（重賞のみ・jradb.com） — 第114弾②で🤖AI提案タブへ移設+表のつぶれ修正 ===== -->
-  <div class="card" id="jrdbCard" style="border-color:var(--line2)">
+  <!-- ===== ★第337弾: 🐴 もこのデータ（対戦表・重賞分析・展開予想） — 旧⚔️対戦表（第114弾・jradb.com取得）は削除し、もこの対戦表（moko_data供給）に置き換え ===== -->
+  <div class="card" id="mokoCard" style="border-color:var(--line2)">
     <div class="cardhead">
-      <h2>⚔️ 対戦表（重賞のみ・jradb.com）</h2>
-      <span class="chip">出走各馬×直近10走</span>
+      <h2>🐴 もこのデータ（対戦表・重賞分析・展開予想）</h2>
+      <span class="chip">もこ在庫の供給</span>
       <span class="sp"></span>
-      <span class="small muted">印刷ダイアログで「PDFに保存」</span>
+      <span class="small muted">index.html と同じ場所の moko_data フォルダから読みます</span>
     </div>
     <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:6px">
-      <b>jradb.com</b> の当年の重賞からレース名を選んで押すと、出走馬の対戦表（過去に顔を合わせたレースごとの着順・着差・人気・通過・タイム・騎手）を取得して表示し、A4横PDFに出せます。取得・表示・PDF出力だけで、予想エンジン・学習DB・印には影響しません。
+      もこ（予想運用側）が集めた在庫を表示します。対戦表は、アプリ側の旧対戦表（jradb.com から取得する方式）を廃止し、もこの対戦表（直接対戦・橋渡し・前走レベル）に置き換えたものです。重賞分析は数字を自前DBで再計算した記事のまとめと考察、展開予想は金曜の重賞準備で作る見立てです。供給ファイルが無い項目は「データなし」と表示されます。表示だけで、予想エンジン・学習DB・印には影響しません。
     </div></details>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">
-      <select id="jrdbRace" style="flex:1;min-width:260px;font-size:.9rem;padding:3px 6px"></select>
-      <button type="button" class="btn primary" id="jrdbGet">⚔️ 対戦表出力（重賞のみ）</button>
-      <button type="button" class="btn" id="jrdbPdf" disabled title="印刷ダイアログを開きます。「PDFに保存」で保存してください">🖨 PDFに出す</button>
-      <button type="button" class="btn ghost" id="jrdbReload" title="レース一覧のキャッシュを捨てて jradb.com から取り直します">↻ 一覧を再取得</button>
+      <select id="mokoRaceSel" style="flex:1;min-width:260px;font-size:.9rem;padding:3px 6px"></select>
+      <button type="button" class="btn primary" data-mokokind="taisen">⚔️ 対戦表</button>
+      <button type="button" class="btn" data-mokokind="graded">📊 重賞分析・考察</button>
+      <button type="button" class="btn" data-mokokind="tenkai">🔮 展開予想</button>
     </div>
-    <div id="jrdbMsg" class="small" style="color:var(--ok-ink);margin:2px 0 4px"></div>
-    <div id="jrdbOut" class="small"></div>
+    <div id="mokoMsg" class="small" style="color:var(--ok-ink);margin:2px 0 4px"></div>
+    <div id="mokoOut" class="small"></div>
   </div>
 
   <div id="aipropBody"></div>
@@ -2944,7 +2946,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第336弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第337弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -15251,8 +15253,14 @@ function hbViewModal(eid){
     '</div>' +
     (notes.length ? notes.map(hbNoteItemHTML).join('') : '<div class="small muted">メモはまだありません。</div>') +
     (e.memo && e.memo.trim() ? '<div style="margin-top:8px;border-top:1px dashed var(--line2);padding-top:6px"><b>📓 自由メモ</b><div style="white-space:pre-wrap;margin-top:2px">' + esc(e.memo) + '</div></div>' : '') +
+    '<div data-hbretro="' + esc(name) + '"></div>' +
     '<div style="text-align:right;margin-top:12px"><button type="button" class="btn ghost" data-mcl>閉じる</button></div>';
   showModal(html, function(root){
+    /* ★第337弾: 回顧判定（もこ在庫）を差し込む（供給が無ければ空のまま） */
+    if (typeof mokoFillRetro === 'function'){
+      var rel = root.querySelector('[data-hbretro]');
+      if (rel) mokoFillRetro(rel, name);
+    }
     var cl = root.querySelector('[data-mcl]');
     if (cl) cl.addEventListener('click', closeModal);
     var page = root.querySelector('[data-hbpage]');
@@ -45422,519 +45430,6 @@ function ppInit(){
   try { syncPPControls(ppLoad()); } catch(e){}
 }
 
-/* p89_jradb.js — ★第114弾: ⚔️ 対戦表（重賞のみ・jradb.com 当年の重賞）
-   ---------------------------------------------------------------
-   ユーザー依頼: 「AI提案タブに対戦表出力ボタンをつけて(重賞のみ)。レース名を
-   プルダウンで選んで、その年のそのレースの対戦表を出力したい」
-   ★第114弾④(2026-09-28): ユーザー指摘「これって馬柱じゃない？ほしいのは対戦表」→
-     取得先を /race/{id}/card/ （出馬表＝各馬の過去10走＝馬柱）から
-     /race/{id}/card/match/ （出走馬対戦表＝行が出走馬・列が「このメンバーが
-     過去に顔を合わせた共通レース」のクロステーブル）に変更。
-     セル=その馬の着順(着差)/人気/馬番/通過/タイム(上がり)/騎手/斤量・不参戦は空。
-     旧カード(馬柱)パーサ jrdbParseCard/jrdbParseRunCell は廃止。
-   ★第114弾⑧(2026-09-29): ユーザー依頼「横の馬番と馬名を固定してスライドしても
-     わかるようにしたい。PDFだと無理?」→ 印刷PDFは各ブロックに馬名列が付くため元々OK。
-     ブラウザで開く場合(PDFのHTML・サンプル)は @media screen 限定で馬名列(横)と
-     レース名ヘッダ行(縦)をsticky固定（印刷レイアウトには一切影響しない）。
-     アプリの画面表示は第114弾④から既に馬名列sticky済み。
-   ★第114弾⑦(2026-09-29): ユーザー指摘「1着のところが2着との着差しか表示されてない。
-     本家は騎手名・着差・人気・馬番・通過・ゴールタイム・上がり3F・騎手・斤量が載っている」→
-     ①パーサバグ修正: 1着セルの着差は (-0.2) の【マイナス表記】で、旧正規表現は
-     マイナス不可 → (-0.2) が騎手名に誤パースされ他項目が全部落ちていた。
-     ②表示に馬番(uno)を追加（本家と同じ 馬番+通過 の行）。PDFは4行構成
-     （着順(着差)人気／馬番 通過／タイム(上がり)／騎手 斤量）+紧凑フォントで1ブロック1頁維持。
-   ★第114弾⑤(2026-09-29): ユーザー指摘「だめそう?」→ ローカルの index.html 単体で
-     開いた場合、中継(/api/race)が存在せず・jradb.com はCORS不許可のため直接取得も
-     失敗し、レース一覧すら取れない状態だった。→ 通信を【中継→公開プロキシ2種→直接】
-     の多段フォールバックに強化（r.jina.ai は x-respond-with:html で生HTML・Origin反映
-     でCORS許可・api.cors.lol はレート制限ありの予備）。両プロキシともオリジナルHTMLと
-     バイト同等（差分=CSSのキャッシュ番号のみ）でパーサ結果も完全一致を検証済み。
-   ★第114弾②(2026-09-28): ①表のつぶれ修正（画面=グローバルCSS table{max-width:100%}
-     で11列がカード幅に圧縮され途中改行だらけ→横スクロール+nowrapで解消。
-     PDF=馬名セルのnowrapで父名が右端で切れた+着順行が折り返す→3行構成+各行nowrap）。
-     ②カードを⑥重賞タブ→🤖AI提案タブへ移設。主ボタン=「⚔️ 対戦表出力（重賞のみ）」。
-   ★第114弾③(2026-09-28): ユーザー指摘「潰れは直ったが肝心の文字が見られない」→
-     ②のoverflow:hidden（はみ出し隠し）が原因。**隠す方式を全面廃止**し、
-     「span.nw=それ以上折れない最小単位（レース名/格/着順(人気)/通過/タイム）」で
-     組み、**単語の途中だけ絶対折らない・端は絶対切らない**方式に変更。
-     PDFには画面プレビュー用に@media screen{table{min-width:980px}+横スクロール}を追加
-     （印刷時は適用外・A4横レイアウトは不変）。画面表はmin-width:1500pxを外して
-     列幅を内容に自動フィットさせた（nowrap+autoレイアウトで圧縮・折返しは起きない）。
-
-   ・レース一覧   https://jradb.com/race/   （当年の重賞スケジュール・2テーブル）
-   ・対戦表データ https://jradb.com/race/{id}/card/ （出馬表: 枠・馬番・馬名・騎手 + 1走前〜10走前）
-   ・通信は netkeiba と同じ中継(リレー)机制を流用（nkRelayCandidates/nkRelayBuild/nkFetchTimeout）
-   ・取得した一覧・カードは localStorage(khl_jrdb_v1) にキャッシュ（一覧6時間・カード24時間）
-   ・PDFは既存の🖨出力と同じ「印刷ダイアログでPDFに保存」方式（非表示iframe+print）
-   ・パーサは純関数（DOM非依存）なので tests/mk114.test.js でフィクスチャ検査できる
-   ※本機能は取得・表示・PDF出力だけ。予想エンジン・学習DB・印・総合点には一切影響しない。 */
-'use strict';
-
-/* ===== localStorage キャッシュ ===== */
-var JRDB_LS = 'khl_jrdb_v2';   /* ★第114弾④: 対戦表データで形式が変わったのでv1から更新 */
-var JRDB_TTL_LIST = 6 * 3600 * 1000;     // レース一覧: 6時間
-var JRDB_TTL_CARD = 24 * 3600 * 1000;    // 対戦表(カード): 24時間
-function jrdbLs(){
-  try {
-    var o = JSON.parse(localStorage.getItem(JRDB_LS) || 'null');
-    if (!o || typeof o !== 'object') o = {};
-    if (!o.list || typeof o.list !== 'object') o.list = null;
-    if (!o.cards || typeof o.cards !== 'object') o.cards = {};
-    return o;
-  } catch(e){ return { list: null, cards: {} }; }
-}
-function jrdbLsSave(o){
-  try { localStorage.setItem(JRDB_LS, JSON.stringify(o)); } catch(e){}
-}
-function jrdbListCached(){
-  var o = jrdbLs();
-  if (o.list && o.list.races && o.list.races.length && (Date.now() - (o.list.t || 0)) < JRDB_TTL_LIST) return o.list.races;
-  return null;
-}
-function jrdbListSet(races){
-  var o = jrdbLs(); o.list = { t: Date.now(), races: races }; jrdbLsSave(o);
-}
-function jrdbCardCached(id){
-  var o = jrdbLs();
-  var c = o.cards && o.cards[String(id)];
-  if (c && c.data && (Date.now() - (c.t || 0)) < JRDB_TTL_CARD) return c.data;
-  return null;
-}
-function jrdbCardSet(id, data){
-  var o = jrdbLs();
-  if (!o.cards) o.cards = {};
-  o.cards[String(id)] = { t: Date.now(), data: data };
-  /* 保険: 40レースを超えたら古いものから落とす */
-  var ks = Object.keys(o.cards);
-  if (ks.length > 40){
-    ks.sort(function(a, b){ return (o.cards[a].t || 0) - (o.cards[b].t || 0); });
-    while (ks.length > 40){ delete o.cards[ks.shift()]; }
-  }
-  jrdbLsSave(o);
-}
-
-/* ===== 通信（★第114弾⑤: 中継→公開プロキシ→直接 の多段フォールバック） =====
-   jradb.com は Access-Control-Allow-Origin を返さないため、ブラウザからの直接
-   取得は CORS で失敗する。そこで:
-     ① netkeiba と同じ中継(リレー) = 設定した中継 または /api/race（api/race.js を
-        同梱してデプロイしていれば動く・Vercel/Cloudflare Pages/Netlify）
-     ② 公開プロキシ r.jina.ai（x-respond-with: html で生HTMLを返す・Origin を
-        反映してCORSを許可・無料枠あり）
-     ③ 公開プロキシ api.cors.lol（高速だがレート制限が厳しめ・予備）
-     ④ 直接取得（jradb.com がCORSを許可した場合のみ成功）
-   実測(2026-09-29): ②③ともオリジナルとバイト同等（差分=CSSのキャッシュ番号のみ）・
-   jrdbParseMatch の結果も完全一致（16頭×13R・結果セル48・セル内容一致）。 */
-function jrdbFetchAny(url, ms, hdrs){
-  return new Promise(function(res, rej){
-    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, ms || 15000);
-    try {
-      fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store',
-        headers: hdrs || { 'Accept': 'text/html,*/*' } })
-      .then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(function(t){ res(t); })
-      .catch(function(e){ clearTimeout(timer); rej(e); });
-    } catch(e){ clearTimeout(timer); rej(e); }
-  });
-}
-function jrdbFetchHtml(url){
-  return new Promise(function(res, rej){
-    var steps = [];
-    (typeof nkRelayCandidates === 'function' ? nkRelayCandidates() : []).forEach(function(b){
-      var u = (typeof nkRelayBuild === 'function') ? nkRelayBuild(b, url)
-        : (b + (b.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url));
-      steps.push({ u: u, h: { 'Accept': 'text/html,*/*' }, n: '中継' });
-    });
-    steps.push({ u: 'https://r.jina.ai/' + url, h: { 'Accept': 'text/html,*/*', 'x-respond-with': 'html' }, n: 'jina' });
-    steps.push({ u: 'https://api.cors.lol/?url=' + encodeURIComponent(url), h: { 'Accept': 'text/html,*/*' }, n: 'cors.lol' });
-    var direct = false, lastErr = null, i = 0;
-    var tryNext = function(){
-      if (i >= steps.length){
-        if (!direct){
-          direct = true;
-          jrdbFetchAny(url, 15000, { 'Accept': 'text/html' }).then(res).catch(function(e){
-            rej(new Error('中継・公開プロキシ・直接取得のすべてに失敗しました' + (e ? '（' + e.message + '）' : '') + '。↻一覧を再取得してみるか、api/race.js 同梱のデプロイ（Vercel等）からお使いください'));
-          });
-          return;
-        }
-        rej(new Error('取得に失敗しました'));
-        return;
-      }
-      var st = steps[i++];
-      jrdbFetchAny(st.u, 20000, st.h).then(function(t){
-        if (!t || t.length < 300){ lastErr = new Error(st.n + ' の応答が空'); tryNext(); return; }
-        res(t);
-      }).catch(function(e){ lastErr = e; tryNext(); });
-    };
-    tryNext();
-  });
-}
-
-/* ===== パーサ①: 当年の重賞スケジュール =====
-   戻り値: [{ id, name, short, date, grade, venue, surf, m, sex }]（日付順・date無効行は除外） */
-function jrdbParseRaceList(html){
-  var out = [];
-  try {
-    var txt = String(html || '');
-    var rows = txt.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) || [];
-    rows.forEach(function(r){
-      var mId = r.match(/href="(?:https:\/\/jradb\.com\/)?race\/(\d+)\/"/);
-      if (!mId) return;
-      var md = r.match(/>\s*(\d{4})\/(\d{2})\/(\d{2})\s*</);
-      if (!md) return;                                     /* 日付未定(-0001)の行は除外 */
-      var links = r.match(/<a[^>]*href="[^"]*race\/\d+\/"[^>]*>\s*([^<]*?)\s*<\/a>/g) || [];
-      var names = links.map(function(a){ return a.replace(/<[^>]*>/g, '').trim(); }).filter(Boolean);
-      if (!names.length) return;
-      var tds = (r.match(/<td[^>]*>[\s\S]*?<\/td>/g) || []).map(function(t){ return t.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); });
-      var grade = tds[3] || '', venue = tds[4] || '', distTxt = tds[5] || '', sex = tds[6] || '';
-      var dm = distTxt.match(/(芝|ダ|障)\s*(\d{3,4})m/);
-      var date = md[1] + '/' + md[2] + '/' + md[3];
-      out.push({
-        id: mId[1], name: names[0], short: names[names.length - 1],
-        date: date, d8: md[1] + md[2] + md[3],
-        grade: grade, venue: venue,
-        surf: dm ? dm[1] : '', m: dm ? parseInt(dm[2], 10) : 0, sex: sex
-      });
-    });
-    out.sort(function(a, b){ return a.d8 < b.d8 ? -1 : (a.d8 > b.d8 ? 1 : 0); });
-    /* 同一レースの重複(同名で複数回施行された年など)は id+date で一意化 */
-    var seen = {}, uniq = [];
-    out.forEach(function(x){ var k = x.id + '|' + x.date; if (!seen[k]){ seen[k] = 1; uniq.push(x); } });
-    return uniq;
-  } catch(e){ return []; }
-}
-
-/* ===== パーサ②: 出走馬対戦表（/race/{id}/card/match/） =====
-   ページ構造: 対戦表テーブルが複数枚（同じ馬行でレース列を8列ごとに分割表示）。
-   ヘッダ行(th): 枠番/馬番/馬名/騎手 + レース列（span順序=レース名/格/月日/天候/頭数/
-     場/芝ダ/距離/馬場/勝馬名）。
-   馬行(td): 枠番/馬番/馬名セル(p×4=馬名/父:/母:/(母父))/騎手セル(性齢/斤量/騎手) +
-     レース列(td class="rank*"=着順付き / class="rank"+clear 99=不参戦)。
-   戻り値: { title, races: [race], horses: [{ waku,no,name,sire,dam,damsire,sex,age,hcap,jockey, cells: [cell|null] }] }
-   race = { name, cls, date, wx, n, venue, surf, m, baba, winner }
-   cell = { ord, margin, popRank, uno, passing, time, agari, jockey, hcap } | { note } */
-function jrdbStrip(s){ return String(s == null ? '' : s).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim(); }
-function jrdbSpans(x){ return (String(x || '').match(/<span[^>]*>([\s\S]*?)<\/span>/g) || []).map(jrdbStrip).filter(Boolean); }
-function jrdbParseMatchRace(th){
-  var sp = jrdbSpans(th);
-  if (!sp.length) return null;                         /* 空の見出し列はスキップ */
-  /* 日付 (m/d) の位置から前=レース名+格・後=条件を探す（欠損フィールドに頑健） */
-  var di = -1;
-  for (var i = 1; i < sp.length; i++){ if (/^\d{1,2}\/\d{1,2}$/.test(sp[i])){ di = i; break; } }
-  if (di < 0) return null;
-  var r = { name: sp[0], cls: sp.slice(1, di).join(''), date: sp[di], wx: '', n: 0, venue: '', surf: '', m: 0, baba: '', winner: '' };
-  var rest = sp.slice(di + 1), k = 0;
-  if (rest[k] && !/^\d+頭$/.test(rest[k])) r.wx = rest[k++];
-  if (rest[k] && /^\d+頭$/.test(rest[k])) r.n = parseInt(rest[k++], 10) || 0;
-  if (rest[k]) r.venue = rest[k++];
-  if (rest[k] && /^(芝|ダ|障)$/.test(rest[k])) r.surf = rest[k++];
-  if (rest[k] && /^\d{3,4}$/.test(rest[k])) r.m = parseInt(rest[k++], 10) || 0;
-  if (rest[k] && /^(良|稍|稍重|重|不|不良)$/.test(rest[k])) r.baba = rest[k++];
-  r.winner = rest.slice(k).join(' ');
-  return r;
-}
-function jrdbParseMatchCell(td){
-  if (!td || td.indexOf('clear') >= 0) return null;    /* 不参戦 (99) */
-  var sp = jrdbSpans(td);
-  if (!sp.length) return null;
-  var c = { ord: 0, margin: null, popRank: null, uno: null, passing: '', time: '', agari: null, jockey: '', hcap: '', note: '' };
-  var i = 0, m;
-  if ((m = (sp[0] || '').match(/^(\d+)着$/))){ c.ord = parseInt(m[1], 10); i = 1; }
-  else if (sp[0] && /^(取消|除外|中止|欠場|非北上)$/.test(sp[0])){ c.note = sp[0]; return c; }
-  else if (sp.length >= 3){ c.note = sp.join(' '); return c; }   /* 未知形式は注記として保持 */
-  else return null;
-  /* ★第114弾⑦: 1着セルの着差は (-0.2) のようにマイナス表記（2着との差）になる */
-  if (sp[i] && /^\((-?[\d.]+)\)$/.test(sp[i])){ c.margin = sp[i].slice(1, -1); i++; }
-  if (sp[i] && /^(\d+)人$/.test(sp[i])){ m = sp[i].match(/^(\d+)人$/); c.popRank = parseInt(m[1], 10); i++; }
-  if (sp[i] && /^(\d+)番$/.test(sp[i])){ m = sp[i].match(/^(\d+)番$/); c.uno = parseInt(m[1], 10); i++; }
-  if (sp[i] && /^\d+([-–]\d+)*$/.test(sp[i])){ c.passing = sp[i]; i++; }
-  if (sp[i] && /^\d+:[\d.]+$/.test(sp[i])){ c.time = sp[i]; i++; }
-  if (sp[i] && /^\(([\d.]+)\)$/.test(sp[i])){ c.agari = sp[i].slice(1, -1); i++; }
-  if (sp[i]) c.jockey = sp[i++];
-  if (sp[i] && /kg$/.test(sp[i])) c.hcap = sp[i].replace(/kg$/, '');
-  return c;
-}
-function jrdbParseMatch(html){
-  try {
-    var txt = String(html || '');
-    var tm = txt.match(/<h2[^>]*>([^<]*)<\/h2>/);
-    var title = tm ? jrdbStrip(tm[1]).replace(/\s*出走馬対戦表\s*$/, '') : '';
-    var tabs = txt.match(/<table[^>]*>[\s\S]*?<\/table>/g) || [];
-    var races = [], hmap = {}, order = [];
-    tabs.forEach(function(tab){
-      if (tab.indexOf('rank') < 0) return;             /* 対戦表テーブル以外は読み飛ばし */
-      var rows = tab.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) || [];
-      rows.forEach(function(r){
-        if (r.indexOf('<th') >= 0){
-          /* ヘッダ行: レース列を追加 */
-          var ths = r.match(/<th[^>]*>[\s\S]*?<\/th>/g) || [];
-          for (var i = 4; i < ths.length; i++){
-            var rc = jrdbParseMatchRace(ths[i]);
-            if (rc && rc.name) races.push(rc);
-          }
-          return;
-        }
-        var tds = r.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
-        if (tds.length < 5) return;
-        var ps = (tds[2].match(/<p[^>]*>[\s\S]*?<\/p>/g) || []).map(jrdbStrip);
-        var name = ps[0] || '';
-        if (!name) return;
-        var h = hmap[name];
-        if (!h){
-          h = { waku: parseInt(jrdbStrip(tds[0]), 10) || 0, no: parseInt(jrdbStrip(tds[1]), 10) || 0,
-                name: name, sire: '', dam: '', damsire: '', sex: '', age: 0, hcap: '', jockey: '', cells: [] };
-          var sm = (ps[1] || '').match(/^父[:：](.*)$/); if (sm) h.sire = sm[1];
-          var dm2 = (ps[2] || '').match(/^母[:：](.*)$/); if (dm2) h.dam = dm2[1];
-          var dsm = (ps[3] || '').match(/^[（(](.*)[)）]$/); if (dsm) h.damsire = dsm[1];
-          /* 騎手セル: [牡,3,55.0,坂井] または [牡 7,55.0,酒井] */
-          var js = jrdbSpans(tds[3]);
-          var sa = js.slice(0, Math.max(1, js.length - 2)).join('').replace(/\s+/g, '').match(/^(牡|牝|セン)(\d+)/);
-          if (sa){ h.sex = sa[1]; h.age = parseInt(sa[2], 10) || 0; }
-          h.hcap = js.length >= 2 ? js[js.length - 2] : '';
-          h.jockey = js.length >= 1 ? js[js.length - 1] : '';
-          hmap[name] = h; order.push(name);
-        }
-        for (var k = 4; k < tds.length; k++) h.cells.push(jrdbParseMatchCell(tds[k]));
-      });
-    });
-    if (!races.length || !order.length) return null;
-    return { title: title, races: races, horses: order.map(function(n){ return hmap[n]; }) };
-  } catch(e){ return null; }
-}
-
-/* ===== 対戦表の描画 ===== */
-function jrdbRaceLabel(rx){
-  if (!rx) return '';
-  return (rx.name || '') + '（' + [rx.grade, rx.date, rx.venue, (rx.surf || '') + (rx.m || '') + 'm'].filter(Boolean).join('・') + '）';
-}
-/* ★第114弾④: 対戦表クロステーブル（行=出走馬 × 列=共通対戦レース）の描画。
-   ②③と同じ「span.nw 原子単位」方式＝語の途中で折らない・端を切らない・
-   overflow:hidden 不使用。はみ出しは横スクロールで全部見られる。 */
-function jrdbMatchCount(data, ri){
-  var n = 0;
-  (data.horses || []).forEach(function(h){ if (h.cells && h.cells[ri]) n++; });
-  return n;
-}
-function jrdbRaceHeadHTML(r, cnt){
-  return '<span class="nw"><b>' + esc(r.name) + '</b>' + (r.cls ? '<span class="muted">(' + esc(r.cls) + ')</span>' : '') + '</span><br>' +
-    '<span class="nw">' + esc(r.date) + (r.wx ? ' ' + esc(r.wx) : '') + (r.n ? ' ' + r.n + '頭' : '') + '</span><br>' +
-    '<span class="nw">' + esc(r.venue) + (r.surf ? ' ' + esc(r.surf) + r.m : '') + (r.baba ? ' ' + esc(r.baba) : '') + '</span><br>' +
-    '<span class="nw" style="color:var(--warn-ink)">対戦' + cnt + '頭</span>' +
-    (r.winner ? '<br><span class="nw" style="font-size:.7rem;color:var(--ok-ink)">勝' + esc(r.winner) + '</span>' : '');
-}
-function jrdbCellHTML(c){
-  if (!c) return '<span class="muted" style="opacity:.35">・</span>';
-  if (c.note) return '<span class="muted">' + esc(c.note) + '</span>';
-  var cls = c.ord === 1 ? 'jrdb-win' : (c.ord <= 3 ? 'jrdb-top3' : '');
-  return '<span class="nw"><b class="' + cls + '">' + c.ord + '着</b>' + (c.margin != null ? '<span class="muted">(' + esc(c.margin) + ')</span>' : '') +
-      (c.popRank ? '<span class="muted">' + c.popRank + '人</span>' : '') + '</span><br>' +
-    '<span class="nw muted">' + (c.uno ? c.uno + '番 ' : '') + esc(c.passing || '') + '</span>' +
-    (c.time ? '<br><span class="nw muted">' + esc(c.time) + (c.agari != null ? '(' + c.agari + ')' : '') + '</span>' : '') +
-    (c.jockey ? '<br><span class="nw muted" style="font-size:.62rem">' + esc(c.jockey) + (c.hcap ? ' ' + esc(c.hcap) : '') + '</span>' : '');
-}
-function jrdbMatchHTML(data){
-  if (!data || !data.horses || !data.horses.length || !data.races || !data.races.length) return '';
-  var h = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' +
-    '<table class="small" style="border-collapse:collapse;max-width:none;width:100%">' +
-    '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--card2);min-width:150px;white-space:nowrap">馬（性齢・斤量・騎手・父）</th>';
-  data.races.forEach(function(r, ri){
-    h += '<th style="min-width:96px;white-space:nowrap">' + jrdbRaceHeadHTML(r, jrdbMatchCount(data, ri)) + '</th>';
-  });
-  h += '</tr></thead><tbody>';
-  data.horses.forEach(function(hs){
-    h += '<tr><td style="position:sticky;left:0;z-index:2;background:var(--card2);text-align:left;white-space:nowrap;min-width:150px;font-size:.78rem;line-height:1.4">' +
-      '<b>' + (hs.no ? hs.no + ' ' : '') + esc(hs.name) + '</b><br>' +
-      '<span class="muted">' + esc(hs.sex) + hs.age + '・' + esc(hs.hcap) + '・' + esc(hs.jockey) + '</span><br>' +
-      '<span class="muted">父' + esc(hs.sire) + '</span></td>';
-    for (var k = 0; k < data.races.length; k++){
-      h += '<td style="border:1px solid var(--line2);padding:2px 4px;font-size:.72rem;line-height:1.35;text-align:center;vertical-align:top">' + jrdbCellHTML(hs.cells ? hs.cells[k] : null) + '</td>';
-    }
-    h += '</tr>';
-  });
-  h += '</tbody></table></div>';
-  return h;
-}
-
-/* ===== PDF（印刷ダイアログで「PDFに保存」） ===== */
-function jrdbPdfHTML(data, raceMeta){
-  /* ★第114弾④: 対戦表PDF — サイトと同じくレース列を8列ごとのブロックに分けて
-     積む（1ブロック≈1ページ・セルが狭くならない）。②③と同じ .nw 原子単位方式
-     （語の途中で折らない・端を切らない・overflow:hidden 不使用）。
-     @media screen{table{min-width:980px}+.pw横スクロール}は、このHTMLをブラウザで
-     直接開いたときに印刷時とほぼ同じ見た目で全部見せるためのもの（印刷時は適用外）。 */
-  function headCell(r, cnt){
-    return '<div class="rh"><span class="nw b">' + esc(r.name) + '</span>' + (r.cls ? ' <span class="nw g">(' + esc(r.cls) + ')</span>' : '') + '</div>' +
-      '<div class="rh"><span class="nw">' + esc(r.date) + (r.wx ? ' ' + esc(r.wx) : '') + '</span>' + (r.n ? ' <span class="nw">' + r.n + '頭</span>' : '') + '</div>' +
-      '<div class="rh"><span class="nw">' + esc(r.venue) + ' ' + esc(r.surf) + r.m + (r.baba ? ' ' + esc(r.baba) : '') + '</span></div>' +
-      '<div class="rh vs"><span class="nw">対戦' + cnt + '頭</span></div>' +
-      (r.winner ? '<div class="rh wn">勝 ' + esc(r.winner) + '</div>' : '');
-  }
-  function cell(c){
-    if (!c) return '<td class="e"></td>';
-    if (c.note) return '<td class="c"><div class="o"><span class="nw">' + esc(c.note) + '</span></div></td>';
-    var cls = c.ord === 1 ? 'w' : (c.ord <= 3 ? 't' : '');
-    /* ★第114弾⑦: 本家と同じ4行構成（着順(着差)人気 / 馬番 通過 / タイム(上がり) / 騎手 斤量）。
-       フォント7.5px・行高1.2に紧凑化して18頭でも1ブロック=1ページに収める。 */
-    return '<td class="c ' + cls + '">' +
-      '<div class="o"><span class="nw">' + c.ord + '着</span>' + (c.margin != null ? ' <span class="nw">(' + esc(c.margin) + ')</span>' : '') + (c.popRank ? ' <span class="nw">' + c.popRank + '人</span>' : '') + '</div>' +
-      ((c.uno || c.passing) ? '<div class="ps">' + (c.uno ? '<span class="nw">' + c.uno + '番</span>' : '') + (c.passing ? ' <span class="nw">' + esc(c.passing) + '</span>' : '') + '</div>' : '') +
-      (c.time ? '<div class="tm"><span class="nw">' + esc(c.time) + '</span>' + (c.agari != null ? ' <span class="nw">(' + c.agari + ')</span>' : '') + '</div>' : '') +
-      (c.jockey ? '<div class="jk"><span class="nw">' + esc(c.jockey) + (c.hcap ? ' ' + esc(c.hcap) : '') + '</span></div>' : '') +
-      '</td>';
-  }
-  var meta = raceMeta ? jrdbRaceLabel(raceMeta) : '';
-  var h = '<!doctype html><html><head><meta charset="utf-8"><title>対戦表｜' + esc(data.title || '') + '</title><style>' +
-    '@page{size:A4 landscape;margin:7mm}' +
-    'body{font-family:Meiryo,"Hiragino Kaku Gothic ProN",sans-serif;font-size:8px;color:#1c2430;margin:0}' +
-    'h1{font-size:13px;margin:0 0 2px} .sub{color:#5a6b85;font-size:9px;margin:0 0 6px}' +
-    'table{border-collapse:collapse;width:100%;table-layout:fixed;margin:0 0 10px}' +
-    'th{background:#e8edf5;border:1px solid #b9c4d6;padding:2px 3px;font-size:7.8px;vertical-align:top;text-align:center}' +
-    'th.nm{width:112px} .rh{line-height:1.3} .rh .b{font-size:8px;font-weight:700} .rh .g{font-weight:400;color:#7b8698;font-size:6.8px}' +
-    '.rh.vs{color:#a04828;font-weight:700} .rh.wn{color:#33415e;font-size:7.3px;word-break:break-all;font-weight:700}' +
-    'td{border:1px solid #c6cfdd;padding:1px 1px;vertical-align:top;text-align:center}' +
-    'td.nm{text-align:left;background:#f4f7fc;font-size:8.5px;line-height:1.3}' +
-    'td.nm b{display:block;font-size:8.5px;white-space:nowrap}' +
-    'td.nm .i{display:block;color:#5a6b85;font-size:7.8px;white-space:nowrap}' +
-    '.nw{display:inline-block;white-space:nowrap}' +
-    'td.c .o{font-size:7.5px;line-height:1.2} td.c .o b{font-size:7.5px}' +
-    'td.c .ps{font-size:7.2px;line-height:1.2} td.c .tm{color:#4a5a75;font-size:7.2px;line-height:1.2} td.c .jk{color:#7b8698;font-size:7px;line-height:1.2}' +
-    'td.w{background:#fff3cd} td.t{background:#fdeff3} td.e{background:#f2f4f8}' +
-    'tr{page-break-inside:avoid} thead{display:table-header-group}' +
-    /* ★第114弾⑧: ブラウザで開いたとき（印刷時は適用外）馬名列を横スライドで固定し、
-       レース名のヘッダ行は縦スクロールで固定する。.pw を両軸スクロールのペイン
-       （max-height付きoverflow:auto）にすることで両方のstickyが.pw基準で効く
-       （overflow-x:autoだけだと縦もスクロール容器扱いになり高さ制限がないため
-       縦stickyが発動しないCSS仕様の落とし穴がある）。z-indexは td.nm(2)<thead th(3)<
-       th.nm(4) で、両方向にスクロールしても左上の馬名ヘッダが最前面に来る。 */
-    '@media screen{.pw{overflow:auto;max-height:calc(100vh - 130px);-webkit-overflow-scrolling:touch}table{min-width:980px}' +
-    'thead th{position:sticky;top:0;z-index:3}th.nm{position:sticky;left:0;top:0;z-index:4}' +
-    'td.nm{position:sticky;left:0;z-index:2}}' +
-    '.foot{color:#7b8698;font-size:7.5px;margin-top:4px}' +
-    '</style></head><body>';
-  h += '<h1>⚔️ 対戦表｜' + esc(data.title || '') + '（出走' + data.horses.length + '頭・対戦レース' + data.races.length + '）</h1>';
-  if (meta) h += '<div class="sub">' + esc(meta) + '｜行=出走馬・列=このメンバーが過去に顔を合わせたレース（jradb.com 出走馬対戦表から作成）</div>';
-  h += '<div class="pw">';
-  var PER = 8;
-  for (var b = 0; b < data.races.length; b += PER){
-    var rc = data.races.slice(b, b + PER);
-    h += '<table><thead><tr><th class="nm">馬名（性齢・斤量・騎手・父）</th>';
-    rc.forEach(function(r, i){ h += '<th>' + headCell(r, jrdbMatchCount(data, b + i)) + '</th>'; });
-    h += '</tr></thead><tbody>';
-    data.horses.forEach(function(hs){
-      h += '<tr><td class="nm"><b>' + (hs.no ? hs.no + ' ' : '') + esc(hs.name) + '</b><span class="i">' +
-        esc(hs.sex) + hs.age + '・' + esc(hs.hcap) + '・' + esc(hs.jockey) + '</span><span class="i">父' + esc(hs.sire) + '</span></td>';
-      for (var k = 0; k < rc.length; k++) h += cell(hs.cells ? hs.cells[b + k] : null);
-      h += '</tr>';
-    });
-    h += '</tbody></table>';
-  }
-  h += '</div>';
-  h += '<div class="foot">出力: 競馬AIラボ ⚔️対戦表（重賞のみ）／データ: jradb.com（出走馬対戦表）／取得日時: ' +
-    new Date().toLocaleString('ja-JP') + '／セル=着順(着差)人気・通過・タイム(上がり3F)・騎手斤量。黄=1着・桃=2-3着・空欄=そのレースに未出走。</div>';
-  h += '</body></html>';
-  return h;
-}
-function jrdbPdfOut(data, raceMeta){
-  try {
-    var f = document.createElement('iframe');
-    f.setAttribute('aria-hidden', 'true');
-    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:1100px;height:780px;border:0';
-    f.srcdoc = jrdbPdfHTML(data, raceMeta);
-    f.onload = function(){
-      setTimeout(function(){
-        try { f.contentWindow.focus(); f.contentWindow.print(); jrdbMsg('🖨 印刷ダイアログで「PDFに保存」を選ぶとそのままPDF保存できます。'); }
-        catch(e){ jrdbMsg('⚠ 印刷ダイアログを開けませんでした'); }
-      }, 220);
-    };
-    document.body.appendChild(f);
-    setTimeout(function(){ try { document.body.removeChild(f); } catch(e){} }, 240000);
-  } catch(e){ jrdbMsg('⚠ PDF（印刷）に失敗: ' + esc(String((e && e.message) || e))); }
-}
-
-/* ===== UI ===== */
-var JRDB_UI = { races: [], cur: null, curMeta: null, busy: false };
-function jrdbMsg(t, isErr){
-  var el = document.getElementById('jrdbMsg');
-  if (el){ el.innerHTML = (isErr ? '⚠ ' : '') + String(t == null ? '' : t); el.style.color = isErr ? 'var(--warn-ink)' : 'var(--ok-ink)'; }
-}
-function jrdbFillSelect(races){
-  var sel = document.getElementById('jrdbRace');
-  if (!sel || !races || !races.length) return;
-  JRDB_UI.races = races;
-  var opts = '';
-  var y = races.length ? races[0].date.slice(0, 4) : '';
-  races.forEach(function(r, i){
-    opts += '<option value="' + i + '">' + esc((r.date || '').slice(5) + ' ' + (r.short || r.name) + '（' + [r.grade, r.venue].filter(Boolean).join('・') + (r.m ? ' ' + r.surf + r.m + 'm' : '') + '）') + '</option>';
-  });
-  sel.innerHTML = opts;
-  /* 既定は今日にいちばん近い直近のレース */
-  var today8 = (typeof baToday8 === 'function') ? baToday8() : '';
-  var best = 0, bestD = '99999999';
-  races.forEach(function(r, i){
-    if (today8 && r.d8 <= today8 && r.d8 < bestD){ bestD = r.d8; best = i; }
-  });
-  sel.value = String(best);
-  if (y) jrdbMsg('⚙ ' + y + '年の重賞 ' + races.length + ' レースを取得しました（jradb.com）。レースを選んで「⚔️ 対戦表出力（重賞のみ）」を押してください。');
-}
-function jrdbLoadList(force){
-  var cached = force ? null : jrdbListCached();
-  if (cached){ jrdbFillSelect(cached); return; }
-  jrdbMsg('📡 jradb.com から当年の重賞一覧を取得中…');
-  jrdbFetchHtml('https://jradb.com/race/').then(function(html){
-    var races = jrdbParseRaceList(html);
-    if (!races.length){ jrdbMsg('⚠ レース一覧を解析できませんでした（jradb.com のページ構造が変わった可能性）', true); return; }
-    jrdbListSet(races);
-    jrdbFillSelect(races);
-  }).catch(function(e){ jrdbMsg('⚠ ' + esc(String((e && e.message) || e)), true); });
-}
-function jrdbGetCard(force){
-  if (JRDB_UI.busy) return;
-  var sel = document.getElementById('jrdbRace');
-  if (!sel || !JRDB_UI.races.length){ jrdbMsg('⚠ まずレース一覧を取得してください（↻ボタン）', true); return; }
-  var rx = JRDB_UI.races[parseInt(sel.value, 10) || 0];
-  if (!rx){ jrdbMsg('⚠ レースが選ばれていません', true); return; }
-  JRDB_UI.curMeta = rx;
-  var cached = force ? null : jrdbCardCached(rx.id);
-  if (cached){ jrdbRender(cached, rx, true); return; }
-  JRDB_UI.busy = true;
-  var btn = document.getElementById('jrdbGet');
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ 取得中…'; }
-  jrdbMsg('📡 ' + esc(rx.name) + ' の対戦表データを jradb.com から取得中…');
-  jrdbFetchHtml('https://jradb.com/race/' + rx.id + '/card/match/').then(function(html){
-    var data = jrdbParseMatch(html);
-    if (!data){ jrdbMsg('⚠ 対戦表を解析できませんでした（ページ構造変更の可能性）', true); return; }
-    jrdbCardSet(rx.id, data);
-    jrdbRender(data, rx, false);
-  }).catch(function(e){ jrdbMsg('⚠ ' + esc(String((e && e.message) || e)), true); })
-  .then(function(){
-    JRDB_UI.busy = false;
-    if (btn){ btn.disabled = false; btn.textContent = '⚔️ 対戦表出力（重賞のみ）'; }
-  });
-}
-function jrdbRender(data, rx, fromCache){
-  JRDB_UI.cur = data;
-  var out = document.getElementById('jrdbOut');
-  if (out){
-    out.innerHTML = '<div style="font-weight:700;font-size:1.05rem;margin:2px 0 6px">⚔️ ' + esc(data.title || rx.name) +
-      '（出走' + data.horses.length + '頭・対戦レース' + (data.races ? data.races.length : 0) + '）' + (fromCache ? ' <span class="chip">キャッシュ</span>' : '') + '</div>' + jrdbMatchHTML(data);
-  }
-  var pb = document.getElementById('jrdbPdf');
-  if (pb) pb.disabled = false;
-  jrdbMsg('✅ ' + esc(rx.name) + '：出走' + data.horses.length + '頭・対戦レース' + data.races.length + ' を読み込みました。🖨ボタンでPDFに保存できます。');
-}
-function initJrdb(){
-  var g = document.getElementById('jrdbGet');
-  if (g) g.addEventListener('click', function(){ jrdbGetCard(false); });
-  var p = document.getElementById('jrdbPdf');
-  if (p) p.addEventListener('click', function(){ if (JRDB_UI.cur) jrdbPdfOut(JRDB_UI.cur, JRDB_UI.curMeta); });
-  var rl = document.getElementById('jrdbReload');
-  if (rl) rl.addEventListener('click', function(){
-    var o = jrdbLs(); o.list = null; jrdbLsSave(o);
-    jrdbLoadList(true);
-  });
-  jrdbLoadList(false);
-}
-
 /* p91_grandidx.js — ★第131弾: 多要素指数（grand index）
    ユーザー指定の構成要素をすべてデータ化した指数:
      【コア(重み1.0)】 レース質+対戦馬のその後(rF) / 馬場点=クッション値×含水率(b) / コース適性=競馬場×距離×好走パターン(cP)
@@ -47070,6 +46565,11 @@ function sbPopupOpen(horseId, name){
   load.then(function(rec){
     if (SB_POP !== horseId) return;
     box.innerHTML = sbHorseHtml(rec, name);
+    /* ★第337弾: 回顧判定（もこ在庫）を末尾へ差し込む（供給が無ければ空のまま） */
+    if (typeof mokoFillRetro === 'function'){
+      var rel = document.getElementById('sbPopRetro');
+      if (rel) mokoFillRetro(rel, name);
+    }
   }).catch(function(e){
     if (SB_POP !== horseId) return;
     box.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b>🐎 ' + esc(String(name || '')) + '</b>' +
@@ -47134,6 +46634,7 @@ function sbHorseHtml(rec, name){
       }
     }
   } catch(e){}
+  h.push('<div id="sbPopRetro"></div>');
   h.push('<div class="small muted" style="margin-top:6px">出典: netkeiba 競走馬データベース（db.netkeiba.com）・端末内キャッシュ優先。</div>');
   return h.join('');
 }
@@ -51985,6 +51486,340 @@ function mv1Compute(hs, ctx){
 }
 
 /* =========================================================
+   p105_moko.js — ★第337弾: もこ在庫データのアプリ供給
+   ---------------------------------------------------------
+   もこ（予想運用側）が集めた在庫を、アプリと同じ場所に置いた
+   moko_data/ の JSON から読み、表示と馬ノート取り込みに使う。
+   ・読みは第325弾の流儀: fetch で直接読み、メモリ保持のみ。
+     端末の保存領域（学習DB・localStorage）へはコピー保存しない。
+   ・ファイルが無い／壊れている場合は null を返し、従来動作のまま落ちない。
+   ・馬ノートだけは例外: オーナーがボタンを押した時だけ、供給分を
+     正本として保存側を置き換える（リセット取込・重複防止が目的。
+     供給が空なら何もしない）。取り込み前後の件数は画面に表示する。
+   ・確率・印・計算には一切触らない（表示と馬ノート取り込みだけ）。
+   供給ファイル（moko_data/gen_moko_data.py で生成）:
+     moko_umanote.json 馬ノートと短評（馬単位・hbLoad と同形の horses）
+     moko_retro.json   回顧記事のまとめ（馬名キー・判定と次走注目）
+     moko_graded.json  重賞データ分析記事のまとめと考察（レース単位）
+     moko_tenkai.json  展開予想（レース単位・金曜準備で実データが入る）
+     moko_taisen.json  対戦表（レース単位・直接対戦と橋渡しと前走レベル）
+   ========================================================= */
+var MOKO_BASE = 'moko_data/';
+var MOKO_MEM = {};    /* name -> 取得済みオブジェクト（成功分だけ保持） */
+var MOKO_FLY = {};    /* name -> 進行中 Promise */
+function mokoFetch(name){
+  if (MOKO_MEM[name]) return Promise.resolve(MOKO_MEM[name]);
+  if (MOKO_FLY[name]) return MOKO_FLY[name];
+  var p = fetch(MOKO_BASE + name)
+    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(o){ MOKO_MEM[name] = o; delete MOKO_FLY[name]; return o; })
+    .catch(function(){ delete MOKO_FLY[name]; return null; });
+  MOKO_FLY[name] = p;
+  return p;
+}
+function mokoMsgSet(t){
+  var el = $('mokoMsg');
+  if (el) el.textContent = t || '';
+}
+
+/* ---------- 回顧記事のまとめ（馬単位・ポップアップと馬ノートモーダル共用） ---------- */
+function mokoRetroFind(d, name){
+  if (!d || !d.horses || !name) return null;
+  if (d.horses[name]) return d.horses[name];
+  if (typeof hbNorm === 'function'){
+    var qn = hbNorm(name), hit = null;
+    Object.keys(d.horses).some(function(k){
+      if (hbNorm(k) === qn){ hit = d.horses[k]; return true; }
+      return false;
+    });
+    return hit;
+  }
+  return null;
+}
+function mokoRetroHtml(d, name){
+  var rec = mokoRetroFind(d, name);
+  if (!rec || !rec.entries || !rec.entries.length) return '';
+  var es = rec.entries;
+  var show = es.slice(0, 10);
+  var h = '<div style="font-weight:700;margin:10px 0 2px">🗂 回顧判定（もこ在庫・' + es.length + '件' +
+    (rec.watchCount ? '／次走注目標記 ' + rec.watchCount + '件' : '') + '）</div>';
+  h += '<div style="max-height:300px;overflow:auto;border:1px solid var(--line2);border-radius:9px;padding:6px 8px">';
+  show.forEach(function(e){
+    h += '<div style="padding:4px 0;border-bottom:1px dashed var(--line2)">' +
+      '<span class="muted">' + esc(e.date || '') + ' ' + esc(e.race || '') + (e.finish ? ' ' + esc(e.finish) : '') + '</span> ' +
+      '<b>' + esc(e.verdict || '') + '</b>' +
+      (e.watch ? ' <span class="chip" style="background:var(--card2);color:var(--warn-ink)">次走注目</span>' : '') +
+      (e.trouble ? ' <span class="muted">不利: ' + esc(e.trouble) + '</span>' : '') +
+      '<div style="white-space:pre-wrap">' + esc(e.note || '') + '</div>' +
+      '<div class="muted" style="font-size:.72rem">' + esc(e.source || '') + '</div></div>';
+  });
+  if (es.length > show.length) h += '<div class="muted" style="padding-top:4px">ほか ' + (es.length - show.length) + ' 件（古い順に省略）</div>';
+  h += '</div>';
+  return h;
+}
+/* el の中へ回顧判定欄を非同期で差し込む（供給が無い・該当が無ければ空にする） */
+function mokoFillRetro(el, name){
+  if (!el || !name) return;
+  el.innerHTML = '<div class="small muted" style="margin-top:8px">回顧判定（もこ在庫）を読み込み中…</div>';
+  mokoFetch('moko_retro.json').then(function(d){
+    el.innerHTML = d ? mokoRetroHtml(d, name) : '';
+  });
+}
+
+/* ---------- 馬ノートのリセット取込 ---------- */
+function mokoHbStat(t, isErr){
+  var el = $('hbMokoStat');
+  if (el){ el.textContent = t || ''; el.style.color = isErr ? '#c33' : ''; }
+}
+function mokoUmanoteImport(){
+  mokoHbStat('もこ在庫を読み込み中…');
+  mokoFetch('moko_umanote.json').then(function(d){
+    if (!d || !Array.isArray(d.horses) || !d.horses.length){
+      mokoHbStat('供給ファイル（moko_data/moko_umanote.json）が無いか空のため、馬ノートは変更しませんでした', true);
+      return;
+    }
+    if (typeof hbLoad !== 'function' || typeof hbCommit !== 'function'){
+      mokoHbStat('馬ノート機能が読み込まれていないため、取り込めませんでした', true);
+      return;
+    }
+    var before = hbLoad();
+    var bHorses = before.horses || [];
+    var bNotes = bHorses.reduce(function(a, h){ return a + ((h.notes || []).length); }, 0);
+    var aNotes = d.horses.reduce(function(a, h){ return a + ((h.notes || []).length); }, 0);
+    var ok = hbCommit({ horses: d.horses });
+    if (!ok){
+      mokoHbStat('保存に失敗しました（保存領域不足の可能性）。馬ノートは変更されていません', true);
+      return;
+    }
+    var msg = 'もこ在庫で馬ノートを更新しました: ' + bHorses.length + '頭 → ' + d.horses.length +
+      '頭（ノート ' + bNotes + '件 → ' + aNotes + '件）';
+    mokoHbStat(msg);
+    if (typeof khlToast === 'function'){ try { khlToast('📒 ' + msg); } catch(e){} }
+    if (typeof hbRefresh === 'function') hbRefresh();
+    if (typeof hbAfterChange === 'function') hbAfterChange();
+  });
+}
+
+/* ---------- 簡易 Markdown → HTML（分析記事の表示専用） ---------- */
+function mokoMd(md){
+  var lines = String(md == null ? '' : md).split('\n');
+  var h = [], i = 0;
+  function inline(s){
+    return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+  function cells(r){
+    return r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(c){ return c.trim(); });
+  }
+  while (i < lines.length){
+    var ln = lines[i];
+    if (/^\s*\|/.test(ln) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])){
+      var head = cells(ln), rows = [];
+      i += 2;
+      while (i < lines.length && /^\s*\|/.test(lines[i])){ rows.push(cells(lines[i])); i++; }
+      h.push('<div style="overflow-x:auto"><table class="htbl" style="font-size:.78rem"><thead><tr>' +
+        head.map(function(c){ return '<th>' + inline(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        rows.map(function(r){ return '<tr>' + r.map(function(c){ return '<td>' + inline(c) + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '</tbody></table></div>');
+      continue;
+    }
+    if (/^#{2,4}\s/.test(ln)){ h.push('<div style="font-weight:700;margin:8px 0 2px">' + inline(ln.replace(/^#+\s/, '')) + '</div>'); i++; continue; }
+    if (/^#\s/.test(ln)){ h.push('<div style="font-weight:700;font-size:1.02rem;margin:8px 0 2px">' + inline(ln.replace(/^#\s/, '')) + '</div>'); i++; continue; }
+    if (/^\s*[-*]\s/.test(ln)){
+      var items = [];
+      while (i < lines.length && /^\s*[-*]\s/.test(lines[i])){ items.push('<li>' + inline(lines[i].replace(/^\s*[-*]\s/, '')) + '</li>'); i++; }
+      h.push('<ul style="margin:2px 0 6px;padding-left:18px">' + items.join('') + '</ul>');
+      continue;
+    }
+    if (/^\s*\d+[.)]\s/.test(ln)){
+      var oitems = [];
+      while (i < lines.length && /^\s*\d+[.)]\s/.test(lines[i])){ oitems.push('<li>' + inline(lines[i].replace(/^\s*\d+[.)]\s/, '')) + '</li>'); i++; }
+      h.push('<ol style="margin:2px 0 6px;padding-left:18px">' + oitems.join('') + '</ol>');
+      continue;
+    }
+    if (/^\s*$/.test(ln) || /^\s*-{3,}\s*$/.test(ln)){ i++; continue; }
+    var buf = [ln]; i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^#/.test(lines[i]) &&
+           !/^\s*\|/.test(lines[i]) && !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+[.)]\s/.test(lines[i])){
+      buf.push(lines[i]); i++;
+    }
+    h.push('<p style="margin:2px 0 6px">' + buf.map(inline).join('<br>') + '</p>');
+  }
+  return h.join('');
+}
+
+/* ---------- レース単位カード（対戦表・重賞分析・展開予想） ---------- */
+var MOKO_KIND = 'taisen';
+var MOKO_DATA = { taisen: null, graded: null, tenkai: null };
+function mokoRaceNames(){
+  var names = [], seen = {};
+  function add(n){ if (n && !seen[n]){ seen[n] = 1; names.push(n); } }
+  var g = MOKO_DATA.graded;
+  if (g && g.races) g.races.forEach(function(r){ add(r.name); });
+  var t = MOKO_DATA.taisen;
+  if (t && t.races){
+    t.races.forEach(function(r){ if (r.group === '次の対象') add(r.name); });
+    t.races.forEach(function(r){ if (r.group !== '次の対象') add(r.name); });
+  }
+  var k = MOKO_DATA.tenkai;
+  if (k && k.races) k.races.forEach(function(r){ add(r.name); });
+  return names;
+}
+function mokoFind(list, name){
+  if (!list || !list.races) return null;
+  var hit = null;
+  list.races.some(function(r){ if (r.name === name){ hit = r; return true; } return false; });
+  return hit;
+}
+function mokoHas(kind, name){
+  if (kind === 'taisen') return !!mokoFind(MOKO_DATA.taisen, name);
+  if (kind === 'graded') return !!mokoFind(MOKO_DATA.graded, name);
+  if (kind === 'tenkai') return !!mokoFind(MOKO_DATA.tenkai, name);
+  return false;
+}
+function mokoNoData(kindLabel){
+  return '<div class="muted" style="padding:8px 0">データなし（' + esc(kindLabel) + 'の供給がまだありません）</div>';
+}
+function mokoTableHtml(tb){
+  var h = '<div style="overflow-x:auto"><table class="htbl" style="font-size:.78rem">';
+  if (tb.headers && tb.headers.length){
+    h += '<thead><tr>' + tb.headers.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead>';
+  }
+  h += '<tbody>' + (tb.rows || []).map(function(r){
+    return '<tr>' + r.map(function(c){ return '<td>' + esc(c) + '</td>'; }).join('') + '</tr>';
+  }).join('') + '</tbody></table></div>';
+  return h;
+}
+function mokoTaisenHtml(r){
+  var h = '<div style="font-weight:700;font-size:1rem;margin-top:4px">' + esc(r.name) +
+    (r.grade ? ' <span class="chip">' + esc(r.grade) + '</span>' : '') + '</div>' +
+    '<div class="small muted">' + esc(r.meta || '') + (r.group ? '（' + esc(r.group) + '）' : '') + '</div>';
+  var pl = r.prevLevel || {};
+  var plNames = Object.keys(pl).filter(function(k){ return pl[k]; });
+  h += '<div style="margin:6px 0"><b>前走レベル:</b> ';
+  if (plNames.length){
+    h += plNames.map(function(k){ return '<span class="chip" style="background:var(--card2)">' + esc(k) + ' ' + esc(pl[k]) + '</span>'; }).join(' ');
+  } else {
+    h += '<span class="muted">データなし</span>';
+  }
+  h += '</div>';
+  (r.blocks || []).forEach(function(b){
+    if (b.title) h += '<div style="font-weight:700;margin:10px 0 3px">' + esc(b.title) + '</div>';
+    (b.texts || []).forEach(function(t){ h += '<p style="margin:2px 0 6px">' + esc(t) + '</p>'; });
+    (b.tables || []).forEach(function(tb){ h += mokoTableHtml(tb); });
+    (b.items || []).forEach(function(it){
+      h += '<div style="margin:4px 0"><b>' + esc(it.label || '') + '</b>' +
+        (it.text ? '<div style="white-space:pre-wrap">' + esc(it.text) + '</div>' : '') + '</div>';
+    });
+  });
+  return h;
+}
+function mokoGradedHtml(r){
+  var h = '<div style="font-weight:700;font-size:1rem;margin-top:4px">' + esc(r.name) +
+    (r.grade ? ' <span class="chip">' + esc(r.grade) + '</span>' : '') + '</div>' +
+    '<div class="small muted">' + esc(r.date || '') + ' ' + esc(r.venue || '') + ' ' + esc(r.course || '') + '</div>';
+  (r.sections || []).forEach(function(s, idx){
+    h += '<details class="kfold"' + (idx === 0 ? ' open' : '') + '><summary class="small" style="cursor:pointer;font-weight:700">' +
+      esc(s.title || '') + '</summary><div>' + mokoMd(s.md || '') + '</div></details>';
+  });
+  return h;
+}
+function mokoTenkaiHtml(r){
+  var h = '<div style="font-weight:700;font-size:1rem;margin-top:4px">' + esc(r.name) +
+    (r.grade ? ' <span class="chip">' + esc(r.grade) + '</span>' : '') + '</div>' +
+    '<div class="small muted">' + esc(r.date || '') + ' ' + esc(r.venue || '') + ' ' + esc(r.course || '') + '</div>';
+  if (r.frontThird && r.frontThird.length){
+    h += '<div style="margin:6px 0"><b>前方1/3の想定:</b> ' +
+      r.frontThird.map(function(n){ return '<span class="chip" style="background:var(--card2)">' + esc(n) + '</span>'; }).join(' ') + '</div>';
+  }
+  if (r.paceShape) h += '<div style="margin:6px 0"><b>隊列と流れ:</b><div style="white-space:pre-wrap">' + esc(r.paceShape) + '</div></div>';
+  if (r.benefit && r.benefit.length) h += '<div style="margin:6px 0"><b>得をする馬:</b> ' + r.benefit.map(esc).join('、') + '</div>';
+  if (r.suffer && r.suffer.length) h += '<div style="margin:6px 0"><b>潰れる馬:</b> ' + r.suffer.map(esc).join('、') + '</div>';
+  if (r.collapse) h += '<div style="margin:6px 0"><b>崩れる条件:</b><div style="white-space:pre-wrap">' + esc(r.collapse) + '</div></div>';
+  if (r.note) h += '<div class="muted" style="white-space:pre-wrap">' + esc(r.note) + '</div>';
+  return h;
+}
+function mokoPaintKindBtns(){
+  var btns = document.querySelectorAll('[data-mokokind]');
+  Array.prototype.forEach.call(btns, function(b){
+    var on = b.getAttribute('data-mokokind') === MOKO_KIND;
+    b.classList.toggle('primary', on);
+  });
+}
+function mokoRender(){
+  var sel = $('mokoRaceSel'), out = $('mokoOut');
+  if (!sel || !out) return;
+  var name = sel.value || '';
+  if (!name){ out.innerHTML = '<div class="muted" style="padding:8px 0">データなし（供給ファイルが置かれていません）</div>'; return; }
+  if (MOKO_KIND === 'taisen'){
+    var r1 = mokoFind(MOKO_DATA.taisen, name);
+    out.innerHTML = r1 ? mokoTaisenHtml(r1) : mokoNoData('対戦表');
+  } else if (MOKO_KIND === 'graded'){
+    var r2 = mokoFind(MOKO_DATA.graded, name);
+    out.innerHTML = r2 ? mokoGradedHtml(r2) : mokoNoData('重賞分析');
+  } else {
+    var r3 = mokoFind(MOKO_DATA.tenkai, name);
+    out.innerHTML = r3 ? mokoTenkaiHtml(r3) : mokoNoData('展開予想');
+  }
+  mokoPaintKindBtns();
+}
+function mokoFillRaceSel(){
+  var sel = $('mokoRaceSel');
+  if (!sel) return;
+  var names = mokoRaceNames();
+  sel.innerHTML = names.map(function(n){ return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+  if (names.length){
+    sel.value = names[0];
+    /* 選んだレースに今の種別の供給が無ければ、供給のある種別へ寄せる */
+    if (!mokoHas(MOKO_KIND, sel.value)){
+      ['taisen', 'graded', 'tenkai'].some(function(k){
+        if (mokoHas(k, sel.value)){ MOKO_KIND = k; return true; }
+        return false;
+      });
+    }
+  }
+}
+function mokoInit(){
+  var b = $('btnHbMoko');
+  if (b && !b._mokoWired){
+    b._mokoWired = 1;
+    b.addEventListener('click', function(){ mokoUmanoteImport(); });
+  }
+  var sel = $('mokoRaceSel');
+  if (!sel || sel._mokoWired) return;
+  sel._mokoWired = 1;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mokokind]'), function(x){
+    x.addEventListener('click', function(){
+      MOKO_KIND = x.getAttribute('data-mokokind');
+      mokoRender();
+    });
+  });
+  sel.addEventListener('change', function(){
+    var name = sel.value || '';
+    if (name && !mokoHas(MOKO_KIND, name)){
+      ['taisen', 'graded', 'tenkai'].some(function(k){
+        if (mokoHas(k, name)){ MOKO_KIND = k; return true; }
+        return false;
+      });
+    }
+    mokoRender();
+  });
+  mokoMsgSet('もこ在庫を読み込み中…');
+  Promise.all([mokoFetch('moko_taisen.json'), mokoFetch('moko_graded.json'), mokoFetch('moko_tenkai.json')])
+    .then(function(rs){
+      MOKO_DATA.taisen = rs[0];
+      MOKO_DATA.graded = rs[1];
+      MOKO_DATA.tenkai = rs[2];
+      mokoFillRaceSel();
+      mokoRender();
+      var parts = [];
+      if (rs[0]) parts.push('対戦表 ' + ((rs[0].races || []).length) + '件');
+      if (rs[1]) parts.push('重賞分析 ' + ((rs[1].races || []).length) + '件');
+      if (rs[2]) parts.push('展開予想 ' + ((rs[2].races || []).length) + '件');
+      mokoMsgSet(parts.length ? ('供給: ' + parts.join('／')) : '供給ファイルが置かれていません（moko_data フォルダ）');
+    });
+}
+
+/* =========================================================
    メイン：タブ切替・モーダル・保存/読込・初期化
    ========================================================= */
 
@@ -52320,7 +52155,7 @@ function boot(){
   idleInit('initAih', function(){ if (typeof initAih === 'function') safeInit('initAih', initAih); });
   idleInit('initDr', function(){ if (typeof initDr === 'function') safeInit('initDr', initDr); });
   idleInit('initBetCalc', function(){ if (typeof initBetCalc === 'function') safeInit('initBetCalc', initBetCalc); });
-  idleInit('initJrdb', function(){ if (typeof initJrdb === 'function') safeInit('initJrdb', initJrdb); });   // ★第114弾: ⚔️対戦表PDF(jradb)
+  idleInit('mokoInit', function(){ if (typeof mokoInit === 'function') safeInit('mokoInit', mokoInit); });   // ★第337弾: 🐴もこ在庫データ（旧initJrdb＝第114弾の対戦表は廃止し、もこの対戦表へ置き換え）
   idleInit('initDbfix', function(){ if (typeof initDbfix === 'function') safeInit('initDbfix', initDbfix); });   // ★第127弾: 🔧学習DB修正データ(距離・面)
   idleInit('initGiBaba', function(){ if (typeof initGiBaba === 'function') safeInit('initGiBaba', initGiBaba); });   // ★第133弾: 🌤指数用馬場履歴
   idleInit('initTenki', function(){ if (typeof initTenki === 'function') safeInit('initTenki', initTenki); });
