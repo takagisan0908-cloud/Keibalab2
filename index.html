@@ -372,6 +372,7 @@ table{max-width:100%}
   nav.tabs .tab{font-size:.82rem;padding:7px 11px}
   .card{padding:11px 12px;margin:10px 0;border-radius:12px}
   .card h2{font-size:.95rem;gap:6px}
+  .page>h2{font-size:.95rem;gap:6px}   /* ★第333弾: セクション直下の見出しも小画面で連動 */
   .cardhead{gap:6px}
   .otypeGrid{grid-template-columns:1fr 1fr;gap:7px}
   .fgrid{grid-template-columns:repeat(auto-fill,minmax(138px,1fr))}
@@ -401,15 +402,6 @@ table{max-width:100%}
 }
 
 
-/* ---- ライブ3サブタブ(出馬表/オッズ/結果・払戻) ---- */
-.livebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.lsbtn{border:1px solid var(--line2);background:var(--card);color:var(--ok-ink);border-radius:999px;padding:6px 14px;font-size:.87rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .12s}
-.lsbtn:hover{background:var(--card2)}
-.lsbtn.ls-a{background:var(--green);color:var(--on-green);border-color:transparent}
-.livetick{font-variant-numeric:tabular-nums}
-.lv-up{color:var(--warn-ink);font-weight:800}
-.lv-down{color:var(--info-ink);font-weight:800}
-.lv-flash{background:var(--card2) !important}
 
 
 </style>
@@ -564,15 +556,6 @@ html[data-theme="light"] .kai-log{background:#0f2417}
 </style>
 
 <style>
-/* ---- 結果・払戻: コースレコード更新表示 ---- */
-.lvrecd{margin:6px 0 8px;border:1.6px solid var(--line2);background:linear-gradient(180deg,var(--card),var(--card2));border-radius:10px;padding:7px 11px;font-size:.86rem;color:var(--warn-ink);box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.lvrecd-tie{border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card2));color:var(--ink)}
-.lvrecd .lvreci{font-size:1.05rem}
-.lvrecd .lvrecwin{font-weight:900;color:var(--err-ink);font-size:.98rem}
-.lvwinrec{display:inline-block;font-weight:900;color:var(--ok-ink)}
-.lvbadge{display:inline-block;margin-left:5px;padding:0 6px;border-radius:6px;background:#c23b2e;color:var(--on-accent);font-size:.66rem;font-weight:900;line-height:1.7;vertical-align:1px;animation:lvbli 1.6s ease-in-out infinite}
-.lvbadge-tie{background:#2060c0;animation:none}
-@keyframes lvbli{0%,100%{opacity:1}50%{opacity:.35}}
 /* ---- netkeiba 上り3F 順位色分け(1位=黄 / 2位=青 / 3位=ピンク) ---- */
 .nkr{display:inline-block;border-radius:5px;padding:0 6px;font-weight:800;font-size:.74rem;color:#17202a;line-height:1.6;white-space:nowrap}
 .nkr.r1{background:#ffe13b;border:1px solid var(--line2)}
@@ -1148,6 +1131,9 @@ nav.tabs .tab{display:inline-flex;align-items:center;gap:6px}
 .drawer-head .dh-ico{display:inline-flex;align-items:center;color:var(--green2)}
 .drawer-head .dh-ico svg{width:19px;height:19px}
 .card h2 svg{width:19px;height:19px;vertical-align:-4px;color:var(--green2)}
+/* ★第333弾: セクション直下の見出し（データベース・データ検索・AI提案タブ）にも同じ大きさ・並びを適用（従来は指定が無くアイコンが巨大化していた） */
+.page>h2{display:flex;align-items:center;gap:8px;font-size:1.05rem}
+.page>h2 svg{width:19px;height:19px;flex:0 0 auto;color:var(--green2)}
 .page-top-hero .hb svg{width:52px;height:52px;color:var(--ink);filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
 html[data-theme="light"] .page-top-hero .hb svg{color:#fff}
 /* カードの余白をB案寄りに（スマホは第54弾の指定を尊重して控えめに） */
@@ -1214,13 +1200,12 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第331弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第333弾</b></div>
 </aside>
 
 <nav class="tabs">
   <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg></span><span class="nvlab">目次</span></button>
   <button class="tab active" data-t="t-sim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg> ③ AI展開予測</button>
-  <button class="tab" data-t="t-shutuba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg> 出馬表</button>
   <button class="tab" data-t="t-nar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg> 地方</button>
   <button class="tab" data-t="t-tenki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> 天気予報</button>
   <button class="tab" data-t="t-horse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 馬ノート<span class="tsub">(短評DB)</span></button>
@@ -1256,81 +1241,6 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
            🎬レースシミュタブの操作エリア・③AI展開予測の🎬ボタン・🤖AI提案タブ🏇現在のレース内🎬ボタン。 -->
 </section>
 
-<!-- ================= 📋 出馬表（★第156弾: 新タブ。①データ入力のライブ3サブタブ+出馬表一覧をここへ。1日ごと・1レースごとに折り込み） ================= -->
-<section class="page" id="t-shutuba">
-  <!-- ===== ライブ3サブタブ(race.sp風): 出馬表 / オッズ / 結果・払戻 ===== -->
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
-    <div class="livebar">
-      <button type="button" class="lsbtn ls-a" data-lt="shutuba">🏇 出馬表</button>
-      <button type="button" class="lsbtn" data-lt="odds">💰 オッズ</button>
-      <button type="button" class="lsbtn" data-lt="result">🏁 結果・払戻</button>
-      <span class="sp"></span>
-      <label style="display:inline-flex;align-items:center;gap:4px;font-size:.83rem" title="画面を開いている間、選んだ間隔で単勝オッズを自動更新します（結果の自動確認も行います）">
-        <input type="checkbox" id="lvAuto"> 自動更新
-      </label>
-      <select id="lvInt" title="自動更新の間隔" style="font-size:.8rem;padding:3px 4px">
-        <option value="30">30秒</option><option value="60" selected>60秒</option><option value="120">120秒</option>
-      </select>
-      <button type="button" class="btn primary" id="lvNow" title="オッズと結果を今すぐ取得して反映します">🔄 手動で更新</button>
-      <span class="small muted livetick" id="lvClock"></span>
-    </div>
-    <div class="small" id="lvMsg" style="color:var(--ok-ink);margin:2px 0 4px"></div>
-  </div>
-
-  <div id="live-shutuba">
-  <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
-    <div class="cardhead">
-      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg> 出馬表（日付を選んで折り込み表示）</h2>
-      <span class="chip" id="sbChip">0日</span>
-      <span class="sp"></span>
-      <span class="small muted">1日ごと・1レースごとに折り込み。複数の日付を並べて比較できます</span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 6px">
-      <label class="small" style="display:inline-flex;align-items:center;gap:4px">📅
-        <input type="date" id="sbDate" style="font-family:inherit;font-size:.9rem;padding:3px 6px">
-      </label>
-      <button type="button" class="btn primary" id="sbAdd" title="その日の全レースの出馬表を折り込み表示します（保存済みなら通信ゼロ・無い日は一括取得します）">📥 その日の出馬表を開く</button>
-      <button type="button" class="btn ghost" id="sbToday" title="今日の日付を入れます">今日</button>
-      <button type="button" class="btn ghost" id="sbRefresh" title="折り込み中の日の出馬表キャッシュを取り直して再表示します">🔄 更新</button>
-      <span class="small muted" id="sbMsg"></span>
-    </div>
-    <div class="small muted" style="margin:0 0 6px">🤖AI提案の「📥一括取得」と同じ端末内データから表示します（まだ取得していない日は自動的に一括取得します）。各レースの折り込みの中に<b>展開予想（ペース診断）</b>を添付。 <b>馬名をタップするとその馬のプロフィール</b>（netkeiba・戦績と成績分析）がポップアップで出ます。</div>
-    <div id="sbTree"><div class="small muted">まだ表示していません。上で日付を選んで「📥 その日の出馬表を開く」を押してください。</div></div>
-  </div>
-  </div><!-- /#live-shutuba -->
-  <!-- ===== オッズサブタブ ===== -->
-  <div id="live-odds" class="hid">
-    <div class="card">
-      <div class="cardhead">
-        <h2>💰 単勝オッズ（リアルタイム・netkeiba）</h2>
-        <span class="chip" id="lvOddsChip">未取得</span>
-        <span class="sp"></span>
-        <span class="small muted">人気順。左端のオッズ列「単勝(反映)」が出馬表にも反映されています</span>
-      </div>
-      <div id="lvOddsMsg" class="small" style="margin:4px 0"></div>
-      <div class="tblwrap">
-        <table class="htbl">
-          <thead><tr><th>人気</th><th>馬番</th><th>馬名</th><th>オッズ</th><th>変動</th><th>単勝(反映)</th></tr></thead>
-          <tbody id="lvOddsBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== 結果・払戻サブタブ ===== -->
-  <div id="live-result" class="hid">
-    <div class="card">
-      <div class="cardhead">
-        <h2>🏁 結果・払戻</h2>
-        <span class="chip" id="lvResChip">未確定</span>
-        <span class="sp"></span>
-        <span class="small muted">現在のレースの結果を取得して表示（netkeibaへ取得できる状態であること・終了後に「結果確定」と払戻が出ます）</span>
-      </div>
-      <div id="lvResMsg" class="small" style="margin:4px 0"></div>
-      <div id="lvResBody"></div>
-    </div>
-  </div>
-</section>
 <!-- ================= 🏟 地方競馬（★第159弾: netkeiba NAR・日付→開催場→全レース+AI展開予測） ================= -->
 <section class="page" id="t-nar">
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
@@ -2995,7 +2905,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第331弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第333弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -22887,7 +22797,6 @@ var NAV_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 var NAV_ITEMS = [
   /* ★第156弾: 目次もタブ大統合に合わせて整理（トップ・①・②・振り返り・海外・払戻DBは削除、⑤⑥は目次のみ） */
   { t:'t-sim',      icon:NAV_SVG_OPEN + '<path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg>', name:'AI展開予測',           sub:'スタート後/3角/4角の位置マップ＋ポジション別複勝率（保存済み出馬表から・通信ゼロ）', cur:true },
-  { t:'t-shutuba',  icon:NAV_SVG_OPEN + '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>', name:'出馬表',                sub:'日付選択で全レース折り込み表示・展開予想（ペース診断）添付・馬名タップでプロフィール・オッズ・結果払戻' },
   { t:'t-nar',      icon:NAV_SVG_OPEN + '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>', name:'地方競馬（NAR）',     sub:'日付→開催場→全レースの出馬表＋netkeiba AI展開予測（中央の③と同じ走路図）' },   /* ★第159弾 */
   { t:'t-tenki',    icon:NAV_SVG_OPEN + '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>', name:'天気予報',              sub:'当日開催場の1時間ごと天気＋開催場のコース特徴（JRA公式）' },
   { t:'t-aiprop',   icon:NAV_SVG_OPEN + '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>', name:'AI提案',                sub:'その日の全レースの印・一括取得・再予想・レース情報・妙味馬比較' },
@@ -25512,459 +25421,6 @@ function initBetCalc(){
     if (el) el.addEventListener('input', function(){ bcCalc(); bcWin5(); });
   });
   bcRender();
-}
-
-/* =========================================================
-   38 ライブ情報（出馬表タブ内の3サブタブ + 自動更新）
-   ---------------------------------------------------------
-   出馬表 / オッズ / 結果・払戻 を race.sp 風に切り替え。
-   - オッズ: netkeiba 単勝JSON(リレー不要)でリアルタイム取得 → 表へ反映
-   - 結果・払戻: race.netkeiba 結果ページ(要: 中継or直接OK環境)から
-     全着順＋払戻を取得。自動更新ONなら 30/60/120秒ごとにチェックし、
-     競走中止・オッズ変化・結果確定(払戻)を通知します。
-   ========================================================= */
-
-var lvState = {
-  tab: 'shutuba',
-  auto: false,
-  intMs: 60000,
-  timer: null,
-  oddsAt: 0,
-  prevOdds: {},      // no -> odds（1回前）
-  rid: '',
-  fin: null,         // null=未確認 / true=確定 / false=未確定
-  lastResTry: 0,
-  busy: false
-};
-
-/* --- 小道具 --- */
-function lvRid(){
-  var r = (typeof state !== 'undefined' && state.raceId) ? state.raceId : '';
-  if (!r && typeof nkExtractRaceId === 'function' && $('urlImport')) r = nkExtractRaceId($('urlImport').value || '');
-  return r || '';
-}
-function lvMsgTxt(s, err){
-  var el = $('lvMsg');
-  if (el){ el.textContent = s || ''; el.style.color = err ? '#a3442f' : '#33513f'; }
-}
-function lvClockNow(){
-  var el = $('lvClock');
-  if (el) el.textContent = '最終更新: ' + (new Date()).toLocaleTimeString('ja-JP');
-}
-function lvNote(id, s, err){
-  var el = $(id);
-  if (el){ el.innerHTML = s || ''; }
-}
-
-/* --- サブタブ切替 --- */
-function lvSwitch(tab){
-  lvState.tab = tab;
-  var order = ['shutuba', 'odds', 'result'];
-  order.forEach(function(t){
-    var sec = $('live-' + t);
-    if (sec) sec.classList.toggle('hid', t !== tab);
-  });
-  var btns = document.querySelectorAll && document.querySelectorAll('.lsbtn[data-lt]');
-  if (btns && btns.forEach) btns.forEach(function(b){
-    b.classList.toggle('ls-a', b.getAttribute('data-lt') === tab);
-  });
-  if (tab === 'odds') lvRefreshOdds(true);
-  else if (tab === 'result') lvRefreshResult(true);
-}
-
-/* ================= オッズ ================= */
-function lvRefreshOdds(force){
-  var rid = lvRid();
-  if (!rid){
-    if (force) lvNote('lvOddsMsg', '<span class="small" style="color:var(--err-ink)">レースIDがありません。「🔗 netkeiba URLから直接取込」で出馬表を読み込んでください。</span>');
-    return;
-  }
-  lvState.rid = rid;
-  if (typeof nkFetchOddsAny !== 'function'){ lvNote('lvOddsMsg', 'オッズ取得関数がありません。'); return; }
-  var noteEl = $('lvOddsMsg');
-  if (noteEl) noteEl.innerHTML = '<span class="small muted">オッズを取得中…</span>';
-  var t0 = Date.now();
-  return nkFetchOddsAny(rid).then(function(payload){
-    var p = (typeof nkParseOddsData === 'function') ? nkParseOddsData(payload) : { odds: [] };
-    var list = p.odds || [];
-    if (!list.length){
-      lvNote('lvOddsMsg', '<span class="small" style="color:var(--err-ink)">単勝オッズがまだ取得できません（発走前の締切後や非売出し中など）。少し待って「🔄 手動で更新」を押してください。</span>');
-      var ch = $('lvOddsChip'); if (ch) ch.textContent = '空(発走前など)';
-      lvClockNow();
-      return;
-    }
-    var delta = lvState.prevOdds && Object.keys(lvState.prevOdds).length ? lvState.prevOdds : null;
-    // 1回前として保存
-    lvState.prevOdds = {};
-    list.forEach(function(o){ lvState.prevOdds[o.no] = o.odds; });
-    lvRenderOdds(list, delta);
-    lvNote('lvOddsMsg', '<span class="small muted">' + (Date.now() - t0) + 'ms ・ ' + list.length + '頭分を取得しました。表は人気順。</span>');
-    var ch2 = $('lvOddsChip'); if (ch2) ch2.textContent = '更新 ' + new Date().toLocaleTimeString('ja-JP');
-    lvClockNow();
-    // 出馬表の「単勝」欄へ反映(行を再構築せず value のみ更新 → 編集中も安全)
-    var changed = lvWriteCells(list);
-    if (changed) lvMsgTxt('🔄 単勝オッズを ' + changed + ' 頭分更新しました。');
-  }).catch(function(e){
-    lvNote('lvOddsMsg', '<span class="small" style="color:var(--err-ink)">オッズ取得に失敗: ' + esc((e && e.message) || e) + '</span>');
-  });
-}
-/* 馬番ごとに状態更新＋行セルへ反映。更新した頭数を返す */
-function lvWriteCells(list){
-  var changed = 0;
-  if (typeof state === 'undefined' || !state.horses) return 0;
-  state.horses.forEach(function(h){
-    for (var j = 0; j < list.length; j++){
-      if (String(h.no) === String(list[j].no)){
-        var val = String(list[j].odds);
-        if (String(h.odds || '') !== val){ h.odds = val; changed++; }
-        break;
-      }
-    }
-  });
-  if (changed && typeof saveNow === 'function') saveNow();
-  // DOM側セルを直接更新（行を再構築しない → 編集中のセルも安全）
-  var tb = $('horseBody');
-  if (!tb || !tb.querySelectorAll) return changed;
-  var rows = tb.querySelectorAll('tr[data-uid]');
-  for (var i = 0; i < rows.length; i++){
-    var tr = rows[i];
-    var noEl = tr.querySelector && tr.querySelector('input[data-f="no"]');
-    var odEl = tr.querySelector && tr.querySelector('input[data-f="odds"]');
-    if (!noEl || !odEl) continue;
-    var no = String(noEl.value || '').trim();
-    for (var j = 0; j < list.length; j++){
-      if (String(list[j].no) === no){
-        if (String(odEl.value || '').trim() !== String(list[j].odds)) odEl.value = list[j].odds;
-        break;
-      }
-    }
-  }
-  return changed;
-}
-function lvRenderOdds(list, prev){
-  var body = $('lvOddsBody');
-  if (!body) return;
-  var sorted = list.slice().sort(function(a, b){ return (a.ninki || 99) - (b.ninki || 99) || a.no - b.no; });
-  var h = [];
-  sorted.forEach(function(o, i){
-    var d = (prev && prev[o.no] != null) ? (o.odds - prev[o.no]) : null;
-    var dTxt = '−';
-    var cls = 'muted';
-    if (d != null && Math.abs(d) > 0.04){
-      if (d > 0){ dTxt = '↑+' + d.toFixed(1); cls = 'lv-up'; }
-      else { dTxt = '↓' + Math.abs(d).toFixed(1); cls = 'lv-down'; }
-    }
-    h.push('<tr><td>' + (i + 1) + '人気</td><td><b>' + o.no + '</b></td><td>' + esc(lvHorseName(o.no)) + '</td>' +
-      '<td><b>' + o.odds.toFixed(1) + '</b></td><td class="' + cls + '">' + dTxt + '</td>' +
-      '<td>' + (o.ninki ? o.ninki + '人気' : '−') + '</td></tr>');
-  });
-  body.innerHTML = h.join('');
-}
-function lvHorseName(no){
-  try {
-    if (typeof state !== 'undefined' && state.horses){
-      for (var i = 0; i < state.horses.length; i++){
-        if (String(state.horses[i].no) === String(no)) return state.horses[i].name || '';
-      }
-    }
-  } catch(e){}
-  return '';
-}
-
-/* ================= 結果・払戻 ================= */
-function lvParseGroups(seg){
-  // 券種行の Result セル内を <ul>/<div> の切れ目でグループ化して数字を取り出す
-  var groups = [];
-  var parts = String(seg || '').split(/<\/(?:ul|div)>/);
-  parts.forEach(function(pt){
-    var nums = [];
-    var sps = pt.match(/<span[^>]*>[\s\S]*?<\/span>/g) || [];
-    for (var i = 0; i < sps.length; i++){
-      var t = sps[i].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-      if (t) nums.push(t);
-    }
-    if (nums.length) groups.push(nums);
-  });
-  return groups;
-}
-function lvParsePayouts(html){
-  var out = [];
-  var names = { Tansho:'単勝', Fukusho:'複勝', Wakuren:'枠連', Umaren:'馬連', Wide:'ワイド', Umatan:'馬単', Fuku3:'3連複', Tan3:'3連単' };
-  var rows = String(html).match(/<tr[^>]*class="(Tansho|Fukusho|Wakuren|Umaren|Wide|Umatan|Fuku3|Tan3)"[^>]*>[\s\S]*?<\/tr>/g) || [];
-  for (var i = 0; i < rows.length; i++){
-    var tr = rows[i];
-    var cm = tr.match(/class="(Tansho|Fukusho|Wakuren|Umaren|Wide|Umatan|Fuku3|Tan3)"/);
-    if (!cm) continue;
-    var resM = tr.match(/<td class="Result">([\s\S]*?)<\/td>/i);
-    var payM = tr.match(/<td class="Payout">([\s\S]*?)<\/td>/i);
-    var nkM = tr.match(/<td class="Ninki">([\s\S]*?)<\/td>/i);
-    var groups = resM ? lvParseGroups(resM[1]) : [];
-    var pays = [];
-    if (payM){
-      var ps = payM[1].match(/(\d[\d,]*)円/g) || [];
-      for (var q = 0; q < ps.length; q++) pays.push(ps[q]);
-    }
-    var nks = [];
-    if (nkM){
-      var ks = nkM[1].match(/<span[^>]*>([\s\S]*?)<\/span>/g) || [];
-      for (var w = 0; w < ks.length; w++){
-        var t = ks[w].replace(/<[^>]*>/g, '').trim();
-        if (t) nks.push(t);
-      }
-    }
-    out.push({ name: names[cm[1]], groups: groups, pays: pays, nks: nks });
-  }
-  return out;
-}
-function lvRefreshResult(force){
-  var rid = lvRid();
-  if (!rid){ lvResNoRace(); return; }
-  lvState.rid = rid;
-  var now = Date.now();
-  // 自動時は節度を保つ（未確定60s・確定120s 以上の間隔）
-  if (!force && lvState.fin !== null && now - lvState.lastResTry < (lvState.fin ? 120000 : 60000)) return;
-  if (typeof histFetchHtml !== 'function'){ lvResMsg('結果の取得手段(中継等)がありません。', true); return; }
-  lvState.lastResTry = now;
-  lvResBusy(true);
-  var u = 'https://race.netkeiba.com/race/result.html?race_id=' + rid;
-  return histFetchHtml(u).then(function(html){
-    lvResBusy(false);
-    if (!html || html.length < 400) throw new Error('結果ページを取得できませんでした');
-    var p = (typeof rnParseResult === 'function') ? rnParseResult(html, rid) : { rows: [], name: '' };
-    var pay = lvParsePayouts(html);
-    var fin = (p.rows || []).some(function(r){ return r.order === 1; });
-    var wasFin = lvState.fin;
-    lvState.fin = fin;
-    if (fin && wasFin === false){
-      // 結果確定を初めて検出 → ポップアップで払戻提示
-      if (typeof showModal === 'function') lvNotifyFinish(p, pay);
-    }
-    lvRenderResult(p, pay);
-  }).catch(function(e){
-    lvResBusy(false);
-    lvResMsg((e && e.message) || String(e), true);
-  });
-}
-function lvResBusy(b){
-  var el = $('lvResChip');
-  if (el) el.textContent = b ? '取得中…' : '確認済み';
-}
-function lvResNoRace(){
-  var el = $('lvResBody'); if (el) el.innerHTML = '';
-  lvResMsg('レースIDがありません。「🔗 netkeiba URLから直接取込」で読み込んだレースを対象に結果を確認します。', false);
-}
-function lvResMsg(txt, err){
-  var el = $('lvResMsg');
-  if (el){ el.innerHTML = '<span class="small" style="color:' + (err ? 'var(--err-ink)' : 'var(--ok-ink)') + '">' + esc(txt) + '</span>'; }
-}
-/* 上り3F文字列("35.8" / "1:06.8") → 秒。不可なら NaN */
-function lvLast3Sec(s){
-  var t = String(s == null ? '' : s).replace(/[^0-9.:]/g, '');
-  if (!t) return NaN;
-  var cm = t.match(/(\d{1,2}):(\d{1,2})(?:\.(\d+))?/);
-  if (cm) return parseInt(cm[1],10) * 60 + parseInt(cm[2],10) + (cm[3] ? parseInt(cm[3],10) / Math.pow(10, cm[3].length) : 0);
-  var n = parseFloat(t);
-  return isNaN(n) ? NaN : n;
-}
-function lvRenderResult(p, pay){
-  var chip = $('lvResChip');
-  var rows = p.rows || [];
-  var fin = rows.some(function(r){ return r.order === 1; });
-  if (chip) chip.textContent = fin ? '🏁 結果確定' : '⏳ 結果待ち';
-  if (chip) chip.className = 'chip' + (fin ? '' : '');
-  var msg = [];
-  msg.push((p.date || '') + ' ' + ((p.place || '') + (p.rnum ? p.rnum + 'R' : '')) + ' ' + (p.name || '') + '　' +
-    (p.dist ? p.dist + 'm' : '') + (p.surface || '') + (p.baba || '') + (p.weather ? '（' + p.weather + '）' : ''));
-  if (!fin){
-    msg.push('まだ結果が発表されていません。自動更新ONで確定と同時に払戻を表示します。');
-    lvResMsg(msg.join('<br>'), false);
-    var body = $('lvResBody'); if (body) body.innerHTML = '';
-    lvClockNow();
-    return;
-  }
-  lvResMsg(msg.join('<br>'), false);
-  /* コースレコード更新 / タイ記録 */
-  var recInfo = null;
-  if (typeof crCheckResult === 'function'){
-    try { recInfo = crCheckResult({ place:p.place, surface:p.surface, dist:p.dist, baba:p.baba, rows:rows }); } catch(e){}
-  }
-  /* 上り3Fの速さ順位（同タイムは同位）→ 1位=黄 / 2位=青 / 3位=ピンク */
-  var l3ranks = {};
-  rows.forEach(function(r){
-    if (!(r.order >= 1)) return;
-    var v = lvLast3Sec(r.last3);
-    if (isNaN(v)) return;
-    var faster = 0;
-    rows.forEach(function(q){
-      if (!(q.order >= 1)) return;
-      var w = lvLast3Sec(q.last3);
-      if (isNaN(w)) return;
-      if (w < v - 0.0001) faster++;
-    });
-    l3ranks[r.no + ':' + r.name + ':' + r.last3] = faster + 1;
-  });
-  var hasL3 = Object.keys(l3ranks).length > 0;
-  var h = [];
-  if (recInfo){
-    var rc = recInfo.base;
-    var rcTxt = '従来 ' + esc(rc.t) + '（' + esc(rc.h) + ' ' + esc(rc.d || '記録日不明') + '）';
-    if (recInfo.kind === 'new'){
-      h.push('<div class="lvrecd" role="alert"><span class="lvreci">🏆</span> <b>コースレコード更新！</b> ' +
-        '<span class="lvrecwin">1着 ' + esc(recInfo.win) + '</span>　' + rcTxt + '</div>');
-    } else {
-      h.push('<div class="lvrecd lvrecd-tie" role="alert"><span class="lvreci">🎯</span> <b>コースレコード・タイ記録</b>　' +
-        '<span class="lvrecwin">1着 ' + esc(recInfo.win) + '</span>（' + esc(rc.h) + ' ' + esc(rc.d || '') + 'と同タイム）</div>');
-    }
-  }
-  if (hasL3){
-    h.push('<div class="small muted" style="margin:2px 0 4px">上3Fはレース内の速さ順位で色分け: ' +
-      '<span class="lgb" style="background:#ffe13b;border:1px solid var(--line2)">1位(最速)</span> ' +
-      '<span class="lgb" style="background:#7fc4ff;border:1px solid #4a9ff0">2位</span> ' +
-      '<span class="lgb" style="background:#ffaad4;border:1px solid #f47fb4">3位</span>（同タイムは同位）</div>');
-  }
-  h.push('<div class="tblwrap"><table class="htbl" style="min-width:560px"><thead><tr>' +
-    '<th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th><th>上3F</th><th>人気</th><th>単勝</th></tr></thead><tbody>');
-  var scrapped = [];
-  rows.forEach(function(r){
-    if (r.order >= 1){
-      var sp = (r.order === 1) ? 'background:#fff6da' : (r.order <= 3 ? 'background:#f6fbf3' : '');
-      var l3cell = esc(r.last3 || '');
-      var rk = l3ranks[r.no + ':' + r.name + ':' + r.last3];
-      if (rk && (rk === 1 || rk === 2 || rk === 3)){
-        l3cell = '<span class="nkr r' + rk + '" title="このレースの上り3F ' + rk + '位（同タイムは同位）">' + esc(r.last3) + '</span>';
-      }
-      var timeCell = esc(r.time || '');
-      if (r.order === 1 && recInfo){
-        timeCell = '<span class="lvwinrec">' + timeCell +
-          (recInfo.kind === 'new' ? ' <span class="lvbadge">NEW</span>' : ' <span class="lvbadge lvbadge-tie">TIE</span>') + '</span>';
-      }
-      h.push('<tr style="' + sp + '"><td><b>' + r.order + '</b></td><td>' + (r.no || '') + '</td>' +
-        '<td>' + esc(r.name) + '</td><td class="muted">' + esc(r.jockey || '') + '</td>' +
-        '<td>' + timeCell + '</td><td>' + l3cell + '</td>' +
-        '<td>' + (r.pop || '') + (r.pop ? '人気' : '') + '</td><td>' + esc(r.odds || '') + '</td></tr>');
-    } else {
-      scrapped.push(r);
-    }
-  });
-  h.push('</tbody></table></div>');
-  if (scrapped.length){
-    var lst = [];
-    scrapped.forEach(function(r){
-      lst.push((r.order === 0 ? '−' : r.order) + '番' + (r.no ? r.no + '番 ' : '') + esc(r.name) + '');
-    });
-    h.push('<div class="small" style="margin-top:6px;color:var(--err-ink)">⚠ 競走中止・除外など: ' + lst.join(' ／ ') + '</div>');
-  }
-  // 払戻
-  if (pay && pay.length){
-    h.push('<div style="margin-top:10px;font-weight:800;color:var(--ok-ink)">💰 払戻</div><div style="display:flex;flex-wrap:wrap;gap:6px">');
-    pay.forEach(function(row){
-      if (!row.groups.length || !row.pays.length) return;
-      var lines = [];
-      for (var i = 0; i < row.groups.length; i++){
-        var num = row.groups[i].join('-');
-        var amt = row.pays[i] || row.pays[row.pays.length - 1] || '';
-        var nk = row.nks[i] || '';
-        lines.push('<span>' + esc(num) + ' ' + esc(amt) + (nk ? '（' + esc(nk) + '）' : '') + '</span>');
-      }
-      h.push('<div style="border:1px solid var(--line2);background:var(--card);border-radius:8px;padding:5px 9px;min-width:140px">' +
-        '<b>' + esc(row.name) + '</b><div class="small">' + lines.join('<br>') + '</div></div>');
-    });
-    h.push('</div>');
-  } else {
-    h.push('<div class="small muted" style="margin-top:6px">払戻データは解析できませんでした（単勝・複勝など一部のみ表示の可能性）。</div>');
-  }
-  var body2 = $('lvResBody');
-  if (body2) body2.innerHTML = h.join('');
-  lvClockNow();
-}
-function lvNotifyFinish(p, pay){
-  var rows = p.rows || [];
-  var top = rows.filter(function(r){ return r.order >= 1 && r.order <= 3; });
-  var h = ['<h2>🏁 結果が確定しました</h2>'];
-  if (p.date) h.push('<div class="small muted">' + esc((p.date || '') + ' ' + (p.name || '')) + '</div>');
-  var t = [];
-  top.forEach(function(r){
-    t.push('<b>' + r.order + '着 ' + (r.no ? r.no + '番 ' : '') + esc(r.name) + '</b>（' + (r.pop ? r.pop + '人気' : '') + ' ' + esc(r.odds || '') + '倍）');
-  });
-  h.push('<div style="margin:6px 0">' + t.join('<br>') + '</div>');
-  if (pay && pay.length){
-    var first = pay.filter(function(x){ return x.name === '単勝' || x.name === '馬連' || x.name === '3連単'; });
-    var one = [];
-    first.forEach(function(r){
-      if (r.groups.length && r.pays.length) one.push(esc(r.name) + ' ' + esc(r.groups[0].join('-')) + ' = <b>' + esc(r.pays[0]) + '</b>');
-    });
-    if (one.length) h.push('<div class="small" style="margin:4px 0">払戻: ' + one.join(' ／ ') + '</div>');
-  }
-  h.push('<p class="small">「🏁 結果・払戻」サブタブに全着順と全券種の払戻を表示しています。次のレースのAI予想の自己学習にもそのまま使えます。</p>');
-  h.push('<div style="text-align:right;margin-top:6px"><button class="btn primary" data-mcl>閉じる</button></div>');
-  showModal(h.join(''), function(root){
-    var b = root.querySelector('[data-mcl]');
-    if (b) b.addEventListener('click', closeModal);
-  });
-}
-
-/* ================= 自動更新 ================= */
-function lvAutoTick(){
-  if (!lvState.auto) return;
-  var rid = lvRid();
-  if (rid) lvRefreshOdds(false);
-  // 結果チェック（節度あり）。レース終了後に自動で「結果確定」を拾う
-  if (rid) lvRefreshResult(false);
-  lvSchedule();
-}
-function lvSchedule(){
-  if (lvState.timer) clearTimeout(lvState.timer);
-  lvState.timer = setTimeout(function(){ lvAutoTick(); }, lvState.intMs);
-}
-function lvAutoChanged(){
-  lvState.auto = !!($('lvAuto') && $('lvAuto').checked);
-  var iv = parseInt(($('lvInt') && $('lvInt').value) || '60', 10);
-  lvState.intMs = (iv >= 30 ? iv : 60) * 1000;
-  if (lvState.timer) clearTimeout(lvState.timer);
-  if (lvState.auto){
-    lvMsgTxt('🟢 自動更新ON（' + (lvState.intMs / 1000) + '秒ごと）。OFFにすると手動の「🔄 手動で更新」だけになります。');
-    lvSchedule();
-    lvAutoTick();
-  } else {
-    lvMsgTxt('自動更新OFF。必要なときは「🔄 手動で更新」を押してください。');
-  }
-}
-
-/* ================= 初期化 ================= */
-function initLive(){
-  var bar = $('lvAuto');
-  if (!bar) return;
-  // サブタブ切替（イベント委譲）
-  var card = bar.parentNode;
-  var root = null, el = bar;
-  while (el && el.id !== 't-shutuba' && el.tagName !== 'SECTION') el = el.parentNode;  /* ★第156弾 */
-  root = el && el.id === 't-shutuba' ? el : document;
-  // 委譲: t-input 内の .lsbtn を拾う
-  var section = $('t-shutuba');   /* ★第156弾 */
-  if (section && section.addEventListener){
-    section.addEventListener('click', function(e){
-      var b = (e.target && e.target.closest) ? e.target.closest('.lsbtn[data-lt]') : null;
-      if (b) lvSwitch(b.getAttribute('data-lt'));
-    });
-  } else if (document.addEventListener){
-    document.addEventListener('click', function(e){
-      var b = (e.target && e.target.closest) ? e.target.closest('.lsbtn[data-lt]') : null;
-      if (b) lvSwitch(b.getAttribute('data-lt'));
-    });
-  }
-  var now = $('lvNow');
-  if (now) now.addEventListener('click', function(){
-    lvMsgTxt('🔄 手動更新: オッズと結果を取得します…');
-    var rid = lvRid();
-    if (rid) lvRefreshOdds(true);
-    if (rid) lvRefreshResult(true);
-    else lvMsgTxt('レースIDがありません。netkeiba URL取込を先にしてください。', true);
-  });
-  if (bar) bar.addEventListener('change', lvAutoChanged);
-  var iv = $('lvInt');
-  if (iv) iv.addEventListener('change', lvAutoChanged);
-  lvAutoChanged();
-  lvClockNow();
 }
 
 /* =========================================================
@@ -47133,224 +46589,16 @@ function narInit(){
 }
 
 /* =========================================================
-   p93_shutuba.js — ★第156弾(タブ大統合)
-   ① 📋出馬表タブ: 日付選択 → 1日ごと折り込み → 1レースごと折り込みで
-      複数日の出馬表を同時に閲覧。各レースに展開予想（ペース診断）を添付。
-      馬名タップでその馬のプロフィール（netkeiba・p34キャッシュ/取得）をポップアップ。
-   ② 🌤天気予報タブのコース特徴: 競馬場セレクタ（当日の開催場を自動選択）。
-   データは preList(PRE_LIST_LS) + 出馬表キャッシュ(nkCardHas/nkFetchCardText)。
-   未取得の日は preDayFetch（🤖AI提案の一括取得と同じ経路）で自動取得する。
+   p93_shutuba.js — ★第156弾(タブ大統合)／★第332弾で出馬表タブ本体を削除
+   残しているのは他タブと共有の2系統だけ:
+   ① 馬名プロフィールポップアップ（sbPopupOpen ほか）: 🏟地方タブ（p94）が
+      馬名タップで使用。データは p34 のキャッシュ/取得。
+   ② 🌤天気予報タブのコース特徴: 競馬場セレクタ（csInit・当日の開催場を自動選択）。
+   削除した出馬表ツリー表示一式と sbInit は removed_332/p93_shutuba_sbpart.js に控えあり。
    予測エンジン・学習DBへの書込は一切行わない（表示専用）。
    ========================================================= */
 
-var SB_DAYS_LS = 'khl_sb_days_v1';
 var SB_VENUES = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
-
-function sbLs(){
-  try { var o = JSON.parse(localStorage.getItem(SB_DAYS_LS) || 'null'); if (!o || !Array.isArray(o.days)) o = { days: [] }; return o; }
-  catch(e){ return { days: [] }; }
-}
-function sbSave(o){ try { localStorage.setItem(SB_DAYS_LS, JSON.stringify(o)); } catch(e){} }
-function sbDays(){ return sbLs().days || []; }
-function sbMsg(m){ var el = $('sbMsg'); if (el) el.innerHTML = m || ''; }
-
-function sbD8Of(v){ return String(v || '').replace(/[^0-9]/g, ''); }
-var SB_YOBI = ['日','月','火','水','木','金','土'];
-function sbDateText(d8){
-  d8 = String(d8 || '');
-  if (!/^\d{8}$/.test(d8)) return d8 || '?';
-  try {
-    var d = new Date(parseInt(d8.slice(0,4),10), parseInt(d8.slice(4,6),10)-1, parseInt(d8.slice(6,8),10));
-    return (d.getMonth()+1) + '/' + d.getDate() + '(' + SB_YOBI[d.getDay()] + ')';
-  } catch(e){ return d8; }
-}
-
-/* 日付をツリーへ追加（既にあれば上へ移動） */
-function sbAddDay(d8){
-  d8 = sbD8Of(d8);
-  if (!/^\d{8}$/.test(d8)){ sbMsg('⚠ 日付を選んでください'); return; }
-  var ds = sbDays().filter(function(x){ return x.d8 !== d8; });
-  ds.unshift({ d8: d8, open: true });
-  sbSave({ days: ds.slice(0, 14) });   /* 上限14日（端末の軽量化） */
-  sbMsg('📅 ' + sbDateText(d8) + ' を表示します…');
-  sbEnsureDay(d8, false).then(function(items){
-    sbMsg(items.length ? '' : '⚠ ' + sbDateText(d8) + ' のレースが見つかりませんでした');
-    sbRender();
-  }).catch(function(e){
-    sbMsg('⚠ 取得に失敗しました: ' + esc(String((e && e.message) || e)));
-    sbRender();
-  });
-}
-
-/* ★第310弾: 取得だけして日付リストへ登録する（取得も描画もしない）。
-   AI提案タブの一括取得(preDayFetch・opt.sbDay)から呼ばれ、その日が📋出馬表タブにも出るようにする。
-   従来は sbAddDay（このタブで日付を開いたとき）でしか登録されず、AI提案タブだけで
-   一括取得した日は出馬表タブに一切表示されなかった。既にリストにあれば何もしない
-   （開閉状態を壊さない）。表示はタブ切替時に sbRender が呼ばれる既存配線に任せる。 */
-function sbNoteDay(d8){
-  d8 = sbD8Of(d8);
-  if (!/^\d{8}$/.test(d8)) return;
-  var ds = sbDays();
-  for (var i = 0; i < ds.length; i++){ if (ds[i] && ds[i].d8 === d8) return; }
-  ds.unshift({ d8: d8, open: false });
-  sbSave({ days: ds.slice(0, 14) });   /* sbAddDayと同じ上限14日（端末の軽量化） */
-}
-
-/* その日のレース一覧（preList優先・無ければ一括取得） */
-function sbEnsureDay(d8, force){
-  var items = (typeof preListAll === 'function') ? preListAll().filter(function(it){ return it && it.d8 === d8; }) : [];
-  if (items.length && !force) return Promise.resolve(items);
-  if (typeof preDayFetch !== 'function') return Promise.resolve(items);
-  sbMsg('📥 ' + sbDateText(d8) + ' の出馬表を一括取得しています…（初回は数十秒かかります）');
-  return preDayFetch(d8, { odds: true, force: false, forceCard: !!force }, function(m){
-    sbMsg('📥 ' + sbDateText(d8) + ': ' + esc(String(m == null ? '' : m)).slice(0, 90));
-  }).then(function(){
-    return (typeof preListAll === 'function') ? preListAll().filter(function(it){ return it && it.d8 === d8; }) : [];
-  });
-}
-
-/* ---------- ツリー描画 ---------- */
-function sbRender(){
-  var tree = $('sbTree'); if (!tree) return;
-  var days = sbDays();
-  var chip = $('sbChip'); if (chip) chip.textContent = days.length + '日';
-  if (!days.length){
-    tree.innerHTML = '<div class="small muted">まだ表示していません。上で日付を選んで「📥 その日の出馬表を開く」を押してください。</div>';
-    return;
-  }
-  var all = (typeof preListAll === 'function') ? preListAll() : [];
-  tree.innerHTML = days.map(function(d){
-    var items = all.filter(function(it){ return it && it.d8 === d.d8; });
-    items.sort(function(a, b){ return (parseInt(a.rnum,10)||99) - (parseInt(b.rnum,10)||99); });
-    var vs = [];
-    items.forEach(function(it){ var p = String(it.place || '').replace(/[0-9日目]/g,''); if (p && vs.indexOf(p) < 0) vs.push(p); });
-    var head = '📅 ' + sbDateText(d.d8) + (vs.length ? '　' + vs.join('・') : '') + '　<span class="chip">' + items.length + 'レース</span>';
-    var body = items.length
-      ? items.map(function(it){ return sbRaceHtml(it); }).join('')
-      : '<div class="small muted">この日のレース記録がありません。🔄更新 で取り直せます。</div>';
-    return '<details class="card fold sbDay" data-sbd8="' + esc(d.d8) + '"' + (d.open ? ' open' : '') + '>' +
-      '<summary class="foldhead"><span class="fmark"></span><h2 style="margin:0">' + head + '</h2><span class="sp"></span><span class="foldhint"></span></summary>' +
-      '<div class="foldbody" data-sbdaybody="' + esc(d.d8) + '">' + body + '</div></details>';
-  }).join('');
-  sbWire(tree);
-  sbSave({ days: days });   /* open状態は拾わせたあとに保存(sbDayToggle) */
-}
-
-/* 1レースぶんの折り込み枠（中身は開いた時に遅延描画） */
-function sbRaceHtml(it){
-  var rid = String(it.rid || '');
-  var pre = null;
-  try { var rec = (typeof apGet === 'function') ? apGet(rid) : null; pre = (rec && rec.pre) || null; } catch(e){}
-  /* ★第158弾: スコアは生の浮動小数点(0.3329999…)が出ないように整形（0=スロー〜1=ハイの指数） */
-  var pace = (pre && pre.pace && pre.pace.label)
-    ? (pre.pace.label + (pre.pace.score != null ? '（指数' + (Math.round(pre.pace.score * 100) / 100) + '）' : ''))
-    : '';
-  var honmei = '';
-  if (pre && pre.rows && pre.rows.length){
-    var top = pre.rows.slice().sort(function(a, b){ return (a.rank || 99) - (b.rank || 99); })[0];
-    if (top && top.mark) honmei = ' ' + top.mark + esc(top.name || '');
-  }
-  var title = esc((it.place || '') + ' ' + (it.rnum || '') + 'R ' + (it.name || ''));
-  return '<details class="sbRace" data-sbrid="' + esc(rid) + '" data-sbrd8="' + esc(it.d8 || '') + '">' +
-    '<summary style="cursor:pointer;padding:7px 10px;font-size:.9rem;border:1px solid var(--line2);border-radius:8px;background:var(--card);display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-    '<b>' + esc(String(it.rnum || '')) + 'R</b><span>' + esc(String(it.name || '')) + '</span>' +
-    (honmei ? '<span class="chip" style="background:var(--card2);color:var(--ok-ink)">' + honmei + '</span>' : '') +
-    (pace ? '<span class="small muted">ペース: ' + esc(pace) + '</span>' : '<span class="small muted">ペース: —</span>') +
-    (it.pre ? '<span class="badge" title="出走前のAI予想を保存済み">事前</span>' : '') +
-    '</summary>' +
-    '<div class="sbBody" data-sbrbody="' + esc(rid) + '" style="margin-top:6px"><div class="small muted">⏳ 開いています…</div></div></details>';
-}
-
-/* イベント配線（日open状態保存・レース遅延描画・馬名ポップアップ） */
-function sbWire(root){
-  root.querySelectorAll('details.sbDay').forEach(function(d){
-    d.addEventListener('toggle', function(){
-      var d8 = d.getAttribute('data-sbd8');
-      var ds = sbDays(); ds.forEach(function(x){ if (x.d8 === d8) x.open = d.open; });
-      sbSave({ days: ds });
-    });
-  });
-  root.querySelectorAll('details.sbRace').forEach(function(d){
-    d.addEventListener('toggle', function(){
-      if (d.open) sbFillRace(d.getAttribute('data-sbrid'), d.getAttribute('data-sbrd8'), d.querySelector('.sbBody'));
-    });
-  });
-  root.querySelectorAll('a[data-sbhp]').forEach(function(a){
-    a.addEventListener('click', function(ev){
-      ev.preventDefault();
-      sbPopupOpen(a.getAttribute('data-sbhp'), a.getAttribute('data-sbnm'));
-    });
-  });
-}
-
-/* レースの中身（出馬表テーブル = 現行①と同じ列・読み取り専用 + ペース診断 + AI印） */
-function sbFillRace(rid, d8, body){
-  if (!body || body.getAttribute('data-done')) return;
-  if (typeof nkFetchCardText !== 'function'){ body.innerHTML = '<div class="small muted">出馬表キャッシュの機能がありません</div>'; return; }
-  nkFetchCardText(rid, { d8: d8 || '', force: false }).then(function(html){
-    var parsed = [];
-    var meta = {};
-    try { parsed = nkParseShutuba(html) || []; } catch(e){}
-    try { meta = nkParseRaceMeta(html) || {}; } catch(e){}
-    var pre = null;
-    try { var rec = (typeof apGet === 'function') ? apGet(rid) : null; pre = (rec && rec.pre) || null; } catch(e){}
-    var marks = {};
-    var probs = {};
-    if (pre && pre.rows){
-      pre.rows.forEach(function(r){ if (r && r.no != null){ marks[String(r.no)] = r.mark || ''; probs[String(r.no)] = r.prob || 0; } });
-    }
-    body.setAttribute('data-done', '1');
-    body.innerHTML = sbTableHtml(parsed, meta, pre, marks, probs);
-    /* ★遅延描画ぶんの馬名リンクはここで配線（sbRender時点ではまだ存在しない） */
-    try {
-      body.querySelectorAll('a[data-sbhp]').forEach(function(a){
-        a.addEventListener('click', function(ev){
-          ev.preventDefault();
-          sbPopupOpen(a.getAttribute('data-sbhp'), a.getAttribute('data-sbnm'));
-        });
-      });
-    } catch(e){}
-  }).catch(function(e){
-    body.innerHTML = '<div class="small" style="color:var(--err-ink)">⚠ 出馬表を表示できませんでした: ' + esc(String((e && e.message) || e)) + '</div>';
-  });
-}
-
-function sbTableHtml(parsed, meta, pre, marks, probs){
-  var paceTxt = (pre && pre.pace && pre.pace.label)
-    ? esc(pre.pace.label) + (pre.pace.score != null ? '（指数' + (Math.round(pre.pace.score * 100) / 100) + '・0=スロー〜1=ハイ）' : '') +
-      (pre && pre.rows && pre.rows.length ? '・保存時のAI印つき' : '')
-    : '事前予想の保存がありません（結果確定済みのレースはスキップされます）';
-  var h = [];
-  h.push('<div class="small" style="margin:0 0 4px"><b>🧠 展開予想（ペース診断）</b>: ' + paceTxt + '</div>');
-  h.push('<div class="small muted" style="margin:0 0 6px">' +
-    esc([meta.date || '', meta.place || '', (meta.rnum || '') + 'R', meta.name || '', meta.dist || '', meta.baba || ''].filter(Boolean).join(' ')) + '</div>');
-  h.push('<div class="tblwrap"><table class="htbl"><thead><tr>' +
-    '<th>#</th><th>枠</th><th>馬番</th><th style="min-width:120px">馬名</th><th>性齢</th><th>斤量</th><th style="min-width:90px">騎手</th>' +
-    '<th>単勝</th><th>脚質</th><th>印</th><th>AI勝率</th></tr></thead><tbody>');
-  parsed.forEach(function(p, i){
-    var no = String(p.no == null ? (i+1) : p.no);
-    var mk = marks[no] || '';
-    var pb = probs[no] || 0;
-    h.push('<tr>' +
-      '<td>' + (i+1) + '</td>' +
-      '<td>' + esc(String(p.frame || '')) + '</td>' +
-      '<td>' + esc(no) + '</td>' +
-      '<td style="text-align:left">' + (p.nk ? '<a href="#" data-sbhp="' + esc(String(p.nk)) + '" data-sbnm="' + esc(String(p.name || '')) + '" style="color:var(--info-ink);text-decoration:underline">' : '<span>') +
-        esc(String(p.name || '')) + (p.nk ? '</a>' : '</span>') + '</td>' +
-      '<td>' + esc(String(p.sexAge || '')) + '</td>' +
-      '<td>' + esc(String(p.weight || '')) + '</td>' +
-      '<td style="text-align:left">' + esc(String(p.jockey || '')) + '</td>' +
-      '<td>' + (p.odds != null ? esc(String(p.odds)) : '—') + '</td>' +
-      '<td>' + esc(String(p.style || '')) + '</td>' +
-      '<td><b>' + esc(mk) + '</b></td>' +
-      '<td>' + (pb ? (Math.round(pb * 1000) / 10) + '%' : '—') + '</td>' +
-      '</tr>');
-  });
-  h.push('</tbody></table></div>');
-  h.push('<div class="small muted" style="margin-top:4px">馬名をタップするとプロフィール（netkeiba）が出ます。印・AI勝率は🤖AI提案の事前予想保存ぶん（無いレースは—）。</div>');
-  return h.join('');
-}
-
 /* ---------- 馬名ポップアップ（p34のキャッシュ/取得を利用） ---------- */
 var SB_POP = null;
 function sbPopupClose(){ var o = $('sbPopOv'); if (o) o.remove(); SB_POP = null; }
@@ -47438,29 +46686,6 @@ function sbHorseHtml(rec, name){
   } catch(e){}
   h.push('<div class="small muted" style="margin-top:6px">出典: netkeiba 競走馬データベース（db.netkeiba.com）・端末内キャッシュ優先。</div>');
   return h.join('');
-}
-
-/* ---------- 初期化（出馬表タブ + 天気タブの場選択） ---------- */
-function sbInit(){
-  var add = $('sbAdd');
-  if (add) add.addEventListener('click', function(){ sbAddDay(($('sbDate') && $('sbDate').value) || ''); });
-  var td = $('sbToday');
-  if (td) td.addEventListener('click', function(){
-    var d = new Date();
-    var v = d.getFullYear() + '-' + ('0' + (d.getMonth()+1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-    var el = $('sbDate'); if (el) el.value = v;
-    sbAddDay(v);
-  });
-  var rf = $('sbRefresh');
-  if (rf) rf.addEventListener('click', function(){
-    var days = sbDays();
-    if (!days.length){ sbMsg('表示中の日はありません'); return; }
-    var d8 = days[0].d8;
-    sbMsg('🔄 ' + sbDateText(d8) + ' を取り直します…');
-    sbEnsureDay(d8, true).then(function(){ sbMsg(''); sbRender(); }).catch(function(e){ sbMsg('⚠ ' + esc(String((e && e.message) || e))); });
-  });
-  sbRender();
-  csInit();
 }
 
 /* ---------- 🌤天気タブ: コース特徴の競馬場セレクタ ---------- */
@@ -52347,7 +51572,7 @@ function showConfirm(msg, onYes){
 /* ---------- タブ ---------- */
 var _curTab = 't-sim';
 /* ★第156弾: 廃止タブへの遷移は新タブへ読み替えます（旧コード・保存データからの goTab 呼び出しも崩れない） */
-var GT_ALIAS = { 't-top':'t-sim', 't-input':'t-shutuba', 't-kentai':'t-aiprop', 't-lookback':'t-shutuba', 't-overseas':'t-sim' };
+var GT_ALIAS = { 't-top':'t-sim', 't-input':'t-sim', 't-kentai':'t-aiprop', 't-lookback':'t-sim', 't-overseas':'t-sim' };   /* ★第332弾: 出馬表タブ削除に伴い input・lookback の読み替え先を t-shutuba → t-sim へ */
 function setNav(){
   document.querySelectorAll('nav.tabs .tab').forEach(function(b){
     b.classList.toggle('active', b.dataset.t === _curTab);
@@ -52357,7 +51582,7 @@ function setNav(){
   });
 }
 function goTab(id){
-  /* ★第156弾: タブ大統合のエイリアス（top→③・input→出馬表・kentai→AI提案・lookback→出馬表・overseas→③） */
+  /* ★第156弾: タブ大統合のエイリアス（top→③・input→③・kentai→AI提案・lookback→③・overseas→③。第332弾で input・lookback の先を出馬表→③へ変更） */
   if (GT_ALIAS[id]) id = GT_ALIAS[id];
   /* ★2026-09-19 第40弾: ③は netkeiba AI展開予測ビュー（保存済み出馬表HTMLの解析のみ）。
      走行中のアニメもメモリ集計も無くなったので、離れるときの後始末は不要。 */
@@ -52373,11 +51598,8 @@ function goTab(id){
     try { if (typeof aiDepEnter === 'function') aiDepEnter(); } catch(e){} 
   }
   if (id === 't-horse' && typeof hbRefresh === 'function') hbRefresh();
-  /* ★第156弾: ①データ入力タブ廃止 → 出馬表タブ(t-shutuba)で履歴等を更新 */
-  if (id === 't-shutuba'){ try { if (typeof sbRender === 'function') sbRender(); } catch(e){} if (typeof hbSyncInputBadges === 'function') hbSyncInputBadges(); if (typeof kaiHistRender === 'function') kaiHistRender();
-    /* ★2026-09-13 第23弾⑤: 一括取得したレースの一覧を描き直す（出馬表キャッシュの有無もここで判定） */
-    try { if (typeof preListRender === 'function') preListRender(); } catch(e){}
-  }
+  /* ★第332弾: 出馬表タブ(t-shutuba)を削除したため、その表示時フック（sbRender・hbSyncInputBadges・kaiHistRender・preListRender）も撤去。
+     kaiHistRender は定義自体が無く従来から不発、preListRender は p53 自身のフローで都度呼ばれる、hbSyncInputBadges の同期先は表示経路のない旧入力画面グリッドだったため、いずれも実害なし */
   if (id === 't-jravideo' && typeof jvRefresh === 'function') jvRefresh();
   // ④天気予報タブ: 開いた時に「当日開催の競馬場名ボタン」をすぐ出す（保存済みの住所・開催を使う）
   /* ★2026-09-13 第25弾②: 🏇騎手・調教師DBタブを開いたら登録簿・キャッシュの状況を更新 */
@@ -52463,7 +51685,7 @@ function doImport(file){
       syncRaceDomFromState(); refreshRaceLine();
       rebuildHorseTable();
       saveNow();
-      goTab('t-shutuba');
+      goTab('t-aiprop');   /* ★第332弾: 出馬表タブ削除のため AI提案タブへ */
       showModal('<h2>✅ 読込完了</h2><p>' + state.horses.length + '頭のデータを復元しました。' + (hbMsg ? '<br><span class="small">' + hbMsg + '</span>' : '') + '</p><button class="btn primary" data-mcl>閉じる</button>', function(root){
         root.querySelector('[data-mcl]').addEventListener('click', closeModal);
       });
@@ -52593,7 +51815,7 @@ function boot(){
       state.biasOverride = '';
       syncRaceDomFromState(); refreshRaceLine(); rebuildHorseTable();
       var wb = $('weightSliders'); if (wb) wb.dataset.built = ''; // 次回スライダーを作り直す
-      goTab('t-shutuba');
+      goTab('t-aiprop');   /* ★第332弾: 出馬表タブ削除のため AI提案タブへ */
     });
   });
   on('btnExport', 'click', doExport);
@@ -52638,7 +51860,6 @@ function boot(){
   idleInit('initAih', function(){ if (typeof initAih === 'function') safeInit('initAih', initAih); });
   idleInit('initDr', function(){ if (typeof initDr === 'function') safeInit('initDr', initDr); });
   idleInit('initBetCalc', function(){ if (typeof initBetCalc === 'function') safeInit('initBetCalc', initBetCalc); });
-  idleInit('initLive', function(){ if (typeof initLive === 'function') safeInit('initLive', initLive); });
   idleInit('initJrdb', function(){ if (typeof initJrdb === 'function') safeInit('initJrdb', initJrdb); });   // ★第114弾: ⚔️対戦表PDF(jradb)
   idleInit('initDbfix', function(){ if (typeof initDbfix === 'function') safeInit('initDbfix', initDbfix); });   // ★第127弾: 🔧学習DB修正データ(距離・面)
   idleInit('initGiBaba', function(){ if (typeof initGiBaba === 'function') safeInit('initGiBaba', initGiBaba); });   // ★第133弾: 🌤指数用馬場履歴
@@ -52647,7 +51868,7 @@ function boot(){
   idleInit('initPf', function(){ if (typeof initPf === 'function') safeInit('initPf', initPf); });   // ★第16弾: 展開学習(ペース適性×コーナー通過順バイアス)
   idleInit('apdInit', function(){ if (typeof apdInit === 'function') safeInit('apdInit', apdInit); });   // ★第17弾・提案1: AI予想の診断(計測のみ)
   idleInit('initPre', function(){ if (typeof initPre === 'function') safeInit('initPre', initPre); });   // ★第17弾: 出走前の出馬表一括取得(事前予想の保存)
-  idleInit('initSb', function(){ if (typeof sbInit === 'function') safeInit('sbInit', sbInit); });   // ★第156弾: 📋出馬表タブ+🌤天気タブの競馬場セレクタ
+  idleInit('initCs', function(){ if (typeof csInit === 'function') safeInit('csInit', csInit); });   // ★第332弾: 出馬表タブ削除で sbInit を廃止し、🌤天気タブの競馬場セレクタ初期化だけを残す（従来は sbInit 経由で起動時にも呼ばれていた）
   idleInit('initNar', function(){ if (typeof narInit === 'function') safeInit('narInit', narInit); });   // ★第159弾: 🏟地方競馬タブ
   idleInit('initPk', function(){ if (typeof initPk === 'function') safeInit('initPk', initPk); });   // ★第18弾: 軸・妙味・穴の一覧
   idleInit('initBt', function(){ if (typeof initBt === 'function') safeInit('initBt', initBt); });   // ★第18弾: バックテスト
