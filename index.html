@@ -131,9 +131,10 @@ nav.tabs .tab:hover{color:var(--ok-ink);background:rgba(255,255,255,.6)}
 nav.tabs .tab.active{background:var(--card);color:var(--ok-ink);box-shadow:0 -2px 8px rgba(30,70,40,.10);border-color:var(--line2)}
 /* ===== main ===== */
 main{max-width:1180px;margin:0 auto;padding:14px 18px 40px}
-.page{display:none;animation:fade .25s}
+.page{display:none;animation:pageIn .2s ease-out}
 .page.active{display:block}
-@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+/* ★第336弾: タブ切替はフェード＋横スライド（向きは goTab が --pgx に入れる。既定は右から） */
+@keyframes pageIn{from{opacity:0;transform:translateX(var(--pgx,12px))}to{opacity:1;transform:none}}
 /* .card を!importantで上書き: 各所のインライン指定も白地に統一 */
 .card,.card[style]{
   background:var(--card) !important;
@@ -494,10 +495,10 @@ html[data-theme="light"] .kai-log{background:#0f2417}
 
 /* ドロワー（左側・GitHub風） */
 .drawer-back{position:fixed;inset:0;background:rgba(18,38,26,.45);z-index:190;
-  opacity:0;pointer-events:none;transition:opacity .18s}
+  opacity:0;pointer-events:none;transition:opacity .22s ease}
 .drawer-back.show{opacity:1;pointer-events:auto}
 .drawer{position:fixed;left:0;top:0;bottom:0;width:min(304px,86vw);background:var(--card);z-index:200;
-  transform:translateX(-104%);transition:transform .2s ease;box-shadow:6px 0 30px rgba(10,30,18,.22);
+  transform:translateX(-104%);transition:transform .24s cubic-bezier(.32,.72,.24,1);box-shadow:6px 0 30px rgba(10,30,18,.22);
   display:flex;flex-direction:column;border-right:1px solid var(--line2)}
 .drawer.open{transform:translateX(0)}
 .drawer-head{display:flex;align-items:center;gap:6px;padding:13px 12px 11px 16px;
@@ -1171,6 +1172,35 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
   #rvBar { gap:4px !important; }
   #rvRem, #rvClock { font-size:11px !important; padding:3px 6px !important; }
 }
+
+/* ===== ★第336弾: アプリらしい動き（モーション） =====
+   ・アニメーションするプロパティは transform / opacity / filter のみ（再描画を誘発しない）。
+   ・停止ゲート: OS の prefers-reduced-motion と、全体スイッチ html.khl-nomotion
+     （p35_nav.js の KHL_MOTION=false で付く）の2か所で全停止できる。 */
+/* ボタンの押し感（.btn は transition:.15s が既にあるので :active を足すだけ） */
+.btn:active{transform:scale(.98);filter:brightness(1.08)}
+.btn:disabled:active{transform:none;filter:none}
+nav.tabs .tab{transition:transform .12s ease,filter .12s ease}
+nav.tabs .tab:active{transform:scale(.97);filter:brightness(1.08)}
+/* 折りたたみカード: 開いた時に中身がふわりと入る（高さアニメーションは details の制約で対象外） */
+details.card.fold[open]>.foldbody{animation:foldIn .22s ease-out}
+details.kfold[open]>div{animation:foldIn .22s ease-out}
+@keyframes foldIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+/* 完了トースト（画面下・p35_nav.js の khlToast が .show を付け外しする） */
+.khl-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:300;
+  transform:translate(-50%,18px);opacity:0;pointer-events:none;
+  transition:transform .24s cubic-bezier(.32,.72,.24,1),opacity .22s ease;
+  background:var(--card2);color:var(--ink);border:1px solid var(--line2);border-radius:12px;
+  padding:10px 16px;font-size:.88rem;font-weight:600;line-height:1.5;text-align:center;
+  box-shadow:var(--shadow);max-width:min(92vw,560px)}
+.khl-toast.show{transform:translate(-50%,0);opacity:1}
+/* 動きの停止ゲート（上の2系統どちらでも全停止） */
+@media (prefers-reduced-motion: reduce){
+  .page,details.card.fold[open]>.foldbody,details.kfold[open]>div{animation:none !important}
+  .drawer,.drawer-back,.btn,nav.tabs .tab,.khl-toast,.kfold>summary::before{transition:none !important}
+}
+html.khl-nomotion .page,html.khl-nomotion details.card.fold[open]>.foldbody,html.khl-nomotion details.kfold[open]>div{animation:none !important}
+html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,html.khl-nomotion nav.tabs .tab,html.khl-nomotion .khl-toast,html.khl-nomotion .kfold>summary::before{transition:none !important}
 </style>
 
 </head><body>
@@ -1194,13 +1224,14 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 
 <!-- 左ドロワー（GitHub風・全ページ共通） -->
 <div class="drawer-back" id="drawerBack"></div>
+<div class="khl-toast" id="khlToast" role="status" aria-live="polite"></div><!-- ★第336弾: 完了トースト（p35_nav.js の khlToast が表示） -->
 <aside class="drawer" id="drawer" aria-hidden="true">
   <div class="drawer-head">
     <b><span class="dh-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> メニュー（目次）</b>
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第335弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第336弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2913,7 +2944,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第335弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第336弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -21685,6 +21716,7 @@ function diYearBuild(){
         DI_FIX_LAST = det;
         try { diRenderStat(); } catch(e){}
         diYearMsgSet(base + ' 🔍 ' + y + ' 年の欠落の照合・補完が終わりました: ' + diFixHeadText(det) + diFixNotesText(det));
+        try { if (typeof khlToast === 'function') khlToast('🔍 ' + y + '年の欠落の照合・補完が終わりました：' + diFixHeadText(det)); } catch(e){}   /* ★第336弾: 完了トースト */
         diFixSaveBtnSet('diYearFixSave', det);
       }).catch(function(e){
         diYearMsgSet(base + ' ⚠ 欠落の照合・補完の途中で止まりました: ' + ((e && e.message) || e) + '（修復済みのレースは保存されています）', true);
@@ -22208,6 +22240,7 @@ function diFixRun(){
     try { diRenderStat(); } catch(e){}
     diFixMsgSet('✅ 点検が終わりました: ' + diFixHeadText(det) + diFixNotesText(det) +
       '修復で頭数が変わったレースのバックテスト予想は、次回のバックテスト（実行済みスキップ）で作り直されます。');
+    try { if (typeof khlToast === 'function') khlToast('✅ 欠落の点検が終わりました：' + diFixHeadText(det)); } catch(e){}   /* ★第336弾: 完了トースト */
     diFixSaveBtnSet('diFixSave', det);
   }).catch(function(e){
     if (btn) btn.disabled = false;
@@ -23171,6 +23204,24 @@ function initHd(){
    ========================================================= */
 /* ★第326弾: アイコンは絵文字から線画SVG（inline・Feather系、刷新サンプルB案と同系統）へ。
    サイズは p1_head.html の .dnav .ico svg / .hm-tile .ico svg で制御する。 */
+/* ★第336弾: 動き（モーション）の全体スイッチ。false にすると html.khl-nomotion が付き、
+   p1_head.html のゲートCSSで全アニメーション/トランジションが止まる。
+   OS の「視差効果を減らす」（prefers-reduced-motion）でも CSS 側で自動停止する。 */
+var KHL_MOTION = true;
+if (!KHL_MOTION){ try { document.documentElement.classList.add('khl-nomotion'); } catch(e){} }
+/* ★第336弾: 完了トースト（画面下に小さく出て数秒で消える知らせ。表示そのものはクラス付け替えのみで、
+   動きはCSS側のゲートに従う） */
+var _khlToastTimer = 0;
+function khlToast(msg, ms){
+  try {
+    var el = $('khlToast');
+    if (!el || !msg) return;
+    el.textContent = String(msg);
+    el.classList.add('show');
+    if (_khlToastTimer) clearTimeout(_khlToastTimer);
+    _khlToastTimer = setTimeout(function(){ try { el.classList.remove('show'); } catch(e){} }, ms || 3400);
+  } catch(e){}
+}
 var NAV_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
 var NAV_ITEMS = [
   /* ★第156弾: 目次もタブ大統合に合わせて整理（トップ・①・②・振り返り・海外・払戻DBは削除、⑤⑥は目次のみ） */
@@ -33652,6 +33703,8 @@ function preRun(){
       /* busy解除はチェーン全体が終わってから（フェーズ2の間も二重実行を防ぐ） */
       preBusy(false);
       preMsg('');
+      /* ★第336弾: 完了トースト（一括取得の最終完了点はここだけ） */
+      try { if (typeof khlToast === 'function') khlToast('✅ 一括取得 完了：保存 ' + (res.ok || 0) + ' レース／スキップ ' + ((res.skipHave || 0) + (res.skipDone || 0)) + '／失敗 ' + (res.fail || 0) + (extra && extra.indexOf('再予想まで完了') >= 0 ? '／結果取得・再予想まで完了' : '')); } catch(e){}
       preStat(head + (extra || '') +
         (phase2 ? '' : '<br>※ 初回取得のため、結果取得・未発走の再予想は省略しました。レース後に同じ📥ボタンを押すと、続けて実行されます。'));
       try { if (typeof apRender === 'function') apRender(); } catch(e){}
@@ -51981,6 +52034,16 @@ function setNav(){
 function goTab(id){
   /* ★第156弾: タブ大統合のエイリアス（top→③・input→③・kentai→AI提案・lookback→③・overseas→③。第332弾で input・lookback の先を出馬表→③へ変更） */
   if (GT_ALIAS[id]) id = GT_ALIAS[id];
+  /* ★第336弾: タブ切替スライドの向きを対象ページの CSS 変数 --pgx へ（装飾のみ・
+     取れなくても表示は setNav の即時確定に依存するので事故にならない） */
+  try {
+    var _pgEls = document.querySelectorAll('main .page'), _oi = -1, _ni = -1;
+    for (var _pi = 0; _pi < _pgEls.length; _pi++){
+      if (_pgEls[_pi].id === _curTab) _oi = _pi;
+      if (_pgEls[_pi].id === id) _ni = _pi;
+    }
+    if (_ni >= 0) _pgEls[_ni].style.setProperty('--pgx', (_oi >= 0 && _ni < _oi) ? '-14px' : '14px');
+  } catch(e){}
   /* ★2026-09-19 第40弾: ③は netkeiba AI展開予測ビュー（保存済み出馬表HTMLの解析のみ）。
      走行中のアニメもメモリ集計も無くなったので、離れるときの後始末は不要。 */
   _curTab = id;
