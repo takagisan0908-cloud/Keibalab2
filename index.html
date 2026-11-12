@@ -1544,7 +1544,7 @@ html[data-theme="light"] .page-top-hero{
 
   <div class="card" id="pedDbCard">
     <b>🧬 血統DB（結果の血統を記録）</b>
-    <div class="muted small">血統（父・母・母父）の参照元は、オーナーから渡された <b>JRA-VANのデータファイル</b>（馬マスタ＋成績のCSV）が基本です。下の「🏇 血統データファイルを取り込む」で一括登録できます。JRA-VANに無い馬（取り込み後の新馬など）は、従来どおり netkeiba から1頭ずつ取得して記録します。予想・印には影響しません（記録専用）。</div>
+    <div class="muted small">血統（父・母・母父）の参照元は、オーナーから渡された <b>JRA-VANのデータファイル</b>（馬マスタ＋成績のCSV）が基本です。下の「🏇 血統データファイルを読み込む」で読み込むと、端末へ保存しなくてもそのまま検索・参照に使えます。JRA-VANに無い馬（取り込み後の新馬など）は、従来どおり netkeiba から1頭ずつ取得して記録します（新しく取得した血統は今までどおり端末に保存されます）。予想・印には影響しません（記録専用）。</div>
     <div id="pedDbStat" class="small" style="margin-top:6px"></div>
     <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
       <select id="pedDbYear" class="inp" style="max-width:130px"><option value="">全期間</option></select>
@@ -1560,15 +1560,15 @@ html[data-theme="light"] .page-top-hero{
       <input type="file" id="pedDbFile" accept=".json,application/json" style="display:none">
     </div>
     <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
-      <button id="pedDbJvBtn" class="btn">🏇 血統データファイルを取り込む</button>
-      <button id="pedDbJvFileBtn" class="btn ghost">📂 ファイルから取り込む</button>
+      <button id="pedDbJvBtn" class="btn">🏇 血統データファイルを読み込む</button>
+      <button id="pedDbJvFileBtn" class="btn ghost">📂 ファイルから読み込む</button>
       <input type="file" id="pedDbJvFile" accept=".json,application/json" style="display:none">
-      <span class="small muted">jravan_pedigree.json（馬マスタ＋成績から生成・94,432頭）を血統DBへ登録します。登録済みの馬は上書きしません。</span>
+      <span class="small muted">jravan_pedigree.json（馬マスタ＋成績から生成・94,432頭）を読み込みます。端末へは保存せず、そのまま検索・血統参照に使います。端末に保存済みの血統がある馬は保存分が優先されます。</span>
     </div>
     <div id="pedDbMsg" class="small" style="margin-top:4px"></div>
     <div style="border-top:1px dashed var(--line2);margin:10px 0 2px;padding-top:8px">
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-        <b class="small">🔎 記録済み血統の検索:</b>
+        <b class="small">🔎 血統の検索（保存済み＋データファイル）:</b>
         <input id="pedDbQuery" class="inp" placeholder="馬名の一部を入力" style="flex:1;min-width:140px">
         <button id="pedDbSearchBtn" class="btn ghost">検索</button>
       </div>
@@ -1591,7 +1591,7 @@ html[data-theme="light"] .page-top-hero{
       <span class="small muted">中断・再開OK</span>
     </div>
     <details class="kfold"><summary class="small" style="cursor:pointer;color:var(--muted)">📖 説明（折りたたみ）</summary><div class="small muted" style="margin-bottom:8px">
-      過去分は、オーナーから渡されたJRA-VANのCSVから生成したファイル（jravan_db_&lt;年&gt;.json）を学習DBへ取り込むのが基本です（下の「🏇 渡されたデータファイルから取り込む」）。これから出る結果は、従来どおり netkeiba から年指定で取得して同じ形式で保存できます。<b>同じレース・同じ内容は重複保存しません。中断しても再実行で続きから</b>取り込めます。保存領域が満杯になると最も古いレースから自動削除されます（保存先は IndexedDB）。
+      過去分は、オーナーから渡されたJRA-VANのCSVから生成したファイル（jravan_db_&lt;年&gt;.json）を<b>そのまま読み込んで参照する</b>のが基本です（下の「🏇 渡されたデータファイルから読み込む」。端末の学習DBへはコピー保存しません）。学習DBへの保存は、ファイルに無い分（全券種の払戻や、ファイルの収録日より後の新しいレース）を取り込む時だけ使います。これから出る結果は、従来どおり netkeiba から年指定で取得して同じ形式で保存できます。<b>同じレース・同じ内容は重複保存しません。中断しても再実行で続きから</b>取り込めます。保存領域が満杯になると最も古いレースから自動削除されます（保存先は IndexedDB）。
     </div></details>
     <div id="diStat" class="small" style="margin-top:8px"></div>
     <div id="diMsg" class="small" style="margin-top:4px"></div>
@@ -1603,11 +1603,11 @@ html[data-theme="light"] .page-top-hero{
     </div>
     <div id="diYearMsg" class="small" style="margin-top:6px"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-      <b class="small">🏇 渡されたデータファイルから取り込む（過去分）:</b>
-      <button type="button" class="btn" id="diJvBtn">🏇 選択中の年のデータファイルを取り込む</button>
-      <button type="button" class="btn ghost" id="diJvFileBtn">📂 ファイルから取り込む</button>
+      <b class="small">🏇 渡されたデータファイルから読み込む（過去分）:</b>
+      <button type="button" class="btn" id="diJvBtn">🏇 選択中の年のデータファイルを読み込む</button>
+      <button type="button" class="btn ghost" id="diJvFileBtn">📂 ファイルから読み込む</button>
       <input type="file" id="diJvFile" accept=".json,application/json" multiple style="display:none">
-      <span class="small muted">jravan_db_&lt;年&gt;.json（渡されたJRA-VAN成績CSVから生成・1年約3,450レース）を学習DBへ保存します。</span>
+      <span class="small muted">jravan_db_&lt;年&gt;.json（渡されたJRA-VAN成績CSVから生成・1年約3,450レース）を読み込みます。端末の学習DBへは保存せず、そのまま検索・参照に使えます。</span>
     </div>
     <div id="diJvMsg" class="small" style="margin-top:4px"></div>
     <div style="border-top:1px dashed var(--line2);margin:12px 0 2px;padding-top:10px">
@@ -19198,17 +19198,32 @@ function bfPedDbStore(){
     return BF_PEDDB_CACHE.ped;
   } catch(e){ return null; }
 }
-function bfPedJv(id){
-  var ped = bfPedDbStore();
-  if (!ped) return null;
-  var e = ped[String(id)] || ped['jv' + String(id)];
+function bfPedLiteFrom(e, src){
   if (!e || (!e.sire && !e.msire && !e.dam)) return null;
   var names = {}, gen = {}, disp = {};
   if (e.sire){ names[e.sire] = 1; gen[e.sire] = 1; disp[e.sire] = e.sire; }
   if (e.dam){ names[e.dam] = 1; gen[e.dam] = 1; disp[e.dam] = e.dam; }
   if (e.msire){ names[e.msire] = 1; gen[e.msire] = 2; disp[e.msire] = e.msire; }
   return { names: names, disp: disp, males: {}, females: {}, gen: gen, ln: {}, g5: [], g5l: {},
-    count: Object.keys(names).length, v: BF_PED_V, lite: 1, src: 'peddb324', at: new Date().toISOString() };
+    count: Object.keys(names).length, v: BF_PED_V, lite: 1, src: src, at: new Date().toISOString() };
+}
+function bfPedJv(id){
+  /* ① 端末に保存済みの血統DB分 (従来取得で個別に保存した分) */
+  var ped = bfPedDbStore();
+  if (ped){
+    var r = bfPedLiteFrom(ped[String(id)] || ped['jv' + String(id)], 'peddb324');
+    if (r) return r;
+  }
+  /* ② ★第325弾: 渡された血統データファイル分は、配置済みファイルを読み込んだ
+     メモリ (DBS_JV.ped) から直接引く。端末の保存領域へコピー保存した分には
+     依存しない (第320弾のシーディングは第325弾で撤去)。 */
+  try {
+    if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.ped){
+      var r2 = bfPedLiteFrom(DBS_JV.ped[String(id)], 'jvfile325');
+      if (r2) return r2;
+    }
+  } catch(e2){}
+  return null;
 }
 
 /* 1頭分の5代血統（キャッシュ）
@@ -19216,7 +19231,9 @@ function bfPedJv(id){
    opt.lite    : 祖先用（males/females/g5 を落として省サイズ・保存はまとめ打ち）
    ★第324弾: 参照の階層は ①端末に保存済みの完全な血統 (下のキャッシュ)
      → ②血統DBの保存分・渡されたVAN分 (父・母・母父のみ、bfPedJv)
-     → ③従来の取得。needGen の呼び出しは ②では足りないので ③へ進む。 */
+     → ③従来の取得。needGen の呼び出しは ②では足りないので ③へ進む。
+   ★第325弾: ②のVAN分は配置済み血統データファイルを直接読む形に変更
+     (未読込なら DBS_JV_PED_FETCH で読み込んでから引き直す)。 */
 function bfPed(id, opt){
   opt = opt || {};
   var ls = bfLs();
@@ -19227,7 +19244,18 @@ function bfPed(id, opt){
   if (!opt.needGen){
     var jvRec = bfPedJv(id);
     if (jvRec) return Promise.resolve(jvRec);
+    if (typeof DBS_JV_PED_FETCH === 'function'){
+      return DBS_JV_PED_FETCH().then(function(){
+        var r2 = bfPedJv(id);
+        if (r2) return r2;
+        return bfPedFetchNet(id, opt, rec);
+      });
+    }
   }
+  return bfPedFetchNet(id, opt, rec);
+}
+/* ③ 従来の取得: netkeiba の血統表を取りに行き、結果は従来どおり端末へ保存する */
+function bfPedFetchNet(id, opt, rec){
   return bfGate(function(){ return bfGet('https://db.netkeiba.com/horse/ped/' + id + '/'); }).then(function(html){
     var p = bfParsePed(html);
     if (!p.count) throw new Error('血統表を解析できませんでした(' + id + ')');
@@ -21568,13 +21596,25 @@ function diYearBuild(){
   if (stp) stp.addEventListener('click', function(){
     if (DI_YEAR_BUSY){ DI_YEAR_CANCEL = true; diYearMsgSet('⏹ 中断しています…（現在の1日分の取込が終わり次第停止します）', false); stp.disabled = true; }
   });
-  /* ★第320弾: データファイル取込ボタン (渡されたJRA-VANのCSVから生成した年別ファイル) */
+  /* ★第320弾→第325弾: データファイル読み込みボタン (渡されたJRA-VANのCSVから生成した年別ファイル・読み込むだけ) */
   var jvb = $('diJvBtn'); if (jvb) jvb.addEventListener('click', function(){ diJvFetchYear(); });
   var jfb = $('diJvFileBtn'); if (jfb) jfb.addEventListener('click', function(){ var f = $('diJvFile'); if (f) f.click(); });
   var jfi = $('diJvFile'); if (jfi) jfi.addEventListener('change', function(){
+    /* ★第325弾: ファイルからも「読み込むだけ」(メモリ保持・学習DBへは保存しない) */
     var files = Array.prototype.slice.call(jfi.files || []);
-    files.forEach(function(f){ diImportFile(f); });
-    if (files.length) diJvMsgSet('🏇 データファイル ' + files.length + ' 件を学習DBへ取り込んでいます（進み具合は上の表示）');
+    var done = 0, total = 0, failed = 0;
+    files.forEach(function(f){
+      var rd = new FileReader();
+      rd.onload = function(){
+        try {
+          if (typeof dbsJvIngest !== 'function') throw new Error('読み込みモジュール未読込');
+          total += dbsJvIngest(JSON.parse(rd.result));
+        } catch(e){ failed++; }
+        if (++done === files.length) diJvMsgSet('🏇 データファイル ' + files.length + ' 件を読み込みました（新規 ' + total + ' レース・端末の学習DBへは保存しません）' + (failed ? ' ※ ' + failed + ' 件は読み込めませんでした' : ''), failed > 0 && total === 0);
+      };
+      rd.onerror = function(){ failed++; if (++done === files.length) diJvMsgSet('🏇 データファイルの読み込みが終わりました（端末の学習DBへは保存しません）', true); };
+      rd.readAsText(f);
+    });
     jfi.value = '';
   });
   diYearMsgSet('年を選んで「📥 この年の全レースを一括取得・学習DBへ保存」を押すと、その年のJRA開催日・JRA全レース（場ごと1〜12R）を自動検出して学習DBへ保存します。', false);
@@ -21816,10 +21856,14 @@ function diScheduleJtFetch(){
   } catch(e){ DI_JT_BUSY = false; }
 }
 
-/* ---------- ★第320弾: 渡されたJRA-VANのCSVから生成した過去分ファイルの取り込み ----------
-   過去分は JRA-VAN 成績CSVから生成した jravan_db_<年>.json (学習DBバックアップと同形式) を
-   既存の復元処理 diImportFile でそのまま取り込む。これから出る結果は従来の netkeiba
-   年指定取込 (diImportYear) で同じ形式に記録する。 */
+/* ---------- ★第325弾: 渡された年別ファイルは「読み込むだけ」 ----------
+   第320弾では jravan_db_<年>.json を diImportFile で端末の学習DBへコピー保存
+   していたが、配置済みファイルが正本なら二重管理になるため撤去した。
+   「読み込む」は、その年を DBS_JV_FETCH で fetch してメモリに保持し、
+   検索・参照 (p97/p36/p43) で直接使える状態にするだけ。
+   学習DBへの保存は、ファイルに無い分 (払戻・2026-11-09以降の新規レース等) を
+   従来の netkeiba 年指定取込 (diImportYear) やバックアップ復元 (diImportFile) で
+   取り込む経路が従来どおり担う。 */
 function diJvMsgSet(t, err){
   var e = $('diJvMsg');
   if (e) e.innerHTML = t ? '<span' + (err ? ' style="color:var(--err-ink)"' : '') + '>' + t + '</span>' : '';
@@ -21828,15 +21872,17 @@ function diJvFetchYear(){
   var sel = $('diYear');
   var y = sel ? parseInt(sel.value, 10) : 0;
   if (!y){ diJvMsgSet('年を選択してください', true); return; }
+  if (typeof DBS_JV_FETCH !== 'function'){ diJvMsgSet('データファイル読み込みモジュールが読み込まれていません', true); return; }
   diJvMsgSet('🏇 ' + y + ' 年のデータファイルを読み込み中…');
-  fetch('jravan_data/jravan_db_' + y + '.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.blob(); })
-    .then(function(blob){
-      diJvMsgSet('🏇 ' + y + ' 年のデータファイルを学習DBへ取り込んでいます（進み具合は上の表示）');
-      diImportFile(blob);
-    })
-    .catch(function(e){
-      diJvMsgSet('⚠ jravan_data/jravan_db_' + y + '.json を取得できませんでした（index.html と同じ場所の jravan_data フォルダに置くか、「📂 ファイルから取り込む」を使ってください）', true);
-    });
+  DBS_JV_FETCH(y).then(function(added){
+    if (added == null){
+      diJvMsgSet('⚠ jravan_data/jravan_db_' + y + '.json を取得できませんでした（index.html と同じ場所の jravan_data フォルダに置くか、「📂 ファイルから読み込む」を使ってください）', true);
+    } else if (added === true){
+      diJvMsgSet('🏇 ' + y + ' 年のデータファイルは読み込み済みです（端末の学習DBへは保存していません）');
+    } else {
+      diJvMsgSet('🏇 ' + y + ' 年のデータファイルを読み込みました（新規 ' + added + ' レース・端末の学習DBへは保存しません。そのまま検索・参照に使えます）');
+    }
+  });
 }
 
 /* =========================================================
@@ -49073,7 +49119,7 @@ var _dbsData = null, _dbsDataVer = -1, _dbsBootTry = false;
    学習DBと同じレコード形式なので、検索・集計・前走参照はそのまま動く。
    血統は rows[].jv (血統登録番号) → jravan_pedigree.json のマップで引く。 */
 var DBS_SRC = 'db';
-var DBS_JV = { map: {}, ped: null, ver: 0 };
+var DBS_JV = { map: {}, ped: null, ver: 0, years: {} };
 function dbsJvData(){
   var races = [];
   Object.keys(DBS_JV.map).forEach(function(rid){
@@ -50271,6 +50317,43 @@ function dbsJvIngest(obj){
   _dbsData = null; _dbsDataVer = -1;
   return added;
 }
+/* ---------- ★第325弾: 年別／血統ファイルのオンデマンド読み込み（実体） ----------
+   p36 (drFetchRace)・p43 (bbEnsure) が typeof ガード越しに呼ぶ DBS_JV_FETCH と、
+   p31 (bfPed)・p103 が使う DBS_JV_PED_FETCH の実体。
+   読み込みはメモリ (DBS_JV) までで、端末の学習DB・保存領域へはコピー保存しない。
+   配置済みファイルが正本で、参照はここを通して直接読む形に一本化する。 */
+var DBS_JV_INFLIGHT = {};
+function DBS_JV_FETCH(year){
+  year = String(year == null ? '' : year);
+  if (!/^\d{4}$/.test(year)) return Promise.resolve(null);
+  if (DBS_JV.years[year] != null) return Promise.resolve(DBS_JV.years[year]);
+  if (DBS_JV_INFLIGHT['y' + year]) return DBS_JV_INFLIGHT['y' + year];
+  var p = fetch('jravan_data/jravan_db_' + year + '.json')
+    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(obj){
+      var added = dbsJvIngest(obj);
+      DBS_JV.years[year] = added;
+      delete DBS_JV_INFLIGHT['y' + year];
+      return added;
+    })
+    .catch(function(){ delete DBS_JV_INFLIGHT['y' + year]; return null; });
+  DBS_JV_INFLIGHT['y' + year] = p;
+  return p;
+}
+function DBS_JV_PED_FETCH(){
+  if (DBS_JV.ped) return Promise.resolve(DBS_JV.ped);
+  if (DBS_JV_INFLIGHT.ped) return DBS_JV_INFLIGHT.ped;
+  var p = fetch('jravan_data/jravan_pedigree.json')
+    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(obj){
+      if (obj && obj.ped) DBS_JV.ped = obj.ped;
+      delete DBS_JV_INFLIGHT.ped;
+      return DBS_JV.ped || null;
+    })
+    .catch(function(){ delete DBS_JV_INFLIGHT.ped; return null; });
+  DBS_JV_INFLIGHT.ped = p;
+  return p;
+}
 function dbsJvRefresh(){
   var stat = document.getElementById('dbsStat');
   var D = dbsData(true);
@@ -50313,7 +50396,7 @@ function dbsJvFetchAll(){
     }
     var u = urls[i++];
     fetch(u).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function(obj){ dbsJvIngest(obj); })
+      .then(function(obj){ dbsJvIngest(obj); var ym = /jravan_db_(\d{4})\.json/.exec(u); if (ym && DBS_JV.years[ym[1]] == null) DBS_JV.years[ym[1]] = true; })
       .catch(function(){ failed.push(u); })
       .then(function(){ dbsJvStatSet('データファイル: 読み込み中… ' + i + ' / ' + urls.length + ' ファイル'); next(); });
   }
@@ -51566,14 +51649,33 @@ function pedDbImportFile(file){
 function pedDbDoSearch(){
   var q = $('pedDbQuery'), out = $('pedDbSearchOut');
   if (!out) return;
-  var hits = pedDbSearch(pedDbLoad(), q ? q.value : '');
-  if (!hits.length){ out.innerHTML = '<div class="small muted">該当する記録済みの血統がありません</div>'; return; }
-  var h = ['<table class="lr-tbl"><thead><tr><th>馬名</th><th>父</th><th>母</th><th>母父</th></tr></thead><tbody>'];
-  hits.forEach(function(x){
-    h.push('<tr><td>' + esc(x.name || '(馬名不明)') + '</td><td>' + esc(x.sire || '−') + '</td><td>' + esc(x.dam || '−') + '</td><td>' + esc(x.msire || '−') + '</td></tr>');
+  var query = q ? String(q.value || '') : '';
+  /* ★第325弾: 保存分 (従来取得で個別に保存した血統) を優先し、無い分を
+     配置済み血統データファイル (メモリ読み) で補って検索する。 */
+  var hits = pedDbSearch(pedDbLoad(), query);
+  var seen = {};
+  hits.forEach(function(x){ seen[String(x.id)] = 1; });
+  pedDbJvMap().then(function(ped){
+    var needle = query.trim();
+    if (ped && needle){
+      Object.keys(ped).forEach(function(pid){
+        if (hits.length >= 50 || seen[pid]) return;
+        var e = ped[pid] || {};
+        var nm = e.name || '';
+        if (nm.indexOf(needle) >= 0 || pid.indexOf(needle) >= 0){
+          hits.push({ id: pid, name: nm, sire: e.sire || '', dam: e.dam || '', msire: e.msire || '' });
+          seen[pid] = 1;
+        }
+      });
+    }
+    if (!hits.length){ out.innerHTML = '<div class="small muted">該当する血統がありません</div>'; return; }
+    var h = ['<table class="lr-tbl"><thead><tr><th>馬名</th><th>父</th><th>母</th><th>母父</th></tr></thead><tbody>'];
+    hits.forEach(function(x){
+      h.push('<tr><td>' + esc(x.name || '(馬名不明)') + '</td><td>' + esc(x.sire || '−') + '</td><td>' + esc(x.dam || '−') + '</td><td>' + esc(x.msire || '−') + '</td></tr>');
+    });
+    h.push('</tbody></table>');
+    out.innerHTML = h.join('');
   });
-  h.push('</tbody></table>');
-  out.innerHTML = h.join('');
 }
 function pedDbOnShow(){
   pedDbFillYears();
@@ -51596,40 +51698,45 @@ function initPedDb(){
   pedDbRenderStat();
 }
 
-/* ---------- ★第320弾: 渡されたJRA-VANデータファイルからの血統シード取り込み ----------
-   参照元を、オーナーから渡されたJRA-VANのCSV (馬マスタ+成績から生成した jravan_pedigree.json) 基本に変更。
-   キーは 'jv<血統登録番号>' で netkeiba ID の記録と分離する。登録済みは上書きしない。
-   渡されたデータファイルに無い馬 (取込後の新馬など) は従来の netkeiba 取得 (pedDbStart) で補う。 */
-function pedDbJvIngest(obj){
-  if (!obj || !obj.ped) { pedDbMsg('⚠ 血統データの形式が違います（ped がありません）', true); return 0; }
-  var store = pedDbLoad();
-  var added = 0, skipped = 0;
-  Object.keys(obj.ped).forEach(function(pid){
-    var e = obj.ped[pid] || {};
-    var key = 'jv' + pid;
-    if (store.ped[key]){ skipped++; return; }
-    if (!e.sire && !e.msire){ skipped++; return; }
-    store.ped[key] = { name: e.name || '', sire: e.sire || '', dam: e.dam || '', msire: e.msire || '', at: new Date().toISOString(), src: 'jravan' };
-    added++;
-  });
-  if (added && !pedDbSave(store)){
-    pedDbMsg('⚠ 保存領域が足りず、血統データファイルの内容を保存できませんでした（' + added + ' 頭ぶん）。血統DBの書き出しで古い端末分を整理してからお試しください', true);
-    return 0;
+/* ---------- ★第325弾: 渡された血統データファイルは「読み込むだけ」 ----------
+   第320弾の一括シーディング (ファイル内容を端末の保存領域 khl_peddb_v1 へ
+   コピー保存する経路) は撤去した。94,432頭ぶんは保存領域に入りきらず、
+   配置済みファイルが正本なら二重管理にもなるため。
+   基礎データは jravan_pedigree.json をその都度 fetch してメモリ上で使う。
+   保存領域に残るのは、従来取得 (pedDbStart) で得た個別の血統だけ。
+   検索は保存分を優先し、無い分をファイル分で補う。 */
+var PEDDB_JV_MEM = null;      /* ファイル分の血統マップ (血統登録番号→{name,sire,dam,msire}) */
+var PEDDB_JV_LOADING = null;
+function pedDbJvMap(){
+  if (PEDDB_JV_MEM) return Promise.resolve(PEDDB_JV_MEM);
+  try { if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.ped){ PEDDB_JV_MEM = DBS_JV.ped; return Promise.resolve(PEDDB_JV_MEM); } } catch(e){}
+  if (typeof DBS_JV_PED_FETCH === 'function'){
+    return DBS_JV_PED_FETCH().then(function(ped){ if (ped) PEDDB_JV_MEM = ped; return PEDDB_JV_MEM; });
   }
-  pedDbMsg('🏇 血統データファイルを取り込みました: 新規 ' + added + ' 頭（既存 ' + skipped + ' 頭はそのまま）。検索は上の「記録済み血統の検索」から使えます');
-  try { pedDbRenderStat(); } catch(e){}
-  return added;
+  if (PEDDB_JV_LOADING) return PEDDB_JV_LOADING;
+  PEDDB_JV_LOADING = fetch('jravan_data/jravan_pedigree.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(obj){ PEDDB_JV_MEM = (obj && obj.ped) || null; PEDDB_JV_LOADING = null; return PEDDB_JV_MEM; })
+    .catch(function(){ PEDDB_JV_LOADING = null; return null; });
+  return PEDDB_JV_LOADING;
 }
 function pedDbJvFetch(){
   pedDbMsg('🏇 血統データファイルを読み込み中…');
-  fetch('jravan_data/jravan_pedigree.json').then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function(obj){ pedDbJvIngest(obj); })
-    .catch(function(e){ pedDbMsg('⚠ jravan_data/jravan_pedigree.json を取得できませんでした（index.html と同じ場所の jravan_data フォルダに置くか、「📂 ファイルから取り込む」を使ってください）', true); });
+  pedDbJvMap().then(function(ped){
+    if (ped) pedDbMsg('🏇 血統データファイルを読み込みました: ' + Object.keys(ped).length + ' 頭（端末へは保存しません。検索・血統参照はこの内容を使います）');
+    else pedDbMsg('⚠ jravan_data/jravan_pedigree.json を取得できませんでした（index.html と同じ場所の jravan_data フォルダに置くか、「📂 ファイルから読み込む」を使ってください）', true);
+  });
 }
 function pedDbJvFileIn(file){
   if (!file) return;
   var rd = new FileReader();
-  rd.onload = function(){ try { pedDbJvIngest(JSON.parse(rd.result)); } catch(e){ pedDbMsg('⚠ ファイルを読み込めませんでした: ' + e.message, true); } };
+  rd.onload = function(){
+    try {
+      var obj = JSON.parse(rd.result);
+      if (!obj || !obj.ped) throw new Error('ped がありません');
+      PEDDB_JV_MEM = obj.ped;
+      pedDbMsg('🏇 血統データファイルを読み込みました: ' + Object.keys(PEDDB_JV_MEM).length + ' 頭（端末へは保存しません）');
+    } catch(e){ pedDbMsg('⚠ ファイルを読み込めませんでした: ' + e.message, true); }
+  };
   rd.readAsText(file);
 }
 
