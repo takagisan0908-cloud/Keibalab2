@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="light">
+<html lang="ja" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>競馬AIラボ｜展開予想・AI印・netkeiba AI展開予測</title>
 <meta name="description" content="競馬AIラボ — 展開予想・AI印・netkeiba AI展開予測ビュー。netkeiba出馬表から馬データ・上り3Fを自動抽出（順位を黄/青/ピンクで色分け）、重賞データ分析（navi-keiba風コメント付き）。">
-<meta name="theme-color" content="#0b3a2a">
+<meta name="theme-color" content="#0b0e13">
 <meta name="color-scheme" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,26 +25,26 @@
 <meta name="twitter:card" content="summary_large_image">
 <style>
 :root{
-  /* ===== Spotify風 ダーク（既定） ===== */
-  --bg:#121212; --bg-top:#242424;
-  --card:#181818; --card2:#1f1f1f; --tint:#232323; --tint2:#2a2a2a;
-  --ink:#ffffff; --mut:#b3b3b3;
-  --line:#2a2a2a; --line2:#3d3d3d;
-  --green:#1DB954; --green2:#1ed760; --green3:#153d24;
+  /* ===== B案ダーク（既定） ★第326弾: UI刷新サンプルのB案（黒基調・数字が浮き立つ・アクセントはティール） ===== */
+  --bg:#0b0e13; --bg-top:#10141b;
+  --card:#151a22; --card2:#1c212b; --tint:#1a2029; --tint2:#232a36;
+  --ink:#f1f5f9; --mut:#94a3b8;
+  --line:#232a36; --line2:#2a3342;
+  --green:#14b8a6; --green2:#2dd4bf; --green3:#12211f;
   --on-accent:#ffffff;      /* 色付き背景の上の文字（マーク・バッジ等） */
-  --on-green:#08140c;       /* 緑ボタンの上の文字（Spotifyは黒文字） */
-  --ok-ink:#4ade80; --warn-ink:#f2c46b; --err-ink:#ff7b72; --info-ink:#79c0ff; --acc-ink:#d2a8ff;
+  --on-green:#04201c;       /* ティールボタンの上の文字（サンプルB案のロゴ色と対） */
+  --ok-ink:#2dd4bf; --warn-ink:#f2c46b; --err-ink:#ff7b72; --info-ink:#79c0ff; --acc-ink:#d2a8ff;
   --gold:#f2c46b; --goldbg:#2b2415;
   --red:#ff7b72; --blue:#79c0ff; --orange:#ffa657;
   /* 重賞グレードの色（G1=青 / G2=赤 / G3=緑 / Jpn=紫）※2026-09-11にG1とG2を入れ替え */
   --g1:#3b82f6; --g1-bd:#60a5fa; --g2:#e5484d; --g2-bd:#ff6b6f;
   --g3:#22a45d; --g3-bd:#3ecf7a; --gpn:#a855d6; --gpn-bd:#c07ce8;
-  --shadow:0 8px 24px rgba(0,0,0,.45);
-  --sidebar:#000000; --topbar:rgba(18,18,18,.82); --topbar-ink:#ffffff;
-  --hd-btn-bg:rgba(255,255,255,.10); --hd-btn-bd:rgba(255,255,255,.22); --hd-btn-hover:rgba(255,255,255,.20);
-  --savest:#a7f3d0;
-  --row-alt:#1c1c1c; --row-hover:#262626; --thead:#202020;
-  --radius:14px; --radius-sm:10px;
+  --shadow:0 10px 28px rgba(0,0,0,.5);
+  --sidebar:#0f1319; --topbar:rgba(11,14,19,.85); --topbar-ink:#f1f5f9;
+  --hd-btn-bg:#1c212b; --hd-btn-bd:#262c38; --hd-btn-hover:#232a36;
+  --savest:#5eead4;
+  --row-alt:#10141b; --row-hover:#1a2029; --thead:#171c25;
+  --radius:16px; --radius-sm:12px;
 }
 html[data-theme="light"]{
   /* ===== 従来のライトテーマ（右上の ☀️ で切替） ===== */
@@ -340,7 +340,7 @@ table.ktbl .hname{display:inline-block;max-width:170px;overflow:hidden;text-over
 .mk{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:3px 6px;font-size:.8rem;font-weight:700}
 .bkset{display:inline-flex;gap:2px;margin-left:6px;vertical-align:middle}
 .bk{border:1px solid var(--line2);background:var(--card2);color:var(--ok-ink);border-radius:5px;font-size:.68rem;padding:1px 7px;cursor:pointer}
-.bk.on{background:#1aa864;color:var(--on-accent);border-color:#1aa864;font-weight:800}
+.bk.on{background:var(--green);color:var(--on-green);border-color:transparent;font-weight:800}
 .biasverdict{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card2);border:1px solid var(--line2);border-radius:10px;padding:7px 11px;margin-bottom:8px}
 .biasverdict .chip{font-size:.9rem;padding:4px 12px}
 .tdown{color:var(--ok-ink);font-weight:800}
@@ -405,7 +405,7 @@ table{max-width:100%}
 .livebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .lsbtn{border:1px solid var(--line2);background:var(--card);color:var(--ok-ink);border-radius:999px;padding:6px 14px;font-size:.87rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .12s}
 .lsbtn:hover{background:var(--card2)}
-.lsbtn.ls-a{background:#0e5e39;color:var(--on-accent);border-color:#0e5e39}
+.lsbtn.ls-a{background:var(--green);color:var(--on-green);border-color:transparent}
 .livetick{font-variant-numeric:tabular-nums}
 .lv-up{color:var(--warn-ink);font-weight:800}
 .lv-down{color:var(--info-ink);font-weight:800}
@@ -426,7 +426,7 @@ table{max-width:100%}
   .hbhorse[open]>summary:before{content:'▼ '}
   .hbhorse .hbcounts{color:var(--ok-ink);font-size:.78rem;margin:0 6px}
   .hbhorse textarea,.hbassign textarea{border:1px solid var(--line2);border-radius:8px;padding:6px;font-size:.82rem;box-sizing:border-box}
-  .hbhorse textarea:focus,.hbassign textarea:focus{outline:none;border-color:#0e5e39}
+  .hbhorse textarea:focus,.hbassign textarea:focus{outline:none;border-color:var(--green)}
   .hbmini{border:none;background:transparent;color:var(--err-ink);cursor:pointer;font-size:.82rem;padding:2px 5px;border-radius:6px}
   .hbmini:hover{background:var(--card2)}
   .hbassign select{border:1px solid var(--line2);border-radius:8px;padding:4px 6px;font-size:.8rem;background:var(--card)}
@@ -441,12 +441,13 @@ table{max-width:100%}
 .kai-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .kai-rbtn{border:1px solid var(--line2);background:var(--card);color:var(--ok-ink);border-radius:8px;min-width:42px;padding:5px 8px;font-weight:800;font-size:.83rem;cursor:pointer;font-family:inherit}
 .kai-rbtn:hover{background:var(--card2)}
-.kai-rbtn.on{background:linear-gradient(135deg,#17a763,#0c7c40);color:var(--on-accent);border-color:#0c7c40}
+.kai-rbtn.on{background:linear-gradient(135deg,#14b8a6,#0f766e);color:var(--on-green);border-color:transparent}
 .kai-rbtn.done::after{content:'✓';margin-left:1px}
 .kai-detail{border:1px solid var(--line2);background:linear-gradient(180deg,var(--card),var(--card));border-radius:12px;padding:10px 14px;margin-top:10px}
 .kai-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px;margin:8px 0;font-size:.87rem;line-height:1.7}
 .kai-meta b{color:var(--ok-ink)}
-.kai-log{background:#0f2417;color:var(--mut);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-top:10px;line-height:1.9}
+.kai-log{background:#0f141c;color:var(--mut);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-top:10px;line-height:1.9}
+html[data-theme="light"] .kai-log{background:#0f2417}
 .kai-hist .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line2);border-radius:10px;padding:6px 10px;margin:6px 0;background:var(--card)}
 .kai-hist .hd{flex:1 1 260px;min-width:200px}
 /* ★2026-09-13 第24弾③: トラックバイアスの説明文を折り込む（常時4段落ぶんの高さを取らない） */
@@ -475,7 +476,7 @@ table{max-width:100%}
 .pedcell .pedhead{font-weight:800;color:var(--ok-ink);font-size:.78rem;margin-bottom:4px}
 .pdr{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:.76rem;line-height:1.55;border-top:1px dashed var(--line2);padding:2px 0}
 .pdr:first-of-type{border-top:none}
-.pdk{color:var(--on-accent);background:#0e5e39;border-radius:4px;padding:0 5px;font-size:.66rem;font-weight:800}
+.pdk{color:#5eead4;background:#134e4a;border-radius:4px;padding:0 5px;font-size:.66rem;font-weight:800}
 .pdt{color:var(--ink);font-weight:800;min-width:46px;text-align:right}
 .pdg{font-weight:800;color:var(--ink)}
 .pdc{color:var(--info-ink)}
@@ -573,7 +574,7 @@ table{max-width:100%}
 .lvbadge-tie{background:#2060c0;animation:none}
 @keyframes lvbli{0%,100%{opacity:1}50%{opacity:.35}}
 /* ---- netkeiba 上り3F 順位色分け(1位=黄 / 2位=青 / 3位=ピンク) ---- */
-.nkr{display:inline-block;border-radius:5px;padding:0 6px;font-weight:800;font-size:.74rem;color:var(--ink);line-height:1.6;white-space:nowrap}
+.nkr{display:inline-block;border-radius:5px;padding:0 6px;font-weight:800;font-size:.74rem;color:#17202a;line-height:1.6;white-space:nowrap}
 .nkr.r1{background:#ffe13b;border:1px solid var(--line2)}
 .nkr.r2{background:#7fc4ff;border:1px solid #4a9ff0}
 .nkr.r3{background:#ffaad4;border:1px solid #f47fb4}
@@ -687,7 +688,7 @@ table.htbl tbody tr:hover, .lr-tbl tbody tr:hover{background:var(--card2)}
 table.htbl th, table.htbl td{border:1px solid var(--line2);padding:4px 7px}
 .lr-tbl thead th{font-size:.76rem}
 /* 馬情報モーダルの見出しはnetkeibaの馬名カード風に */
-#modalBody .nkm-head{background:linear-gradient(180deg,#0f7a5e,#0c5f49)}
+#modalBody .nkm-head{background:linear-gradient(180deg,#0d9488,#115e59)}
 /* ============================================================================
    Spotify風テーマ層（2026-09-11）
    ・既定＝ダーク（#121212 / カード #181818 / アクセント #1DB954）
@@ -785,7 +786,7 @@ details.card.fold>summary.foldhead .foldhint{color:var(--mut)}
 
 /* --- 入力 --- */
 select,input,textarea{background:var(--tint);border:1px solid var(--line2);color:var(--ink);border-radius:8px}
-select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,185,84,.22)}
+select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(20,184,166,.22)}
 select option{background:var(--card);color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--mut);opacity:.75}
 label{color:var(--mut)}
@@ -831,7 +832,7 @@ table.ktbl .kt-p{color:var(--ok-ink)}
 /* --- トップページ（ヒーロー＋タイル） --- */
 .page-top-hero{
   background:
-    radial-gradient(700px 260px at 88% -20%, rgba(29,185,84,.28) 0%, transparent 62%),
+    radial-gradient(700px 260px at 88% -20%, rgba(45,212,191,.20) 0%, transparent 62%),
     radial-gradient(520px 240px at 4% 120%, rgba(121,192,255,.16) 0%, transparent 60%),
     linear-gradient(160deg,#2a2a2a 0%,#171717 60%,#121212 100%);
   border:1px solid var(--line);color:var(--ink);
@@ -881,7 +882,8 @@ body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repea
 /* 🌍海外競馬: 検索候補 */
 .ovcand{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-top:6px}
 .ovcbtn{display:block;width:100%;padding:10px 12px;line-height:1.5;white-space:normal;height:auto}
-.ovcbtn:hover{border-color:var(--g3);background:#f2fbf5}
+.ovcbtn:hover{border-color:var(--g3);background:var(--green3)}
+html[data-theme="light"] .ovcbtn:hover{background:#f2fbf5}
 /* =========================================================
    ★第54弾: UIスキン（デザインのみ・挙動不変）— スマホ中心
    ・タブバーがヘッダーに隠れていた不具合を解消（--hd-h はJSで計測）
@@ -972,61 +974,70 @@ html[data-theme="light"]{
   --shadow:none;
   --row-alt:#faf9f5; --row-hover:#fdf1ec; --thead:#edece7;
 }
-/* ヘッダー: 白地に赤オレンジロゴ帯＋黄色ライン（netkeibaの看板感） */
-header.topbar{border-bottom:1px solid #dedcd4;box-shadow:0 2px 0 #fccc37}
-header.topbar .brand .logo{background:#dc2b05;box-shadow:none;border-radius:8px}
-header.topbar .b1{color:#333}
-header.topbar .savest{color:#666}
-header.topbar .nbtn,header.topbar .hd .btn{color:#333;border:1px solid #c9c7bd}
-header.topbar .nbtn:hover,header.topbar .hd .btn:hover{background:#e8e5dc;border-color:#b9b7ad}
-/* タブ: 白背景・べた足・アクティブは赤橙下線（globalnavi風） */
-nav.tabs{background:#fff;border-bottom:1px solid #dedcd4;box-shadow:none;padding:2px 10px 0}
-nav.tabs .tab{border-radius:6px 6px 0 0;color:#444;font-weight:700;padding:11px 14px;border-bottom:4px solid transparent}
-nav.tabs .tab:hover{color:#dc2b05;background:#faf8f4}
-nav.tabs .tab.active{color:#dc2b05;background:#fff;border-color:#dedcd4 #dedcd4 transparent;box-shadow:inset 0 2px 0 #dc2b05;border-bottom:4px solid #dc2b05}
+/* ★第326弾: このブロックのテーマ無条件ルールは第55弾当時ライト前提の色だったため、
+   ダーク（B案）前提の値へ書き換えた。ライト時の見た目は html[data-theme="light"] スコープ
+   （このブロック末尾の保持行＋第56弾ブロック）で従来どおり保持する。 */
+/* ヘッダー: ダーク地にティールのロゴ（サンプルB案の logo-mark と対） */
+header.topbar{border-bottom:1px solid var(--line);box-shadow:none}
+header.topbar .brand .logo{background:#14b8a6;color:#04201c;box-shadow:none;border-radius:12px}
+header.topbar .b1{color:var(--topbar-ink)}
+header.topbar .savest{color:var(--savest)}
+header.topbar .nbtn,header.topbar .hd .btn{color:var(--topbar-ink);border:1px solid var(--hd-btn-bd)}
+header.topbar .nbtn:hover,header.topbar .hd .btn:hover{background:var(--hd-btn-hover);border-color:var(--line2)}
+/* タブ: ダーク地・アクティブはティール */
+nav.tabs{background:var(--card);border-bottom:1px solid var(--line);box-shadow:none;padding:2px 10px 0}
+nav.tabs .tab{color:var(--mut);font-weight:700;padding:11px 14px}
+nav.tabs .tab:hover{color:var(--ink);background:var(--tint)}
+nav.tabs .tab.active{color:var(--green2);background:var(--green3)}
 html[data-theme="light"] nav.tabs .tab.active{background:#fff;color:#dc2b05;border-bottom:4px solid #dc2b05;box-shadow:inset 0 2px 0 #dc2b05}
-/* ボタン: 角丸3px・グレー基調、primaryはnetkeibaCTAの赤橙 */
-.btn{border-radius:3px;background:#f1efe9;color:#333;border:1px solid #c9c7bd;font-weight:700}
-.btn:hover{background:#e8e5dc;border-color:#b9b7ad}
-.btn.primary{background:#dc2b05;border-color:#b3220a;color:#fff}
-.btn.primary:hover{background:#c22605;border-color:#9c1e08}
-.btn.ghost{background:#fff;color:#3a3a3a;border-color:#c9c7bd}
-.btn.ghost:hover{background:#faf8f4}
-.btn.dashed{background:#faf8f4;color:#666;border-color:#c9c7bd}
-/* 入力: 角3px、フォーカスで赤橙 */
-select,input,textarea{border-radius:3px;border-color:#c9c7bd;background:#fff}
-select:focus,input:focus,textarea:focus{border-color:#dc2b05;box-shadow:0 0 0 2px rgba(220,43,5,.14)}
+/* ボタン: ピル型・ティールがアクセント */
+.btn{border-radius:999px;background:var(--tint);color:var(--ink);border:1px solid transparent;font-weight:700}
+.btn:hover{background:var(--tint2);border-color:transparent}
+.btn.primary{background:var(--green);border-color:transparent;color:var(--on-green)}
+.btn.primary:hover{background:var(--green2);border-color:transparent}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+.btn.ghost:hover{background:var(--tint)}
+.btn.dashed{background:transparent;color:var(--mut);border-color:var(--line2)}
+/* 入力: フォーカスでティール */
+select,input,textarea{border-radius:8px;border-color:var(--line2);background:var(--tint)}
+select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(20,184,166,.22)}
 /* カード: 角を落とし細枠に（影なし） */
 html[data-theme="light"] .card{border:1px solid #dedcd4;border-radius:4px;box-shadow:none}
-.card>h2{border-left:4px solid #dc2b05;padding-left:9px;color:#2f2f2f;font-weight:800}
+.card>h2{border-left:4px solid var(--green);padding-left:9px;color:var(--ink);font-weight:800}
 html[data-theme="light"] .hm-tile{border:1px solid #dedcd4;border-radius:4px;box-shadow:none;background:#fff}
 html[data-theme="light"] .hm-tile:hover{border-color:#dc2b05}
-/* 表: 方眼・グレーベージュのヘッダー（netkeibaのレース表風） */
-table{border-collapse:collapse;border:1px solid #dedcd4}
-th,td{border:1px solid #e6e4dc}
-thead th{background:#edece7;color:#333;border-bottom:2px solid #c9c7bd}
-tbody tr:hover td{background:#fdf1ec}
-/* 詳細(折り畳み)・チップ類を角に寄せる */
-.kfold{border-radius:4px;background:#faf8f4;border-color:#dedcd4}
-.kfold>summary{color:#333;font-weight:800}
-.kfold>summary::before{color:#dc2b05}
-.chip{border-radius:3px}
-body{background:linear-gradient(180deg,#faf8f4 0,#f2f1ec 420px) no-repeat,#f2f1ec}
-/* トップページhero: 旧緑テーマの黒背景カードを netkeiba 風お白紙へ（第55弾） */
+/* 表: ダークの方眼・ヘッダー */
+table{border-collapse:collapse;border:1px solid var(--line)}
+th,td{border:1px solid var(--line)}
+thead th{background:var(--thead);color:var(--mut);border-bottom:2px solid var(--line2)}
+tbody tr:hover td{background:var(--row-hover)}
+/* 詳細(折り畳み)・チップ類 */
+.kfold{border-radius:10px;background:var(--card2);border-color:var(--line2)}
+.kfold>summary{color:var(--ink);font-weight:800}
+.kfold>summary::before{color:var(--green2)}
+.chip{border-radius:999px}
+body{background:linear-gradient(180deg,var(--bg-top) 0,var(--bg) 420px) no-repeat,var(--bg)}
+/* トップページhero: ダーク地にティールの光（第55弾の白紙版はライト側で保持） */
 .page-top-hero{
   background:
-    radial-gradient(560px 200px at 90% -14%, rgba(252,204,55,.22), transparent 62%),
-    #ffffff;
-  border:1px solid #dedcd4;border-top:5px solid #dc2b05;border-radius:8px;
-  box-shadow:0 1px 0 #efece4;
+    radial-gradient(700px 260px at 88% -20%, rgba(45,212,191,.20) 0%, transparent 62%),
+    radial-gradient(520px 240px at 4% 120%, rgba(121,192,255,.10) 0%, transparent 60%),
+    linear-gradient(160deg,#171c25 0%,#10141b 60%,#0b0e13 100%);
+  border:1px solid var(--line);color:var(--ink);
 }
 html[data-theme="light"] .page-top-hero{color:#333}
 html[data-theme="light"] .page-top-hero h1{color:#2f2f2f}
 html[data-theme="light"] .page-top-hero .sub{color:#4a4a4a}
 html[data-theme="light"] .page-top-hero .quick .btn{background:#f1efe9;border:1px solid #c9c7bd;color:#333;font-weight:800}
 html[data-theme="light"] .page-top-hero .quick .btn:hover{background:#e8e5dc;border-color:#dc2b05;color:#b3220a}
-.bstamp{color:#666;background:#f6f4ee;border:1px solid #dedcd4;border-radius:3px;padding:2px 8px}
-.bstamp b{color:#333}
+.bstamp{color:var(--mut);background:var(--tint);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.bstamp b{color:var(--ink)}
+/* ★第326弾: ライト時の保持（第55弾当時の値。第56弾ブロック側の定義が後勝ちする箇所はそちらが正） */
+html[data-theme="light"] .bstamp{color:#666;background:#f6f4ee;border-color:#dedcd4}
+html[data-theme="light"] .bstamp b{color:#333}
+html[data-theme="light"] .kfold{background:#faf8f4;border-color:#dedcd4}
+html[data-theme="light"] .kfold>summary{color:#333}
+html[data-theme="light"] .kfold>summary::before{color:#dc2b05}
 /* =========================================================
    ★第56弾: netkeiba実測準拠スキン（本家ページをheadless実描画してcomputed style・色頻度を計測し移植）
    実測値: グロナビ #3251bc(白反転active) / 枠 #d9d8ce / ボックス地 #f4f2ec / 表ヘッダ #f1f2f3
@@ -1117,6 +1128,42 @@ html[data-theme="light"] .page-top-hero{
 
 
 
+/* =========================================================
+   ★第326弾: UI刷新（デザインのみ・挙動不変）
+   ・テーマの土台をサンプルB案のダークへ（:root変数を #0b0e13/#151a22/ティールに置換済み）
+   ・線画アイコン（inline SVG）の整列と、ダークで沈む直書き色の持ち上げ
+   ========================================================= */
+html[data-theme="dark"]{color-scheme:dark}
+/* 線画アイコンの整列（タブ・ドロワー・ホームタイル・目次ボタン・ロゴ） */
+nav.tabs .tab svg{width:17px;height:17px;flex:0 0 auto}
+nav.tabs .tab{display:inline-flex;align-items:center;gap:6px}
+#navBtn .ic{display:inline-flex;align-items:center}
+#navBtn .ic svg{width:16px;height:16px}
+.brand .logo svg{width:24px;height:24px}
+.dnav .ico{display:inline-flex;align-items:center;justify-content:center;color:var(--mut)}
+.dnav .ico svg{width:21px;height:21px}
+.dnav.cur .ico{color:var(--green2)}
+.hm-tile .ico{display:inline-flex;align-items:center;color:var(--green2)}
+.hm-tile .ico svg{width:26px;height:26px}
+.drawer-head .dh-ico{display:inline-flex;align-items:center;color:var(--green2)}
+.drawer-head .dh-ico svg{width:19px;height:19px}
+.card h2 svg{width:19px;height:19px;vertical-align:-4px;color:var(--green2)}
+.page-top-hero .hb svg{width:52px;height:52px;color:var(--ink);filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+html[data-theme="light"] .page-top-hero .hb svg{color:#fff}
+/* カードの余白をB案寄りに（スマホは第54弾の指定を尊重して控えめに） */
+.card{padding:18px 20px}
+@media (max-width:880px){ .card{padding:14px 13px} }
+/* ダークで沈む直書き色の持ち上げ */
+html[data-theme="dark"] table.htbl thead th,
+html[data-theme="dark"] .lr-tbl thead th,
+html[data-theme="dark"] .nkm-table thead th{
+  background:linear-gradient(180deg,#0d9488,#115e59);border-color:#115e59;
+}
+html[data-theme="dark"] .tltag.prev{color:#8fb7ff}
+html[data-theme="dark"] .vtadv{border-color:#155e52}
+html[data-theme="dark"] #vtCard .foldhead h2{color:var(--green2)}
+html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-color:rgba(20,184,166,.55)}
+
 /* 第281弾: 折りたたみ端末を含む可変ビューポート。機種の固定解像度に依存しない。 */
 #rvBox { min-width:0; container-type:inline-size; }
 #rvBox button { min-height:44px; touch-action:manipulation; }
@@ -1143,7 +1190,7 @@ html[data-theme="light"] .page-top-hero{
 </head><body>
 <header class="topbar" id="topbarHd">
   <div class="brand">
-    <div class="logo">🐎</div>
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 4v6.5a7 7 0 0 0 14 0V4"/><path d="M3.5 4h3"/><path d="M17.5 4h3"/><circle cx="6.2" cy="9" r=".6" fill="currentColor" stroke="none"/><circle cx="17.8" cy="9" r=".6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="14.6" r=".6" fill="currentColor" stroke="none"/><circle cx="16.4" cy="14.6" r=".6" fill="currentColor" stroke="none"/></svg></div>
     <div>
       <div class="b1">競馬AIラボ</div>
       <div class="b2">展開予想 ・ AI印 ・ netkeiba AI展開予測</div>
@@ -1163,7 +1210,7 @@ html[data-theme="light"] .page-top-hero{
 <div class="drawer-back" id="drawerBack"></div>
 <aside class="drawer" id="drawer" aria-hidden="true">
   <div class="drawer-head">
-    <b>📖 メニュー（目次）</b>
+    <b><span class="dh-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> メニュー（目次）</b>
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
@@ -1171,15 +1218,15 @@ html[data-theme="light"] .page-top-hero{
 </aside>
 
 <nav class="tabs">
-  <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic">☰</span><span class="nvlab">目次</span></button>
-  <button class="tab active" data-t="t-sim">🤖 ③ AI展開予測</button>
-  <button class="tab" data-t="t-shutuba">📋 出馬表</button>
-  <button class="tab" data-t="t-nar">🏟 地方</button>
-  <button class="tab" data-t="t-tenki">🌤 天気予報</button>
-  <button class="tab" data-t="t-horse">📒 馬ノート<span class="tsub">(短評DB)</span></button>
-  <button class="tab" data-t="t-database">🗄 データベース</button>
-  <button class="tab" data-t="t-dbsearch">🔎 データ検索</button>
-  <button class="tab" data-t="t-aiprop">🤖 AI提案</button>
+  <button type="button" class="nbtn" id="navBtn" title="メニュー（目次）を開く"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg></span><span class="nvlab">目次</span></button>
+  <button class="tab active" data-t="t-sim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg> ③ AI展開予測</button>
+  <button class="tab" data-t="t-shutuba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg> 出馬表</button>
+  <button class="tab" data-t="t-nar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg> 地方</button>
+  <button class="tab" data-t="t-tenki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> 天気予報</button>
+  <button class="tab" data-t="t-horse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 馬ノート<span class="tsub">(短評DB)</span></button>
+  <button class="tab" data-t="t-database"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg> データベース</button>
+  <button class="tab" data-t="t-dbsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> データ検索</button>
+  <button class="tab" data-t="t-aiprop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> AI提案</button>
   <!-- ★第156弾: タブ大統合。トップ・①データ入力・②展開予想は廃止(機能はAI提案/出馬表/天気予報/データベースへ移設 or 内部化)、⑤JRA映像と⑥重賞はタブバーから削除(☰目次からのみ)。振り返り・海外競馬・払戻DBの導線も削除 -->
 </nav>
 
@@ -1188,7 +1235,7 @@ html[data-theme="light"] .page-top-hero{
 <section class="page active" id="t-sim">
       <div class="card adw" id="adCard">
         <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
-          <h2 style="margin:0">🤖 netkeiba AI展開予測<span class="small muted" style="font-weight:400;margin-left:8px">スタート後／3コーナー／4コーナーと4コーナーポジション別の複勝率(%)。一括取得したレースはボタン化され、クリックで即表示（保存済み出馬表HTMLだけを解析・通信ゼロ）</span></h2>
+          <h2 style="margin:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg> netkeiba AI展開予測<span class="small muted" style="font-weight:400;margin-left:8px">スタート後／3コーナー／4コーナーと4コーナーポジション別の複勝率(%)。一括取得したレースはボタン化され、クリックで即表示（保存済み出馬表HTMLだけを解析・通信ゼロ）</span></h2>
           <button type="button" class="btn ghost" id="adBtnLoad" onclick="aiDepLoad(1)" title="出馬表を取り直してAIセクションを読み込みます。netkeibaのAI公開はレース前日14時頃なので、前日午前に一括取得したキャッシュだけではまだ入っていません">🔄 出馬表を取り直してAI読込</button>
           <button type="button" class="btn ghost" id="adBtnSum" onclick="aiSumManual()" title="netkeiba「AI総合スコア」ページ(ai_summary.html)から、全頭の総合点＋内訳12観点＋プロフィールを取り直します（そのレース分だけ・保存後は通信ゼロ）">🤖 AI総合スコア取得/更新</button>
         </div>
@@ -1233,7 +1280,7 @@ html[data-theme="light"] .page-top-hero{
   <div id="live-shutuba">
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
     <div class="cardhead">
-      <h2>📋 出馬表（日付を選んで折り込み表示）</h2>
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg> 出馬表（日付を選んで折り込み表示）</h2>
       <span class="chip" id="sbChip">0日</span>
       <span class="sp"></span>
       <span class="small muted">1日ごと・1レースごとに折り込み。複数の日付を並べて比較できます</span>
@@ -1288,7 +1335,7 @@ html[data-theme="light"] .page-top-hero{
 <section class="page" id="t-nar">
   <div class="card" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card2),var(--card))">
     <div class="cardhead">
-      <h2>🏟 地方競馬（NAR）の出馬表・AI展開予測</h2>
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg> 地方競馬（NAR）の出馬表・AI展開予測</h2>
       <span class="chip">netkeiba</span>
       <span class="chip" id="narVer" style="background:#5b3a8f;color:#fff">v161</span>
       <span class="sp"></span>
@@ -1314,7 +1361,7 @@ html[data-theme="light"] .page-top-hero{
          旧⑦天気予報タブの機能をここへ移設（タブは削除・p46_tenki.jsのJSは不変・tk*のidは全て温存）。 -->
     <div class="card">
       <div class="cardhead">
-        <h2>☀️ 天気予報（当日開催場の1時間ごと天気）</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg> 天気予報（当日開催場の1時間ごと天気）</h2>
       </div>
       <div class="simrow">
         <label style="display:flex;align-items:center;gap:5px">日付
@@ -1442,7 +1489,7 @@ html[data-theme="light"] .page-top-hero{
     <details class="card fold" id="hbDbCard" open>
       <summary class="foldhead">
         <span class="fmark"></span>
-        <h2>📒 馬データベース（馬ごとの専用ノート）</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 馬データベース（馬ごとの専用ノート）</h2>
         <span class="sp"></span><span class="foldhint"></span>
       </summary>
       <div class="foldbody">
@@ -1540,7 +1587,7 @@ html[data-theme="light"] .page-top-hero{
      検索・参照できるようにします（③でAI予想のファクターに使用）。
      ============================================================ -->
 <section class="page" id="t-database">
-  <h2>🗄 データベース</h2>
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg> データベース</h2>
 
   <div class="card" id="pedDbCard">
     <b>🧬 血統DB（結果の血統を記録）</b>
@@ -1721,7 +1768,7 @@ html[data-theme="light"] .page-top-hero{
 <!-- ================= 🤖 AI提案（回収率改善） ================= -->
 <section class="page" id="t-dbsearch">
   <!-- ★第170弾: 🔎データ検索タブ(第165弾設計の実装・学習DB検索・閲覧・ウマホ風UI)。p97_dbsearch.js が描画 -->
-  <h2>🔎 データ検索</h2>
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> データ検索</h2>
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <b>🔍 学習DB検索・閲覧</b>
@@ -1906,7 +1953,7 @@ html[data-theme="light"] .page-top-hero{
 </section>
 
 <section class="page" id="t-aiprop">
-  <h2>🤖 AI提案</h2>
+  <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> AI提案</h2>
   <div class="card">
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <!-- ★第164弾: 「📥 その日の結果を取得」(aiSettle)と「🔄 表示を更新」(aiRefresh)を廃止。
@@ -2044,12 +2091,12 @@ html[data-theme="light"] .page-top-hero{
 <div id="legacyStore" style="display:none">
 <section class="page" id="t-top">
   <div class="page-top-hero">
-    <div class="hb">🐎</div>
+    <div class="hb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 4v6.5a7 7 0 0 0 14 0V4"/><path d="M3.5 4h3"/><path d="M17.5 4h3"/><circle cx="6.2" cy="9" r=".6" fill="currentColor" stroke="none"/><circle cx="17.8" cy="9" r=".6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="14.6" r=".6" fill="currentColor" stroke="none"/><circle cx="16.4" cy="14.6" r=".6" fill="currentColor" stroke="none"/></svg></div>
     <h1>競馬AIラボ</h1>
     <div class="sub">出馬表の入力・AI印・展開予想・netkeiba AI展開予測・重賞データ分析まで、この1ページで。<br>各機能は下のメニュー（または左上「☰ 目次」）から移動します。<br><span class="small muted">旧「過去データ」タブと旧「血統」タブは⑥重賞データ分析に、旧「レースを選ぶ」タブと旧「天気予報」タブは①データ入力に統合しました。</span></div>
     <div class="quick">
-      <button type="button" class="btn" data-goto="t-input">📥 データ入力（URL取込・レース選択）</button>
-      <button type="button" class="btn" data-goto="t-kentai">🧠 展開予想・AI印</button>
+      <button type="button" class="btn" data-goto="t-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-3px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> データ入力（URL取込・レース選択）</button>
+      <button type="button" class="btn" data-goto="t-kentai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-3px"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg> 展開予想・AI印</button>
     </div>
   </div>
     <details class="card fold" id="starterCard" style="border-color:var(--line2);background:linear-gradient(180deg,var(--card),var(--card));padding:0">
@@ -22765,17 +22812,20 @@ function initHd(){
    - すべて既存の goTab(id) / setNav() に委譲するので、
      各タブの初期化・再描画ロジックには影響しません。
    ========================================================= */
+/* ★第326弾: アイコンは絵文字から線画SVG（inline・Feather系、刷新サンプルB案と同系統）へ。
+   サイズは p1_head.html の .dnav .ico svg / .hm-tile .ico svg で制御する。 */
+var NAV_SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
 var NAV_ITEMS = [
   /* ★第156弾: 目次もタブ大統合に合わせて整理（トップ・①・②・振り返り・海外・払戻DBは削除、⑤⑥は目次のみ） */
-  { t:'t-sim',      icon:'🤖', name:'AI展開予測',           sub:'スタート後/3角/4角の位置マップ＋ポジション別複勝率（保存済み出馬表から・通信ゼロ）', cur:true },
-  { t:'t-shutuba',  icon:'📋', name:'出馬表',                sub:'日付選択で全レース折り込み表示・展開予想（ペース診断）添付・馬名タップでプロフィール・オッズ・結果払戻' },
-  { t:'t-nar',      icon:'🏟', name:'地方競馬（NAR）',     sub:'日付→開催場→全レースの出馬表＋netkeiba AI展開予測（中央の③と同じ走路図）' },   /* ★第159弾 */
-  { t:'t-tenki',    icon:'🌤', name:'天気予報',              sub:'当日開催場の1時間ごと天気＋開催場のコース特徴（JRA公式）' },
-  { t:'t-aiprop',   icon:'🤖', name:'AI提案',                sub:'その日の全レースの印・一括取得・再予想・レース情報・妙味馬比較' },
-  { t:'t-database', icon:'🗄', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・バックテスト・血統DB' },
-  { t:'t-dbsearch',  icon:'🔎', name:'データ検索',           sub:'学習DB／渡されたJRA-VANデータを何でも検索(ウマホ風・騎手/馬/父/距離/乗り替わり/回り…・AND条件・集計内訳・CSV)・通信ゼロ' },   /* ★第170弾 */
-  { t:'t-horse',    icon:'📒', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
-  { t:'t-jravideo', icon:'🎬', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
+  { t:'t-sim',      icon:NAV_SVG_OPEN + '<path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16"/><path d="M16 6v16"/></svg>', name:'AI展開予測',           sub:'スタート後/3角/4角の位置マップ＋ポジション別複勝率（保存済み出馬表から・通信ゼロ）', cur:true },
+  { t:'t-shutuba',  icon:NAV_SVG_OPEN + '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>', name:'出馬表',                sub:'日付選択で全レース折り込み表示・展開予想（ペース診断）添付・馬名タップでプロフィール・オッズ・結果払戻' },
+  { t:'t-nar',      icon:NAV_SVG_OPEN + '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>', name:'地方競馬（NAR）',     sub:'日付→開催場→全レースの出馬表＋netkeiba AI展開予測（中央の③と同じ走路図）' },   /* ★第159弾 */
+  { t:'t-tenki',    icon:NAV_SVG_OPEN + '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>', name:'天気予報',              sub:'当日開催場の1時間ごと天気＋開催場のコース特徴（JRA公式）' },
+  { t:'t-aiprop',   icon:NAV_SVG_OPEN + '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>', name:'AI提案',                sub:'その日の全レースの印・一括取得・再予想・レース情報・妙味馬比較' },
+  { t:'t-database', icon:NAV_SVG_OPEN + '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>', name:'データベース',        sub:'騎手・調教師分析・前走タイムレベル学習・バックテスト・血統DB' },
+  { t:'t-dbsearch',  icon:NAV_SVG_OPEN + '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>', name:'データ検索',           sub:'学習DB／渡されたJRA-VANデータを何でも検索(ウマホ風・騎手/馬/父/距離/乗り替わり/回り…・AND条件・集計内訳・CSV)・通信ゼロ' },   /* ★第170弾 */
+  { t:'t-horse',    icon:NAV_SVG_OPEN + '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>', name:'馬ノート',              sub:'短評・有利不利・メモ（馬ごとのDB）' },
+  { t:'t-jravideo', icon:NAV_SVG_OPEN + '<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z"/></svg>', name:'JRA映像',               sub:'結果ページへの自動ナビ（直近約2ヶ月）' },
 ];
 function navDrawerHTML(){
   var h = [];
@@ -22891,7 +22941,8 @@ function initNav(){
    ========================================================= */
 var THEME_KEY = 'khl_theme_v1';
 function themeGet(){
-  try { return (localStorage.getItem(THEME_KEY) === 'dark') ? 'dark' : 'light'; }
+  /* ★第326弾: 既定テーマをB案ダークへ（未保存時はダーク。保存済みの選択は従来どおり優先） */
+  try { return (localStorage.getItem(THEME_KEY) === 'light') ? 'light' : 'dark'; }
   catch(e){ return 'dark'; }
 }
 function themeApply(mode){
