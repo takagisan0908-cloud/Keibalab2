@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第356弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第358弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2858,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第356弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第358弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -3176,7 +3176,16 @@ function cmpText(){
    ※ 分類は p12_urlimport.js の STORE_DESC / storeDescOf が正。ここは単体テストのように
       p12 が読み込まれていない環境でも動くように、前方一致のリストも持っている。 */
 var STORE_SAFE_KEYS = ['khl_hd_v1', 'khl_bf_v1', 'khl_ped_v1', 'khl_dr_v1', 'keiba_nk_v1', 'keiba_gcl_v1',
-  'keiba_tenki_v1', 'khl_kai_v2', 'khl_hist_v1', 'khl_rs_v1', 'khl_jra_v1', 'khl_jra_video_v1'];
+  'keiba_tenki_v1', 'khl_kai_v2', 'khl_hist_v1', 'khl_rs_v1', 'khl_jra_v1', 'khl_jra_video_v1',
+  /* ★第358弾: 分類表（STORE_DESC）未登録だった再取得可能キャッシュと旧形式の残骸。
+     未登録の間は storeDescOf が 'keep' を返すため自動整理の対象から外れ、
+     馬ノート取込が 4.88MB 使用中の端末で空きを作れず失敗した。 */
+  'khl_card_v1', 'khl_nar_card_v2', 'khl_nar_day_v2', 'khl_nkai_v1', 'khl_horse_cache', 'khl_jdb_stats',
+  'khl_jrdb_v1', 'khl_jrdb_v2', 'khl_sb_days_v1', 'khl_nar_card_v1', 'khl_nar_day_v1', 'khl_simagg_v1', 'khl_ti64'];
+/* ★第358弾: 旧形式・撤去済み機能の残骸キー（正確一致）。書き手が現行コードに無く、
+   中身は失効したキャッシュだけなので、取込前の整理では最初に捨てる。 */
+var STORE_LEGACY_KEYS = ['khl_jrdb_v1', 'khl_jrdb_v2', 'khl_sb_days_v1', 'khl_nar_card_v1', 'khl_nar_day_v1',
+  'khl_simagg_v1', 'khl_ti64'];
 var STORE_LIMIT = 5 * 1048576;   // 端末の保存領域の目安（5MB）
 var STORE_TRIM_LOG = [];         // 自動で消した履歴（画面に出す）
 function storeIsSafeKey(k){
@@ -3225,6 +3234,42 @@ function storeMakeRoom(needBytes){
       if (STORE_TRIM_LOG.length > 20) STORE_TRIM_LOG.shift();
     }
     return { freed: freed, removed: removed, ok: (u.bytes - freed + need) <= STORE_LIMIT, bytes: u.bytes - freed };
+  } catch(e){ return { freed: freed, removed: removed, ok: false, err: String((e && e.message) || e) }; }
+}
+/* ★第358弾: 取込前の段階整理。馬ノート「もこ在庫で更新」のように、まとまった量が
+   必要な保存の前に呼ばれ、(1) 旧形式の残骸 → (2) 再取得できるキャッシュ
+   （出馬表カード以外）→ (3) 出馬表カード（khl_card_v1）の順に空ける。
+   keep 分類（馬ノート・予想・学習・設定・血統DB・観測DBなど再取得できないもの）
+   には絶対に触らない。戻り値: { freed, removed, bytes, ok } */
+function storeEvictForImport(needBytes){
+  var freed = 0, removed = [];
+  try {
+    var need = needBytes || 0;
+    var u0 = storeUse();
+    if (u0.bytes + need <= STORE_LIMIT) return { freed: 0, removed: removed, bytes: u0.bytes, ok: true };
+    var sizeOf = {};
+    u0.keys.forEach(function(it){ sizeOf[it.k] = it.n; });
+    var drop = function(k){
+      if (sizeOf[k] == null) return;
+      try { localStorage.removeItem(k); freed += sizeOf[k]; removed.push(k); sizeOf[k] = null; } catch(e){}
+    };
+    var fits = function(){ return (u0.bytes - freed + need) <= STORE_LIMIT; };
+    /* 段階A: 残骸は全部捨てる（失効したキャッシュだけ。中身を取り戻す必要はない） */
+    for (var a = 0; a < STORE_LEGACY_KEYS.length; a++) drop(STORE_LEGACY_KEYS[a]);
+    /* 段階B: 再取得できるキャッシュ（大きい順・カードは温存） */
+    if (!fits()){
+      var cands = u0.keys.filter(function(it){ return it.k !== 'khl_card_v1' && storeIsSafeKey(it.k); });
+      for (var b = 0; b < cands.length && !fits(); b++) drop(cands[b].k);
+    }
+    /* 段階C: それでも足りなければ出馬表カード（通信で取り直せる） */
+    if (!fits()) drop('khl_card_v1');
+    if (removed.length){
+      STORE_TRIM_LOG.push({ at: new Date().toISOString(), freed: freed, removed: removed, need: need });
+      if (STORE_TRIM_LOG.length > 20) STORE_TRIM_LOG.shift();
+      /* カードを消したらメモリ側の写しも捨てる（古い写しからの書き戻し防止） */
+      try { if (typeof NK_CARD_MEM !== 'undefined') NK_CARD_MEM = { at: 0, o: null }; } catch(e){}
+    }
+    return { freed: freed, removed: removed, bytes: u0.bytes - freed, ok: fits() };
   } catch(e){ return { freed: freed, removed: removed, ok: false, err: String((e && e.message) || e) }; }
 }
 /* 🥇第一優先のデータ（学習DB・AI予想）と📌今の作業は、空きを作りながら必ず保存する */
@@ -8678,9 +8723,45 @@ var STORE_DESC = [
        保存領域が逼迫しても、代わりに ♻️safe のキャッシュが削られます。 */
   ['khl_jdb_reg',    '🏇 騎手・調教師DB（名前→IDの登録簿・検索の土台）', 'keep', '🥇 第一優先'],
   ['khl_jdb_ent',    '🏇 騎手・調教師DB（成績・得意コース・今週の騎乗）', 'keep', '🥇 第一優先'],
-  ['khl_jdb_combo',  '🏇 騎手×調教師の相性成績（回収率・馬券内率）', 'keep', '🥇 第一優先']
+  ['khl_jdb_combo',  '🏇 騎手×調教師の相性成績（回収率・馬券内率）', 'keep', '🥇 第一優先'],
+  /* ★第358弾: ここから下は第358弾で登録した分。未登録の間は storeDescOf が一律
+     「（その他のデータ）」＋keep を返し、大きなキャッシュが自動整理の対象から
+     外れて馬ノート取込が保存領域不足で失敗した（実機 4.88MB 使用中・上位3件が
+     全部「その他のデータ」表示）。全キーに名前と分類を持たせる。 */
+  ['khl_gi_baba_v1', '🟫 G1・馬場別の学習（学習の成果）', 'keep', '🥇 第一優先'],
+  ['keiba_pf_v1',    '🏃 ペース適合の学習（学習の成果）', 'keep', '🥇 第一優先'],
+  ['khl_peddb_v1',   '🧬 血統DB（1頭ずつ集めた血統の記録。消すと集め直しに時間がかかります）', 'keep', '📌 今の作業'],
+  ['khl_adobs_v1',   '👁 観測DB（自分で追加した観測の台帳と蓄積）', 'keep', '📌 今の作業'],
+  ['khl_bank_v1',    '🏦 仮想バンク（買い目の記録）', 'keep', '📌 今の作業'],
+  ['khl_mymark_v1',  '🔖 自分の印の記録', 'keep', '📌 今の作業'],
+  ['klForwardAxis',  '📈 フォワード検証の記録', 'keep', '📌 今の作業'],
+  ['khl_calib_v1',   '🎛 校正（改善モデル）の採用状態', 'keep', '📌 今の作業'],
+  ['khl_am_v1',      '🤖 自動マクロの状態・設定', 'keep', '📌 今の作業'],
+  ['khl_prec_v1',    '⚙️ 精密予想の設定', 'keep', '📌 今の作業'],
+  ['khl_pre_list_v1','📋 一括取得の履歴リスト', 'keep', '📌 今の作業'],
+  ['khl_pre_detail_v1','⚙️ 取得の詳細表示の設定', 'keep', '📌 今の作業'],
+  ['khl_ktdet_v1',   '⚙️ 詳細列の表示設定', 'keep', '📌 今の作業'],
+  ['khl_dbsearch_v1','🔎 データ検索の条件', 'keep', '📌 今の作業'],
+  ['khl_ai_day_v1',  '📅 最後に一括取得した日の記録', 'keep', '📌 今の作業'],
+  ['khl_ar_net',     '⚙️ 馬ノートの自動取得の設定', 'keep', '📌 今の作業'],
+  ['khl_bootn_v1',   '⚙️ 起動回数の記録', 'keep', '📌 今の作業'],
+  ['khl_resume_v1',  '⚙️ 前回開いていたタブ・位置の記録', 'keep', '📌 今の作業'],
+  ['khl_card_v1',    '🃏 出馬表カードのキャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
+  ['khl_nar_card_v2','🐴 地方競馬の出馬表キャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
+  ['khl_nar_day_v2', '🐴 地方競馬の開催一覧キャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
+  ['khl_nkai_v1',    '🤖 netkeiba AI要約のキャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
+  ['khl_horse_cache','🐎 馬プロフィールのキャッシュ（取得し直せます）', 'safe', '♻️ また取れます'],
+  ['khl_jdb_stats',  '🏇 騎手・調教師の集計キャッシュ（学習DBから再計算できます）', 'safe', '♻️ また取れます'],
+  ['khl_jrdb_v1',    '🗃 対戦表（旧機能）のキャッシュ（いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_jrdb_v2',    '🗃 対戦表（旧機能）のキャッシュ（いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_sb_days_v1', '🗃 出馬表タブ（旧）の日付キャッシュ（いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_nar_card_v1','🐴 地方競馬の出馬表キャッシュ（旧形式・いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_nar_day_v1', '🐴 地方競馬の開催一覧キャッシュ（旧形式・いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_simagg_v1',  '🗃 合計集計（旧機能）の残り（いまは使いません）', 'safe', '♻️ また取れます'],
+  ['khl_ti64',       '🗃 旧データの残り（いまは使いません）', 'safe', '♻️ また取れます']
   /* khl_simagg_v1（📊合計集計）は第12弾で localStorage をやめて「③タブを開いている間だけのメモリ保持」に
-     変更したので、この一覧には出しません（第40弾で③は netkeiba AI展開予測ビューに置換・起動時に khl_simagg_v1 を掃除）。 */
+     変更し、起動時にも掃除している。第358弾で、端末に残っていた場合に名前と分類が
+     分かるよう一覧に加えた（中身は旧機能の残りだけなので safe）。 */
 ];
 /* 2026-09-11 第12弾: 保存の優先順位（STORE_LIMIT / storeMakeRoom / safeSetItem / storeTrimText）は
    p3_core.js に置きました（単体テストのように p12 を読み込まない環境でも動くようにするため）。
@@ -8725,7 +8806,7 @@ function storeDescOf(k){
   for (var i = 0; i < STORE_DESC.length; i++){
     if (k === STORE_DESC[i][0] || k.indexOf(STORE_DESC[i][0]) === 0) return STORE_DESC[i];
   }
-  return [k, '（その他のデータ）', 'keep', '📌 今の作業'];   // 不明なキーは消さない（安全側）
+  return [k, k, 'keep', '📌 今の作業'];   // 不明なキーは消さない（安全側）。名前はキー名そのものを出す（第358弾）
 }
 function storeMsg(t, err){
   var el = $('storeUse'); if (!el) return;
@@ -41955,14 +42036,11 @@ function aiDayExportModel(){
          （記録のある馬だけ。組み立ては p105 の mokoExportNotePack・同期） */
       var hnote341 = null;
       try { if (typeof mokoExportNotePack === 'function') hnote341 = mokoExportNotePack(rows.map(function(r){ return r.name; })); } catch(e){ hnote341 = null; }
-      /* ★第349弾: 印刷用HTMLの表直後インライン表示は馬ノート・回顧とも全文を出すため、
-         回顧の上限を外したパックも束ねる（モーダル・Excel・末尾一覧が使う hnote は
-         従来どおり回顧10件上限のまま変えない） */
-      var hnoteFull349 = null;
-      try { if (typeof mokoExportNotePack === 'function') hnoteFull349 = mokoExportNotePack(rows.map(function(r){ return r.name; }), { retroCap: 0 }); } catch(e){ hnoteFull349 = null; }
+      /* ★第357弾: 第349弾で足した全文パック（hnoteFull・回顧上限なし）の束ねは廃止。
+         インライン表示を外し、生成ファイルの馬ノート・回顧はモーダル方式のみに戻した
+         （オーナー指示 2026-11-13）。hnote は従来どおり回顧10件上限 */
       out.push({
         hnote: hnote341,
-        hnoteFull: hnoteFull349,
         /* ★第308弾: 開催場所は一覧アイテム(it.place)が空のとき予想レコードのメタ(rec.meta.place)へ
            フォールバックする（一覧側の場名が取れない取得経路だと見出しから開催場所が消えていた） */
         d8: AI_DAY_D8 || String(it.d8 || ''), place: String(it.place || (b.rec && b.rec.meta && b.rec.meta.place) || ''), rnum: String(it.rnum || (b.rec && b.rec.meta && b.rec.meta.rnum) || ''),
@@ -42120,35 +42198,14 @@ function aiHnote341List(model){
   });
   return s + '</div>';
 }
-/* ★第349弾: 印刷用HTMLで各レースの印の表の直後に置く静的ブロック。
-   第343弾のアンカー方式（馬名タップ→末尾一覧へジャンプ）でも、オーナー実機の
-   iOS「ファイル」アプリのプレビューでは一覧まで辿れなかったための方向転換で、
-   そのレースの出走馬のうち記録のある馬だけを、馬名の見出し＋馬ノート（短評・メモ）
-   ＋回顧判定を、タップもジャンプも無しでそのまま読める形に書き出す。
-   中身は rc.hnoteFull（回顧の上限なし）を使い、馬ノート・回顧とも全文を入れる
-   （オーナー意向 2026-11-13「できれば全部見たい」。回顧は entries と total が
-   一致するので aiHnote341RetroSec の「ほか N 件」行は自然に出ない）。
-   各アイテムにはモーダル用添字の id（hnote-<添字>）を付け、馬名セルのアンカーの
-   飛び先も兼ねる。記録のある馬が1頭も居ないレースでは空。 */
-function aiHnote349Inline(model, rc){
-  var pk = (rc && (rc.hnoteFull || rc.hnote)) || null;
-  if (!pk || !pk.list || !pk.list.length) return '';
-  var s = '<div class="hn-inline"><div class="hn-inline-h">📒 馬ノート・回顧</div>';
-  pk.list.forEach(function(en){
-    var gi = -1;
-    try { if (typeof aiHnote341IdxOf === 'function') gi = aiHnote341IdxOf(model, en.name); } catch(e){ gi = -1; }
-    s += '<div class="hn-item"' + (gi >= 0 ? ' id="hnote-' + gi + '"' : '') + '><div class="hn-item-h">' + esc(en.name || '') + '</div>' +
-      aiHnote341NotesSec('📒 馬ノート', en.app) +
-      aiHnote341NotesSec('📥 馬ノート（もこ在庫）', en.supply) +
-      aiHnote341RetroSec(en.retro) +
-      '</div>';
-  });
-  return s + '</div>';
-}
+/* ★第357弾: 第349弾の aiHnote349Inline（表直後の静的インラインブロック）は廃止。
+   ビューアーを変えたら馬名タップのモーダルで見られるようになったため、表の下への
+   全文表示は不要になった（オーナー指示 2026-11-13）。生成ファイルの馬ノート・回顧は
+   モーダル方式のみ（第341・343弾の形）に戻す */
 /* 単体文書の末尾に足す一覧＋モーダル＋データ＋スクリプト（記録のある馬が無い文書では空）
-   ★第349弾: 印刷用HTMLは表直後のインライン表示（aiHnote349Inline）に一本化したため、
-   末尾の一覧は opts.skipList で外す（中身の二重書き出しを避ける）。
-   Excel保存は従来どおり一覧つき。モーダル＋データ＋スクリプトはどちらも残す */
+   ★第349弾→第357弾: 印刷用HTMLは末尾の一覧を opts.skipList で外す（第349弾で外した
+   付録は第357弾でも戻さない）。Excel保存は従来どおり一覧つき。
+   モーダル＋データ＋スクリプトはどちらも残す */
 function aiHnote341Tail(model, opts){
   var h = aiHnote341(model);
   if (!h.data.length) return '';
@@ -42260,19 +42317,8 @@ function aiExportPdfCSS(scoped){
     P + '.muted{color:#7b8698;font-weight:400;font-size:9.5px}' +
     P + '.story{margin-top:5px;padding:5px 8px;background:#f4f6fd;border-left:3px solid #7986cb;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0}' +
     P + '.foot{color:#7b8698;font-size:9px;margin-top:6px}' +
-    /* ★第349弾: 表直後インライン表示（aiHnote349Inline）の見た目。アプリ内オーバーレイ
-       （scoped）でも本文に入るため、AI_HNOTE341_CSS（単体文書用）と同じ値を
-       こちらの共通部にも置く（単体文書では二重定義になるが同値なので無害） */
-    P + '.hn-inline{margin-top:6px}' +
-    P + '.hn-inline-h{font-weight:700;font-size:12.5px;margin:0 0 4px}' +
-    P + '.hn-item{border:1px solid #c6cfdd;border-radius:8px;padding:8px 10px;margin:0 0 8px;background:#fff;font-size:12.5px;line-height:1.65}' +
-    P + '.hn-item-h{font-weight:700;font-size:13.5px;margin-bottom:2px}' +
-    P + '.hn-h{font-weight:700;margin:10px 0 2px}' +
-    P + '.hn-n{padding:4px 0;border-bottom:1px dashed #c6cfdd}' +
-    P + '.hn-k{font-size:10.5px;background:#eef2f8;border:1px solid #b9c4d6;border-radius:8px;padding:0 6px}' +
-    P + '.hn-m{color:#7b8698;font-size:11px}' +
-    P + '.hn-w{background:#fdf1e3;color:#a05a13;border:1px solid #e3c491;border-radius:8px;padding:0 6px;font-size:10.5px}' +
-    P + '.hn-t{white-space:pre-wrap}' +
+    /* ★第357弾: 第349弾で足したインライン表示用の .hn-* 複製規則は廃止。
+       モーダル側の規則は AI_HNOTE341_CSS（単体文書の末尾に付く）で賄う */
     '@media print{' + P + '.race{box-shadow:none}}';
   if (!scoped){
     /* 別タブで開いた印刷用ページ用のツールバー（印刷時は非表示） */
@@ -42359,9 +42405,8 @@ function aiExportPdfBodyHTML(model, d8){
     /* ★第303弾: giTxt/story の div を table の中に入れるとブラウザが表の外へ
        ずらして描画し、プレビュー表示が崩れることがあるため、先に table を閉じる */
     h += '</table>';
-    /* ★第349弾: 印の表の直後に、そのレースの記録のある馬の馬ノート・回顧を静的に置く
-       （スクリプトもジャンプも効かない閲覧環境でも、そのまま読める形にする） */
-    try { if (typeof aiHnote349Inline === 'function') h += aiHnote349Inline(model, rc); } catch(e){}
+    /* ★第357弾: 第349弾の表直後インライン（馬ノート・回顧の全文静的表示）は外した。
+       馬ノート・回顧は馬名タップのモーダルでのみ出す（末尾の埋め込みが担う） */
     if (rc.giTxt){
       h += '<div style="margin-top:5px;padding:5px 8px;background:#eef7ee;border-left:3px solid #66a26b;font-size:9.5px;line-height:1.7;border-radius:0 4px 4px 0">' + esc(rc.giTxt) + '</div>';
     }
@@ -42389,7 +42434,7 @@ function aiExportPdfHTML(model, d8, opts){
   h += (opts && opts.file) ? AI_PDF_FILE_TOOLBAR_HTML : AI_PDF_TOOLBAR_HTML;
   h += aiExportPdfBodyHTML(model, d8);
   /* ★第341弾: 馬名タップ用モーダル＋埋め込みデータ＋スクリプト（記録のある馬が無ければ空）
-     ★第349弾: 本文に表直後のインライン表示が入ったため、末尾の一覧は付けない */
+     ★第349弾→第357弾: 末尾の一覧は付けない（モーダル方式のみ。第349弾のインライン表示も第357弾で廃止） */
   try { if (typeof aiHnote341Tail === 'function') h += aiHnote341Tail(model, { skipList: true }); } catch(e){}
   h += '</body></html>';
   return h;
@@ -52477,6 +52522,18 @@ function mokoUmanoteImport(){
     var bHorses = before.horses || [];
     var bNotes = bHorses.reduce(function(a, h){ return a + ((h.notes || []).length); }, 0);
     var aNotes = d.horses.reduce(function(a, h){ return a + ((h.notes || []).length); }, 0);
+    /* ★第358弾: 保存の前に、必要な量を計算して段階整理（残骸→再取得できる
+       キャッシュ→出馬表カード）で空きを作る。第347弾の自動整理は、大きな
+       キャッシュが分類表に未登録で 'keep' 扱いだったため対象から外れ、
+       4.88MB 使用中の端末で空きを作れなかった。整理は p3_core の関数経由
+       （このファイルから保存系を直接呼ばない設計契約は維持）。 */
+    var needB = 0;
+    try {
+      var pj0 = JSON.stringify({ horses: d.horses });
+      needB = ((typeof cmpPack === 'function') ? cmpPack(pj0) : pj0).length * 2;
+    } catch(e){}
+    var evict = null;
+    try { if (typeof storeEvictForImport === 'function') evict = storeEvictForImport(needB); } catch(e){}
     var ok = hbCommit({ horses: d.horses });
     if (!ok){
       /* ★第347弾: 失敗を無言にせず、端末の保存領域の内訳（合計・必要な量・
@@ -52486,11 +52543,7 @@ function mokoUmanoteImport(){
       try {
         if (typeof storeUse === 'function'){
           var u = storeUse();
-          var need = 0;
-          try {
-            var pj = JSON.stringify({ horses: d.horses });
-            need = ((typeof cmpPack === 'function') ? cmpPack(pj) : pj).length * 2;
-          } catch(e){}
+          var need = needB;
           var hbNow = 0;
           try { hbNow = String(localStorage.getItem((typeof HB_LS !== 'undefined' ? HB_LS : 'khl_horsebook_v1')) || '').length * 2; } catch(e){}
           var tops = u.keys.slice(0, 3).map(function(x){
@@ -52508,7 +52561,9 @@ function mokoUmanoteImport(){
       return;
     }
     var msg = 'もこ在庫で馬ノートを更新しました: ' + bHorses.length + '頭 → ' + d.horses.length +
-      '頭（ノート ' + bNotes + '件 → ' + aNotes + '件）';
+      '頭（ノート ' + bNotes + '件 → ' + aNotes + '件）' +
+      /* ★第358弾: 取込前に整理で空けた場合は、その量を結果に出す */
+      ((evict && evict.freed > 0) ? '。保存領域を整理して ' + (evict.freed / 1048576).toFixed(2) + 'MB 空けました' : '');
     mokoHbStat(msg);
     if (typeof khlToast === 'function'){ try { khlToast('📒 ' + msg); } catch(e){} }
     if (typeof hbRefresh === 'function') hbRefresh();
