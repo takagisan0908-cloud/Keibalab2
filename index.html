@@ -1214,7 +1214,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第329弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-12 第331弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2995,7 +2995,7 @@ html[data-theme="dark"] .tlchip.fast{background:rgba(20,184,166,.16);border-colo
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第329弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-12 第331弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -7573,9 +7573,14 @@ function adObsLs(){
   try {
     var o = JSON.parse(localStorage.getItem(AD_OBS_LS) || '{}');
     if (!o || typeof o.c !== 'object' || !o.c) o = { c: {}, races: 0 };
+    /* ★第331弾: 追加済みレースの台帳 done（race_id→1）。旧データには無いので補う */
+    if (!o.done || typeof o.done !== 'object') o.done = {};
     return o;
-  } catch(e){ return { c: {}, races: 0 }; }
+  } catch(e){ return { c: {}, races: 0, done: {} }; }
 }
+/* ★第331弾: そのレースの観測統計が既に加算済みか（台帳 done で判定。
+   第331弾より前に追加した分は台帳が無いため判定できない＝従来どおり加算される） */
+function adObsIsDone(rid){ return !!(adObsLs().done || {})[String(rid)]; }
 function adObsSave(o){ try { safeSetItem(AD_OBS_LS, JSON.stringify(o)); } catch(e){} }
 /* 観測セル取得: adObsCell('pop:1|前') → {n, h, rate}（内蔵＋ユーザー蓄積を合算） */
 function adObsCell(key){
@@ -7589,8 +7594,10 @@ function adObsCell(key){
   } catch(e){}
   return { n: n, h: h, rate: n ? h / n : 0 };
 }
-/* セル件数の差分を端末へ蓄積する（追加取得から使う） */
-function adObsMergeAdd(delta){
+/* セル件数の差分を端末へ蓄積する（追加取得から使う）
+   ★第331弾: 実際に加算したレースは台帳 done へ race_id を記録し、
+   次回以降の二重加算を判定できるようにする（台帳は消さない） */
+function adObsMergeAdd(delta, rid){
   var o = adObsLs(), added = 0;
   for (var k in delta){
     if (!o.c[k]) o.c[k] = [0, 0];
@@ -7598,6 +7605,7 @@ function adObsMergeAdd(delta){
     added += delta[k][0] | 0;
   }
   o.races = (o.races || 0) + 1;
+  if (rid){ if (!o.done || typeof o.done !== 'object') o.done = {}; o.done[String(rid)] = 1; }
   adObsSave(o);
   return added;
 }
@@ -7961,12 +7969,15 @@ function adKaiCss(){
     '.adKai .adKaiBody{padding:4px 14px 8px;font-size:.9rem;line-height:1.9}' +
     '.adKai .adKaiBody p{margin:6px 0}' +
     '.adKai .u{text-decoration:underline;text-decoration-color:rgba(224,145,47,.6);text-underline-offset:3px}' +
-    '.adKai .adKaiScr{overflow-x:auto;-webkit-overflow-scrolling:touch}' +
+    /* ★第330弾: 表の土台は両テーマ共通の「紙」として固定（見出しが元々テーマ非依存の
+       明色グラデーションで、部品全体が明色の紙として設計されているため）。
+       第326弾のダーク既定化で、明色背景のセルにテーマの明色文字が継承され読めなくなった */
+    '.adKai .adKaiScr{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fffdf9}' +
     '.adKai .kaiUp{color:#1c6e42;font-weight:800;font-size:.7rem;white-space:nowrap}' +
     '.adKai .kaiDn{color:#b3261e;font-weight:800;font-size:.7rem;white-space:nowrap}' +
     '.adKai table.kaiTbl{border-collapse:collapse;width:100%;font-size:.78rem;margin:4px 0 8px}' +
     '.adKai table.kaiTbl th{background:#f6f1e6;color:#6b6353;font-weight:600;padding:4px 5px;border-bottom:2px solid #e6dcc8;white-space:nowrap;font-size:.68rem}' +
-    '.adKai table.kaiTbl td{padding:3px 5px;border-bottom:1px solid #f0ebdf;text-align:center;white-space:nowrap}' +
+    '.adKai table.kaiTbl td{padding:3px 5px;border-bottom:1px solid #f0ebdf;text-align:center;white-space:nowrap;color:#3d382f}' +
     '.adKai table.kaiTbl td.kaiNm{text-align:left;font-weight:700}' +
     '.adKai tr.kaiRj td{background:#fff7ee}.adKai tr.kaiRo td{background:#f4f9fe}.adKai tr.kaiRa td{background:#fffaf0}.adKai tr.kaiRx td{opacity:.55}.adKai tr.kaiRxx td{background:#fdecea}' +
     '.adKai .kaiP{display:inline-block;border-radius:12px;padding:0 8px;font-size:.7rem;font-weight:800}' +
@@ -7974,11 +7985,11 @@ function adKaiCss(){
     '.adKai .kaiBar{position:relative;display:inline-block;vertical-align:middle;width:86px;height:14px;background:#efece5;border-radius:7px;overflow:hidden}' +
     '.adKai .kaiBar i{position:absolute;left:0;top:0;bottom:0;border-radius:7px}' +
     '.adKai .kaiBar em{position:absolute;right:4px;top:0;font-style:normal;font-size:.66rem;line-height:14px;font-weight:800;color:#333;text-shadow:0 0 2px #fff}' +
-    '.adKai .kaiN{font-size:.62rem;color:#a09a8c;margin-left:4px}' +
+    '.adKai .kaiN{font-size:.62rem;color:#8a8378;margin-left:4px}' +
     '.adKai .kaiB{display:inline-block;min-width:20px;text-align:center;border-radius:5px;font-weight:800;font-size:.8rem;padding:0 6px}' +
     '.adKai .kaiJ{background:#fdeaea;color:#b23b38}.adKai .kaiO{background:#e7f1fa;color:#2f6ea8}.adKai .kaiT{background:#eee;color:#77716a}' +
-    '.adKai .kaiA{background:#fdf0dc;color:#a06414}.adKai .kaiX{background:#f1efec;color:#999}.adKai .kaiXX{background:#d32f2f;color:#fff}.adKai .kaiN2{background:#f5f5f5}' +
-    '.adKai .adKaiKata{background:#fdf3e3;border-top:1px solid #f0e2c6;padding:8px 14px;font-size:.84rem}' +
+    '.adKai .kaiA{background:#fdf0dc;color:#a06414}.adKai .kaiX{background:#f1efec;color:#999}.adKai .kaiXX{background:#d32f2f;color:#fff}.adKai .kaiN2{background:#f5f5f5;color:#77716a}' +
+    '.adKai .adKaiKata{background:#fdf3e3;border-top:1px solid #f0e2c6;padding:8px 14px;font-size:.84rem;color:#4d3d1e}' +
     '.adKai .kaiSub{display:block;color:#a3733a;font-size:.72rem;margin-top:2px}' +
     '.adKai .adKaiSrc{padding:6px 14px 10px;font-size:.68rem;color:#a09a8c;border-top:1px dashed #eee4d2;line-height:1.7}' +
     '</style>';
@@ -8031,8 +8042,13 @@ function adObsOne(sh, rs){
    従来は 0/24 でも「✓ 0/24レースぶん観測DBに追加しました」としか出ず、
    「結果ページに着順がまだ掲載されていない（レース前・集計前）だけ」なのか
    「通信の失敗」なのか判別できなかったため、理由を分類して案内する。 */
-function adObsSumMsg(total, okR, noRes, noAi, errN){
+function adObsSumMsg(total, okR, noRes, noAi, errN, dupN){
   var races = (typeof adObsUserRaces === 'function') ? adObsUserRaces() : 0;
+  dupN = dupN | 0;
+  /* ★第331弾: 全レースが既に追加済みだった場合の専用案内（エラーではない） */
+  if (total > 0 && okR === 0 && dupN === total){
+    return '✓ ' + total + '/' + total + 'レースはすべて既に追加済みのためスキップしました（統計の二重加算はしていません・この端末の追加観測: 計' + races + 'レース相当）。候補バーへの登録は行いました';
+  }
   if (total > 0 && okR === 0 && noRes === total){
     return '⚠ 0/' + total + 'レースを追加できませんでした: この日付の結果ページに着順がまだ掲載されていません（レース前・集計前はスキップ）。レースが終わった日の夜〜翌日以降に同じ日付でもう一度実行してください（キャッシュは使わず毎回新しいページを取りに行きます）。※出馬表・AI展開予測を今すぐ見るには🤖AI提案タブの「一括取得」をお使いください（出馬表はレース前日14時頃の公開でもOK）';
   }
@@ -8046,6 +8062,8 @@ function adObsSumMsg(total, okR, noRes, noAi, errN){
   if (noRes) msg += '｜' + noRes + 'レースはスキップ: 結果ページに着順がまだありません';
   if (noAi) msg += '｜' + noAi + 'レースはスキップ: AI展開予測なし・障害・頭数不足など';
   if (errN) msg += '｜' + errN + 'レースは取得に失敗（通信設定をご確認ください）';
+  /* ★第331弾: 既に追加済みで統計加算だけを飛ばした件数 */
+  if (dupN) msg += '｜' + dupN + 'レースはスキップ: 既に追加済み（統計の二重加算を回避）';
   return msg;
 }
 function adObsBackfill(){
@@ -8061,12 +8079,15 @@ function adObsBackfill(){
       if (!seen[rid]){ seen[rid] = 1; rids.push(rid); }
     });
     if (!rids.length){ adObsMsg('⚠ その日はレースが見つかりませんでした（開催休み・未来の日付・地方のみ等）', 1); return; }
-    var i = 0, okR = 0, added = 0, noRes = 0, noAi = 0, errN = 0;
+    var i = 0, okR = 0, added = 0, noRes = 0, noAi = 0, errN = 0, dupN = 0;
     (function step(){
       if (i >= rids.length){
-        /* ★第172弾: 0件の理由をはっきり案内する（赤表示=1レースも追加できなかったとき） */
-        adObsMsg(adObsSumMsg(rids.length, okR, noRes, noAi, errN), okR === 0);
+        /* ★第172弾: 0件の理由をはっきり案内する（赤表示=1レースも追加できなかったとき）
+           ★第331弾: 既に追加済みのスキップだけの場合は成果ありとして赤表示にしない */
+        adObsMsg(adObsSumMsg(rids.length, okR, noRes, noAi, errN, dupN), okR === 0 && dupN === 0);
         try { if (typeof aiDepRender === 'function' && typeof AI_DEP !== 'undefined' && AI_DEP.data) aiDepRender(); } catch(e){}
+        /* ★第330弾: 追加した日が下の日付・レースボタン（候補）に出るよう、候補バーを描き直す */
+        try { if (typeof aiDepBar === 'function') aiDepBar(); } catch(e){}
         return;
       }
       var rid = rids[i++];
@@ -8076,7 +8097,14 @@ function adObsBackfill(){
       }).then(function(f){
         var delta = null;
         try { delta = adObsOne(f.sh, f.rs); } catch(e){}
-        if (delta){ okR++; added += adObsMergeAdd(delta); }   /* 1レースぶんをまとめて1回だけ保存 */
+        if (delta){
+          /* ★第331弾: 台帳に既にあるレースは統計加算だけをスキップする（二重加算の回避）。
+             結果未掲載などで delta が無いレースは台帳に入れない＝後日結果が出てから
+             再追加すれば正しく加算される。この下のカード保存・候補登録（第330弾）は
+             スキップ対象でも従来どおり行う（押し直しの目的が候補への表示のため）。 */
+          if (adObsIsDone(rid)){ dupN++; }
+          else { okR++; added += adObsMergeAdd(delta, rid); }   /* 1レースぶんをまとめて1回だけ保存＋台帳へ記録 */
+        }
         else {
           /* ★第172弾: スキップの理由を分類（結果ページに着順が無い＝まだ掲載されていない／それ以外） */
           var det = null;
@@ -8084,6 +8112,29 @@ function adObsBackfill(){
           if (!det || !det.rows || !det.rows.length) noRes++;
           else noAi++;
         }
+        /* ★第330弾: 追加した日が下の日付・レースボタン（候補）にも出るようにする。
+           従来は観測セル（khl_adobs_v1）へ貯めるだけで、候補バーの出所である
+           事前取得リスト（preListAll）と出馬表キャッシュへは何も残らず、
+           追加した日が候補に一切出なかった。取得済みの出馬表HTMLをそのまま
+           キャッシュへ保存し、一覧へも登録する（追加通信なし・登録形式は
+           preDayFetch の preNoteFetched 呼び出しに合わせる）。 */
+        try {
+          var dOk = null;
+          try { dOk = aiDepParse(f.sh); } catch(e){}
+          if (dOk && dOk.horses && Object.keys(dOk.horses).length){
+            if (typeof nkCardSet === 'function') nkCardSet(rid, f.sh, d8);
+            if (typeof preNoteFetched === 'function'){
+              var mt = { place: '', rnum: '', name: '' };
+              try {
+                var vv = (typeof preVenueOf === 'function') ? preVenueOf(rid, d8) : null;
+                if (vv){ mt.place = vv.place || ''; mt.rnum = vv.rnum || ''; mt.name = vv.name || ''; }
+              } catch(e){}
+              if (!mt.name && typeof nkCardNameFromHtml === 'function'){ try { mt.name = nkCardNameFromHtml(f.sh) || ''; } catch(e){} }
+              if (!mt.rnum) mt.rnum = String(parseInt(String(rid).slice(-2), 10));
+              preNoteFetched(rid, d8, { place: mt.place, rnum: mt.rnum, name: mt.name, n: 0, pre: false });
+            }
+          }
+        } catch(e){}
         step();
       }).catch(function(){ errN++; step(); });
     })();
