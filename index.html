@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第361弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第362弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2858,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第361弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第362弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -17879,6 +17879,13 @@ function apSnapPred(rid, res, meta, opt){
     var sig = snap.rows.map(function(x){ return x.no + ':' + x.mark + ':' + (x.odds || '') + ':' + (x.wtKg || 0); }).join('|');
     if (rec[PK] && rec[PK].sig === sig && rec[PK].rows.length === snap.rows.length){
       rec[PK].at = snap.at;            // 時刻だけ更新
+      /* ★第362弾: 印・オッズ・馬体重が同じでも、Lv・指数は計算時点の母集団
+         （年ファイルが読み込まれたか等）で変わりうる。再計算できていたら
+         保存済みへ反映する（予想本文は書き直さない）。反映した時だけ保存する */
+      var lvCh362 = false;
+      if (snap.lv && JSON.stringify(snap.lv) !== JSON.stringify(rec[PK].lv || null)){ rec[PK].lv = snap.lv; lvCh362 = true; }
+      if (snap.gidx && JSON.stringify(snap.gidx) !== JSON.stringify(rec[PK].gidx || null)){ rec[PK].gidx = snap.gidx; lvCh362 = true; }
+      if (lvCh362) apPut(rec);
       return rec;
     }
     snap.sig = sig;
@@ -21093,14 +21100,58 @@ function diLs(){
    ・キャッシュキーは diVer と年ファイルの版・件数（diJvStamp）で、どちらかが
      変われば作り直す（p36 の drDbHidx と同じキー形式）。
    ========================================================= */
+var DI_JVSTAMP362 = { src: null, ver: -1, stamp: 'jv0:0' };
 function diJvStamp(){
   try {
-    if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.map)
-      return 'jv' + (DBS_JV.ver || 0) + ':' + Object.keys(DBS_JV.map).length;
+    if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.map){
+      /* ★第362弾: 件数の数え直し（Object.keys で全件配列を作る）は版が進んだ時だけ。
+         年ファイルの変更は dbsJvIngest が必ず DBS_JV.ver を進めるため、版が同じ
+         なら件数も同じ。diJvStamp は凍結計算のたびに何百回も呼ばれるため、
+         ここが毎回 数ms ずつ積み上がっていた */
+      if (DI_JVSTAMP362.src === DBS_JV && DI_JVSTAMP362.ver === (DBS_JV.ver || 0)) return DI_JVSTAMP362.stamp;
+      var s362 = 'jv' + (DBS_JV.ver || 0) + ':' + Object.keys(DBS_JV.map).length;
+      DI_JVSTAMP362 = { src: DBS_JV, ver: DBS_JV.ver || 0, stamp: s362 };
+      return s362;
+    }
   } catch(e){}
   return 'jv0:0';
 }
 var DI_MERGED359 = null, DI_MERGED359_KEY = '', DI_MERGED359_SRC = null;
+/* ★第362弾: 年ファイル→統合レコードの変換はレース単位でキャッシュする。
+   diVer が進むたび統合読みは作り直しになるが、変わっていないレースの変換結果
+   （diFixConvRow 適用済みレコード）は同一オブジェクトを使い回す。変換済み
+   レコードの同一性が安定することが、diRunIndex の差分更新（第362弾）の前提。
+   キーは年レコードの実体 × 学習DB側レコードの実体（どちらかが差し替われば
+   変換し直す）。中身の作り方は第359弾の規則そのまま。 */
+var DI_JVMERGE362 = {};
+function diJvMerged362(rid, yrec, base){
+  var slot = DI_JVMERGE362[rid];
+  if (slot && slot.y === yrec && slot.b === (base || null)) return slot.out;
+  var out = null;
+  if (!base){
+    var rows = [];
+    yrec.rows.forEach(function(yr){ if (yr && !diFixIsScratch(yr)) rows.push(diFixConvRow(yr)); });
+    if (rows.length){
+      out = { rid: rid, date8: yrec.date8 || (yrec.meta && yrec.meta.date8) || '',
+        meta: yrec.meta || {}, n: rows.length, rows: rows, src359: 'jv' };
+    }
+  } else if (base.rows && base.rows.length){
+    var have = {};
+    base.rows.forEach(function(r){ if (r && !Array.isArray(r) && r.no != null) have[String(r.no)] = 1; });
+    var extra = [];
+    yrec.rows.forEach(function(yr){
+      if (yr && yr.no != null && !have[String(yr.no)] && !diFixIsScratch(yr)) extra.push(diFixConvRow(yr));
+    });
+    if (extra.length){
+      out = { rid: base.rid || rid, date8: base.date8, meta: base.meta, rows: base.rows.concat(extra) };
+      if (base.payout) out.payout = base.payout;
+      if (base.xd) out.xd = base.xd;
+      if (base.at) out.at = base.at;
+    }
+  }
+  DI_JVMERGE362[rid] = { y: yrec, b: base || null, out: out };
+  return out;
+}
 function diMergedRaces(){
   var db = null;
   try { db = (typeof diLs === 'function') ? diLs() : null; } catch(e){}
@@ -21113,33 +21164,12 @@ function diMergedRaces(){
   Object.keys(races).forEach(function(rid){ out[rid] = races[rid]; });
   try {
     if (typeof DBS_JV !== 'undefined' && DBS_JV && DBS_JV.map){
-      Object.keys(DBS_JV.map).forEach(function(rid){
-        var yrec = DBS_JV.map[rid];
-        if (!yrec || !yrec.rows || !yrec.rows.length) return;
-        var base = out[rid];
-        if (!base){
-          var rows = [];
-          yrec.rows.forEach(function(yr){ if (yr && !diFixIsScratch(yr)) rows.push(diFixConvRow(yr)); });
-          if (rows.length){
-            out[rid] = { rid: rid, date8: yrec.date8 || (yrec.meta && yrec.meta.date8) || '',
-              meta: yrec.meta || {}, n: rows.length, rows: rows, src359: 'jv' };
-          }
-        } else if (base.rows && base.rows.length){
-          var have = {};
-          base.rows.forEach(function(r){ if (r && !Array.isArray(r) && r.no != null) have[String(r.no)] = 1; });
-          var extra = [];
-          yrec.rows.forEach(function(yr){
-            if (yr && yr.no != null && !have[String(yr.no)] && !diFixIsScratch(yr)) extra.push(diFixConvRow(yr));
-          });
-          if (extra.length){
-            var nb = { rid: base.rid || rid, date8: base.date8, meta: base.meta, rows: base.rows.concat(extra) };
-            if (base.payout) nb.payout = base.payout;
-            if (base.xd) nb.xd = base.xd;
-            if (base.at) nb.at = base.at;
-            out[rid] = nb;
-          }
-        }
-      });
+      for (var jrid in DBS_JV.map){   /* ★第362弾: 全件のキー配列を作らずに走査する（列挙順は Object.keys と同じ） */
+        var yrec = DBS_JV.map[jrid];
+        if (!yrec || !yrec.rows || !yrec.rows.length) continue;
+        var merged = diJvMerged362(jrid, yrec, out[jrid] || null);
+        if (merged) out[jrid] = merged;
+      }
     }
   } catch(e){}
   DI_MERGED359 = { races: out, key: key };
@@ -21178,6 +21208,159 @@ function diIdxNormName(s){   /* giNormName（p91）と同一式。同名レー�
   return String(s || '').replace(/\(GI{0,3}\)|（GI{0,3}）|\(LI{0,2}\)|（LI{0,2}）|\(OP\)|（OP）|\(H\)|（H）/g, '');
 }
 var DI_RIDX360 = null, DI_RIDX360_KEY = '', DI_RIDX360_SRC = null;
+/* =========================================================
+   ★第362弾: 索引の差分更新と「直近の変更」記録
+   ---------------------------------------------------------
+   第360弾の索引は、統合読みのキーが変わるたび（＝学習DBへ1レース保存する
+   たび）母集団全量（8年分で実測 約1.5秒）を走査し直していた。結果取得→
+   再予想のチェーンでは保存の後に来る最初の凍結計算が毎回これを払い、
+   統計・指数の名前ごとメモも連動して全消去されるため、チェーン全体が
+   第360弾以降大きく遅くなった（実測は app_patch_362_20261113.md）。
+   対策（計算の意味は変えない）:
+   ・索引は前回の母集団とレコード実体で突き合わせ、追加・変更・削除された
+     レース分だけを入れ替える差分更新を基本にする。並び順は母集団のキー順
+     （走査順）を順位として各リストへ二分探索で挿入し、全量構築と同じ並びを
+     保つ。変更が2,000レースを超える場合・年ファイルの版が変わった場合・
+     レコードをその場で書き換える dbFixApply が存在する場合は全量構築へ
+     落とす（従来動作）。
+   ・全量構築のたびに「変更の累積」DI_CHG362 を初期化し、差分更新のたびに
+     影響した名前（馬・騎手・厩舎）とキー（レース検索・好走年齢）を足す。
+     diLastChange362() がそれを返し、統計（p63）と指数（p91）の遅延メモが
+     「自分の作られた母集団キー以降の変更に触れていない分だけ引き継ぐ」
+     判定に使う。引き継ぎは値が変わりえない分だけに限る。
+   ========================================================= */
+var DI_RIDX362_STATE = null;   /* { jv, per: { rid: 寄与 }, menuSrc: { key: { rid: 勝ち時計 } } } */
+var DI_CHG362 = null;
+function diLastChange362(){ return DI_CHG362; }
+function diIdxGiKey362(tn){
+  var t = String(tn || '');
+  return (t.charAt(0) === '[') ? t.replace(/^\[.*?\]\s*/, '').trim() : t.trim();
+}
+/* 1レース分の索引への寄与（第360弾の走査規則そのまま。names は地図名・キー・要素の組） */
+function diIdxContrib362(rec){
+  var names = [];
+  var meta = rec.meta || {}, rows = rec.rows || [];
+  var d8 = String(meta.date8 || '');
+  var rk = null, ag = null, mn = null;
+  if (d8.length === 8){   /* 旧 giBuild の入口条件（指数側の付随物は日付が8桁のレースだけ） */
+    rk = { k: d8 + '|' + String(meta.place || '') + '|' + String(meta.rnum || '').padStart(2, '0'), rec: rec };
+    ag = { k: String(meta.place || '') + '|' + diIdxNormName(meta.name), rec: rec };
+    var dm = String(meta.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+    if (dm){
+      var winT = null;
+      for (var wi = 0; wi < rows.length; wi++){
+        var wr = rows[wi]; if (!wr || Array.isArray(wr)) continue;
+        if ((parseInt(wr.order, 10) || 0) === 1 && winT == null) winT = diIdxParseT(wr.time);
+      }
+      if (winT != null) mn = { k: dm[1] + dm[2] + '|' + String(meta.place || ''), t: winT };
+    }
+  }
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i];
+    if (!r || Array.isArray(r)) continue;
+    if (isNaN(parseInt(r.order, 10))) continue;   /* 旧 kl の入口条件（着順が読めない行は集計対象外） */
+    var e = [rec, r];
+    if (r.name){ var hn = String(r.name); names.push({ m: 'hRaw', k: hn, e: e }); var ht = hn.trim(); if (ht) names.push({ m: 'hTrim', k: ht, e: e }); }
+    if (r.jockey){ var jn = String(r.jockey); names.push({ m: 'jRaw', k: jn, e: e }); var jt = jn.trim(); if (jt) names.push({ m: 'jTrim', k: jt, e: e }); }
+    if (r.trainer){ var tn = String(r.trainer); names.push({ m: 'tRaw', k: tn, e: e }); var tg = diIdxGiKey362(tn); if (tg) names.push({ m: 'tGi', k: tg, e: e }); }
+  }
+  return { rec: rec, names: names, rk: rk, ag: ag, mn: mn };
+}
+function diIdxMenu362(srcMap){
+  var a = Object.keys(srcMap).map(function(rid){ return srcMap[rid]; }).sort(function(x, y){ return x - y; });
+  return { med: a[Math.floor(a.length / 2)], n: a.length };   /* giMed と同じ中央値の取り方 */
+}
+function diRunIndexFull362(races){
+  var idx = { hRaw: {}, hTrim: {}, jRaw: {}, jTrim: {}, tRaw: {}, tGi: {}, raceByKey: {}, agesIdx: {}, menu: {},
+    cnt: { horse: 0, jockey: 0, trainer: 0 }, n: Object.keys(races).length };
+  var st = { jv: '', per: {}, menuSrc: {} };
+  Object.keys(races).forEach(function(rid){
+    var rec = races[rid]; if (!rec) return;
+    var c = diIdxContrib362(rec);
+    st.per[rid] = c;
+    c.names.forEach(function(ne){ var L = idx[ne.m][ne.k]; if (L) L.push(ne.e); else idx[ne.m][ne.k] = [ne.e]; });
+    if (c.ag){ var L2 = idx.agesIdx[c.ag.k]; if (L2) L2.push(rec); else idx.agesIdx[c.ag.k] = [rec]; }
+    if (c.rk) idx.raceByKey[c.rk.k] = rec;
+    if (c.mn){ (st.menuSrc[c.mn.k] = st.menuSrc[c.mn.k] || {})[rid] = c.mn.t; }
+  });
+  Object.keys(st.menuSrc).forEach(function(k){ idx.menu[k] = diIdxMenu362(st.menuSrc[k]); });
+  idx.cnt = { horse: Object.keys(idx.hRaw).length, jockey: Object.keys(idx.jRaw).length, trainer: Object.keys(idx.tRaw).length };
+  return { idx: idx, st: st };
+}
+function diRunIndexDiff362(races, key){
+  var st = DI_RIDX362_STATE, idx = DI_RIDX360;
+  var order = Object.keys(races);
+  var rank = {}, rankMap = new Map();
+  order.forEach(function(rid, i){ rank[rid] = i; if (races[rid]) rankMap.set(races[rid], i); });
+  var changed = [], removed = [], rid;
+  for (rid in st.per){ if (!(rid in races)) removed.push(rid); }
+  order.forEach(function(rid2){ var p = st.per[rid2]; if (!p || p.rec !== races[rid2]) changed.push(rid2); });
+  if (changed.length + removed.length > 2000) return false;   /* 大きな変更は全量構築へ（従来動作） */
+  var chg = DI_CHG362 || (DI_CHG362 = { keys: {}, horse: {}, jockey: {}, trainer: {}, raceKeys: {}, agesKeys: {} });
+  function noteNames(c){
+    c.names.forEach(function(ne){
+      if (ne.m === 'hRaw' || ne.m === 'hTrim') chg.horse[ne.k] = 1;
+      else if (ne.m === 'jRaw' || ne.m === 'jTrim') chg.jockey[ne.k] = 1;
+      else chg.trainer[ne.k] = 1;
+    });
+    if (c.rk) chg.raceKeys[c.rk.k] = 1;
+    if (c.ag) chg.agesKeys[c.ag.k] = 1;
+  }
+  var displaced = [], touchedMenu = {};
+  function removeC(rid3, c){
+    noteNames(c);
+    c.names.forEach(function(ne){
+      var L = idx[ne.m][ne.k]; if (!L) return;
+      var ix = L.indexOf(ne.e); if (ix >= 0) L.splice(ix, 1);
+      if (!L.length) delete idx[ne.m][ne.k];
+    });
+    if (c.ag){ var L2 = idx.agesIdx[c.ag.k]; if (L2){ var ix2 = L2.indexOf(c.rec); if (ix2 >= 0) L2.splice(ix2, 1); if (!L2.length) delete idx.agesIdx[c.ag.k]; } }
+    if (c.rk && idx.raceByKey[c.rk.k] === c.rec) displaced.push(c.rk.k);
+    if (c.mn){ var ms = st.menuSrc[c.mn.k]; if (ms){ delete ms[rid3]; if (!Object.keys(ms).length) delete st.menuSrc[c.mn.k]; } touchedMenu[c.mn.k] = 1; }
+  }
+  removed.forEach(function(rid4){ removeC(rid4, st.per[rid4]); delete st.per[rid4]; });
+  changed.forEach(function(rid5){ var old = st.per[rid5]; if (old) removeC(rid5, old); });
+  /* レース検索キーの宙吊り解消: 変わっていないレースの中で最も後ろ（走査順）のものを立てる（全量構築の「最後が勝つ」と同じ） */
+  displaced.forEach(function(k){
+    var best = null, bestRank = -1;
+    for (var rid6 in st.per){
+      var c6 = st.per[rid6];
+      if (c6.rk && c6.rk.k === k && c6.rec === races[rid6]){ var rr = rank[rid6]; if (rr != null && rr > bestRank){ bestRank = rr; best = c6.rec; } }
+    }
+    if (best) idx.raceByKey[k] = best; else delete idx.raceByKey[k];
+  });
+  function rankOfEl(m, el){ var rec = (m === 'agesIdx') ? el : el[0]; var r = rankMap.get(rec); return (r == null) ? -1 : r; }
+  function insList(m, k, el, myRank){
+    var L = idx[m][k];
+    if (!L){ idx[m][k] = [el]; return; }
+    var lo = 0, hi = L.length;
+    while (lo < hi){ var mid = (lo + hi) >> 1; if (rankOfEl(m, L[mid]) <= myRank) lo = mid + 1; else hi = mid; }
+    L.splice(lo, 0, el);
+  }
+  changed.forEach(function(rid7){
+    var rec = races[rid7]; if (!rec){ delete st.per[rid7]; return; }
+    var c = diIdxContrib362(rec);
+    st.per[rid7] = c;
+    noteNames(c);
+    var myRank = rank[rid7];
+    c.names.forEach(function(ne){ insList(ne.m, ne.k, ne.e, myRank); });
+    if (c.ag) insList('agesIdx', c.ag.k, c.rec, myRank);
+    if (c.rk){
+      var cur = idx.raceByKey[c.rk.k];
+      if (!cur || rankMap.get(cur) == null || rankMap.get(cur) <= myRank) idx.raceByKey[c.rk.k] = c.rec;
+    }
+    if (c.mn){ (st.menuSrc[c.mn.k] = st.menuSrc[c.mn.k] || {})[rid7] = c.mn.t; touchedMenu[c.mn.k] = 1; }
+  });
+  Object.keys(touchedMenu).forEach(function(k){
+    var ms = st.menuSrc[k];
+    if (ms && Object.keys(ms).length) idx.menu[k] = diIdxMenu362(ms);
+    else delete idx.menu[k];
+  });
+  idx.n = order.length;
+  idx.cnt = { horse: Object.keys(idx.hRaw).length, jockey: Object.keys(idx.jRaw).length, trainer: Object.keys(idx.tRaw).length };
+  chg.keys[key] = 1;
+  return true;
+}
 function diRunIndex(){
   var m = null;
   try { m = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
@@ -21185,45 +21368,29 @@ function diRunIndex(){
   var key = (m && m.key) || '';
   if (DI_RIDX360 && DI_RIDX360_KEY === key && DI_RIDX360_SRC === races) return DI_RIDX360;
   try { if (typeof dbFixApply === 'function') dbFixApply(races); } catch(e){}   /* 旧 klBuildFromDb と同じ前処理（現行ビルドでは未定義＝no-op） */
-  var hRaw = {}, hTrim = {}, jRaw = {}, jTrim = {}, tRaw = {}, tGi = {};
-  var raceByKey = {}, agesIdx = {}, menuSrc = {};
-  function push(map, k, e){ var a = map[k]; if (a) a.push(e); else map[k] = [e]; }
-  Object.keys(races).forEach(function(rid){
-    var rec = races[rid]; if (!rec) return;
-    var meta = rec.meta || {}, rows = rec.rows || [];
-    var d8 = String(meta.date8 || '');
-    if (d8.length === 8){   /* 旧 giBuild の入口条件（指数側の付随物は日付が8桁のレースだけ） */
-      raceByKey[d8 + '|' + String(meta.place || '') + '|' + String(meta.rnum || '').padStart(2, '0')] = rec;
-      push(agesIdx, String(meta.place || '') + '|' + diIdxNormName(meta.name), rec);
-      var dm = String(meta.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
-      if (dm){
-        var winT = null;
-        for (var wi = 0; wi < rows.length; wi++){
-          var wr = rows[wi]; if (!wr || Array.isArray(wr)) continue;
-          if ((parseInt(wr.order, 10) || 0) === 1 && winT == null) winT = diIdxParseT(wr.time);
-        }
-        if (winT != null) push(menuSrc, dm[1] + dm[2] + '|' + String(meta.place || ''), winT);
-      }
-    }
-    for (var i = 0; i < rows.length; i++){
-      var r = rows[i];
-      if (!r || Array.isArray(r)) continue;
-      if (isNaN(parseInt(r.order, 10))) continue;   /* 旧 kl の入口条件（着順が読めない行は集計対象外） */
-      var e = [rec, r];
-      if (r.name){ var hn = String(r.name); push(hRaw, hn, e); var ht = hn.trim(); if (ht) push(hTrim, ht, e); }
-      if (r.jockey){ var jn = String(r.jockey); push(jRaw, jn, e); var jt = jn.trim(); if (jt) push(jTrim, jt, e); }
-      if (r.trainer){ var tn = String(r.trainer); push(tRaw, tn, e); var tg = (tn.charAt(0) === '[') ? tn.replace(/^\[.*?\]\s*/, '').trim() : tn.trim(); if (tg) push(tGi, tg, e); }
-    }
-  });
-  var menu = {};
-  Object.keys(menuSrc).forEach(function(k){
-    var a = menuSrc[k].slice().sort(function(x, y){ return x - y; });
-    menu[k] = { med: a[Math.floor(a.length / 2)], n: a.length };   /* giMed と同じ中央値の取り方 */
-  });
-  DI_RIDX360 = { key: key, races: races, n: Object.keys(races).length,
-    hRaw: hRaw, hTrim: hTrim, jRaw: jRaw, jTrim: jTrim, tRaw: tRaw, tGi: tGi,
-    raceByKey: raceByKey, agesIdx: agesIdx, menu: menu,
-    cnt: { horse: Object.keys(hRaw).length, jockey: Object.keys(jRaw).length, trainer: Object.keys(tRaw).length } };
+  var jv = key.slice(key.indexOf('|') + 1);
+  var done = false;
+  if (DI_RIDX360 && DI_RIDX362_STATE && DI_RIDX362_STATE.jv === jv && typeof dbFixApply !== 'function'){
+    try { done = diRunIndexDiff362(races, key); } catch(e){ done = false; }
+  }
+  if (!done){
+    var built = diRunIndexFull362(races);
+    if (!DI_RIDX360) DI_RIDX360 = { key: key, races: races };
+    /* 索引オブジェクト自体は使い回す（指数ファサード等が参照を保持しているため）。
+       地図は差し替え、勝ち時計の中央値表だけは同じ実体へ中身を移す（ファサードが
+       menu の実体参照を保持しているため） */
+    ['hRaw', 'hTrim', 'jRaw', 'jTrim', 'tRaw', 'tGi', 'raceByKey', 'agesIdx', 'cnt', 'n'].forEach(function(f){ DI_RIDX360[f] = built.idx[f]; });
+    var om = DI_RIDX360.menu || {};
+    Object.keys(om).forEach(function(k){ delete om[k]; });
+    Object.keys(built.idx.menu).forEach(function(k){ om[k] = built.idx.menu[k]; });
+    DI_RIDX360.menu = om;
+    DI_RIDX362_STATE = built.st;
+    DI_RIDX362_STATE.jv = jv;
+    DI_CHG362 = { keys: {}, horse: {}, jockey: {}, trainer: {}, raceKeys: {}, agesKeys: {} };
+    DI_CHG362.keys[key] = 1;
+  }
+  DI_RIDX360.key = key;
+  DI_RIDX360.races = races;
   DI_RIDX360_KEY = key;
   DI_RIDX360_SRC = races;
   return DI_RIDX360;
@@ -33985,6 +34152,21 @@ function preAiCardSweep(d8, items, opt, progress, result){
 }
 
 /* その日の全レースを一括取得 */
+/* ★第362弾: 予想の凍結計算（Lv・指数）が読む母集団（統合読み）は、年ファイルが
+   メモリに読み込まれている時だけ年ファイル分を含む。読み込みは従来データベース
+   タブの手動ボタン等でしか起きず、一括取得→結果取得・再予想→書き出しの流れでは
+   誰も読み込まないため、年ファイルにしか無い過去走の馬が旧来どおり欠けたまま
+   保存・書き出しされていた（2026-11-13夜、再生成した書き出しのカバー率が初回と
+   完全一致したことで判明）。一括取得の入口で、配置済み年ファイルの読み込みを
+   保証する。読み込み済みの年は DBS_JV_FETCH が即返し、ファイルが無い年・失敗は
+   無視して学習DBのみで続行する（従来動作）。一覧は dbsJvFetchAll と同じ年範囲。 */
+function preEnsureJv362(){
+  if (typeof DBS_JV_FETCH !== 'function' || typeof DBS_JV === 'undefined') return Promise.resolve(null);
+  var years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  return years.reduce(function(p, y){
+    return p.then(function(){ return DBS_JV_FETCH(String(y)).catch(function(){ return null; }); });
+  }, Promise.resolve(null));
+}
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
@@ -33993,7 +34175,7 @@ function preDayFetch(date8, opt, progress){
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
   }
-  return diNetkeibaRaces(d8).then(function(items){
+  return preEnsureJv362().then(function(){ return diNetkeibaRaces(d8); }).then(function(items){
     result.total = items.length;
     if (!items.length) throw new Error('この日のレース一覧をnetkeibaに見つけられませんでした');
     /* ★第310弾: 一括取得した日を📋出馬表タブの日付リストにも登録する（opt-in: opt.sbDay）。
@@ -39690,16 +39872,47 @@ function klEnsure360(){
   /* ★第105弾: 空統計(n=0)のキャッシュは無視する（学習DBロード前に空統計が焼き付く事故防止）
      ★第127弾: 修正データが変わったらキャッシュを無視して再構築／★第359弾: 年ファイルの版・件数が変わっても再構築（年ファイルにしか無い過去走を取り込むため） */
   if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0 && ((typeof dbFixStamp !== 'function') || p.dbfix === dbFixStamp()) && p.jv === (typeof diJvStamp === 'function' ? diJvStamp() : 'jv0:0')) klDbCache = p; } catch(e){} }
+  var oldShell362 = null;
   if (klDbCache && klDbCache.lazy360){
     /* 殻は母集団のキー＋実体が変わっていたら作り直す（メモ化した統計が古くならないように） */
     var mNow = null;
     try { mNow = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
-    if (!mNow || klDbCache._mk !== (mNow.key || '') || klDbCache._msrc !== mNow.races) klDbCache = null;
+    if (!mNow || klDbCache._mk !== (mNow.key || '') || klDbCache._msrc !== mNow.races){ oldShell362 = klDbCache; klDbCache = null; }
   } else if (klDbCache && klDbCache.v === KL_STATS_V && (klDbCache.n || 0) !== klPopN360()){
     klDbCache = null;   /* 自前形式の全量キャッシュは、母集団のレース数が変わっていたら作り直す */
   }
   if (!klDbCache) klDbCache = (klPopN360() <= KL_FULL360) ? klBuildFromDb() : klShell360();
+  if (oldShell362 && klDbCache && klDbCache.lazy360) klCarryShell362(oldShell362, klDbCache);
   return klDbCache;
+}
+/* ★第362弾: シェルを作り直す際、前回から変わっていない名前の集計メモを引き継ぐ。
+   名前ごとの集計（klStatFor360）は「その名前の走」だけで決まり、レース単位の
+   文脈（そのレースの最速上り・払戻）も、そのレースに出ていた全頭の名前が変更
+   記録（diLastChange362）へ入るため、触れていない名前の値は変わりえない。
+   引き継ぎは、変更記録が旧シェルの母集団キー以降をカバーしている場合だけ
+   （年ファイル読込のような大きな変更では記録が初期化され、全量作り直し＝
+   従来動作になる）。コンビ集計は騎手・厩舎どちらかが触れたら落とす。 */
+function klCarryShell362(old, nw){
+  var chg = null;
+  try { chg = (typeof diLastChange362 === 'function') ? diLastChange362() : null; } catch(e){}
+  if (!chg || !chg.keys || !old._mk || !chg.keys[old._mk]) return;
+  function carry(mapO, mapN, affected){
+    if (!mapO || !mapN || !affected) return;
+    Object.keys(mapO).forEach(function(nm){
+      if (affected[nm] || affected[String(nm).trim()]) return;
+      mapN[nm] = mapO[nm];
+    });
+  }
+  carry(old.horse, nw.horse, chg.horse);
+  carry(old.jockey, nw.jockey, chg.jockey);
+  carry(old.trainer, nw.trainer, chg.trainer);
+  if (old.pair && nw.pair){
+    Object.keys(old.pair).forEach(function(k){
+      var ps = old.pair[k];
+      if (ps && ((chg.jockey && chg.jockey[ps.jockey]) || (chg.trainer && chg.trainer[ps.trainer]))) return;
+      nw.pair[k] = ps;
+    });
+  }
 }
 function klRecCtx360(rec){
   var meta = rec.meta || {};
@@ -39814,7 +40027,13 @@ function klRefreshFromDb(){
    klBuildFromDb が n>0 なら再永続化)。一括取込の途中に毎回再構築して重くしないため。
    呼び出し元 = p32 の diSet / diRemoveRace / diRemoveAll(diVer++ の直後・typeof ガード付き)。 */
 function klInvalidateDbCache(){
-  klDbCache = null;
+  /* ★第362弾: 遅延シェル（lazy360）はここで破棄しない。シェルの鮮度は
+     klEnsure360 が母集団キー＋実体で判定し、作り直しの際は変わっていない名前の
+     集計メモを引き継ぐ（klCarryShell362）。第360弾までは保存のたびにシェルごと
+     消え、再予想の各レースで全頭分の名前ごと集計が再導出されていた（チェーンの
+     遅さの一因・実測は app_patch_362_20261113.md）。全量キャッシュと永続分は
+     従来どおり消す。 */
+  if (!(klDbCache && klDbCache.lazy360)) klDbCache = null;
   try { if (typeof localStorage !== 'undefined') localStorage.removeItem('khl_jdb_stats'); } catch(e){}
 }
 
@@ -46799,7 +47018,9 @@ function giBuild(){
     var idx360 = null;
     try { idx360 = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
     if (idx360){
-      giCache = { key: key, BABA: BABA, menu: idx360.menu, idx: idx360, lazy360: 1, _runs: {}, _ps: {}, _fld: {}, _ages: {}, _jt: { jockey: {}, trainer: {} } };
+      var oldF362 = (giCache && giCache.lazy360) ? giCache : null;
+      giCache = { key: key, BABA: BABA, menu: idx360.menu, idx: idx360, lazy360: 1, _mk: (mr360 && mr360.key) || '', _runs: {}, _ps: {}, _fld: {}, _ages: {}, _jt: { jockey: {}, trainer: {} } };
+      if (oldF362) giCarry362(oldF362, giCache);
       return giCache;
     }
     /* 索引が使えない環境では従来の一括ビルドへ落とす（従来動作の保存） */
@@ -46987,6 +47208,39 @@ function giJT360(c, kind, name){
   return p;
 }
 function giAsOf360(c, kind, name, d8){ return giAsOfP(giJT360(c, kind, name), d8); }
+/* ★第362弾: ファサードを作り直す際、前回から変わっていない分の導出メモを引き継ぐ。
+   導出の依存は名前・キー単位で閉じている（過去走=その馬の走＋そのレース内の
+   最速上り＝そのレースに出た全頭の名前が変更記録へ入る／対戦表・好走年齢=
+   レースのキー／騎手・厩舎の前方累積=その人の走）。変更記録（diLastChange362）が
+   旧ファサードの母集団キー以降をカバーしている場合だけ引き継ぎ、カバー外
+   （年ファイル読込等の大きな変更）では全量作り直し＝従来動作になる。
+   なお giKey は書き込みで件数が変わらない場合に変わらないため、件数が同じ
+   上書き保存ではファサード自体が残り、この引き継ぎ以前の問題としてメモが
+   古いままになる余地がある（第360弾以前からの既存の性質・本弾では触らない）。 */
+function giCarry362(oldF, newF){
+  var chg = null;
+  try { chg = (typeof diLastChange362 === 'function') ? diLastChange362() : null; } catch(e){}
+  if (!chg || !chg.keys || !oldF._mk || !chg.keys[oldF._mk]) return;
+  function carryNames(mapO, mapN, affected){
+    if (!mapO || !mapN || !affected) return;
+    Object.keys(mapO).forEach(function(nm){
+      if (affected[nm] || affected[String(nm).trim()]) return;
+      mapN[nm] = mapO[nm];
+    });
+  }
+  carryNames(oldF._runs, newF._runs, chg.horse);
+  carryNames(oldF._ps, newF._ps, chg.horse);
+  if (oldF._jt && newF._jt){
+    carryNames(oldF._jt.jockey, newF._jt.jockey, chg.jockey);
+    carryNames(oldF._jt.trainer, newF._jt.trainer, chg.trainer);
+  }
+  if (oldF._fld && newF._fld){
+    Object.keys(oldF._fld).forEach(function(k){ if (!(chg.raceKeys && chg.raceKeys[k])) newF._fld[k] = oldF._fld[k]; });
+  }
+  if (oldF._ages && newF._ages){
+    Object.keys(oldF._ages).forEach(function(k){ if (!(chg.agesKeys && chg.agesKeys[k])) newF._ages[k] = oldF._ages[k]; });
+  }
+}
 
 /* ---------- コア計算(idx_coreと同一式のポート) ---------- */
 function giZ(vals){
