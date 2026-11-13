@@ -1,7 +1,7 @@
 {
  "kind": "moko_retro",
  "version": 1,
- "generated": "2026-11-12T16:19:53.622891+00:00",
+ "generated": "2026-11-13T11:21:33.332409+00:00",
  "source": "horse_memos/memos.json（記事回顧の判定ストック）",
  "watchDef": "派生定義: verdict=見直し可、または note に「次走注目」を含む場合に watch=true",
  "counts": {
