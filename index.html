@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第360弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第361弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2858,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第360弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第361弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -42148,14 +42148,19 @@ function aiTenkaiLines(rc){
    aiDayExportModel の各レースに card359 を束ね、文書末尾へ機械可読な JSON
    ブロックを1つだけ足す（aiCard359Tail・第341弾の埋め込みと同じ流儀）。
    形式（受け取り側はこの仕様を読む）:
-     <script type="application/json" id="khl-card359">
+     文書末尾に、種類 application/json・id が khl-card359 の script 要素を
+     1つだけ置き、その中身を次の形の JSON とする（★このコメントには要素の
+     開始・終了タグのリテラルを書かない。モジュールが index.html 内の
+     script 要素へ埋め込まれるため、コメント内でも終了タグのリテラルが
+     あると HTML パーサがそこで要素を終了させ、後ろのコードが表示へ
+     漏れる。第361弾で直した実機不具合の原因。組み立ての実物は
+     aiCard359Tail を見ること）:
      { "v": 1, "kind": "keibalab-card", "date": "YYYYMMDD", "races": [
        { "rid": "...", "venue": "京都", "raceNo": 11, "raceName": "...",
          "surface": "芝"|"ダ"|"障害"|"", "distance": 2200（数値・m、不明は0）,
          "horses": [ { "number": 8（馬番・数値）, "name": "...", "jockey": "...",
                        "weight": 55（斤量・数値、取れない場合は ""）,
                        "gate": 5（枠番・数値、取れない場合は ""） } ] } ] }
-     </script>
    horses は馬番順。JSON は "<" を \u003c に逃がして埋め込む。
    カード項目が取れたレースが無い文書ではブロック自体を出さない。
    出典の優先順: 保存済み出馬表（nkCardGet→nkParseShutuba の枠・馬番・馬名・
