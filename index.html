@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第359弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第360弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2858,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第359弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第360弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -21146,6 +21146,87 @@ function diMergedRaces(){
   DI_MERGED359_KEY = key;
   DI_MERGED359_SRC = races;
   return DI_MERGED359;
+}
+/* =========================================================
+   ★第360弾: 走の索引（diRunIndex）— 指数・統計が「必要な分だけ引く」ための土台
+   ---------------------------------------------------------
+   第359弾の緊急修正（全量ビルダー向け母集団の上限 diMergedRacesBulk）は本弾で
+   廃止した。全頭分の一括集計そのものを描画経路から無くしたため、上限で母集団を
+   切り落とす必要が無くなり、年ファイルにしか無い過去走も全量のまま拾える。
+   代わりに、統合読み（diMergedRaces）の母集団を1回だけ走査して「参照だけ」の
+   軽い索引を作る:
+   ・1走＝ [レースレコード, 行] の2要素配列を、馬名・騎手名・厩舎名の地図
+     （生キーと整形キー）で共有する。行のコピー・変換はしないので、年ファイル
+     全量（27,179レース・約37.5万走）でも索引は参照の集まりに収まる。
+   ・並び順は母集団の走査順（Object.keys順＋行順）をそのまま保存する
+     （旧 klBuildFromDb の近走60件・旧 giBuild の前方累積はこの順序に依存する）。
+   ・含める行は「着順が数値として読めるオブジェクト行」だけ（旧 kl の入口条件と
+     同一）。旧 gi 側の落とし条件（馬名なし・着順0以下・日付が8桁でないレース）は
+     利用側（p91 の導出関数）が旧規則どおりに適用する。
+   ・付随物: レース検索キー（日付|場|R→レコード参照）、同名レースのレコード
+     一覧（好走年齢用・参照のみ）、勝ち時計の中央値表（面距離×場・数値のみで
+     小さく有界）、種別ごとの名前件数。巨大な統計JSONの永続保存はしない。
+   ・作り直し判定は統合読みのキー＋実体オブジェクト同一性の両方（第359弾の教訓）。
+   ========================================================= */
+function diIdxParseT(t){   /* giParseT（p91）と同一式。索引側で勝ち時計を読むため複製（第131弾から不変の式） */
+  var s = String(t || ''), m;
+  m = s.match(/^(\d+):(\d{2}\.\d)$/); if (m) return parseInt(m[1], 10) * 60 + parseFloat(m[2]);
+  m = s.match(/^(\d{2}\.\d)$/); if (m) return parseFloat(m[1]);
+  return null;
+}
+function diIdxNormName(s){   /* giNormName（p91）と同一式。同名レースのキーを作るため複製 */
+  return String(s || '').replace(/\(GI{0,3}\)|（GI{0,3}）|\(LI{0,2}\)|（LI{0,2}）|\(OP\)|（OP）|\(H\)|（H）/g, '');
+}
+var DI_RIDX360 = null, DI_RIDX360_KEY = '', DI_RIDX360_SRC = null;
+function diRunIndex(){
+  var m = null;
+  try { m = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
+  var races = (m && m.races) || {};
+  var key = (m && m.key) || '';
+  if (DI_RIDX360 && DI_RIDX360_KEY === key && DI_RIDX360_SRC === races) return DI_RIDX360;
+  try { if (typeof dbFixApply === 'function') dbFixApply(races); } catch(e){}   /* 旧 klBuildFromDb と同じ前処理（現行ビルドでは未定義＝no-op） */
+  var hRaw = {}, hTrim = {}, jRaw = {}, jTrim = {}, tRaw = {}, tGi = {};
+  var raceByKey = {}, agesIdx = {}, menuSrc = {};
+  function push(map, k, e){ var a = map[k]; if (a) a.push(e); else map[k] = [e]; }
+  Object.keys(races).forEach(function(rid){
+    var rec = races[rid]; if (!rec) return;
+    var meta = rec.meta || {}, rows = rec.rows || [];
+    var d8 = String(meta.date8 || '');
+    if (d8.length === 8){   /* 旧 giBuild の入口条件（指数側の付随物は日付が8桁のレースだけ） */
+      raceByKey[d8 + '|' + String(meta.place || '') + '|' + String(meta.rnum || '').padStart(2, '0')] = rec;
+      push(agesIdx, String(meta.place || '') + '|' + diIdxNormName(meta.name), rec);
+      var dm = String(meta.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
+      if (dm){
+        var winT = null;
+        for (var wi = 0; wi < rows.length; wi++){
+          var wr = rows[wi]; if (!wr || Array.isArray(wr)) continue;
+          if ((parseInt(wr.order, 10) || 0) === 1 && winT == null) winT = diIdxParseT(wr.time);
+        }
+        if (winT != null) push(menuSrc, dm[1] + dm[2] + '|' + String(meta.place || ''), winT);
+      }
+    }
+    for (var i = 0; i < rows.length; i++){
+      var r = rows[i];
+      if (!r || Array.isArray(r)) continue;
+      if (isNaN(parseInt(r.order, 10))) continue;   /* 旧 kl の入口条件（着順が読めない行は集計対象外） */
+      var e = [rec, r];
+      if (r.name){ var hn = String(r.name); push(hRaw, hn, e); var ht = hn.trim(); if (ht) push(hTrim, ht, e); }
+      if (r.jockey){ var jn = String(r.jockey); push(jRaw, jn, e); var jt = jn.trim(); if (jt) push(jTrim, jt, e); }
+      if (r.trainer){ var tn = String(r.trainer); push(tRaw, tn, e); var tg = (tn.charAt(0) === '[') ? tn.replace(/^\[.*?\]\s*/, '').trim() : tn.trim(); if (tg) push(tGi, tg, e); }
+    }
+  });
+  var menu = {};
+  Object.keys(menuSrc).forEach(function(k){
+    var a = menuSrc[k].slice().sort(function(x, y){ return x - y; });
+    menu[k] = { med: a[Math.floor(a.length / 2)], n: a.length };   /* giMed と同じ中央値の取り方 */
+  });
+  DI_RIDX360 = { key: key, races: races, n: Object.keys(races).length,
+    hRaw: hRaw, hTrim: hTrim, jRaw: jRaw, jTrim: jTrim, tRaw: tRaw, tGi: tGi,
+    raceByKey: raceByKey, agesIdx: agesIdx, menu: menu,
+    cnt: { horse: Object.keys(hRaw).length, jockey: Object.keys(jRaw).length, trainer: Object.keys(tRaw).length } };
+  DI_RIDX360_KEY = key;
+  DI_RIDX360_SRC = races;
+  return DI_RIDX360;
 }
 function diGet(rid){
   if (diMode === 'idb' && diMem && diMem[rid]) return diMem[rid];
@@ -39509,11 +39590,14 @@ function klStatAdd(s, order, surf, track, distB, distEx, pop, prize, pace, year,
 function klBuildFromDb(){
   /* ★第359弾: 母集団は手元データの統合読み（学習DB＋年ファイル・p32 diMergedRaces）。
      従来は学習DBだけだったため、年ファイルにしか無い過去走しか持たない馬が統計から
-     落ち、レースLv・コースLvが「—」になっていた（指数側の giBuild と同じ原因） */
-  var mr359 = null;
-  try { mr359 = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
+     落ち、レースLv・コースLvが「—」になっていた（指数側の giBuild と同じ原因）
+     ★第360弾: この全量集計は「小母集団（KL_FULL360以下）の時の klStatsOf」と
+     明示的な呼び出し専用になった。大母集団では klEnsure360 が殻＋名前ごと集計
+     （klStatFor360）へ切り替えるため、ここが描画経路で全量を回すことはない */
+  var mr360 = null;
+  try { mr360 = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
   var db = (typeof diLs === 'function') ? diLs() : null;
-  var races = (mr359 && mr359.races) || (db && db.races) || {};
+  var races = (mr360 && mr360.races) || (db && db.races) || {};
   /* ★第127弾: 距離・面の修正データ(khl_dbfix_v1)を上書き適用（学習DB本体には書き戻さない）。
      空メタのレースが「芝・芝0m」扱いになって芝ダ分離を壊す問題の補修。 */
   try { if (typeof dbFixApply === 'function') dbFixApply(races); } catch(e){}
@@ -39568,22 +39652,161 @@ function klBuildFromDb(){
   var res = { v: KL_STATS_V, dbfix: (typeof dbFixStamp === 'function' ? dbFixStamp() : '0'), jv: (typeof diJvStamp === 'function' ? diJvStamp() : 'jv0:0'), jockey: J, trainer: T, horse: H, pair: P, n: Object.keys(races).length, at: Date.now() };
   klDbCache = res;
   /* ★第105弾: 空の統計(n=0)は保存しない（未ロード状態を永続化しない） */
-  try { if (typeof localStorage !== 'undefined' && res.n > 0) localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
+  /* ★第359弾・実機緊急修正: 統計が大きい場合は JSON 化・保存自体を省く。年ファイル
+     全量（27,179レース）では統計JSONが158.5MBになり、localStorage の上限（約5MB）
+     で常に失敗する保存のために巨大な文字列化とメモリを払っていた（node計測）。
+     2,000レース以下（従来の学習DB規模）では従来どおり保存する。メモリ内キャッシュ
+     （klDbCache）はレース数によらず従来どおり効く。 */
+  try { if (typeof localStorage !== 'undefined' && res.n > 0 && res.n <= 2000) localStorage.setItem('khl_jdb_stats', JSON.stringify(res)); } catch(e){}
   return res;
+}
+/* =========================================================
+   ★第360弾: 統計の「必要な分だけ」計算（大母集団用）
+   ---------------------------------------------------------
+   母集団が KL_FULL360 を超えたら、全頭分の統計オブジェクトは作らない。
+   klDbCache は「殻」（版・件数・名前件数だけを持つ軽いオブジェクト）になり、
+   klStatsOf が名前を引かれた時点で、その名前の走だけを索引（p32 diRunIndex）
+   から集計して殻へメモ化する。集計は klBuildFromDb と同じ klStatAdd の
+   呼び出し列をその名前の走にだけ適用する形で、同じ母集団では同じ値になる。
+   巨大な統計JSONの永続保存はしない（殻は保存しない。KL_FULL360以下では
+   従来どおり全量集計＋条件付き保存）。
+   ========================================================= */
+var KL_FULL360 = 2000;
+function klPopN360(){
+  try { var m = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; return (m && m.races) ? Object.keys(m.races).length : 0; } catch(e){ return 0; }
+}
+function klShell360(){
+  var idx = null;
+  try { idx = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
+  var m = null;
+  try { m = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
+  var sh = { v: KL_STATS_V, dbfix: (typeof dbFixStamp === 'function' ? dbFixStamp() : '0'), jv: (typeof diJvStamp === 'function' ? diJvStamp() : 'jv0:0'),
+    jockey: {}, trainer: {}, horse: {}, pair: {}, n: idx ? idx.n : klPopN360(), at: Date.now(), lazy360: 1,
+    cnt: idx ? idx.cnt : { horse: 0, jockey: 0, trainer: 0 }, _mk: (m && m.key) || '', _msrc: (m && m.races) || null };
+  klDbCache = sh;
+  return sh;
+}
+function klEnsure360(){
+  /* ★第105弾: 空統計(n=0)のキャッシュは無視する（学習DBロード前に空統計が焼き付く事故防止）
+     ★第127弾: 修正データが変わったらキャッシュを無視して再構築／★第359弾: 年ファイルの版・件数が変わっても再構築（年ファイルにしか無い過去走を取り込むため） */
+  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0 && ((typeof dbFixStamp !== 'function') || p.dbfix === dbFixStamp()) && p.jv === (typeof diJvStamp === 'function' ? diJvStamp() : 'jv0:0')) klDbCache = p; } catch(e){} }
+  if (klDbCache && klDbCache.lazy360){
+    /* 殻は母集団のキー＋実体が変わっていたら作り直す（メモ化した統計が古くならないように） */
+    var mNow = null;
+    try { mNow = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; } catch(e){}
+    if (!mNow || klDbCache._mk !== (mNow.key || '') || klDbCache._msrc !== mNow.races) klDbCache = null;
+  } else if (klDbCache && klDbCache.v === KL_STATS_V && (klDbCache.n || 0) !== klPopN360()){
+    klDbCache = null;   /* 自前形式の全量キャッシュは、母集団のレース数が変わっていたら作り直す */
+  }
+  if (!klDbCache) klDbCache = (klPopN360() <= KL_FULL360) ? klBuildFromDb() : klShell360();
+  return klDbCache;
+}
+function klRecCtx360(rec){
+  var meta = rec.meta || {};
+  var surf = /障害/.test(meta.surface || '') ? '障害' : (/ダ/.test(meta.surface || '') ? 'ダ' : '芝');
+  var prizeOf = {};
+  var po = (rec.payout && rec.payout.tan) || null;
+  if (po && po.nos && po.pays){ for (var i = 0; i < po.nos.length; i++){ prizeOf[String(po.nos[i])] = po.pays[i]; } }
+  var minL3 = null, rows = rec.rows || [];
+  for (var j = 0; j < rows.length; j++){
+    var l3f = parseFloat(rows[j] && rows[j].last3);
+    if (isFinite(l3f) && l3f > 25 && l3f < 55 && (minL3 == null || l3f < minL3)) minL3 = l3f;
+  }
+  return { surf: surf, track: meta.place || '', distB: klDistBand(meta.dist),
+    distEx: surf + String(parseInt(String(meta.dist).replace(/[^0-9]/g, ''), 10) || 0) + 'm',
+    year: String(meta.date8 || meta.date || '').slice(0, 4), isGr: !!(meta.grade && meta.grade !== ''),
+    pace: (rec.xd && rec.xd.pace) ? rec.xd.pace : '', prizeOf: prizeOf, minL3: minL3 };
+}
+function klStatFor360(kind, name){
+  var idx = null;
+  try { idx = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
+  if (!idx) return null;
+  var list = (kind === 'horse') ? idx.hRaw[name] : (kind === 'jockey') ? idx.jRaw[name] : (kind === 'trainer') ? idx.tRaw[name] : null;
+  if (!list || !list.length) return null;
+  var s = klStatNew(name);
+  var ctxMap = new Map();
+  for (var i = 0; i < list.length; i++){
+    var rec = list[i][0], r = list[i][1], meta = rec.meta || {};
+    var ctx = ctxMap.get(rec);
+    if (!ctx){ ctx = klRecCtx360(rec); ctxMap.set(rec, ctx); }
+    var o = parseInt(r.order, 10);
+    if (isNaN(o)) continue;
+    var prize = 0;
+    if (o === 1){
+      var no = String(r.no != null ? r.no : r[0]);
+      var py = (ctx.prizeOf[no] != null && ctx.prizeOf[no] !== '') ? Number(ctx.prizeOf[no]) : 0;
+      if (!py){ var od = parseFloat(r.odds); if (!isNaN(od)) py = od * 100; }
+      prize = py;
+    }
+    if (kind === 'jockey'){
+      klStatAdd(s, o, ctx.surf, ctx.track, ctx.distB, ctx.distEx, parseInt(r.pop, 10) || 0, prize, ctx.pace, ctx.year, r.trainer, ctx.isGr, null);
+    } else if (kind === 'trainer'){
+      klStatAdd(s, o, ctx.surf, ctx.track, ctx.distB, ctx.distEx, parseInt(r.pop, 10) || 0, prize, ctx.pace, ctx.year, r.jockey, ctx.isGr, null);
+    } else {
+      var l3f2 = parseFloat(r.last3);
+      var jr = { date: meta.date8 || meta.date || '', place: ctx.track, rnum: meta.rnum || '', name: meta.name || '', dist: meta.dist || '', surf: ctx.surf, order: o, odds: r.odds || '', pop: r.pop || '', jockey: r.jockey, trainer: r.trainer, weight: r.weight || '', passing: r.passing || '', last3: r.last3 || '', hw: r.weightChg || '',
+        l3d: (isFinite(l3f2) && ctx.minL3 != null) ? Math.round((l3f2 - ctx.minL3) * 10) / 10 : null,
+        pass1: parseInt(String(r.passing || '').split('-')[0], 10) || 0 };
+      klStatAdd(s, o, ctx.surf, ctx.track, ctx.distB, ctx.distEx, 0, prize, ctx.pace, ctx.year, r.trainer, ctx.isGr, jr);
+    }
+  }
+  return s;
+}
+/* ★第360弾: JDBタブの列挙用（名前・出走・勝・連対・3着内だけの軽い一覧）。
+   全量キャッシュがある時はそのマップから、無い時は索引から数える。数え方は
+   klStatAdd のカウンタ更新と同一（着順0の行も従来どおり連対・3着内に数える）。 */
+function klAllLight360(kind){
+  if (klDbCache && !klDbCache.lazy360){
+    var mapF = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
+    if (mapF) return Object.keys(mapF).map(function(k){ return mapF[k]; });
+  }
+  var idx = null;
+  try { idx = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
+  if (!idx) return [];
+  var list = (kind === 'horse') ? idx.hRaw : (kind === 'jockey') ? idx.jRaw : idx.tRaw;
+  return Object.keys(list).map(function(nm){
+    var arr = list[nm], w = 0, p = 0, s = 0;
+    for (var i = 0; i < arr.length; i++){
+      var o = parseInt(arr[i][1].order, 10);
+      if (o === 1) w++;
+      if (o <= 2) p++;
+      if (o <= 3) s++;
+    }
+    return { name: nm, rides: arr.length, win: w, place: p, show: s };
+  });
+}
+function klKindCount360(kind){
+  if (klDbCache && klDbCache.lazy360 && klDbCache.cnt) return klDbCache.cnt[kind] || 0;
+  if (klDbCache){ var m2 = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : klDbCache.horse; if (m2) return Object.keys(m2).length; }
+  var idx = null;
+  try { idx = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
+  return idx ? (idx.cnt[kind] || 0) : 0;
 }
 /* ★第105弾: 構築済み統計のレース数（0=まだ使えない。aiFreezeLvのガードに使用） */
 function klStatsN(){
-  try { if (!klDbCache) klStatsOf('horse', null); } catch(e){}
+  try { klEnsure360(); } catch(e){}
   return (klDbCache && klDbCache.n) || 0;
 }
 function klStatsOf(kind, name){
-  /* ★第105弾: 空統計(n=0)のキャッシュは無視する（学習DBロード前に空統計が焼き付く事故防止） */
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V && (p.n || 0) > 0 && ((typeof dbFixStamp !== 'function') || p.dbfix === dbFixStamp()) && p.jv === (typeof diJvStamp === 'function' ? diJvStamp() : 'jv0:0')) klDbCache = p; } catch(e){} }   /* ★第127弾: 修正データが変わったらキャッシュを無視して再構築／★第359弾: 年ファイルの版・件数が変わっても再構築（年ファイルにしか無い過去走を取り込むため） */
-  if (!klDbCache) klDbCache = klBuildFromDb();
-  var map = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
+  klEnsure360();   /* ★第360弾: 復元・構築の入口を一本化（小母集団=全量集計／大母集団=殻＋名前ごと集計） */
+  if (klDbCache && klDbCache.lazy360){
+    if (name == null) return null;
+    var mapL = (kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null;
+    if (!mapL) return null;
+    if (mapL[name]) return mapL[name];
+    var st = null;
+    try { st = klStatFor360(kind, name); } catch(e){}
+    if (st) mapL[name] = st;
+    return st;
+  }
+  var map = klDbCache ? ((kind === 'trainer') ? klDbCache.trainer : (kind === 'jockey') ? klDbCache.jockey : (kind === 'horse') ? klDbCache.horse : null) : null;
   return (name != null && map && map[name]) ? map[name] : null;
 }
-function klRefreshFromDb(){ return klBuildFromDb(); }
+function klRefreshFromDb(){
+  /* ★第360弾: 明示的な再集計もモードに合わせる（大母集団では全量集計せず殻を作り直す） */
+  klDbCache = null;
+  return klEnsure360();
+}
 /* ★第274弾: 学習DBの変更(追加・上書き・削除)後のキャッシュ無効化。
    以前は diSaveOne 等の取込後も klDbCache(と永続 khl_jdb_stats)が古いDBのままで、
    複勝率などの学習統計が古い値を表示していた(100%再現・sr平均4.6ptズレ・第272弾調査で発見)。
@@ -39611,10 +39834,10 @@ function jdbProg(html){ var e = $('jdbProg'); if (e) e.innerHTML = html || ''; v
 
 /* 登録簿・キャッシュの状況を表示 */
 function jdbRefreshStat(){
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); if (s) klDbCache = JSON.parse(s); } catch(e){} }
-  var nj = klDbCache ? Object.keys(klDbCache.jockey).length : 0;
-  var nt = klDbCache ? Object.keys(klDbCache.trainer).length : 0;
-  var nh = klDbCache ? Object.keys(klDbCache.horse).length : 0;
+  try { if (typeof klEnsure360 === 'function') klEnsure360(); } catch(e){}   /* ★第360弾: 復元・構築は p63 の入口へ一本化（大母集団では殻） */
+  var nj = (typeof klKindCount360 === 'function') ? klKindCount360('jockey') : (klDbCache ? Object.keys(klDbCache.jockey).length : 0);
+  var nt = (typeof klKindCount360 === 'function') ? klKindCount360('trainer') : (klDbCache ? Object.keys(klDbCache.trainer).length : 0);
+  var nh = (typeof klKindCount360 === 'function') ? klKindCount360('horse') : (klDbCache ? Object.keys(klDbCache.horse).length : 0);
   var at = klDbCache && klDbCache.at ? new Date(klDbCache.at) : null;
   jdbStat('学習DB集計: <b>騎手 ' + nj + '名</b> / <b>調教師 ' + nt + '名</b> / 馬 ' + nh +
     '（' + (klDbCache ? klDbCache.n : 0) + 'レース）' +
@@ -39626,7 +39849,7 @@ function jdbBuildRegistry(){
   var kind = jdbKind();
   jdbProg('⏳ 学習DBから ' + (kind === 'trainer' ? '調教師' : '騎手') + 'を集計中…');
   var st = klRefreshFromDb();
-  var cnt = Object.keys((kind === 'trainer') ? st.trainer : st.jockey).length;
+  var cnt = (typeof klKindCount360 === 'function') ? klKindCount360(kind) : Object.keys((kind === 'trainer') ? st.trainer : st.jockey).length;   /* ★第360弾: 殻モードでは名前件数から */
   jdbProg('✅ 学習DB（' + st.n + 'レース）から集計: ' + (kind === 'trainer' ? '調教師' : '騎手') + ' ' + cnt + '名');
   jdbRefreshStat();
   jdbBuildDropdown();
@@ -39690,19 +39913,17 @@ function jdbSortCmp(a, b){
 }
 function jdbSearch(){
   var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
-  if (!klDbCache) klDbCache = klBuildFromDb();
+  try { if (typeof klEnsure360 === 'function') klEnsure360(); } catch(e){}   /* ★第360弾: 復元・構築は p63 の入口へ一本化 */
   var q = klStr(($('jdbQuery') || {}).value || '');
   jdbHits = [];
   if (target === 'horse'){
-    var hm = klDbCache.horse; var all = Object.keys(hm).map(function(k){ return hm[k]; });
+    var all = (typeof klAllLight360 === 'function') ? klAllLight360('horse') : [];   /* ★第360弾: 列挙は軽い一覧から（殻モード対応） */
     jdbHits = q ? all.filter(function(e){ return (e.name||'').indexOf(q) >= 0; }) : all;
   } else if (target === 'race'){
     var rm = jdbRaceIndex(); var rk = Object.keys(rm);
     jdbHits = (q ? rk.filter(function(k){ return k.indexOf(q) >= 0; }) : rk).map(function(k){ return { name: k, list: rm[k] }; });
   } else {
-    var map = (target === 'trainer') ? klDbCache.trainer : klDbCache.jockey;
-    var all2 = Object.keys(map).map(function(k){ return map[k]; });
+    var all2 = (typeof klAllLight360 === 'function') ? klAllLight360(target) : [];
     jdbHits = q ? all2.filter(function(e){ return (e.name||'').indexOf(q) >= 0; }) : all2;
   }
   jdbHits.sort(jdbSortCmp);
@@ -39756,11 +39977,9 @@ function jdbBuildDropdown(){
   var target = (typeof $ === 'function' && $('jdbTarget')) ? $('jdbTarget').value : 'jockey';
   var row = $('jdbSelRow'); if (row) row.style.display = (target === 'horse' || target === 'race') ? 'none' : '';
   if (target === 'horse' || target === 'race') return;
-  if (!klDbCache){ try { var s = localStorage.getItem('khl_jdb_stats'); var p = JSON.parse(s); if (p && p.v === KL_STATS_V) klDbCache = p; } catch(e){} }
-  if (!klDbCache) klDbCache = klBuildFromDb();
+  try { if (typeof klEnsure360 === 'function') klEnsure360(); } catch(e){}   /* ★第360弾: 復元・構築は p63 の入口へ一本化 */
   var kind = (target === 'trainer') ? 'trainer' : 'jockey';
-  var map = (kind === 'trainer') ? klDbCache.trainer : klDbCache.jockey;
-  var arr = Object.keys(map).map(function(k){ return map[k]; });
+  var arr = (typeof klAllLight360 === 'function') ? klAllLight360(kind) : [];   /* ★第360弾: 列挙は軽い一覧から（殻モード対応） */
   arr.sort(function(a, b){ return (b.win / Math.max(1, b.rides)) - (a.win / Math.max(1, a.rides)); });
   var html = '<option value="">— ' + (kind === 'trainer' ? '調教師' : '騎手') + 'を選択 —</option>';
   html += arr.map(function(e){ return '<option value="' + esc(e.name) + '">' + esc(e.name) + '　勝率' + (e.rides ? (e.win / e.rides * 100).toFixed(0) : 0) + '%</option>'; }).join('');
@@ -39845,7 +40064,19 @@ function jdbShowDetail(d, kind){
     h += '</div>';
     if (trainerKind){
       var horses = [];
-      if (klDbCache && klDbCache.horse){ Object.keys(klDbCache.horse).forEach(function(hn){ var hs = klDbCache.horse[hn]; if (hs.byPartner && hs.byPartner[d.name]){ horses.push({ n: hn, v: hs }); } }); }
+      /* ★第360弾: 管理馬の候補は索引の厩舎→走から集め、各馬の統計を名前ごとに引く
+         （旧: 全馬統計を走査。候補の集合は「その厩舎で走った馬」で旧と同一） */
+      try {
+        var idxTr = (typeof diRunIndex === 'function') ? diRunIndex() : null;
+        var seenTr = {};
+        if (idxTr && idxTr.tRaw && idxTr.tRaw[d.name]) idxTr.tRaw[d.name].forEach(function(eTr){
+          var hn = eTr[1] && eTr[1].name;
+          if (!hn || seenTr[hn]) return;
+          seenTr[hn] = 1;
+          var hs = (typeof klStatsOf === 'function') ? klStatsOf('horse', hn) : null;
+          if (hs && hs.byPartner && hs.byPartner[d.name]) horses.push({ n: hn, v: hs });
+        });
+      } catch(eTr2){}
       horses.sort(function(a,b){ return b.v.win - a.v.win; });
       h += '<div class="jdb-sec"><b>■ 管理馬（学習DB上で預託された馬・上位20）</b>';
       if (!horses.length){ h += '<div class="small muted">学習DBに該当馬の出走履歴がありません。</div>'; }
@@ -46469,7 +46700,9 @@ function ppInit(){
    ・検証(2021-2026・19,050R walk-forward・タイセーフ評価): cov3=87.6%・指数1位馬券内=53.4%
      (基準3要素85.9%/51.5%・旧CL+RL指数83.7%/49.3%)
    ・計算は手元データ（学習DB＋年ファイルの統合読み diMergedRaces。第359弾で diLs 単独から切替）の
-     「レース日より前」の走のみ使用。予想時に aiFreezeGidx で snap.gidx へ保存
+     「レース日より前」の走のみ使用。第360弾: 母集団が大きい時は全頭一括の索引構築をやめ、
+     p32 の走の索引（diRunIndex）から対象馬の分だけ遅延導出する（値は一括ビルドと同一）。
+     予想時に aiFreezeGidx で snap.gidx へ保存
      (第102弾規約: 結果確定後の再計算はしない)。レースLv/コースLv(第69-71弾)は変更しない。
    ・馬場履歴(クッション値・含水率1,454日分)を埋め込みデータとして同梱(JRA発表値・学習検証と同一データ)。 */
 
@@ -46512,7 +46745,8 @@ function giBaba(){
 var giCache = null;
 function giKey(){
   var n = 0;
-  /* ★第359弾: 母集団は統合読み（学習DB＋年ファイル）。件数と年ファイルの版をキーに含める */
+  /* ★第359弾: 母集団は統合読み（学習DB＋年ファイル）。件数と年ファイルの版をキーに含める
+     ★第360弾: 件数は統合読みの全量の件数（上限フォールバック廃止に伴い差し替え） */
   try { var mr = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; var r = (mr && mr.races) || ((typeof diLs === 'function') ? diLs().races : null); if (r) n = Object.keys(r).length; } catch(e){}
   var jv = 'jv0:0';
   try { if (typeof diJvStamp === 'function') jv = diJvStamp(); } catch(e){}
@@ -46544,14 +46778,27 @@ function giRaceClsOf(txt){
 }
 function giSfOf(r){ return /ダ/.test(String(r.surf || '') + String(r.dist || '')) ? 'ダ' : (/障/.test(String(r.surf || '') + String(r.dist || '')) ? '障' : '芝'); }
 
+var GI_FULL360 = 2000;   /* ★第360弾: 母集団がこのレース数以下なら従来の一括ビルド、超えたら遅延導出（giRuns360等）へ切り替える境界 */
 function giBuild(){
   var key = giKey();
   if (giCache && giCache.key === key) return giCache;
   var races = {};
   /* ★第359弾: 学習DBだけでは年ファイルにしか無い過去走の馬が指数「—」になるため、
-     p32 の統合読み（diMergedRaces＝学習DB＋年ファイル・学習DB優先）へ切り替え */
-  try { var mr359 = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; races = (mr359 && mr359.races) || ((typeof diLs === 'function') ? diLs() : { races: {} }).races || {}; } catch(e){}
+     p32 の統合読み（diMergedRaces＝学習DB＋年ファイル・学習DB優先）へ切り替え
+     ★第360弾: 全量の統合読みを一括ビルドすると実機で再構築が重すぎた（第359弾の
+     実機フリーズ）ため、母集団が GI_FULL360 を超えたら一括ビルドをやめ、索引
+     （p32 diRunIndex）から必要な馬・人・レースだけを導出する遅延ファサードを返す */
+  try { var mr360 = (typeof diMergedRaces === 'function') ? diMergedRaces() : null; races = (mr360 && mr360.races) || ((typeof diLs === 'function') ? diLs() : { races: {} }).races || {}; } catch(e){}
   var BABA = giBaba();
+  if (Object.keys(races).length > GI_FULL360){
+    var idx360 = null;
+    try { idx360 = (typeof diRunIndex === 'function') ? diRunIndex() : null; } catch(e){}
+    if (idx360){
+      giCache = { key: key, BABA: BABA, menu: idx360.menu, idx: idx360, lazy360: 1, _runs: {}, _ps: {}, _fld: {}, _ages: {}, _jt: { jockey: {}, trainer: {} } };
+      return giCache;
+    }
+    /* 索引が使えない環境では従来の一括ビルドへ落とす（従来動作の保存） */
+  }
   var byName = {}, raceField = {}, PS = {}, menu = {}, raceAges = {}, JT = {};
   for (var rid in races){
     var rec = races[rid]; if (!rec) continue;
@@ -46619,6 +46866,123 @@ function giBuild(){
   return giCache;
 }
 
+/* ---------- ★第360弾: 遅延導出（大母集団用ファサードの実体） ----------
+   旧 giBuild が全頭分を一括構築していた byName / PS / raceField / raceAges / JT を、
+   必要になった馬・人・レースについてだけ p32 の走の索引（diRunIndex）から導出し、
+   ファサード c の _runs / _ps / _fld / _ages / _jt にメモ化する。
+   導出式は旧 giBuild の行オブジェクト生成・集計式と1対1に対応させてあり、同じ
+   母集団では同じ値になる（通過順 passing を行オブジェクトに持たせない等、旧来の
+   癖もそのまま再現する）。旧 giBuild の入口条件（日付が8桁でないレースは丸ごと
+   対象外・馬名なし行と着順0以下の行は数えない）も導出側で同じに適用する。 */
+function giRaceMinL3(rec){
+  var rows = (rec && rec.rows) || [], minL3 = null;
+  for (var i = 0; i < rows.length; i++){
+    var l3f = parseFloat(rows[i] && rows[i].last3);
+    if (isFinite(l3f) && l3f > 25 && l3f < 55 && (minL3 == null || l3f < minL3)) minL3 = l3f;
+  }
+  return minL3;
+}
+function giRuns360(c, name){
+  if (c._runs[name]) return c._runs[name];
+  var out = [];
+  var list = (c.idx && c.idx.hTrim && c.idx.hTrim[name]) || [];
+  var minCache = new Map();
+  for (var i = 0; i < list.length; i++){
+    var rec = list[i][0], r = list[i][1];
+    var m = rec.meta || {};
+    var d8 = String(m.date8 || '');
+    if (d8.length !== 8) continue;
+    var o = parseInt(r.order, 10) || 0;
+    if (o < 1) continue;
+    var minL3 = minCache.get(rec);
+    if (minL3 === undefined){ minL3 = giRaceMinL3(rec); minCache.set(rec, minL3); }
+    var sa = String(r.sexAge || ''), am = sa.match(/[牡牝セ闘](\d{1,2})$/);
+    out.push({ nm: name, date8: d8, place: String(m.place || ''), rnum: String(m.rnum || ''), rname: String(m.name || ''),
+      surf: String(m.surface || ''), dist: String(m.dist || ''), order: o,
+      time: giParseT(r.time), last3: parseFloat(r.last3) || null,
+      l3d: (isFinite(parseFloat(r.last3)) && minL3 != null) ? Math.round((parseFloat(r.last3) - minL3) * 10) / 10 : null,
+      pass1: parseInt(String(r.passing || '').split('-')[0], 10) || 0,
+      jockey: String(r.jockey || '').trim(), trainer: String(r.trainer || '').replace(/^\[.*?\]\s*/, '').trim(),
+      age: am ? parseInt(am[1], 10) : null });
+  }
+  out.sort(function(a, b){ return a.date8 < b.date8 ? -1 : (a.date8 > b.date8 ? 1 : 0); });   /* 旧 byName と同じ並び（安定ソート） */
+  c._runs[name] = out;
+  return out;
+}
+function giPS360(c, nm){
+  if (c._ps[nm]) return c._ps[nm];
+  var runs = giRuns360(c, nm);
+  var o2 = { 芝: null, ダ: null };
+  ['芝', 'ダ'].forEach(function(sf){
+    var rs = runs.filter(function(r){ return giSfOf(r) === sf; });
+    if (!rs.length) return;
+    var d = [], p3 = [0], acc = 0;
+    for (var j = 0; j < rs.length; j++){ d.push(rs[j].date8); if (rs[j].order <= 3) acc++; p3.push(acc); }
+    o2[sf] = { d: d, p3: p3 };
+  });
+  c._ps[nm] = o2;
+  return o2;
+}
+function giField360(c, key){
+  if (key in c._fld) return c._fld[key];
+  var rec = (c.idx && c.idx.raceByKey) ? c.idx.raceByKey[key] : null;
+  var fld = null;
+  if (rec){
+    var rows = rec.rows || [], arr = [];
+    for (var i = 0; i < rows.length; i++){
+      var r = rows[i]; if (!r || Array.isArray(r)) continue;
+      var nm = String(r.name || '').trim();
+      if (!nm) continue;
+      var o = parseInt(r.order, 10) || 0;
+      if (o < 1) continue;
+      arr.push({ nm: nm, o: o });
+    }
+    if (arr.length >= 2) fld = arr;   /* 旧 raceField は2頭未満のレースを持たない */
+  }
+  c._fld[key] = fld;
+  return fld;
+}
+function giAges360(c, key){
+  if (c._ages[key]) return c._ages[key];
+  var out = [];
+  var recs = (c.idx && c.idx.agesIdx && c.idx.agesIdx[key]) || [];
+  for (var i = 0; i < recs.length; i++){
+    var rec = recs[i], m = rec.meta || {}, d8 = String(m.date8 || '');
+    if (d8.length !== 8) continue;
+    var rows = rec.rows || [];
+    for (var j = 0; j < rows.length; j++){
+      var r = rows[j]; if (!r || Array.isArray(r)) continue;
+      var o = parseInt(r.order, 10) || 0;
+      if (o < 1 || o > 3) continue;
+      var sa = String(r.sexAge || ''), am = sa.match(/[牡牝セ闘](\d{1,2})$/);
+      var age = am ? parseInt(am[1], 10) : null;
+      if (age != null) out.push([d8, age]);
+    }
+  }
+  c._ages[key] = out;
+  return out;
+}
+function giJT360(c, kind, name){
+  var memo = c._jt[kind];
+  if (memo[name]) return memo[name];
+  var map = c.idx ? ((kind === 'jockey') ? c.idx.jTrim : c.idx.tGi) : null;
+  var list = (map && map[name]) || [];
+  var d = [], n = [0], w3 = [0];
+  for (var i = 0; i < list.length; i++){
+    var rec = list[i][0], r = list[i][1];
+    var d8 = String((rec.meta || {}).date8 || '');
+    if (d8.length !== 8) continue;
+    if (!String(r.name || '').trim()) continue;
+    var o = parseInt(r.order, 10) || 0;
+    if (o < 1) continue;
+    d.push(d8); n.push(n[n.length - 1] + 1); w3.push(w3[w3.length - 1] + (o <= 3 ? 1 : 0));
+  }
+  var p = { d: d, n: n, w3: w3 };   /* 旧 JT と同じ前方累積（母集団の走査順のまま＝旧一括ビルドと同値） */
+  memo[name] = p;
+  return p;
+}
+function giAsOf360(c, kind, name, d8){ return giAsOfP(giJT360(c, kind, name), d8); }
+
 /* ---------- コア計算(idx_coreと同一式のポート) ---------- */
 function giZ(vals){
   var v = vals.filter(function(x){ return x != null && isFinite(x); });
@@ -46630,7 +46994,7 @@ function giZ(vals){
 function giLower(arr, v){ var lo = 0, hi = arr.length; while (lo < hi){ var mid = (lo + hi) >> 1; if (arr[mid] < v) lo = mid + 1; else hi = mid; } return lo; }
 function giUpper(arr, v){ var lo = 0, hi = arr.length; while (lo < hi){ var mid = (lo + hi) >> 1; if (arr[mid] <= v) lo = mid + 1; else hi = mid; } return lo; }
 function giWinCount(c, nm, sf, dFrom, dTo){
-  var ps = c.PS[nm] && c.PS[nm][sf];
+  var ps = c.lazy360 ? giPS360(c, nm)[sf] : (c.PS[nm] && c.PS[nm][sf]);
   if (!ps) return { n: 0, n3: 0 };
   var lo = giUpper(ps.d, dFrom), hi = giLower(ps.d, dTo);
   if (hi <= lo) return { n: 0, n3: 0 };
@@ -46639,7 +47003,7 @@ function giWinCount(c, nm, sf, dFrom, dTo){
 function giAdjF(c, jr, targetD8){
   if (!jr.rnum) return 0;
   key = jr.date8 + '|' + String(jr.place || '') + '|' + String(jr.rnum || '').padStart(2, '0');
-  var f = c.raceField[key];
+  var f = c.lazy360 ? giField360(c, key) : c.raceField[key];
   var out = 0;
   if (f){
     var sf = giSfOf(jr), n = 0, n3 = 0;
@@ -46663,7 +47027,7 @@ function giPatternScore(jr){
   return 0;
 }
 function giPriorOf(c, name, raceDate, surfKey){
-  var runs = c.byName[name];
+  var runs = c.lazy360 ? giRuns360(c, name) : c.byName[name];
   if (!runs) return [];
   var lo = 0, hi = runs.length;
   while (lo < hi){ var mid = (lo + hi) >> 1; if (runs[mid].date8 < raceDate) lo = mid + 1; else hi = mid; }
@@ -46757,15 +47121,17 @@ function giBabaRaw(c, priorSame, today, surfKey){
 function giStyleOf(pass1){ return pass1 > 0 && pass1 <= 2 ? 'E' : (pass1 <= 5 ? 'S' : (pass1 <= 9 ? 'K' : 'C')); }
 function giIntBucket(days){ return days == null ? null : (days <= 13 ? 1 : (days <= 30 ? 2 : (days <= 60 ? 3 : (days <= 120 ? 4 : 5)))); }
 function giDayDiff(d1, d2){ return Math.round((Date.UTC(+d2.slice(0, 4), +d2.slice(4, 6) - 1, +d2.slice(6, 8)) - Date.UTC(+d1.slice(0, 4), +d1.slice(4, 6) - 1, +d1.slice(6, 8))) / 86400000); }
-function giAsOfRate(P, k, d8){
-  var p = P[k]; if (!p) return null;
+function giAsOfP(p, d8){
+  if (!p) return null;
   var lo = giLower(p.d, d8);
   if (lo < 30) return null;
   return p.w3[lo] / p.n[lo];
 }
+function giAsOfRate(P, k, d8){ return giAsOfP(P ? P[k] : null, d8); }
 function giAgeFit(c, place, rname, d8, age){
   if (age == null) return null;
-  var h = c.raceAges[String(place || '') + '|' + giNormName(rname)];
+  var ak = String(place || '') + '|' + giNormName(rname);
+  var h = c.lazy360 ? giAges360(c, ak) : c.raceAges[ak];
   if (!h) return null;
   var tot = 0, hit = 0;
   for (var i = 0; i < h.length; i++){ if (h[i][0] >= d8) continue; tot++; if (h[i][1] === age) hit++; }
@@ -46838,9 +47204,9 @@ function giCompute(ctx){
       /* 好走年齢 */
       raws.age.push(giAgeFit(c, ctx.place, ctx.rname, d8, age));
       /* 騎手・厩舎(as-of複勝率) */
-      raws.jky.push(h.jockey ? giAsOfRate(c.JT.jockey, String(h.jockey), d8) : null);
+      raws.jky.push(h.jockey ? (c.lazy360 ? giAsOf360(c, 'jockey', String(h.jockey), d8) : giAsOfRate(c.JT.jockey, String(h.jockey), d8)) : null);
       var trn = (lr2 && lr2.trainer) ? lr2.trainer : '';
-      raws.trn.push(trn ? giAsOfRate(c.JT.trainer, trn, d8) : null);
+      raws.trn.push(trn ? (c.lazy360 ? giAsOf360(c, 'trainer', trn, d8) : giAsOfRate(c.JT.trainer, trn, d8)) : null);
     });
     /* z化(小さいほど良い要素は反転) */
     var inv = { t: 1, l3: 1, te: 1 };
