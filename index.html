@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-13 第362弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-14 第363弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -2858,7 +2858,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-13 第362弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-14 第363弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -6618,6 +6618,7 @@ function aiDepCss(){
     '.adw .PositionMarkList li>em{font-style:normal;font-size:12px;font-weight:700;color:#555;width:52px;flex:none}' +
     '.adw .PositionMarkList li>div{position:relative;display:block;font-size:12px;font-weight:bold;width:33.33%;padding-top:20px;text-align:center;margin-right:4px;border-radius:6px}' +
     '.adw .PositionMarkList li>div>span{position:absolute;top:0;left:0;z-index:10;text-align:center;width:100%;line-height:20px;color:inherit}' +
+    '.adw .PositionMarkList li>div.adHH{padding-top:0;font-size:11px;font-weight:700;color:#666;line-height:16px}' +
     '.adw table.adAxis{border-collapse:collapse;margin-top:4px;font-size:.76rem;width:100%}' +
     '.adw table.adAxis th{background:#f2eefb;color:#4b2e83;font-size:.68rem;padding:2px 6px;border:1px solid #e4dcf2;font-weight:700}' +
     '.adw table.adAxis td{padding:2px 6px;border:1px solid #eee;text-align:center;white-space:nowrap}' +
@@ -6659,7 +6660,13 @@ function aiDepCss(){
 /* 4コーナーポジション別の複勝率（実色：赤=高／黄／緑／水／灰=0） */
 function aiDepHeatHtml(d){
   if (!d.heat) return '';
-  var rows = d.heat.rows.map(function(r){
+  var head = '';
+  if (d.heat.rows.length && d.heat.rows[0].cells.length){
+    head = '<li><em></em>' + d.heat.rows[0].cells.map(function(c){
+      return '<div class="adHH">' + aiDepEsc(c.side || '') + '</div>';
+    }).join('') + '</li>';
+  }
+  var rows = head + d.heat.rows.map(function(r){
     return '<li><em>' + aiDepEsc(r.label) + '</em>' + r.cells.map(function(c){
       return '<div class="Heat0' + c.heat + '"><span>' + c.pct + '%</span></div>';
     }).join('') + '</li>';
@@ -17902,6 +17909,38 @@ function apSnapPred(rid, res, meta, opt){
     apPut(rec);
     return rec;
   } catch(e){ return null; }
+}
+
+/* ★第363弾: 保存済み予想の Lv・指数だけを、現在の母集団（読み込み済みの年ファイルを
+   含む統合読み）で計算し直して反映する。通信なし。予想本文（印・確率・オッズ・馬体重）
+   は一切触らない。書き換えは「再計算できた値があり、保存済みと違うとき」だけ
+   （第362弾B2と同じ規約）。
+   背景: 第362弾までの治癒経路は「一括取得→結果取得・再予想チェーンの最後尾で
+   apSnapPred が作り直す」しかなく、チェーン完了前に書き出すと旧い欠けのまま出た
+   （オーナー実機で再生成してもカバー率が完全一致した主因）。p53 の一括取得が
+   入口で年ファイルを読み込んだ直後に本関数で全レース分を先に直すことで、
+   チェーンの残り（出馬表・結果の再取得）が終わっていなくても書き出しへ反映される。
+   結果確定済みレースは apPreAllowed で弾く（第102弾: 確定後の再ランク付け禁止）。
+   戻り値: 1=反映した / 0=変更なし・対象外 */
+function apRefreezeLvGi363(rid){
+  try {
+    if (!rid) return 0;
+    if (typeof apPreAllowed === 'function' && !apPreAllowed(rid)) return 0;
+    var rec = (typeof apGet === 'function') ? apGet(rid) : null;
+    var snap = rec && rec.pre;
+    if (!snap || !snap.rows || !snap.rows.length || snap.synthetic) return 0;
+    var changed = false;
+    if (typeof aiFreezeLv === 'function'){
+      var lvF = aiFreezeLv(snap.rows, rec.meta || null);
+      if (lvF && JSON.stringify(lvF) !== JSON.stringify(snap.lv || null)){ snap.lv = lvF; changed = true; }
+    }
+    if (typeof aiFreezeGidx === 'function'){
+      var giF = aiFreezeGidx(snap.rows, rec.meta || null);
+      if (giF && JSON.stringify(giF) !== JSON.stringify(snap.gidx || null)){ snap.gidx = giF; changed = true; }
+    }
+    if (changed && typeof apPut === 'function') apPut(rec);
+    return changed ? 1 : 0;
+  } catch(e){ return 0; }
 }
 
 /* rec.pre の印（上位5頭）を、結果と突き合わせられる形にする */
@@ -34170,7 +34209,7 @@ function preEnsureJv362(){
 function preDayFetch(date8, opt, progress){
   opt = opt || {};
   progress = progress || function(){};
-  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, ckN: 0, errors: [], aiHave: 0, aiGot: 0, aiNone: 0, aiFail: 0 };   /* ★第97弾: refreshed=引き直し件数 */   /* ★第295弾: ckN=調教反映頭数 */   /* ★第329弾: ai*=③AI展開予測用の総仕上げ件数 */
+  var result = { ok: 0, skipHave: 0, skipDone: 0, fail: 0, total: 0, detailN: 0, oddsN: 0, styleN: 0, cardN: 0, refreshed: 0, ckN: 0, healN: 0, errors: [], aiHave: 0, aiGot: 0, aiNone: 0, aiFail: 0 };   /* ★第97弾: refreshed=引き直し件数 */   /* ★第295弾: ckN=調教反映頭数 */   /* ★第329弾: ai*=③AI展開予測用の総仕上げ件数 */   /* ★第363弾: healN=Lv・指数の先行再凍結件数 */
   var d8 = String(date8 || '').replace(/[^0-9]/g, '');
   if (!/^\d{8}$/.test(d8)){
     return Promise.reject(new Error('日付が不正です（YYYYMMDD）'));
@@ -34181,6 +34220,20 @@ function preDayFetch(date8, opt, progress){
     /* ★第310弾: 一括取得した日を📋出馬表タブの日付リストにも登録する（opt-in: opt.sbDay）。
        従来は登録されず、AI提案タブだけで取得した日は出馬表タブに一切出なかった */
     try { if (opt.sbDay && typeof sbNoteDay === 'function') sbNoteDay(d8); } catch(e){}
+    /* ★第363弾: 保存済み予想の Lv・指数を、入口で読み込ませた年ファイルを含む現在の
+       母集団で先に計算し直す（通信なし・予想本文は不変）。従来の治癒は再予想
+       （チェーン最後尾の apSnapPred 作り直し）でしか起きず、チェーン完了前に
+       書き出すと旧い欠けのまま出ていた。ここで先に直しておけば、以後の処理が
+       途中で終わっても書き出しへ反映される。再予想側の作り直しも従来どおり動く。 */
+    try {
+      if (typeof apRefreezeLvGi363 === 'function'){
+        items.forEach(function(it){
+          var r9 = String((it && (it.rid || it.id)) || '');
+          if (r9 && apRefreezeLvGi363(r9)) result.healN++;
+        });
+        if (result.healN) preLog(progress, '保存済み予想 ' + result.healN + ' レースのLv・指数を、年ファイル込みの現在のデータで計算し直しました');
+      }
+    } catch(e){}
     preLog(progress, items.length + ' レースを検出しました。出走前に出馬表を1レースずつ取得してAI予想を保存します…');
     var seq = Promise.resolve();
     items.forEach(function(it){
