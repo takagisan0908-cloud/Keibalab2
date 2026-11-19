@@ -1142,7 +1142,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
     <button type="button" class="dx" id="drawerClose" aria-label="閉じる">✕</button>
   </div>
   <nav class="drawer-nav" id="drawerList"></nav>
-  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-14 第363弾</b></div>
+  <div class="drawer-foot">競馬AIラボ ／ 各ページは上のボタンか、トップページのカードから移動できます。<br>ビルド: <b>2026-11-16 第366弾</b></div>
 </aside>
 
 <nav class="tabs">
@@ -1170,6 +1170,9 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
           <span class="muted">📊 観測DB（📝展開解説の統計）へ過去日を追加 <span style="color:var(--warn-ink)">※結果が出た日だけ（レース前は0件）・出馬表を今すぐ見るには🤖AI提案タブの「一括取得」</span>:</span>
           <input type="date" id="adObsDate" style="font-size:.8rem;padding:2px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)" aria-label="追加取得する日付">
           <button type="button" class="btn ghost" id="btnAdObs" onclick="adObsBackfill()" title="その日のJRAレースの出馬表＋結果を中継経由で取得して観測統計に加えます（1日ぶん約36レース・1〜2分）。加えた分はこの端末に蓄積され、📝展開解説の数字に反映されます。※観測統計への蓄積専用で、出馬表の表示には出ません（レースが終わった日の夜〜翌日以降に実行）">📥 観測DBに追加</button>
+          <!-- ★第366弾: 取得済み一覧の消去ボタン（従来は旧①データ入力画面にしか無く現行ビルドでは表示できなかった）。
+               一覧は上限300件で古い日付から切り捨てられるため、過去日を追加する前にここで消せるようにする -->
+          <button type="button" class="btn ghost" id="preListClearSim" title="一括取得したレースの一覧だけを消します。出馬表キャッシュ・学習DB・読み込み履歴は消えません。一覧が上限の300件を超えると古い日付から表示できなくなるため、過去日を追加する前に消すと確実に表示できます">🗑 取得済み一覧を消去</button>
           <span class="small muted" id="adObsMsg"></span>
         </div>
         <div id="adSub" class="small muted" style="margin-top:2px"></div>
@@ -1826,6 +1829,9 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
            あわせて馬柱データ取得はデフォルトON＋チェック状態を記憶し、一括取得した日は📋出馬表タブにも自動登録される -->
       <input type="date" id="preDate" title="出馬表を取得する開催日" aria-label="出馬表を取得する開催日" style="font-size:.9rem;padding:4px 6px;border:1px solid var(--line2);border-radius:8px;background:var(--card)">
       <button id="preBtn" class="btn primary" title="選んだ日の全レースの出馬表をnetkeibaからまとめて取得し、1レースずつAI印を計算して事前予想として保存します（📌=レース前の予想。結果が出たら自動で照合して学習します）。すでに取得済みの日なら、続けて ①表示とオッズを更新 ②終わったレースは結果(着順・払戻・展開)を取得して学習に反映 ③まだ発走していないレースは出馬表とオッズを取り直して当日バイアス反映の予想に付け直します。結果が確定しているレースの予想は絶対に上書きしません。終了後のExcel/PDFも新しい印で出ます">📥 その日の出馬表を一括取得</button>
+      <!-- ★第366弾: 取得済み一覧の消去ボタン（従来は旧①データ入力画面にしか無く現行ビルドでは表示できなかった）。
+           一覧は上限300件で古い日付から切り捨てられるため、過去日を取得する前にここで消せるようにする -->
+      <button id="preListClearAi" class="btn" title="一括取得したレースの一覧だけを消します。出馬表キャッシュ・学習DB・読み込み履歴は消えません。一覧が上限の300件を超えると古い日付から表示できなくなるため、過去日を取得する前に消すと確実に表示できます">🗑 取得済み一覧を消去</button>
       <button id="aiExcel" class="btn">📤 Excel保存（.xls）</button>
       <button id="aiPdf" class="btn">🖨 PDF（印刷）</button>
       <span class="muted small">📅日付を選んで「📥 その日の出馬表を一括取得」を押すと、出馬表＋馬柱データを取得してAI印を保存します（📋出馬表タブにもその日が登録されます）。すでに取得済みの日なら、続けて終わったレースの結果取得＋未発走の再予想まで実行します。Excel/PDFはその日の全レース（印・特記・AI勝率/連対率/複勝率・波乱度5段階）を1枚にまとめます</span>
@@ -2858,7 +2864,7 @@ html.khl-nomotion .drawer,html.khl-nomotion .drawer-back,html.khl-nomotion .btn,
 <footer>
   ⚠ 予想は参考情報です（馬券の購入・的中を保証しません。数値は統計的推計です）。処理はすべてブラウザ内で行い、外部サイトへの取得は明示した操作時のみです。<br>
   競馬AIラボ / 詳しくは README.md を参照
-  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-14 第363弾</b></span>
+  <span class="bstamp" title="今開いているページの版です。手順書の版と違う場合は古いファイル（またはキャッシュ）を開いています。">ビルド: <b id="buildStamp">2026-11-16 第366弾</b></span>
 </footer>
 
 <div class="modal hidden" id="modalRoot"><div class="modalbox" id="modalBody"></div></div>
@@ -17930,6 +17936,31 @@ function apRefreezeLvGi363(rid){
     var snap = rec && rec.pre;
     if (!snap || !snap.rows || !snap.rows.length || snap.synthetic) return 0;
     var changed = false;
+    /* ★第365弾: 保存済み予想の rec.meta 自体が面なしで残っていると、再凍結しても
+       同じ誤値が再生産されて差分なしで終わる（第363弾でもカバー率が変わらなかった
+       一因）。入口で出馬表キャッシュ（khl_card_v1）を読み直し、nkParseRaceMeta で
+       面と距離を取って rec.meta を補正してから再凍結する。キャッシュが無い・面が
+       取れない場合は補正なしで従来どおり再凍結だけを行う。 */
+    var metaFixed365 = false;
+    try {
+      if (typeof nkCardGet === 'function' && typeof nkParseRaceMeta === 'function'){
+        var cardHtml365 = nkCardGet(rid);
+        if (cardHtml365){
+          var cm365 = nkParseRaceMeta(cardHtml365) || {};
+          var cs365 = String(cm365.surface || '');
+          var csurf365 = /障/.test(cs365) ? '障' : (/ダ/.test(cs365) ? 'ダ' : (/芝/.test(cs365) ? '芝' : ''));
+          if (csurf365){
+            if (!rec.meta) rec.meta = {};
+            if (rec.meta.surface !== csurf365){ rec.meta.surface = csurf365; metaFixed365 = true; }
+            var cd365 = String(cm365.dist || '').match(/(\d{3,4})/);
+            if (cd365){
+              var nd365 = csurf365 + cd365[1] + 'm';
+              if (rec.meta.dist !== nd365){ rec.meta.dist = nd365; metaFixed365 = true; }
+            }
+          }
+        }
+      }
+    } catch(e){}
     if (typeof aiFreezeLv === 'function'){
       var lvF = aiFreezeLv(snap.rows, rec.meta || null);
       if (lvF && JSON.stringify(lvF) !== JSON.stringify(snap.lv || null)){ snap.lv = lvF; changed = true; }
@@ -17938,7 +17969,7 @@ function apRefreezeLvGi363(rid){
       var giF = aiFreezeGidx(snap.rows, rec.meta || null);
       if (giF && JSON.stringify(giF) !== JSON.stringify(snap.gidx || null)){ snap.gidx = giF; changed = true; }
     }
-    if (changed && typeof apPut === 'function') apPut(rec);
+    if ((changed || metaFixed365) && typeof apPut === 'function') apPut(rec);
     return changed ? 1 : 0;
   } catch(e){ return 0; }
 }
@@ -18158,9 +18189,27 @@ function apMetaCur(){
   if (dm){ m.place = dm[1]; m.rnum = dm[2]; }
   var pl = (state && state.race && state.race.place) || '';
   if (!m.place && pl){ for (var i = 0; i < AP_VENUES.length; i++) if (pl.indexOf(AP_VENUES[i]) >= 0){ m.place = AP_VENUES[i]; break; } }
-  m.dist = (state && state.race && state.race.dist) || '';
-  if (nm && !m.dist){ var dm2 = nm.match(/[芝ダ](?:ート)?\s*(\d{3,4})m/); if (dm2) m.dist = dm2[1]; }
-  if (nm){ if (/ダート|ダ/.test(nm)) m.surface = 'ダ'; else if (/障害|障/.test(nm)) m.surface = '障'; else if (/芝/.test(nm)) m.surface = '芝'; }
+  /* ★第365弾: 面は state.race.surface を正本として引き継ぐ。従来はレース名の文字列
+     からだけ判定していたため、名前に面の文字が無い経路（一括取得・URL取込）では面が
+     空になり、指数・Lvの凍結が芝に倒れて、ダートレースの指数が軒並み空欄になって
+     いた（2026-11-15の書き出しで指数空欄100頭中90頭がダート・全頭が芝出走歴ゼロ）。
+     レース名からの判定は、surface が取れない場合の予備に降格する。
+     あわせて dist は「面＋数字＋m」の形（例: ダ1800m）に組み立て直して返す
+     （学習DB由来メタの既存形式に合わせ、指数側の正規表現判定とLv側の面判定の
+     両方へ正しい面が届くようにする）。 */
+  var surf365 = '';
+  var srf365 = String((state && state.race && state.race.surface) || '');
+  if (/障/.test(srf365)) surf365 = '障';
+  else if (/ダ/.test(srf365)) surf365 = 'ダ';
+  else if (/芝/.test(srf365)) surf365 = '芝';
+  if (!surf365 && nm){ if (/ダート|ダ/.test(nm)) surf365 = 'ダ'; else if (/障害|障/.test(nm)) surf365 = '障'; else if (/芝/.test(nm)) surf365 = '芝'; }
+  m.surface = surf365;
+  var dnum365 = '';
+  var draw365 = String((state && state.race && state.race.dist) || '');
+  var dmm365 = draw365.match(/(\d{3,4})/);
+  if (dmm365) dnum365 = dmm365[1];
+  if (!dnum365 && nm){ var dm2 = nm.match(/[芝ダ](?:ート)?\s*(\d{3,4})m/); if (dm2) dnum365 = dm2[1]; }
+  m.dist = dnum365 ? ((surf365 || '') + dnum365 + 'm') : draw365;
   var rc = { fast:'良', good:'稍重', yield:'重', soft:'不良' };
   var bc = '';
   try { bc = String(readRaceMeta().baba || ''); } catch(e){}
@@ -33837,6 +33886,15 @@ function preListClear(){
   try { localStorage.removeItem(PRE_LIST_LS); } catch(e){}
   preListRender();
 }
+/* ★2026-11-16 第366弾: 一覧消去の共通入口（確認ダイアログ付き）。
+   旧①画面のボタン（preListClear）と、③AI展開予測タブ・AI提案タブの新ボタンが
+   全てここを通る。消すのは一覧（PRE_LIST_LS）だけで、preListClear 本体は不変。
+   戻り値: 消去したら true、確認でキャンセルされたら false。 */
+function preListClearAsk(){
+  if (typeof window !== 'undefined' && window.confirm && !window.confirm('一括取得したレースの一覧だけ消します。\n出馬表キャッシュ・学習DB・読み込み履歴は消えません。よろしいですか？')) return false;
+  preListClear();
+  return true;
+}
 /* 出馬表HTMLが端末に入っているか（＝通信せず開けるか） */
 function preHasCard(rid){
   /* ★第157弾: 一覧描画用はHTMLを展開しない高速判定を優先（無ければ従来の nkCardHas） */
@@ -34450,8 +34508,25 @@ function initPre(){
   try {
     var cb = $('preListClear');
     if (cb && cb.addEventListener) cb.addEventListener('click', function(){
-      if (typeof window !== 'undefined' && window.confirm && !window.confirm('一括取得したレースの一覧だけ消します。\n出馬表キャッシュ・学習DB・読み込み履歴は消えません。よろしいですか？')) return;
-      preListClear();
+      preListClearAsk();   /* ★第366弾: 確認＋消去は共通入口へ（確認文・動作は従来どおり） */
+    });
+  } catch(e){}
+  /* ★第366弾: ③AI展開予測タブ・AI提案タブの消去ボタンも配線する。
+     一覧は300件上限で古い日付から切り捨てられ、過去日の図が表示できなくなるため、
+     過去日を扱うその場で消せるようにした。消えるのは一覧だけでキャッシュ等は不変。 */
+  try {
+    var cs = $('preListClearSim');
+    if (cs && cs.addEventListener) cs.addEventListener('click', function(){
+      if (!preListClearAsk()) return;
+      try { if (typeof aiDepBar === 'function') aiDepBar(); } catch(e){}
+      try { if (typeof adObsMsg === 'function') adObsMsg('🗑 取得済み一覧を消去しました（出馬表キャッシュ・学習DB・履歴はそのままです）'); } catch(e){}
+    });
+  } catch(e){}
+  try {
+    var ca = $('preListClearAi');
+    if (ca && ca.addEventListener) ca.addEventListener('click', function(){
+      if (!preListClearAsk()) return;
+      try { preMsg('🗑 取得済み一覧を消去しました（出馬表キャッシュ・学習DB・履歴はそのままです）'); } catch(e){}
     });
   } catch(e){}
 }
@@ -41376,7 +41451,19 @@ function aiRaceGeom(b){
   var mm = (b.rec && b.rec.meta) || {};
   var raceName = String(mm.name || ''), distStr = String(mm.dist || '');
   var m = parseInt((distStr.match(/(\d{3,4})/) || raceName.match(/(?:芝|ダート?|ダ)\s*右?左?内?外?直?(\d{3,4})/) || [])[1] || 0, 10) || 1600;
-  var surfKey = /障/.test(raceName + distStr) ? '障' : (/ダ/.test(raceName + distStr) ? 'ダ' : '芝');
+  /* ★第365弾: 面の判定材料に meta.surface を加え、ある場合はそれを正本とする
+     （従来はレース名と dist の文字列だけだったため、面なしメタではダートレースも
+     芝になっていた）。どれでも判定できない場合は芝に倒さず surf を空で返し、
+     凍結側（aiFreezeLv）が中止できるようにする。 */
+  var msf365 = String(mm.surface || '');
+  var surfKey;
+  if (/障/.test(msf365)) surfKey = '障';
+  else if (/ダ/.test(msf365)) surfKey = 'ダ';
+  else if (/芝/.test(msf365)) surfKey = '芝';
+  else if (/障/.test(raceName + distStr)) surfKey = '障';
+  else if (/ダ/.test(raceName + distStr)) surfKey = 'ダ';
+  else if (/芝/.test(raceName + distStr)) surfKey = '芝';
+  else surfKey = '';
   return { m: m, surf: surfKey, venue: String(mm.place || '') };
 }
 /* ---------- 🎚 コースLv/レースLv・実況風展開予想（第36弾→★第69弾→★第71弾） ----------
@@ -41634,7 +41721,10 @@ function aiFreezeLv(rows, mm){
     var hs = (rows || []).filter(function(r){ return r && r.name; });
     if (!hs.length) return null;
     var b = { rec: { meta: mm || {} }, rows: hs.slice().sort(function(a, b2){ return (a.rank || 99) - (b2.rank || 99); }) };
-    var lv = aiFieldLevels(hs, aiRaceGeom(b));
+    var geom365 = aiRaceGeom(b);
+    /* ★第365弾: 面が判定できないレースは芝に倒さず凍結を中止する（誤値を焼き付けない） */
+    if (!geom365.surf) return null;
+    var lv = aiFieldLevels(hs, geom365);
     if (!((lv.clN || 0) > 0) && !((lv.rlN || 0) > 0)) return null;   /* 測れる馬がいないときは未保存（未確定の間は都度計算） */
     var out = { cl: lv.cl, rl: lv.rl, clRk: lv.clRk, rlRk: lv.rlRk, clN: lv.clN, rlN: lv.rlN };
     try { out.rlTxt = aiRaceRL(b); } catch(e2){}
@@ -47571,9 +47661,22 @@ function aiFreezeGidx(rows, mm){
     if (hs.length < 3) return null;
     var meta = mm || {};
     var dm = String(meta.dist || '').match(/^(芝|ダ)(\d{3,4})m$/);
-    var surfKey = dm ? dm[1] : (/ダ/.test(String(meta.surface || '')) ? 'ダ' : '芝');
+    /* ★第365弾: 面が判定できない場合は芝に倒さず凍結を中止する（誤った値を
+       焼き付けない）。判定材料は dist の形と meta.surface のみで、レース名からの
+       推定はしない。障害は指数に専用の面判定が無いため従来どおり芝として扱う。
+       距離は dist の数字から拾い直し、面だけ分かっている場合も 0 にしない
+       （従来は dist が数字のみの経路で距離0のまま計算され、芝の数値も歪んでいた）。 */
+    var surfKey = null;
+    if (dm) surfKey = dm[1];
+    else {
+      var msf365 = String(meta.surface || '');
+      if (/ダ/.test(msf365)) surfKey = 'ダ';
+      else if (/芝/.test(msf365) || /障/.test(msf365)) surfKey = '芝';
+    }
+    if (!surfKey) return null;
+    var dnum365 = dm ? parseInt(dm[2], 10) : (parseInt((String(meta.dist || '').match(/(\d{3,4})/) || [])[1] || 0, 10) || 0);
     var g = giCompute({ date8: String(meta.date8 || ''), place: String(meta.place || ''), rname: String(meta.name || ''),
-      surf: surfKey, m: dm ? parseInt(dm[2], 10) : 0,
+      surf: surfKey, m: dnum365,
       rows: hs.map(function(r){ return { no: r.no, name: r.name, jockey: r.jockey || '', age: null }; }) });
     var n = 0;
     for (var k in g.s) if (g.s[k] != null) n++;
